@@ -9,8 +9,6 @@
 
 A scalable multimodal pipeline for processing, indexing, and querying multimodal documents
 
-[TODO: Insert cool image]
-
 Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
 Well, MMORE is here to help you!
 
@@ -27,8 +25,8 @@ We also provide a docker image for easy deployment.
 
 To launch the MMORE pipeline follow the specialised instructions in the docs.
 
-
 ![The MMORE pipelines archicture](resources/mmore_architecture.png)
+
 1. **:page_facing_up: Input Documents**  
    Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
 
@@ -40,8 +38,8 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and only need to provide a standard API. 
 
 4. [**:robot: RAG**](./docs/rag.md) 
-   Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LlamaIndex](https://www.llamaindex.ai/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
-   *Supports API hosting or local inference and evaluation.*
+   Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
+   *Supports API hosting or local inference.*
 
 5. **:tada: Evaluation**  
    *Coming soon*
