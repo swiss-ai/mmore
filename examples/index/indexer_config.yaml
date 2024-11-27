@@ -1,0 +1,9 @@
+indexer:
+  dense_model_name: sentence-transformers/all-MiniLM-L6-v2
+  sparse_model_name: splade
+  db:
+    uri: ./examples/rag/proc_demo.db
+  chunker:
+    chunking_strategy: sentence
+collection_name: my_docs
+documents_path: examples/example_outputs

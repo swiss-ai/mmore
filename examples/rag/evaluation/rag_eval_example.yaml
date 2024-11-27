@@ -1,0 +1,14 @@
+hf_dataset_name: "Mallard74/eval_medical_benchmark"  # Hugging Face dataset name
+split: "train"  # Dataset split
+hf_feature_map: {'user_input': 'user_input', 'reference': 'reference', 'corpus': 'corpus', 'query_id': 'query_ids'} # Column mapping from your dataset feature map to our standard column map
+
+metrics:  # List of metrics to evaluate
+  - LLMContextRecall
+  - Faithfulness
+  - FactualCorrectness
+  - SemanticSimilarity
+evaluator_name: "gpt-4o"  # Evaluator LLM name
+embeddings_name: "all-MiniLM-L6-v2"  # Embedding model name
+uri: "./examples/rag/milvus_eval_medical_benchmark.db"  # Vectorstore URI
+
+

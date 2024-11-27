@@ -1,0 +1,15 @@
+transformers==4.46.2
+datasets
+langchain
+langchain-milvus
+langchain-huggingface
+langchain-openai
+langchain-anthropic
+langchain-mistralai
+langchain-cohere
+pymilvus[model]
+ragas
+nltk
+python-dotenv
+dacite
+chonkie

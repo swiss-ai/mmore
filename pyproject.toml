@@ -1,0 +1,75 @@
+[project]
+name = "mmore"
+version = "0.1.0"
+description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
+authors = [
+    {name = "Example Author", email = "author@example.com"}
+]
+readme = "README.md"
+dependencies = [
+    "torch>=2.5.1",
+    "Pillow",
+    "PyMuPDF",
+    "Unidecode",
+    "clean-text",
+    "docx2pdf",
+    "lxml_html_clean",
+    "markdown",
+    "markdownify",
+    "marker-pdf",
+    "moviepy",
+    "numpy",
+    "openpyxl",
+    "pandas",
+    "py7zr",
+    "python-docx",
+    "python-pptx",
+    "rarfile",
+    "requests",
+    "selenium",
+    "surya-ocr",
+    "trafilatura",
+    "validators",
+    "xlrd",
+    "transformers==4.46.2",
+    "datasets",
+    "langchain",
+    "langchain-milvus",
+    "langchain-huggingface",
+    "langchain-openai",
+    "langchain-anthropic",
+    "langchain-mistralai",
+    "langchain-cohere",
+    "langserve[all]",
+    "pymilvus[model]",
+    "fastapi[standard]",
+    "uvicorn",
+    "ragas",
+    "nltk",
+    "python-dotenv",
+    "dacite",
+    "chonkie",
+    "click>=8.1.7",
+    "dask-cuda>=24.10.0",
+    "cuda-python>=12.6.2",
+    "ucx-py-cu12>=0.40.0",
+]
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[[tool.rye.sources]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu124"
