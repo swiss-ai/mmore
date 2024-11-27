@@ -55,7 +55,7 @@ See [the `/docs` directory](/docs) for additional details on each modules and ha
 | **Text Documents** | DOCX, MD, PPTX, XLSX, TXT               | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
-| **Web Content**    | Webpages                                | GPU/CPU                  | :white_check_mark:
+| **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
 
 
 ## Contributing
