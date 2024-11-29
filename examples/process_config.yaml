@@ -1,19 +1,18 @@
-process_batch_sizes:
-  node_batch_sizes:
+dispatcher_config:
+  output_path: examples/outputs/
+  use_fast_processors: false
+  distributed: false
+  scheduler_file: scheduler-file.json
+  process_batch_sizes:
     - URLProcessor: 40
     - DOCXProcessor: 100
-    - PDFProcessor: 1000
+    - PDFProcessor: 4000
     - MediaProcessor: 40
     - SpreadsheetProcessor: 100
     - TXTProcessor: 100
     - PPTXProcessor: 100
     - MarkdownProcessor: 100
-    
-dispatcher_config:
-  output_path: examples/outputs/
-  use_fast_processors: false
-  distributed: true
-  scheduler_file: scheduler-file.json
+
   processor_config: 
     MediaProcessor:
       - normal_model: "openai/whisper-large-v3-turbo"
@@ -33,4 +32,4 @@ dispatcher_config:
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
 
-data_path: test_data
+data_path: test_data/
