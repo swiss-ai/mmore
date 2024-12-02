@@ -11,34 +11,31 @@ from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.type import MultimodalSample
 from src.mmore.utils import load_config
 from typing import Union, List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class EvalConfig:
     """RAG Eval Configuration"""
-    metrics: Union[str, List[str]]
-    evaluator_name: str
-    embeddings_name: str
-    uri: str
     hf_dataset_name: str
-    hf_feature_map: dict
     split: str
-
+    hf_feature_map: dict
+    metrics: Union[str, List[str]]
+    embeddings_name: str
+    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))    
+   
 
 class RAGEvaluator:
     dataset: Dataset
     metrics: Metric | List[Metric]
     evaluator_llm: BaseRagasLLM
     embeddings: BaseRagasEmbeddings
-    db_config: DBConfig
 
-    def __init__(self, dataset, metrics, evaluator_llm, embeddings, db_config):
+    def __init__(self, dataset, metrics, evaluator_llm, embeddings):
         self.dataset = dataset
         self.metrics = metrics
         self.evaluator_llm = evaluator_llm
         self.embeddings = embeddings
-        self.db_config = db_config
 
     @classmethod
     def from_config(cls, config: str | EvalConfig):
@@ -51,22 +48,14 @@ class RAGEvaluator:
         # Add 'retrieved_contexts' and 'response' as empty fields
         dataset = dataset.map(lambda x: {"retrieved_contexts": [], "response": []})
 
-        # Define the Milvus configuration
-        db_config = DBConfig(uri=config.uri)
-
         # Parse and store metrics
         metrics = RAGEvaluator._parse_metrics(config.metrics)
 
         # Define evaluator LLM and embeddings
-        evaluator_llm_config = LLMConfig(
-            llm_name=config.evaluator_name,
-            max_new_tokens=150,
-            temperature=0.8
-        )
-        evaluator_llm = LLM.from_config(evaluator_llm_config)
+        evaluator_llm = LLM.from_config(config.llm)
         embeddings = HuggingFaceEmbeddings(model_name=config.embeddings_name)
 
-        return cls(dataset, metrics, evaluator_llm, embeddings, db_config)
+        return cls(dataset, metrics, evaluator_llm, embeddings)
 
     @staticmethod
     def _parse_metrics(metrics: List):
@@ -99,16 +88,15 @@ class RAGEvaluator:
 
         return updated_dataset
 
-    def __call__(self, llm: str, dense: str, sparse: str, k: int):
+    def __call__(self, indexer_config: IndexerConfig, rag_config: RAGConfig):
         queries = self.dataset["user_input"]
         query_ids = self.dataset["query_ids"]
         rag_outputs = []
 
         # Indexing logic
-        indexer_config = IndexerConfig(dense_model_name=dense, sparse_model_name=sparse, db=self.db_config)
         indexer = Indexer.from_config(indexer_config)
 
-        collection_name = dense.replace("-", "_")
+        collection_name = indexer.dense_model_name.replace("-", "_") 
         if not indexer.client.has_collection(collection_name):
             for i, documents in enumerate(self.dataset["corpus"]):
                 print('Creating the indexer...')
@@ -117,9 +105,7 @@ class RAGEvaluator:
                 print("Indexer created.")
 
         # RAG initialization
-        retriever_config = RetrieverConfig(db=self.db_config, k=k)
-        llm_config = LLMConfig(llm_name=llm, max_new_tokens=150, temperature=0.8)
-        rag = RAGPipeline.from_config(RAGConfig(retriever_config, llm_config))
+        rag = RAGPipeline.from_config(rag_config)
 
         # Generate RAG outputs
         for i, query in enumerate(queries):
