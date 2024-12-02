@@ -8,7 +8,7 @@ from src.mmore.utils import load_config
 from ..rag.models import load_dense_model, load_sparse_model
 from src.mmore.type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
-from src.mmore.index.chunker import ChunkerConfig, MultimodalChunker
+from mmore.index.postprocessor.chunker import ChunkerConfig, MultimodalChunker
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from ..rag.models.multimodal_model import MultimodalEmbeddings

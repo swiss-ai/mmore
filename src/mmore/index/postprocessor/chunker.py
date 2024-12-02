@@ -4,10 +4,13 @@ from dataclasses import dataclass, field
 from src.mmore.type import MultimodalSample
 from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker, SentenceChunker, SemanticChunker
-import logging
 
+from mmore.index.postprocessor.base import BasePostProcessor
+
+import logging
 logger = logging.getLogger(__name__)
 
+# ---------------------------------- Config ---------------------------------- #
 
 @dataclass
 class ChunkerConfig:
@@ -23,17 +26,22 @@ def load_chonkie(chunker_name: str, chunking_args: Dict[str, Any]) -> BaseChunke
     else:
         raise ValueError(f'Unsupported chunker: {chunker_name}')
 
+# ---------------------------------------------------------------------------- #
 
-class MultimodalChunker:
+class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
 
     def __init__(self, text_chunker: BaseChunker):
+        super().__init__(name=f"MultimodalChunker-{text_chunker.name}")
         self.text_chunker = text_chunker
 
     @classmethod
     def from_config(cls, config: ChunkerConfig):
         text_chunker = load_chonkie(config.chunking_strategy, config.chunker_args)
         return cls(text_chunker=text_chunker)
+    
+    def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
+        return self.chunk(sample)
 
     @staticmethod
     def _chunk_modalities(sample: MultimodalSample, text_chunks: List[Chunk]):
@@ -70,23 +78,23 @@ class MultimodalChunker:
         return [MultimodalSample(text=chunk.text, modalities=mods, metadata=sample.metadata) for chunk, mods in
                 zip(text_chunks, modalities_chunks)]
 
-    def chunk_batch(self, batch: List[MultimodalSample]) -> List[List[MultimodalSample]]:
-        """Split a List of samples into their respective chunks
-        By default, this method uses multiprocessing to parallelize the chunking process.
+    # def chunk_batch(self, batch: List[MultimodalSample]) -> List[List[MultimodalSample]]:
+    #     """Split a List of samples into their respective chunks
+    #     By default, this method uses multiprocessing to parallelize the chunking process.
 
-        Args:
-            batch: List of input samples to be chunked
+    #     Args:
+    #         batch: List of input samples to be chunked
         
-        Returns:
-            List of lists of Chunk objects containing the chunked text, modalities and metadata
-        """
-        workers = self.text_chunker._determine_optimal_workers()
-        # if workers > 1:
-        if False:
-            with Pool(workers) as pool:
-                return pool.map(self.chunk, batch)
-        else:
-            return [self.chunk(t) for t in batch]
+    #     Returns:
+    #         List of lists of Chunk objects containing the chunked text, modalities and metadata
+    #     """
+    #     workers = self.text_chunker._determine_optimal_workers()
+    #     # if workers > 1:
+    #     if False:
+    #         with Pool(workers) as pool:
+    #             return pool.map(self.chunk, batch)
+    #     else:
+    #         return [self.chunk(t) for t in batch]
 
 
 def _text_index_to_chunk_index(index: int, chunks: List[Chunk]):
