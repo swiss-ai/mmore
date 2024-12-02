@@ -8,7 +8,6 @@ import logging
 import os
 from operator import itemgetter
 from .config import get
-from tempfile import NamedTemporaryFile
 from tqdm import tqdm
 from dask.distributed import as_completed
 
