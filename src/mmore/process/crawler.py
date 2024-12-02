@@ -139,7 +139,7 @@ class Crawler:
         self.reset()
 
         for root_dir in self.config.root_dirs:
-            if validators.url(root_dir):
+            if validators.url(root_dir): # check if it's a valid URL 
                 self.files["url"].append(URLDescriptor(url=root_dir))
             elif os.path.isdir(root_dir):
                 self.files["local"][root_dir] = []
