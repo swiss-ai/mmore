@@ -82,6 +82,7 @@ def main():
             ".xlsx", ".xls", ".csv",  # Spreadsheet files
             ".mp4", ".avi", ".mov", ".mkv",  # Video files
             ".mp3", ".wav", ".aac",  # Audio files
+            ".eml", # Emails 
         ],
     )
     elif isinstance(config.get("crawler_config"), str):

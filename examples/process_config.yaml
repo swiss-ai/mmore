@@ -12,8 +12,9 @@ dispatcher_config:
     - TXTProcessor: 100
     - PPTXProcessor: 100
     - MarkdownProcessor: 100
+    - EMLProcessor: 100
 
-  processor_config: 
+  processor_config:
     MediaProcessor:
       - normal_model: "openai/whisper-large-v3-turbo"
       - fast_model: "openai/whisper-tiny"

@@ -31,6 +31,7 @@ default_config = {
             {"TXTProcessor": 100},
             {"PPTXProcessor": 100},
             {"MarkdownProcessor": 100},
+            {"EMLProcessor": 100},
         ]
     },
 }
