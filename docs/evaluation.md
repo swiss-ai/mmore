@@ -1,4 +1,4 @@
-# 🤖 End-to-End RAG Evaluation Pipeline
+# 🤖 MMORE RAG Evaluation Pipeline
 
 ## 💡 TL;DR
 
