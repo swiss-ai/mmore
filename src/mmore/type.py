@@ -69,6 +69,54 @@ class FileDescriptor:
         )
 
 
+class URLDescriptor:
+    def __init__(
+        self,
+        url: str,
+        file_path: str = None,
+        file_name: str = None,
+        file_size: int = 0,
+        created_at: str = None,
+        modified_at: str = None,
+        file_extension: str = ".html",
+    ):
+        if not validators.url(url):
+            raise ValueError(f"Invalid URL: {url}")
+
+        self.url = url
+        self.file_path = file_path or url
+        self.file_name = file_name or os.path.basename(url.rstrip('/'))
+        self.file_size = file_size
+        self.created_at = created_at or datetime.now().isoformat()
+        self.modified_at = modified_at or self.created_at
+        self.file_extension = file_extension
+
+    @staticmethod
+    def from_filename(file_path: str):
+        raise NotImplementedError("URLDescriptor does not support from_filename.")
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "file_path": self.file_path,
+            "file_name": self.file_name,
+            "file_size": self.file_size,
+            "created_at": self.created_at,
+            "modified_at": self.modified_at,
+            "file_extension": self.file_extension,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            url=data["file_path"],  # URL stored in `file_path` for compatibility
+            file_path=data["file_path"],
+            file_name=data["file_name"],
+            file_size=data["file_size"],
+            created_at=data["created_at"],
+            modified_at=data["modified_at"],
+            file_extension=data["file_extension"],
+        )
+
 @dataclass
 class MultimodalSample:
     text: str | List[Dict[str, str]]
@@ -106,28 +154,3 @@ class MultimodalSample:
             modalities=[MultimodalRawInput(**m) for m in data["modalities"]],
             metadata=data.get("metadata", None),
         )
-
-
-class URLDescriptor:
-    def __init__(self, url: str):
-        """
-        Initializes a URLDescriptor instance.
-
-        :param url: The URL to be described.
-        :raises ValueError: If the URL is not valid.
-        """
-        self.url = url
-        self.computational_weight = 0
-
-        if not validators.url(self.url):
-            raise ValueError(f"Invalid URL: {url}")
-
-    def to_dict(self) -> dict:
-        return {"url": self.url, "computational_weight": self.computational_weight}
-
-    @classmethod
-    def from_dict(cls, data: dict):
-        return cls(url=data["url"])
-
-    def __repr__(self) -> str:
-        return f"URLDescriptor(url={self.url}, computational_weight={self.computational_weight})"
