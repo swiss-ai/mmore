@@ -74,7 +74,7 @@ def clean_text(text: str) -> str:
         text=text,
         fix_unicode=True,
         to_ascii=True,
-        lower=True,
+        lower=False,
         no_line_breaks=False,
         no_urls=False,
         no_emails=False,
