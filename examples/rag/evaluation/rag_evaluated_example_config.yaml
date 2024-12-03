@@ -3,6 +3,6 @@ llm:
   max_new_tokens: 150
 retriever:
   db:
-    uri: "./examples/rag/milvus_mock_eval_medical_benchmark.db"  # Dataset's Vectorstore URI
+    uri: "./examples/rag/mock_eval_benchmark.db"  # Dataset's Vectorstore URI
   hybrid_search_weight: 0.5
   k: 3
