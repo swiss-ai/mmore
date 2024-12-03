@@ -104,10 +104,14 @@ def clean_image(image: Image.Image) -> bool:
     return True
 
 
-def _save_temp_image(image: Image.Image, base_path="output/images") -> str:
+def _save_temp_image(image: Image.Image, base_path=None) -> str:
     try:
+        # use systems temp dir if no path is provided 
+        temp_dir = base_path or tempfile.gettempdir()
+        pid = os.getpid() # add pid to avoid conflicts
+        unique_prefix = f"temp_{pid}_"
         temp_file = tempfile.NamedTemporaryFile(
-            delete=False, suffix=".png", dir=base_path
+            delete=False, suffix=".png", prefix=unique_prefix, dir=temp_dir
         )
         temp_file_path = temp_file.name
         image.save(temp_file_path, format="PNG")
