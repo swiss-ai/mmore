@@ -8,14 +8,17 @@ from src.mmore.utils import load_config
 from ..rag.models import load_dense_model, load_sparse_model
 from src.mmore.type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
-from mmore.index.postprocessor.chunker import ChunkerConfig, MultimodalChunker
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from ..rag.models.multimodal_model import MultimodalEmbeddings
 from tqdm import tqdm
-import hashlib
-import logging
 
+from .postprocessor import load_postprocessor
+from .postprocessor.base import BasePostProcessor, BasePostProcessorConfig
+
+import hashlib
+
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -31,12 +34,10 @@ class IndexerConfig:
     dense_model_name: str
     sparse_model_name: str
     db: DBConfig = field(default_factory=DBConfig)
-    chunker: ChunkerConfig = field(default_factory=ChunkerConfig)
+    pp: List[BasePostProcessorConfig] = None
     batch_size: int = 8
 
     def __post_init__(self):
-        if isinstance(self.chunker, dict):
-            self.chunker = ChunkerConfig(**self.chunker)
         if isinstance(self.db, dict):
             self.db = DBConfig(**self.db)
 
@@ -45,31 +46,46 @@ class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
-    chunker: MultimodalChunker
+    post_processors: List[BasePostProcessor]
     client: MilvusClient
     batch_size: int
 
     _DEFAULT_FIELDS = ['id', 'text', 'dense_embedding', 'sparse_embedding']
 
-    def __init__(self, dense_model, dense_model_name, sparse_model, sparse_model_name, chunker, client, batch_size: int = 8):
+    def __init__(self, 
+                 dense_model, 
+                 dense_model_name, 
+                 sparse_model, 
+                 sparse_model_name, 
+                 postprocessors: List[BasePostProcessor], 
+                 client: MilvusClient, 
+                 batch_size: int = 8
+            ):
         self.dense_model_name = dense_model_name
         self.dense_model = dense_model
         self.sparse_model_name = sparse_model_name
         self.sparse_model = sparse_model
-        self.chunker = chunker
+        self.post_processors = postprocessors
         self.client = client
         self.batch_size = batch_size
 
     @classmethod
     def from_config(cls, config: str | IndexerConfig):
+        # Load the config if it's a string
         if isinstance(config, str):
             config = load_config(config, IndexerConfig)
 
+        # Load the embedding models
         dense_model = load_dense_model(config.dense_model_name)
         sparse_model = load_sparse_model(config.sparse_model_name)
 
-        chunker = MultimodalChunker.from_config(config.chunker)
+        # Load the postprocessors
+        if config.pp is None:
+            postprocessors = []
+        else:
+            postprocessors = [load_postprocessor(pp_config) for pp_config in config.pp]
 
+        # Create the milvus client
         milvus_client = MilvusClient(
             config.db.uri,
             db_name=config.db.name,
@@ -81,19 +97,19 @@ class Indexer:
             dense_model=dense_model,
             sparse_model_name=config.sparse_model_name,
             sparse_model=sparse_model,
-            chunker=chunker,
+            postprocessors=postprocessors,
             client=milvus_client,
             batch_size=config.batch_size
         )
 
     @classmethod
     def from_documents(
-            cls,
-            config: str | IndexerConfig,
-            documents: List[MultimodalSample],
-            collection_name: str = 'my_docs',
-            partition_name: str = None,
-            batch_size: int = 32,
+        cls,
+        config: str | IndexerConfig,
+        documents: List[MultimodalSample],
+        collection_name: str = 'my_docs',
+        partition_name: str = None,
+        batch_size: int = 32,
     ):
         indexer = Indexer.from_config(config)
         indexer.index_documents(
@@ -103,13 +119,19 @@ class Indexer:
             batch_size=batch_size
         )
         return indexer
-
-    def index_documents(self, documents: List[MultimodalSample],
-                        collection_name: str = 'my_docs',
-                        partition_name: str = None,
-                        metadata_tags: List[str] = None,
-                        batch_size: int = 32) -> List[int]:
-
+    
+    def _pp_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
+        for pp in self.post_processors:
+            documents = pp.batch_process(documents)
+        return documents
+    
+    def _index_documents(self, 
+            documents: List[MultimodalSample],
+            collection_name: str = 'my_docs',
+            partition_name: str = None,
+            metadata_tags: List[str] = None,
+            batch_size: int = 32
+        ) -> List[int]:
         # Create collection
         if not self.client.has_collection(collection_name):
             logger.info(f"Creating collection {collection_name}")
@@ -119,27 +141,6 @@ class Indexer:
                 collection_name=collection_name,
                 metadata_tags=metadata_tags,
             )
-
-        # Chunk and filter documents
-        logger.info(f"Chunking {len(documents)} documents")
-        chunked_documents = self.chunker.chunk_batch(documents)
-        documents = [c for chunks in chunked_documents for c in chunks]
-
-        # # Get existing document IDs
-        # existing_docs = self._get_existing_doc_ids(collection_name)
-        # logger.info(f"Found {len(existing_docs)} existing documents in collection {collection_name}")
-        # new_documents = []
-        # for doc in documents:
-        #     doc_id = hashlib.md5(doc.text.encode()).hexdigest()
-        #     if doc_id not in existing_docs:
-        #         if doc.metadata is None:
-        #             doc.metadata = {}
-        #         doc.metadata["doc_id"] = doc_id  
-        #         new_documents.append(doc)
-
-        # if not new_documents:
-        #     logger.warning("No new documents to index")
-        #     return []
 
         # Process new documents in batches
         inserted = 0
@@ -165,6 +166,28 @@ class Indexer:
             inserted += list(batch_inserted.values())[0]
 
         logger.info(f"Updated {inserted} documents in collection {collection_name}")
+        return inserted
+    
+    def index_documents(self, 
+            documents: List[MultimodalSample],
+            collection_name: str = 'my_docs',
+            partition_name: str = None,
+            metadata_tags: List[str] = None,
+            batch_size: int = 32
+        ) -> List[int]:
+        
+        # Post-process documents
+        documents = self._pp_documents(documents)
+
+        # Index documents 
+        inserted = self._index_documents(
+            documents,
+            collection_name=collection_name,
+            partition_name=partition_name,
+            metadata_tags=metadata_tags,
+            batch_size=batch_size
+        )
+
         return inserted
 
     def compute_document_embeddings(self, documents: List[MultimodalSample]):

@@ -10,34 +10,30 @@ from mmore.index.postprocessor.base import BasePostProcessor
 import logging
 logger = logging.getLogger(__name__)
 
-# ---------------------------------- Config ---------------------------------- #
+
+def load_chonkie(chunking_strategy: str, chunking_args: Dict[str, Any]) -> BaseChunker:
+    if chunking_strategy == 'sentence':
+        return SentenceChunker(**chunking_args)
+    elif chunking_strategy == 'semantic':
+        return SemanticChunker(**chunking_args)
+    else:
+        raise ValueError(f'Unsupported chunker: {chunking_strategy}')
 
 @dataclass
 class ChunkerConfig:
-    chunking_strategy: str = "sentence"
-    chunker_args: Dict[str, Any] = field(default_factory=lambda: {})
-
-
-def load_chonkie(chunker_name: str, chunking_args: Dict[str, Any]) -> BaseChunker:
-    if chunker_name == 'sentence':
-        return SentenceChunker(**chunking_args)
-    elif chunker_name == 'semantic':
-        return SemanticChunker(**chunking_args)
-    else:
-        raise ValueError(f'Unsupported chunker: {chunker_name}')
-
-# ---------------------------------------------------------------------------- #
+    chunking_strategy: str
+    text_chunker_config: Dict[str, Any] = field(default_factory=lambda: {})
 
 class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
 
     def __init__(self, text_chunker: BaseChunker):
-        super().__init__(name=f"MultimodalChunker-{text_chunker.name}")
+        super().__init__('chunker')
         self.text_chunker = text_chunker
 
     @classmethod
     def from_config(cls, config: ChunkerConfig):
-        text_chunker = load_chonkie(config.chunking_strategy, config.chunker_args)
+        text_chunker = load_chonkie(config.chunking_strategy, config.text_chunker_config)
         return cls(text_chunker=text_chunker)
     
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:

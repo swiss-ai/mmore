@@ -3,5 +3,8 @@ sparse_model_name: splade
 db:
   uri: ./examples/rag/med_demo.db
   name: demo_name
-chunker:
-  chunking_strategy: sentence
+pp:
+  - type: chunker 
+    args:
+      chunking_strategy: sentence
+  - type: lang_detector
