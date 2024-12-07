@@ -1,0 +1,8 @@
+dense_model_name: 'all-MiniLM-L6-v2'
+sparse_model_name: 'splade'
+db:
+  uri: "./examples/rag/mock_eval_benchmark.db"  # Dataset's Vectorstore URI
+  name: "mock_eval_benchmark"
+chunker:
+  chunking_strategy: sentence # Your chunking strat
+  
