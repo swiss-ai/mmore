@@ -1,0 +1,8 @@
+llm: 
+  llm_name: "gpt-4o-mini" # RAG LLM model to evaluate
+  max_new_tokens: 150
+retriever:
+  db:
+    uri: "./examples/rag/mock_eval_benchmark.db"  # Dataset's Vectorstore URI
+  hybrid_search_weight: 0.5
+  k: 3

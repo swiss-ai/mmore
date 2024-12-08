@@ -13,17 +13,15 @@ from src.mmore.index.indexer import DBConfig
 from dotenv import load_dotenv
 load_dotenv()
 
-EXAMPLE_LLM = 'gpt-4o-mini'
-EXAMPLE_DENSE = 'all-MiniLM-L6-v2'
-EXAMPLE_SPARSE = 'splade'
-
-MOCK_EVALUATOR_CONFIG = './examples/rag/evaluation/rag_eval_example.yaml'
+MOCK_EVALUATOR_CONFIG = './examples/rag/evaluation/rag_eval_example_config.yaml'
+MOCK_INDEXER_CONFIG = './examples/rag/evaluation/indexer_eval_example_config.yaml'
+MOCK_RAG_CONFIG = './examples/rag/evaluation/rag_evaluated_example_config.yaml'
 
 def get_args():
     parser = argparse.ArgumentParser(description='Run RAG Evaluation pipeline with specified parameters or use default mock data')
-    parser.add_argument('--eval-config', type=str, default=MOCK_EVALUATOR_CONFIG, help='Path to a rag eval config file.')
-    parser.add_argument('--llm', type=str, help='Model to evaluate')
-    parser.add_argument('--dense', type=str, help='Dense retrieval model')
+    parser.add_argument('--eval-config', type=str, default=MOCK_EVALUATOR_CONFIG, help='Path to a rag evaluator config file.')
+    parser.add_argument('--indexer-config', type=str, default=MOCK_INDEXER_CONFIG, help='Path to an Indexer config file.')
+    parser.add_argument('--rag-config', type=str, default=MOCK_RAG_CONFIG, help='Path to a rag config file.')
 
     return parser.parse_args()
 
@@ -35,10 +33,8 @@ if __name__ == "__main__":
 
     # Run the evaluation
     result = evaluator(
-        llm=args.llm if args.llm else EXAMPLE_LLM,
-        dense=args.dense if args.dense else EXAMPLE_DENSE,
-        sparse='splade',
-        k=3
+        indexer_config = args.indexer_config,
+        rag_config = args.rag_config
     )
 
     print(result)

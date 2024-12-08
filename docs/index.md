@@ -1,4 +1,4 @@
-# :robot: MOORE Index 
+# :robot: MMORE Index 
 ## :bulb: TL;DR
 > The `Index` module handles the indexing and post-processing of the extracted data from the multimodal documents. It creates an indexed Vector Store DB based on [Milvus](https://milvus.io/). We enable the use of *hybrid* retrieval, combining both *dense* and *sparse* retrieval.
 >
