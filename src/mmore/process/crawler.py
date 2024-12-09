@@ -13,8 +13,10 @@ class DispatcherReadyResult:
     ):
         """
         Initialize the DispatcherReadyResult object.
-            :param urls: List of URLs to process.
-            :param file_paths: Dictionary of file paths to process.
+
+        Args:
+            urls (List[URLDescriptor]): List of URLs to process.
+            file_paths (Dict[str, List[FileDescriptor]]): Dictionary of file paths to process.
         """
         self.urls = urls
         self.file_paths = file_paths
@@ -35,7 +37,9 @@ class DispatcherReadyResult:
     def __call__(self):
         """
         Flatten the file paths into a single list.
-        :return: List of file paths.
+
+        Returns:
+            List[FileDescriptor]: A flattened list of file descriptors.
         """
         return [
             file_path
@@ -44,9 +48,18 @@ class DispatcherReadyResult:
         ]
 
     def __repr__(self):
+        """
+        Returns a string representation of the DispatcherReadyResult object.
+        """
         return f"DispatcherReadyResult(urls={self.urls}, file_paths={self.file_paths}, common_root={self.common_root})"
 
     def to_dict(self):
+        """
+        Convert the result to a dictionary format.
+
+        Returns:
+            dict: A dictionary representation of the result.
+        """
         return {
             "urls": [url.to_dict() for url in self.urls],
             "file_paths": {
@@ -58,6 +71,15 @@ class DispatcherReadyResult:
 
     @staticmethod
     def from_dict(data: dict):
+        """
+        Create a DispatcherReadyResult object from a dictionary.
+
+        Args:
+            data (dict): A dictionary containing the result data.
+
+        Returns:
+            DispatcherReadyResult: The reconstructed object.
+        """
         urls = [URLDescriptor(url=url["url"]) for url in data["urls"]]
         file_paths = {
             key: [FileDescriptor(**file) for file in file_list]
@@ -67,16 +89,39 @@ class DispatcherReadyResult:
 
 
 class CrawlerConfig:
+    """
+    Configuration for the Crawler.
+
+    Attributes:
+        root_dirs (List[str]): List of root directories to crawl.
+        supported_extensions (List[str]): List of file extensions to include.
+    """
     def __init__(
             self,
             root_dirs: List[str],
             supported_extensions: Optional[List[str]] = None,
     ):
+        """
+        Initialize a CrawlerConfig object.
+
+        Args:
+            root_dirs (List[str]): List of root directories to crawl.
+            supported_extensions (Optional[List[str]]): List of file extensions to include.
+        """
         self.root_dirs = root_dirs
         self.supported_extensions = supported_extensions or []
 
     @staticmethod
     def from_dict(config: Dict):
+        """
+        Create a CrawlerConfig object from a dictionary.
+
+        Args:
+            config (dict): Configuration dictionary.
+
+        Returns:
+            CrawlerConfig: The reconstructed configuration object.
+        """
         return CrawlerConfig(
             root_dirs=config.get("root_dirs", []),
             supported_extensions=config.get("supported_extensions", None),
@@ -84,6 +129,15 @@ class CrawlerConfig:
 
     @staticmethod
     def from_yaml(yaml_path: str):
+        """
+        Load a CrawlerConfig object from a YAML file.
+
+        Args:
+            yaml_path (str): Path to the YAML configuration file.
+
+        Returns:
+            CrawlerConfig: The reconstructed configuration object.
+        """
         import yaml
 
         try:
@@ -95,6 +149,12 @@ class CrawlerConfig:
             raise
 
     def to_dict(self):
+        """
+        Convert the configuration to a dictionary.
+
+        Returns:
+            dict: A dictionary representation of the configuration.
+        """
         return {
             "root_dirs": self.root_dirs,
             "supported_extensions": self.supported_extensions,
@@ -102,12 +162,33 @@ class CrawlerConfig:
 
 
 class Crawler:
+    """
+    A utility class to crawl directories and URLs for files.
+
+    Attributes:
+        config (CrawlerConfig): The crawler configuration.
+        files (Dict): Dictionary containing local files and URLs.
+        dirs (List[str]): List of directories to crawl.
+        lax_mode (bool): Whether to skip unrecognized paths or raise an error.
+    """
     def __init__(
             self,
             config: CrawlerConfig = None,
             root_dirs: List[str] = None,
             lax_mode: bool = False,
     ):
+        """
+        Initialize a Crawler object.
+
+        Args:
+            config (CrawlerConfig): The crawler configuration.
+            root_dirs (List[str]): List of root directories to crawl.
+            lax_mode (bool): Whether to skip unrecognized paths or raise an error.
+
+        Raises:
+            ValueError: If neither config nor root_dirs is provided.
+        """
+
         if not config:
             if not root_dirs:
                 raise ValueError("Either config or root_dirs must be provided.")
@@ -119,10 +200,16 @@ class Crawler:
         self.lax_mode = lax_mode
 
     def reset(self):
+        """
+        Reset the internal state of the crawler.
+        """
         self.files = {"local": {}, "url": []}
         self.dirs = []
 
     def _traverse_directories(self) -> None:
+        """
+        Traverse the directories and collect file descriptors for supported files.
+        """
         for root_dir in self.dirs:
             for dirpath, _, filenames in os.walk(root_dir):
                 for filename in filenames:
@@ -136,6 +223,12 @@ class Crawler:
                         )
 
     def crawl(self) -> DispatcherReadyResult:
+        """
+        Crawl the configured directories and URLs.
+
+        Returns:
+            DispatcherReadyResult: The result of the crawl operation, ready to be dispatched to the processors.
+        """
         self.reset()
 
         for root_dir in self.config.root_dirs:
