@@ -8,7 +8,6 @@ import torch
 import torch.multiprocessing as mp
 import logging
 import os
-import math
 from multiprocessing import Pool, cpu_count
 from PIL import Image
 from typing import List, Tuple, Any, Dict
@@ -34,6 +33,48 @@ logger = logging.getLogger(__name__)
 
 
 class PDFProcessor(Processor):
+    """
+    A processor for handling PDF files. This processor extracts text, images, and metadata from PDF documents,
+    with support for OCR. The extracted content can be further processed and indexed for downstream tasks.
+
+    Attributes:
+        files (List[FileDescriptor]): List of FileDescriptor objects representing PDF files to process.
+        config (ProcessorConfig): Configuration settings for the processor.
+        ocr_models (Dict[int, Any]): A dictionary of OCR models loaded on specific GPU devices, indexed by GPU ID.
+        full_page_indexer (Dict[int, List[Tuple[int, str]]]): Index of pages to their corresponding documents
+            for each GPU, used to merge outputs for distributed processing.
+
+    Methods:
+        accepts(file: FileDescriptor) -> bool:
+            Checks if a given file is a PDF.
+
+        require_gpu() -> Tuple[bool, bool]:
+            Indicates GPU requirements for both standard and fast processing modes.
+
+        load_models(device=None):
+            Loads OCR models for processing PDF content, optionally on a specified device.
+
+        process_implementation(file_path: str, temp_dir: str = "tmp/") -> dict:
+            Processes a PDF file, extracting text and images, and returns a structured output.
+
+        process_fast_implementation(file_path: str) -> dict:
+            A faster, less resource-intensive method to process PDF files, can struggle with scanned documents.
+
+        split_files_across_gpus() -> List[List[FileDescriptor]]:
+            Splits the input files across multiple GPUs for distributed processing.
+
+        get_file_len(file: FileDescriptor) -> int:
+            Returns the number of pages in a given PDF file.
+
+        _extract_image_from_pdf(pdf_doc, xref) -> Image.Image:
+            Extracts an image from a PDF document using its reference index.
+
+    Notes:
+        - The processor uses OCR models from the `marker` library for extracting content, such as 
+          handwritten text or structured tables.
+        - It supports distributed processing in multi-GPU clusters.
+        - Extracted content is compatible with downstream tasks, such as multimodal indexing and RAG pipelines.
+    """
     def __init__(self, files, config=None):
         super().__init__(files, config=config or ProcessorConfig())
         self.ocr_models = {device: None for device in range(torch.cuda.device_count())}
@@ -102,14 +143,14 @@ class PDFProcessor(Processor):
             for img_info in page.get_images(full=False):
                 image = self._extract_image_from_pdf(pdf_doc, img_info[0])
                 embedded_images.append(image)
-                all_text.append("<attachment>")
+                all_text.append(self.config.attachment_tag)
 
         return create_sample(all_text, embedded_images)
 
     def process_implementation(self, file_path: str, temp_dir: str = "tmp/") -> dict:
         def extract_image_in_page(page, current_image_index) -> Tuple[List[str], int]:
             page_images = []
-            num_image_in_page = page.count("<attachment>")
+            num_image_in_page = page.count(self.config.attachment_tag)
             for _ in range(num_image_in_page):
                 page_images.append(IMAGE_LIST[current_image_index])
                 current_image_index += 1

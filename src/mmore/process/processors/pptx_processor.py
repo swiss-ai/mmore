@@ -12,22 +12,49 @@ logger = logging.getLogger(__name__)
 
 
 class PPTXProcessor(Processor):
+    """
+    A processor for handling PPTX files. Extracts text, images, and notes from PowerPoint presentations.
+
+    Attributes:
+        files (List[FileDescriptor]): List of files to be processed.
+        config (ProcessorConfig): Configuration for the processor.
+    """
     def __init__(self, files, config=None):
+        """
+        Args:
+            files (List[FileDescriptor]): List of files to process.
+            config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
+        """
         super().__init__(files, config=config or ProcessorConfig())
-        self.ocr_models = None
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
+        """
+        Args:
+            file (FileDescriptor): The file descriptor to check.
+
+        Returns:
+            bool: True if the file is a PPTX file, False otherwise.
+        """
         return file.file_extension.lower() in [".pptx"]
 
     def require_gpu(self) -> bool:
+        """
+        Returns:
+            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
+        """
         return False, False
 
     def _extract_slide_content(
             self, slide, all_text: List[str], embedded_images: List[Image.Image]
     ):
         """
-        Extract text and images from a slide, and append to the provided lists.
+        Extract text and images from a slide and append them to the provided lists.
+
+        Args:
+            slide (Slide): A slide from the PowerPoint presentation.
+            all_text (List[str]): List to store extracted text.
+            embedded_images (List[Image.Image]): List to store extracted images.
         """
         # Sort shapes by their vertical position
         shape_list = sorted(
@@ -47,14 +74,22 @@ class PPTXProcessor(Processor):
                 try:
                     pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGB")
                     embedded_images.append(pil_image)
-                    all_text.append("<attachment>")
+                    all_text.append(self.config.attachment_tag)
                 except Exception as e:
                     logger.error(f"Failed to extract image from slide: {e}")
 
     def process_implementation(self, file_path: str) -> Dict[str, Any]:
         """
         Process a single PPTX file. Extracts text, images, and notes from each slide.
-        The elements are sorted by their vertical position.
+
+        Args:
+            file_path (str): Path to the PPTX file.
+
+        Returns:
+            dict: A dictionary containing processed text and images.
+
+        The method processes each slide, extracting text and images from shapes,
+        and extracts notes if present. The elements are sorted by their vertical position.
         """
         logger.info(f"Processing PowerPoint file: {file_path}")
         try:

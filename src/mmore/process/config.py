@@ -106,7 +106,6 @@ def get_nested_value(d, key_path):
 def get(key_path=None):
     """Get a value from the config based on the provided key path."""
     config = load_config()
-    print(config)
     value = get_nested_value(config, key_path)
     return value
 

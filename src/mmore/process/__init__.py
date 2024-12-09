@@ -1,8 +1,5 @@
 from .config import get as get_config
 from .config import set as set_config
-
-from tqdm import tqdm
-
 import click
 
 
@@ -11,10 +8,7 @@ def main():
     """mmore"""
     pass
 
-
 # main.add_command(test)
-
-
 @main.group()
 def config():
     """mmore config"""
