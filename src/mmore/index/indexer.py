@@ -15,12 +15,13 @@ from tqdm import tqdm
 
 from .postprocessor import load_postprocessor
 from .postprocessor.base import BasePostProcessor, BasePostProcessorConfig
+from .postprocessor.autoid import AutoID
 
 import hashlib
 
 import logging
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 @dataclass
 class DBConfig:
@@ -119,28 +120,22 @@ class Indexer:
             batch_size=batch_size
         )
         return indexer
-    
+        
     def _pp_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
         for pp in self.post_processors:
             documents = pp.batch_process(documents)
         return documents
     
-    def _index_documents(self, 
+    def _upsert_documents(self, 
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
             partition_name: str = None,
-            metadata_tags: List[str] = None,
             batch_size: int = 32
         ) -> List[int]:
         # Create collection
         if not self.client.has_collection(collection_name):
             logger.info(f"Creating collection {collection_name}")
-            if metadata_tags is None:
-                metadata_tags = []
-            self._create_collection_with_schema(
-                collection_name=collection_name,
-                metadata_tags=metadata_tags,
-            )
+            self._create_collection_with_schema(collection_name)
 
         # Process new documents in batches
         inserted = 0
@@ -152,10 +147,11 @@ class Indexer:
             data = []
             for j, (doc, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
                 data.append({
-                    "id": hashlib.md5(doc.text.encode()).hexdigest(),
+                    "id": Indexer._compute_hash(doc),
                     "text": doc.text,
                     "dense_embedding": d,
-                    "sparse_embedding": s.reshape(1, -1)
+                    "sparse_embedding": s.reshape(1, -1),
+                    **{tag: doc.metadata[tag] for tag in doc.metadata.keys()}
                 })
 
             batch_inserted = self.client.insert(
@@ -167,28 +163,6 @@ class Indexer:
 
         logger.info(f"Updated {inserted} documents in collection {collection_name}")
         return inserted
-    
-    def index_documents(self, 
-            documents: List[MultimodalSample],
-            collection_name: str = 'my_docs',
-            partition_name: str = None,
-            metadata_tags: List[str] = None,
-            batch_size: int = 32
-        ) -> List[int]:
-        
-        # Post-process documents
-        documents = self._pp_documents(documents)
-
-        # Index documents 
-        inserted = self._index_documents(
-            documents,
-            collection_name=collection_name,
-            partition_name=partition_name,
-            metadata_tags=metadata_tags,
-            batch_size=batch_size
-        )
-
-        return inserted
 
     def compute_document_embeddings(self, documents: List[MultimodalSample]):
         """Compute both custom and SPLADE embeddings for documents."""
@@ -198,8 +172,8 @@ class Indexer:
             texts = [doc.text.replace("<attachment>", "") for doc in documents]
 
         return self.dense_model.embed_documents(texts), self.sparse_model.embed_documents(texts)
-
-    def _create_collection_with_schema(self, collection_name: str, metadata_tags: List[str]):
+    
+    def _create_collection_with_schema(self, collection_name: str):
         """Create Milvus collection with fields for both embeddings."""
         fields = [
             FieldSchema(name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=128),  # Add doc_id field
@@ -214,14 +188,26 @@ class Indexer:
                 dtype=DataType.SPARSE_FLOAT_VECTOR,
             ),
         ]
-        schema = CollectionSchema(fields=fields)
-        index_params = self._create_index()
-        logger.info(f"Creating collection {collection_name} with schema {schema}")
-        self.client.create_collection(collection_name=collection_name, schema=schema, index_params=index_params)
+
+        schema = CollectionSchema(
+            fields,
+            enable_dynamic_field=True
+        )
+
+        self.client.create_collection(
+            collection_name=collection_name, 
+            schema=schema, 
+            index_params=self._create_index(),
+        )
+
+    @staticmethod
+    def _compute_hash(sample: MultimodalSample) -> str:
+        return AutoID.hash_text(sample.text)
 
     def _create_index(self):
         """Create index on the embeddings fields."""
         index_params = self.client.prepare_index_params()
+
         logger.info(f"Creating index for dense embeddings with model {self.dense_model_name}")
         index_params.add_index(
             field_name="dense_embedding",
@@ -230,14 +216,34 @@ class Indexer:
             params={"nlist": 128},
         )
 
+        logger.info(f"Creating index for sparse embeddings with model {self.sparse_model_name}")
         index_params.add_index(
             field_name="sparse_embedding",
             model_name=self.sparse_model_name,
             metric_type="IP",
             index_type="SPARSE_INVERTED_INDEX",
         )
-
         return index_params
+
+    def index_documents(self, 
+            documents: List[MultimodalSample],
+            collection_name: str = 'my_docs',
+            partition_name: str = None,
+            batch_size: int = 32
+        ) -> List[int]:
+
+        # Post-process documents
+        documents = self._pp_documents(documents)
+
+        # Index documents 
+        inserted = self._upsert_documents(
+            documents,
+            collection_name=collection_name,
+            partition_name=partition_name,
+            batch_size=batch_size
+        )
+
+        return inserted
 
 
 def get_model_from_index(client: MilvusClient, index_name: str, collection_name: str = None):

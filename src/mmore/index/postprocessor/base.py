@@ -7,7 +7,13 @@ from dataclasses import dataclass, field
 
 from mmore.type import MultimodalSample
 
-PP_TYPES = Literal['chunker', 'lang_detector', 'modalities_counter', 'words_counter']
+PP_TYPES = Literal[
+    'chunker', 
+    'lang_detector', 
+    'modalities_counter', 
+    'words_counter',
+    'ner'
+]
 
 @dataclass
 class BasePostProcessorConfig:

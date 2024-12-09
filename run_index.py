@@ -34,7 +34,7 @@ def load_results(path: str, file_type: str = None):
 def get_args():
     # Create argument parser
     parser = argparse.ArgumentParser(description='Index files for specified documents')
-    parser.add_argument('--config_file', type=str, help='Path to a config file.')
+    parser.add_argument('--config_file', type=str, required=True, help='Path to a config file.')
 
     # Parse the arguments
     return parser.parse_args()
