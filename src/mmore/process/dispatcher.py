@@ -7,11 +7,8 @@ import torch
 import logging
 import os
 from operator import itemgetter
-from .config import get
 from tqdm import tqdm
-from dask.distributed import as_completed
-
-from dask.distributed import Client
+from dask.distributed import as_completed, Client
 import dask.config
 
 logger = logging.getLogger(__name__)
@@ -158,6 +155,7 @@ class Dispatcher:
         """
         Categorize files and URLs into the appropriate processors.
         """
+
         processor_map = {
             processor: [] for processor in ProcessorRegistry.get_processors()
         }
@@ -165,7 +163,7 @@ class Dispatcher:
         for file_path_list in self.result.file_paths.values():
             for file in file_path_list:
                 processor = AutoProcessor.from_file(file)
-                print(f"File {file.file_path} is processed by ", processor)
+                logger.info(f"Assigned file {file.file_path} to processor: {processor}")
                 processor_map[processor].append(file)
 
         url_processor = URLProcessor
@@ -186,10 +184,9 @@ class Dispatcher:
             processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
             processor_config['output_path'] = self.config.output_path
 
-            print(
+            logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
-
             processor_config = ProcessorConfig(custom_config=processor_config)
             res = processor(files, processor_config)(self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
@@ -215,9 +212,10 @@ class Dispatcher:
             processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
             processor_config['output_path'] = self.config.output_path
 
-            print(
-                f"Dispatching distributedly {len(files)} ({sum([processor.get_file_len(file) for file in files])}) files to {processor.__name__}"
+            logger.info(
+                f"Dispatching {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
+
             processor_config = ProcessorConfig(custom_config=processor_config)
 
             def process_files(files, processor_config):

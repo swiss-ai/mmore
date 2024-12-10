@@ -12,17 +12,39 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessorResult:
+    """
+    Represents the result of a processing operation, containing processed samples.
+
+    Attributes:
+        samples (List[MultimodalSample]): List of processed multimodal samples.
+    """
+
     def __init__(self, data: List[Dict[str, Any]]):
+        """
+        Args:
+            data (List[Dict[str, Any]]): A list of dictionaries representing processed samples.
+        """
         self.samples = []
         for sample in data:
             self.samples.append(MultimodalSample.from_dict(sample))
 
     def to_jsonl(self, path: str, append: bool = False):
+        """
+        Write the processed samples to a JSONL file.
+
+        Args:
+            path (str): The file path to write to.
+            append (bool): Whether to append to the file (default: False).
+        """
         with open(path, "a" if append else "w") as f:
             for sample in self.samples:
                 f.write(json.dumps(sample.to_dict()) + "\n")
 
     def __repr__(self) -> str:
+        """
+        Returns:
+            str: A string representation of the processed samples.
+        """
         str_text = ""
         for sample in self.samples:
             str_text += json.dumps(sample.to_dict()) + "\n"
@@ -30,6 +52,15 @@ class ProcessorResult:
 
     @classmethod
     def merge(cls, others):
+        """
+        Merge multiple ProcessorResult instances into one.
+
+        Args:
+            others (Union[ProcessorResult, List[ProcessorResult]]): A single or list of ProcessorResult instances.
+
+        Returns:
+            ProcessorResult: A merged ProcessorResult instance.
+        """
         if not isinstance(others, list):
             others = [others]
 
@@ -41,6 +72,16 @@ class ProcessorResult:
 
     @classmethod
     def from_jsonl(cls, path: str):
+        """
+        Load a ProcessorResult from a JSONL file.
+
+        Args:
+            path (str): The file path to read from.
+
+        Yields:
+            MultimodalSample: A sample containing text and modalities.
+        """
+
         with open(path, "r") as f:
             for line in f.readlines():
                 yield MultimodalSample.from_dict(json.loads(line))
@@ -49,6 +90,10 @@ class ProcessorResult:
 class ProcessorConfig:
     """
     A dataclass that represents the configuration of a processor.
+    
+    Attributes:
+        attachment_tag (str): Tag used for attachments (default: "<attachment>") - This is what we use for Multimodal Meditron.
+        custom_config (Dict[str, Any]): Dictionary of custom configurations.
     """
 
     def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}):
@@ -58,13 +103,19 @@ class ProcessorConfig:
 
 class ProcessorRegistry:
     """
-    Registry of all available processors.
+    Registry for managing and accessing available processors.
+
+    Attributes:
+        _registry (List[type]): List of registered processor classes.
     """
 
     _registry = []
 
     @classmethod
     def register(cls, processor_class):
+        """
+        Register a processor class.
+        """
         cls._registry.append(processor_class)
 
     @classmethod
@@ -78,6 +129,16 @@ class ProcessorRegistry:
 class AutoProcessor:
     @classmethod
     def from_file(cls, file: FileDescriptor):
+        """
+        Determine and return the appropriate processor for the given file.
+
+        Args:
+            file (FileDescriptor): The file descriptor to process.
+
+        Returns:
+            Processor: The appropriate processor for the file, or None if no processor is found.
+        """
+
         for processor in ProcessorRegistry.get_processors():
             if processor.accepts(file):
                 return processor
@@ -88,8 +149,11 @@ class AutoProcessor:
 
 class Processor:
     """
-    A processor is given a list of file descriptors and is expected to process them in some way.
-    It should also provide a method that indicates the files it can process.
+    Base class for processors, which process a list of files.
+
+    Attributes:
+        files (List[Union[FileDescriptor, URLDescriptor]]): The files to process.
+        config (ProcessorConfig): Configuration for the processor.
     """
 
     def __init__(
@@ -98,21 +162,44 @@ class Processor:
             config: ProcessorConfig = None,
     ):
         """
-        Initialize the Processor object.
-            :param files: The files to process.
+        Args:
+            files (List[Union[FileDescriptor, URLDescriptor]]): The files to process.
+            config (ProcessorConfig): Configuration for the processor.
         """
+
         self.files = files
         self.config = config
 
     def __call__(self, fast: bool = False) -> ProcessorResult:
+        """
+        Process the files, either in fast mode or normal mode.
+
+        Args:
+            fast (bool): Whether to use fast processing (default: False).
+
+        Returns:
+            ProcessorResult: The result of the processing operation.
+        """
         return self.process_fast() if fast else self.process()
 
     def __contains__(self, file: FileDescriptor) -> bool:
+        """
+        Check if the processor accepts a given file.
+
+        Args:
+            file (FileDescriptor): The file to check.
+
+        Returns:
+            bool: True if the processor accepts the file, False otherwise.
+        """
         return self.accepts(file)
 
     def process(self) -> ProcessorResult:
         """
-        Processes the files.
+        Process the files using the standard processing method.
+
+        Returns:
+            ProcessorResult: The result of the processing operation.
         """
         gpu_required, _ = self.require_gpu()
         try:
@@ -124,8 +211,10 @@ class Processor:
 
     def process_fast(self) -> ProcessorResult:
         """
-        Processes the files in a fast way.
-            :param files: The files to process.
+        Process the files using the fast processing method.
+
+        Returns:
+            ProcessorResult: The result of the fast processing operation.
         """
         try:
             _, gpu_required = self.require_gpu()
@@ -143,8 +232,6 @@ class Processor:
         Process a chunk of files on a specific GPU.
         Each process in the multiprocessing pool handles one GPU.
         """
-        print(f"Processing {len(files)} files on GPU {gpu_id}")
-
         # Set the GPU device for this process
         device = torch.device(f"cuda:{gpu_id}")
         torch.cuda.set_device(device)
@@ -164,9 +251,7 @@ class Processor:
                     result = [result]
                 results.append(result)
             except Exception as e:
-                logger.error(
-                    f"[Processor] Error processing file {file.file_path} on GPU {gpu_id}: {e}"
-                )
+                logger.error(f"Failed processing {os.path.basename(file.file_path)}: {str(e)}")
                 results.append(None)
 
         # Clean up after processing
@@ -181,8 +266,7 @@ class Processor:
         num_gpus = torch.cuda.device_count()
         if num_gpus <= 0:
             raise ValueError("No GPUs available.")
-        print(f"Processing {len(self.files)} files on {num_gpus} GPUs.")
-
+        
         chunks = self.split_files_across_gpus()
         mp.set_start_method("spawn", force=True)
 
@@ -237,7 +321,7 @@ class Processor:
 
     def process_implementation(self, file_path):
         """
-        Processes a single file.
+        Processes a single file in a standard way.
             :param file: The file to process.
         """
         raise NotImplementedError
@@ -247,9 +331,7 @@ class Processor:
         Processes a single file in a fast way.
             :param file: The file to process.
         """
-        print(
-            "No fast implementation for processor, falling back to regular implementation."
-        )
+        logger.debug(f"No fast implementation, using standard for {os.path.basename(file_path)}")
         return self.process_implementation(file_path)
 
     def require_gpu(self) -> bool:
@@ -296,6 +378,16 @@ class Processor:
         return 1
 
     def _consolidate_modalities(self, result: ProcessorResult) -> ProcessorResult:
+        """
+        Consolidates modalities in the processing result by updating file paths and copying files 
+        (e.g., images) to a specified output directory.
+
+        Args:
+            result (ProcessorResult): The result containing samples with modalities to be consolidated.
+
+        Returns:
+            ProcessorResult: A new ProcessorResult object with updated modalities paths.
+        """
         # For each sample modalities, we need to copy the modalities files to the output folder
         # and update the modalities paths in the sample
         def save_new_image(image_path: str, output_folder_path: str) -> str:
@@ -305,7 +397,7 @@ class Processor:
                 image.save(new_path)
                 return new_path
             except Exception as e:
-                logger.error(f"Failed to save new image: {e}")
+                logger.error(f"Failed to save image {os.path.basename(image_path)}: {str(e)}")
                 return None
 
         # Create a new list of samples with updated modalities paths
