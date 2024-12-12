@@ -2,8 +2,16 @@ indexer:
   dense_model_name: sentence-transformers/all-MiniLM-L6-v2
   sparse_model_name: splade
   db:
-    uri: ./examples/rag/proc_demo.db
-  chunker:
-    chunking_strategy: sentence
+    uri: ./examples/index/med_demo.db
+    name: db
+  pp:
+    - type: chunker 
+      args:
+        chunking_strategy: sentence
+    - type: ner
+      args:
+        llm:
+          llm_name: "gpt-4o-mini"
+    - type: lang_detector
 collection_name: my_docs
-documents_path: examples/example_outputs
+documents_path: examples/example_outputs_ner

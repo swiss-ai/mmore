@@ -13,3 +13,5 @@ nltk
 python-dotenv
 dacite
 chonkie
+langdetect
+validators
