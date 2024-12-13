@@ -31,6 +31,9 @@ class BasePostProcessor(ABC):
     def __init__(self, name: str):
         self.name = name
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.name})'
+
     @abstractmethod
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
         """Abstract method for processing a sample.
@@ -46,7 +49,7 @@ class BasePostProcessor(ABC):
     def batch_process(self, samples: List[MultimodalSample], **kwargs) -> List[MultimodalSample]:
         res = []
 
-        for s in tqdm(samples, desc=f'Processing samples ({self.name})'):
+        for s in tqdm(samples, desc=f'[PP] {self.name}'):
             pp_s = self.process(s, **kwargs)
             if isinstance(pp_s, MultimodalSample):
                 pp_s = [pp_s]

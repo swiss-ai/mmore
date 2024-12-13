@@ -17,11 +17,11 @@ from .postprocessor import load_postprocessor
 from .postprocessor.base import BasePostProcessor, BasePostProcessorConfig
 from .postprocessor.autoid import AutoID
 
-import hashlib
+from .filter import load_filter
+from .filter.base import BaseFilter, BaseFilterConfig
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 @dataclass
 class DBConfig:
@@ -35,6 +35,7 @@ class IndexerConfig:
     dense_model_name: str
     sparse_model_name: str
     db: DBConfig = field(default_factory=DBConfig)
+    filters: List[BaseFilterConfig] = None
     pp: List[BasePostProcessorConfig] = None
     batch_size: int = 8
 
@@ -42,11 +43,11 @@ class IndexerConfig:
         if isinstance(self.db, dict):
             self.db = DBConfig(**self.db)
 
-
 class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
+    filters: List[BaseFilter]
     post_processors: List[BasePostProcessor]
     client: MilvusClient
     batch_size: int
@@ -58,6 +59,7 @@ class Indexer:
                  dense_model_name, 
                  sparse_model, 
                  sparse_model_name, 
+                 filters: List[BaseFilter],
                  postprocessors: List[BasePostProcessor], 
                  client: MilvusClient, 
                  batch_size: int = 8
@@ -66,8 +68,12 @@ class Indexer:
         self.dense_model = dense_model
         self.sparse_model_name = sparse_model_name
         self.sparse_model = sparse_model
+
+        self.filters = filters
         self.post_processors = postprocessors
+
         self.client = client
+
         self.batch_size = batch_size
 
     @classmethod
@@ -79,6 +85,12 @@ class Indexer:
         # Load the embedding models
         dense_model = load_dense_model(config.dense_model_name)
         sparse_model = load_sparse_model(config.sparse_model_name)
+
+        # Load the filters
+        if config.filters is None:
+            filters = []
+        else:
+            filters = [load_filter(filter_config) for filter_config in config.filters]
 
         # Load the postprocessors
         if config.pp is None:
@@ -98,6 +110,7 @@ class Indexer:
             dense_model=dense_model,
             sparse_model_name=config.sparse_model_name,
             sparse_model=sparse_model,
+            filters=filters,
             postprocessors=postprocessors,
             client=milvus_client,
             batch_size=config.batch_size
@@ -120,6 +133,27 @@ class Indexer:
             batch_size=batch_size
         )
         return indexer
+    
+    def _print_plan(self):
+        # Print Filtering pipeline
+        logger.info("Filtering pipeline:")
+        for filter in self.filters:
+            logger.info(f"  - {filter}")
+
+        # Print PP pipeline
+        logger.info("PP pipeline:")
+        for pp in self.post_processors:
+            logger.info(f"  - {pp}")
+
+    def _id_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
+        for doc in documents:
+            doc.id = Indexer._compute_hash(doc)
+        return documents
+    
+    def _filter_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
+        for filter in self.filters:
+            documents = [documents[i] for i, flag in enumerate(filter.batch_filter(documents)) if flag]
+        return documents
         
     def _pp_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
         for pp in self.post_processors:
@@ -139,19 +173,19 @@ class Indexer:
 
         # Process new documents in batches
         inserted = 0
-        for i in tqdm(range(0, len(documents), batch_size), desc="Indexing new documents"):
+        for i in tqdm(range(0, len(documents), batch_size), desc="[INDEXER] Indexing documents..."):
             batch = documents[i:i + batch_size]
 
             dense_embeddings, sparse_embeddings = self.compute_document_embeddings(batch)
 
             data = []
-            for j, (doc, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
+            for j, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
                 data.append({
-                    "id": Indexer._compute_hash(doc),
-                    "text": doc.text,
+                    "id": Indexer._compute_hash(sample),
+                    "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
-                    **{tag: doc.metadata[tag] for tag in doc.metadata.keys()}
+                    **sample.metadata
                 })
 
             batch_inserted = self.client.insert(
@@ -231,6 +265,14 @@ class Indexer:
             partition_name: str = None,
             batch_size: int = 32
         ) -> List[int]:
+        # Print the pipeline plan
+        self._print_plan()
+
+        # ID documents
+        documents = self._id_documents(documents)
+
+        # Filter documents
+        documents = self._filter_documents(documents)
 
         # Post-process documents
         documents = self._pp_documents(documents)
@@ -242,6 +284,10 @@ class Indexer:
             partition_name=partition_name,
             batch_size=batch_size
         )
+
+        logger.info(f"Collection stats:")
+        for k,v in self.client.get_collection_stats(collection_name).items():
+            logger.info(f"  - {k}: {v}")
 
         return inserted
 

@@ -28,7 +28,7 @@ class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
 
     def __init__(self, text_chunker: BaseChunker):
-        super().__init__('chunker')
+        super().__init__('🧩 Chunker')
         self.text_chunker = text_chunker
 
     @classmethod
