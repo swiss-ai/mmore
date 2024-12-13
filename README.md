@@ -30,11 +30,16 @@ To build for CPU-only platforms (results in smaller image size), you can use
 docker build --build-arg PLATFORM=cpu -t mmore .
 ```
 
-Start a session with
+Start an interactive session with
 ```
-docker run -it mmore
+docker run -it -v ./test_data:/app/test_data mmore
 ```
+Note: we are mapping the folder `test_data` to the default location given in the `examples/process_config.yaml` file, which maps to `/app/test_data` inside the container.
 
+Inside the docker session you can run
+```
+python run_process.py --config_file examples/process_config.yaml
+```
 
 ### Manual installation
 Currently only for Linux systems
@@ -63,6 +68,11 @@ uv sync --extra cpu
 5. Activate virtual environment
 ```
 source .venv/bin/activate
+```
+
+6. Run a test command
+```
+python run_process.py --config_file examples/process_config.yaml
 ```
 
 ### Usage
