@@ -12,9 +12,11 @@ class LangDetector(BasePostProcessor):
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
         # Remove attachments flags (if any)
         text = sample.text.replace("<attachment>", "")
-
-        # Detect language
-        lang = detect(text)
+        try:
+            # Detect language
+            lang = detect(text)
+        except:
+            lang = "unknown"
 
         # Add metadata
         sample.metadata['lang'] = lang

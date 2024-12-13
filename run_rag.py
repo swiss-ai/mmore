@@ -47,7 +47,7 @@ class RAGInferenceConfig:
 
 def get_args():
     parser = argparse.ArgumentParser(description='Run RAG pipeline with API or CLI mode')
-    parser.add_argument('--config_file', type=str, required=True, help='Path to a config file')
+    parser.add_argument('--config-file', type=str, required=True, help='Path to a config file')
     return parser.parse_args()
 
 

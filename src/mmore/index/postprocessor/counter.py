@@ -8,11 +8,13 @@ class ModalitiesCounter(BasePostProcessor):
         super().__init__('📸 Modalities Counter')
     
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
-        return [len(sample.modalities)]
+        sample.metadata['modalities_count'] = len(sample.modalities)
+        return [sample]
     
 class WordsCounter(BasePostProcessor):
     def __init__(self):
         super().__init__('🔤 Words Counter')
     
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
-        return [len(sample.text.replace('<attachment>', '').split())]
+        sample.metadata['words_count'] = len(sample.text.split())
+        return [sample]

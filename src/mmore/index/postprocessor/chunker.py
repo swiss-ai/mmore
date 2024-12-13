@@ -65,15 +65,28 @@ class MultimodalChunker(BasePostProcessor):
         Returns:
             List of Chunk objects containing the chunked text and metadata
         """
-        # Chunk using the text chunker
-        text_chunks = self.text_chunker.chunk(sample.text)
-
+        if not sample.text or not sample.text.strip():
+            logger.warning(f"Empty text in sample {sample.id}. Skipping chunking.")
+            return []
+        try:
+            # Chunk using the text chunker
+            text_chunks = self.text_chunker.chunk(sample.text)
+        except Exception as e:
+            print(f"Chunking error on sample with length: {len(sample.text)} ")
+            return []
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
 
-        return [MultimodalSample(text=chunk.text, modalities=mods, metadata=sample.metadata) for chunk, mods in
-                zip(text_chunks, modalities_chunks)]
+        #TODO: Update when id is added to multimodal sample
+        chunks = []
+        for chunk, mods in zip(text_chunks, modalities_chunks):
+            s = MultimodalSample(text=chunk.text, modalities=mods, metadata=sample.metadata)
+            s.id = sample.id
+            chunks.append(s)
 
+        return chunks
+
+    #TODO if you have time and are motivated and better at parallelizing than me (Whomp Whomp):
     # def chunk_batch(self, batch: List[MultimodalSample]) -> List[List[MultimodalSample]]:
     #     """Split a List of samples into their respective chunks
     #     By default, this method uses multiprocessing to parallelize the chunking process.
@@ -85,13 +98,15 @@ class MultimodalChunker(BasePostProcessor):
     #         List of lists of Chunk objects containing the chunked text, modalities and metadata
     #     """
     #     workers = self.text_chunker._determine_optimal_workers()
-    #     # if workers > 1:
-    #     if False:
+    #     if workers > 1:
     #         with Pool(workers) as pool:
     #             return pool.map(self.chunk, batch)
     #     else:
     #         return [self.chunk(t) for t in batch]
 
+    # def batch_process(self, samples, **kwargs):
+    #     return [s for sample in self.chunk_batch(samples) for s in sample]
+        
 
 def _text_index_to_chunk_index(index: int, chunks: List[Chunk]):
     for i, chunk in enumerate(chunks):

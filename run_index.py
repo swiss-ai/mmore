@@ -20,6 +20,7 @@ class IndexerRunConfig:
     documents_path: str
     indexer: IndexerConfig
     collection_name: str = 'my_docs'
+    batch_size: int = 64
 
 def load_results(path: str, file_type: str = None):
     # Load the results computed and saved by 'run_process.py'
@@ -34,7 +35,7 @@ def load_results(path: str, file_type: str = None):
 def get_args():
     # Create argument parser
     parser = argparse.ArgumentParser(description='Index files for specified documents')
-    parser.add_argument('--config_file', type=str, required=True, help='Path to a config file.')
+    parser.add_argument('--config-file', type=str, required=True, help='Path to a config file.')
 
     # Parse the arguments
     return parser.parse_args()
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     indexer = Indexer.from_documents(
         config=config.indexer, 
         documents=load_results(config.documents_path),
-        collection_name=config.collection_name
+        collection_name=config.collection_name,
+        batch_size=config.batch_size
     )
     logger.info("Documents indexed!")

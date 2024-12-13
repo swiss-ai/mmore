@@ -182,6 +182,7 @@ class Indexer:
             for j, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
                 data.append({
                     "id": Indexer._compute_hash(sample),
+                    "doc_id": sample.id,
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
