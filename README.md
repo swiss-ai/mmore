@@ -34,7 +34,7 @@ Start an interactive session with
 ```
 docker run -it -v ./test_data:/app/test_data mmore
 ```
-Note: we are mapping the folder `test_data` to the default location given in the `examples/process_config.yaml` file, which maps to `/app/test_data` inside the container.
+Note: we are mapping the folder `test_data` to the location `/app/test_data` inside the container. The default location given in the `examples/process_config.yaml` maps to this folder, which we are using in the next step.
 
 Inside the docker session you can run
 ```
