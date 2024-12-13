@@ -14,12 +14,56 @@ Well, MMORE is here to help you!
 
 ## Quick Start
 
-### Installation
+### Installation with Docker (recommended)
 
-We currently support installation through rye. Refer to the documentation for instructions on installation.
-The `scripts/setup.sh` script will install all the dependencies and install rye for you.
+Note: Please see section Manual Installation below how to install without docker
 
-We also provide a docker image for easy deployment.
+
+1. Install [docker](https://docs.docker.com/get-started/get-docker/)
+2. Open a terminal and build the image with the following command
+```
+docker build . --tag mmore
+```
+
+To build for CPU-only platforms (results in smaller image size), you can use
+```
+docker build --build-arg PLATFORM=cpu -t mmore .
+```
+
+Start a session with
+```
+docker run -it mmore
+```
+
+
+### Manual installation
+Currently only for Linux systems
+
+1. Install system dependencies
+```
+sudo apt update
+sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+```
+2. Install uv: https://docs.astral.sh/uv/getting-started/installation/
+3. Clone this repository
+```
+git clone https://github.com/swiss-ai/mmore
+cd mmore
+```
+4. Install project and dependencies
+```
+uv sync
+```
+
+If you want to install a CPU-only version you can run
+```
+uv sync --extra cpu
+```
+
+5. Activate virtual environment
+```
+source .venv/bin/activate
+```
 
 ### Usage
 

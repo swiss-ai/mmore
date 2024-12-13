@@ -114,3 +114,6 @@ requirements-dev.lock
 requirements.lock
 .
 examples/outputs/
+
+
+.venv
