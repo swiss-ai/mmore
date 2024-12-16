@@ -388,35 +388,55 @@ class Processor:
         Returns:
             ProcessorResult: A new ProcessorResult object with updated modalities paths.
         """
-        # For each sample modalities, we need to copy the modalities files to the output folder
-        # and update the modalities paths in the sample
-        def save_new_image(image_path: str, output_folder_path: str) -> str:
+        def save_new_image(image_path: str, output_folder_path: str) -> str | None:
+            """
+            Saves a copy of the image to a new location.
+
+            Args:
+                image_path (str): The original path of the image.
+                output_folder_path (str): The destination folder to save the image.
+
+            Returns:
+                Optional[str]: The new image path or None.
+            """
             try:
                 image = Image.open(image_path)
                 new_path = os.path.join(output_folder_path, "images", os.path.basename(image_path))
                 image.save(new_path)
                 return new_path
             except Exception as e:
-                logger.error(f"Failed to save image {os.path.basename(image_path)}: {str(e)}")
+                logger.error(f"Failed to save image {image_path if image_path else 'Unknown'}: {str(e)}")
                 return None
 
         # Create a new list of samples with updated modalities paths
         new_samples = []
+        output_path = self.config.custom_config.get("output_path", "output")
+        os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
+
         for sample in result.samples:
-            os.makedirs(os.path.join(self.config.custom_config.get("output_path", "output"), "images"), exist_ok=True)
             old_modalities = sample.modalities
             new_modalities = []
             for modality in old_modalities:
                 modality_type = modality.type
                 modality_value = modality.value
+
                 if modality_type == "image":
-                    new_modality_value = save_new_image(modality_value, self.config.custom_config.get("output_path", "output"))
-                    new_modalities.append(MultimodalRawInput(modality_type, new_modality_value))
+                    new_modality_value = save_new_image(modality_value, output_path)
+
+                    # Only add the modality if the new path is valid
+                    if new_modality_value:
+                        new_modalities.append(MultimodalRawInput(modality_type, new_modality_value))
+                    else:
+                        logger.warning(f"Skipping invalid or failed image modality: {modality_value}")
                 else:
+                    # Keep non-image modalities unchanged
                     new_modalities.append(modality)
+
             new_sample = MultimodalSample(
                 sample.text,
                 new_modalities,
-                sample.metadata)
+                sample.metadata
+            )
             new_samples.append(new_sample)
+
         return ProcessorResult(new_samples)

@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 import logging
 import os
 from multiprocessing import Pool, cpu_count
-from PIL import Image
+from PIL import Image,  UnidentifiedImageError
 from typing import List, Tuple, Any, Dict
 from . import md_processor
 import re
@@ -236,9 +236,26 @@ class PDFProcessor(Processor):
 
     @staticmethod
     def _extract_image_from_pdf(pdf_doc, xref) -> Image.Image:
-        base_image = pdf_doc.extract_image(xref)
-        image_bytes = base_image["image"]
-        return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        try:
+            base_image = pdf_doc.extract_image(xref)
+            image_bytes = base_image.get("image")
+            
+            if image_bytes is None:
+                logging.error(f"No image data found for xref {xref}") 
+
+            return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        
+        except KeyError as e:
+            logging.error(f"KeyError while extracting image: {e}")
+            return None
+        
+        except UnidentifiedImageError as e:
+            logging.error(f"UnidentifiedImageError: Could not identify image file for xref {xref}: {e}")
+            return None
+        
+        except Exception as e:
+            logging.error(f"Unexpected error while extracting image for xref {xref}: {e}")
+            return None
 
     def split_files_across_gpus(self) -> List[List[FileDescriptor]]:
         """
