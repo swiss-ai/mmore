@@ -43,13 +43,13 @@ You can find more examples scripts in [the `/examples` directory](../examples/).
 ## :zap: Optimization
 ### :racing_car: Fast mode
 
-For some file types, we provide a fast mode that will allow you to process the files faster, using a different method. To use it, simply add the `--fast` flag to the command.
+For some file types, we provide a fast mode that will allow you to process the files faster, using a different method. To use it, set the `use_fast_processors` to `true` in the config file.
 
 Be aware that the fast mode might not be as accurate as the default mode, especially for scanned non-native PDFs, which may require Optical Character Recognition (OCR) for more accurate extraction.
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, simply add the `--distributed` flag to the command, and follow the steps described in the [](../README.md#hammer-manual-installation) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file., and follow the steps described in the [](../README.md#hammer-manual-installation) section.
 
 ### :wrench: File type parameters tuning
 
