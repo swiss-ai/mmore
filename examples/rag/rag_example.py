@@ -60,14 +60,14 @@ if __name__ == "__main__":
     # get script args
     args = get_args()
 
-    # Create an indexer
-    print('Indexing documents...')
-    indexer = Indexer.from_documents(
-        args.indexer_config, 
-        documents=EXAMPLE_MED_SAMPLES,
-        collection_name='med_docs',
-    )
-    print("Indexer created.")
+    # # Create an indexer
+    # print('Indexing documents...')
+    # indexer = Indexer.from_documents(
+    #     args.indexer_config, 
+    #     documents=EXAMPLE_MED_SAMPLES,
+    #     collection_name='med_docs',
+    # )
+    # print("Indexer created.")
 
     # Initialize pipeline
     print('Creating the RAG Pipeline...')
@@ -77,11 +77,17 @@ if __name__ == "__main__":
     #print(f'> RAG Config:\n{config}')
     
     # Run query
+    # result = rag({
+    #     'input': args.query if args.query else random.choice(EXAMPLE_QUERIES), 
+    #     'collection_name': 'med_docs',
+    #     }, return_dict=True)[0]
+
     result = rag({
-        'input': args.query if args.query else random.choice(EXAMPLE_QUERIES), 
-        'collection_name': 'med_docs',
+            'input': "Using the image, What is the indicator with the highest average weight in the “Projet de Kaduna : Durabilité au niveau LGA” chart, and what is its average weight?",
+            'image_path': './examples/outputs/images/tmpo6ykxmno.png',  # Provide the path to the image
+            'collection_name': 'med_docs',
         }, return_dict=True)[0]
-    
+
     print('-'*50, '\n')
     print(f"> Query:\n{result['input']}\n")
     print(f"> Retrieved:\n{result['docs']}\n")

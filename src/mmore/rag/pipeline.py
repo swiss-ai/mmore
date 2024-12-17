@@ -21,9 +21,19 @@ from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.rag.types import QuotedAnswer, CitedAnswer
 
 from src.mmore.utils import load_config
+import base64
+from PIL import Image
+import io
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
+
+Context:
+{context}
+"""
+
+IMAGE_PROMPT = """\
+You are an AI assistant that can understand both images and text. Use the provided image and the following context to answer the question. If the context doesn't help with the image, try to answer based on the image alone. If neither the image nor the context provides an answer, say you don't know.
 
 Context:
 {context}
@@ -83,6 +93,17 @@ class RAGPipeline:
         """Format documents for prompt."""
         return "\n\n".join(f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs)
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
+    
+    @staticmethod
+    def encode_image(self, image_path):
+        """Encodes an image to base64."""
+        try:
+            with open(image_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+            return encoded_string
+        except FileNotFoundError:
+            print(f"Error: Image file not found at {image_path}")
+            return None
 
     @staticmethod
     # TODO: Add non RAG Pipeline (i.e. retriever is None)
@@ -97,13 +118,21 @@ class RAGPipeline:
                 | StrOutputParser()
         )
 
+        def _process_input(input_dict):
+            if "image_path" in input_dict and input_dict["image_path"]:
+              encoded_image = self.encode_image(input_dict["image_path"])
+              if encoded_image:
+                input_dict["input"] = f"{input_dict['input']}\n<img src='data:image/jpeg;base64,{encoded_image}' alt='User provided image'>"
+            return input_dict
+
         return (
-            RunnablePassthrough
+            RunnablePassthrough()
             .assign(docs=retriever)
             .assign(context=lambda x: format_docs(x["docs"]))
+            .map(_process_input)
             .assign(answer=rag_chain_from_docs)
         )
-
+        
     # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
     # TODO: Streaming (low priority)
     def __call__(self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False) -> List[
