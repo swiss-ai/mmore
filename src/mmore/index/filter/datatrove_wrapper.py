@@ -10,7 +10,7 @@ from mmore.type import MultimodalSample
 from .base import BaseFilter
 
 import nltk
-nltk.download('punkt_tab')
+nltk.download('punkt_tab', quiet=True)
 
 from datatrove.pipeline.filters.base_filter import BaseFilter as DatatroveBaseFilter
 from datatrove.pipeline.filters import (
@@ -108,5 +108,5 @@ class DatatroveFilter(BaseFilter):
             List[bool]: Whether each document should be kept.
         """
         batch = tqdm([DatatroveFilter.sample_to_doc(sample) for sample in batch], 
-                     desc=f'[FILTER] {self.name}')
+                     desc=f'{self.name}')
         return self.datatrove_filter.filter_batch(batch)

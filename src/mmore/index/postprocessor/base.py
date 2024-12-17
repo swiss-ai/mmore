@@ -49,7 +49,7 @@ class BasePostProcessor(ABC):
     def batch_process(self, samples: List[MultimodalSample], **kwargs) -> List[MultimodalSample]:
         res = []
 
-        for s in tqdm(samples, desc=f'[PP] {self.name}'):
+        for s in tqdm(samples, desc=f'{self.name}'):
             pp_s = self.process(s, **kwargs)
             if isinstance(pp_s, MultimodalSample):
                 pp_s = [pp_s]

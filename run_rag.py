@@ -26,10 +26,21 @@ from src.mmore.rag.pipeline import RAGPipeline, RAGConfig
 from src.mmore.rag.types import MMOREOutput, MMOREInput
 from src.mmore.utils import load_config
 
+# Set up logging
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logging.basicConfig(format='[RAG] %(message)s', level=logging.DEBUG)
+# Global logging configuration
+#logging.basicConfig(format='%(asctime)s: %(message)s')
+#logging.basicConfig(format='%(message)s')
+logging.basicConfig(format='[RAG 🤖] %(message)s', level=logging.INFO)
+
+# Suppress overly verbose logs from third-party libraries
+logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("torch").setLevel(logging.WARNING)
+logging.getLogger("uvicorn").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("fastapi").setLevel(logging.WARNING)
 
 from dotenv import load_dotenv
 load_dotenv() 
@@ -100,7 +111,7 @@ def main_local(config: RAGInferenceConfig):
     queries = read_queries(config.mode_args.input_file)
     results = rag(queries, return_dict=True)
     save_results(results, config.mode_args.output_file)
-    logger.info(f"Results saved to {config.mode_args.output_file}")
+    logger.info(f"Done! Results saved to {config.mode_args.output_file}")
 
 def main_api(config: RAGInferenceConfig):
     logger.info('Running RAG pipeline in API mode...')

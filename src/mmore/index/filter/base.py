@@ -52,4 +52,4 @@ class BaseFilter(ABC):
         Returns: a list, the same size as `batch`, containing the filter result for each document
 
         """
-        return list(map(self.filter, tqdm(batch, desc=f'[FILTER] {self.name}')))
+        return list(map(self.filter, tqdm(batch, desc=f'{self.name}')))

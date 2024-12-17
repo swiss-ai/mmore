@@ -4,8 +4,12 @@ Example usage:
     python run_index.py --config-file ./examples/index/indexer_config.yaml
 """
 
+# Remove warnings
 import torchvision
 torchvision.disable_beta_transforms_warning()
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*TypedStorage is deprecated.*")
+warnings.filterwarnings("ignore", category=UserWarning, message="BertForMaskedLM has generative capabilities.*")
 
 import os
 
@@ -18,13 +22,20 @@ from src.mmore.index.indexer import IndexerConfig, Indexer
 from dataclasses import dataclass, field
 import json
 
+from dotenv import load_dotenv
+load_dotenv() 
+
+# Set up logging
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logging.basicConfig(format='[INDEX] %(message)s', level=logging.DEBUG)
+# Global logging configuration
+#logging.basicConfig(format='%(asctime)s: %(message)s')
+#logging.basicConfig(format='%(message)s')
+logging.basicConfig(format='[INDEX 🗂️ ] %(message)s', level=logging.INFO)
 
-from dotenv import load_dotenv
-load_dotenv() 
+# Suppress overly verbose logs from third-party libraries
+logging.getLogger("transformers").setLevel(logging.WARNING)
 
 @dataclass
 class IndexerRunConfig:
@@ -40,7 +51,7 @@ def load_results(path: str, file_type: str = None):
     with open(path + '/merged/merged_results.jsonl', "rb") as f:
         for line in f:
             results.append(MultimodalSample.from_dict(json.loads(line)))
-    logger.info(f"Loaded {len(results)} results")
+    logger.debug(f"Loaded {len(results)} results")
     return results
 
 def get_args():
@@ -65,4 +76,3 @@ if __name__ == "__main__":
         collection_name=config.collection_name,
         batch_size=config.batch_size
     )
-    logger.info("Documents indexed!")

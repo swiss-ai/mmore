@@ -134,16 +134,28 @@ class Indexer:
         )
         return indexer
     
-    def _print_plan(self):
-        # Print Filtering pipeline
-        logger.info("Filtering pipeline:")
-        for filter in self.filters:
-            logger.info(f"  - {filter}")
+    def _print_plan(self, total_width: int = 100):
+        # Define total line width
+        section_title = " Filtering Pipeline "
+        post_title = " Post-Processing Pipeline "
+        
+        # Function to create section headers with equal-length lines
+        def _header_line(title):
+            side_width = (total_width - len(title)) // 2
+            return f"{'-' * side_width}{title}{'-' * (total_width - len(title) - side_width)}"
 
+        # Print Filtering pipeline
+        logger.info(_header_line(section_title))
+        for i, filter in enumerate(self.filters):
+            logger.info(f"  [{i+1}] {filter}")
+        
         # Print PP pipeline
-        logger.info("PP pipeline:")
-        for pp in self.post_processors:
-            logger.info(f"  - {pp}")
+        logger.info(_header_line(post_title))
+        for i, pp in enumerate(self.post_processors):
+            logger.info(f"  [{i+1}] {pp}")
+
+        # Print closing line
+        logger.info('-' * total_width)
 
     def _id_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
         for doc in documents:
@@ -173,7 +185,7 @@ class Indexer:
 
         # Process new documents in batches
         inserted = 0
-        for i in tqdm(range(0, len(documents), batch_size), desc="[INDEXER] Indexing documents..."):
+        for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
             batch = documents[i:i + batch_size]
 
             dense_embeddings, sparse_embeddings = self.compute_document_embeddings(batch)
@@ -196,7 +208,7 @@ class Indexer:
             )
             inserted += list(batch_inserted.values())[0]
 
-        logger.info(f"Updated {inserted} documents in collection {collection_name}")
+        logger.info(f"Updated {inserted} rows in collection {collection_name}")
         return inserted
 
     def compute_document_embeddings(self, documents: List[MultimodalSample]):
@@ -272,11 +284,15 @@ class Indexer:
         # ID documents
         documents = self._id_documents(documents)
 
+        logger.info(f"Filtering...")
         # Filter documents
         documents = self._filter_documents(documents)
 
+        logger.info(f"Post-Processing...")
         # Post-process documents
         documents = self._pp_documents(documents)
+
+        #logger.info(f"Cleaning pipelines done!\n")
 
         # Index documents 
         inserted = self._upsert_documents(
@@ -286,9 +302,9 @@ class Indexer:
             batch_size=batch_size
         )
 
-        logger.info(f"Collection stats:")
+        logger.debug(f"Collection stats:")
         for k,v in self.client.get_collection_stats(collection_name).items():
-            logger.info(f"  - {k}: {v}")
+            logger.debug(f"  - {k}: {v}")
 
         return inserted
 
