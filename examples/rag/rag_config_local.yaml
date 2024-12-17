@@ -1,10 +1,10 @@
 rag:
   llm: 
-    llm_name: "gpt-4o-mini"
+    llm_name: gpt-4o
     max_new_tokens: 100
   retriever:
     db:
-      uri: ./examples/rag/proc_demo.db
+      uri: ./examples/index/med_demo.db
     hybrid_search_weight: 0.5
     k: 5
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"

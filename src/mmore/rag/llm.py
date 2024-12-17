@@ -11,6 +11,8 @@ from langchain_cohere import ChatCohere
 
 from dataclasses import dataclass, field
 
+from .utils import encode_image
+
 import os
 from getpass import getpass
 
@@ -71,3 +73,20 @@ class LLM(BaseChatModel):
                 device_map="auto",
                 pipeline_kwargs=config.generation_kwargs
             ))
+        
+    @staticmethod
+    def process_input(input_dict):
+        input = [{'text': input_dict['input']}]
+        for modality in input_dict['modalities']:
+            if modality.startswith("http") or modality.startswith("https"):
+                input.append({
+                    "type": "image_url",
+                    "image_url": {"url": modality}
+                })
+            else:
+                input.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{encode_image(modality)}"
+                    },
+                })
+        return input

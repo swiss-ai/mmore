@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from langchain.chains.base import Chain
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableMap
 from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -21,9 +21,6 @@ from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.rag.types import QuotedAnswer, CitedAnswer
 
 from src.mmore.utils import load_config
-import base64
-from PIL import Image
-import io
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
@@ -83,6 +80,7 @@ class RAGPipeline:
             [
                 ("system", config.system_prompt),
                 ("human", "{input}")
+                #("placeholder", "{input}")
             ]
         )
 
@@ -93,17 +91,6 @@ class RAGPipeline:
         """Format documents for prompt."""
         return "\n\n".join(f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs)
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
-    
-    @staticmethod
-    def encode_image(self, image_path):
-        """Encodes an image to base64."""
-        try:
-            with open(image_path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-            return encoded_string
-        except FileNotFoundError:
-            print(f"Error: Image file not found at {image_path}")
-            return None
 
     @staticmethod
     # TODO: Add non RAG Pipeline (i.e. retriever is None)
@@ -118,26 +105,17 @@ class RAGPipeline:
                 | StrOutputParser()
         )
 
-        def _process_input(input_dict):
-            if "image_path" in input_dict and input_dict["image_path"]:
-              encoded_image = self.encode_image(input_dict["image_path"])
-              if encoded_image:
-                input_dict["input"] = f"{input_dict['input']}\n<img src='data:image/jpeg;base64,{encoded_image}' alt='User provided image'>"
-            return input_dict
-
         return (
             RunnablePassthrough()
             .assign(docs=retriever)
             .assign(context=lambda x: format_docs(x["docs"]))
-            .map(_process_input)  # Process input *before* calling the LLM
-            .assign(input=lambda x: x["input"]) # Ensure input is available for prompt
-            | RunnableMap(answer=rag_chain_from_docs) # Correctly execute LLM chain
+            .assign(input=lambda x: LLM.process_input(x)) # Ensure input is available for prompt
+            .assign(answer=rag_chain_from_docs)
         )
         
     # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
     # TODO: Streaming (low priority)
-    def __call__(self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False) -> List[
-        Dict[str, str | List[str]]]:
+    def __call__(self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False) -> List[Dict[str, str | List[str]]]:
         if isinstance(queries, Dict):
             queries = [queries]
 

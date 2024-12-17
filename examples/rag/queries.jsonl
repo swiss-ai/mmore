@@ -1,10 +1,1 @@
-{"input": "Was the patient discharged?", "collection_name": "my_docs"}
-{"input": "Are there any chest X-ray findings?", "collection_name": "my_docs"}
-{"input": "Is there a surgery consent mentioned?", "collection_name": "my_docs"}
-{"input": "What are the biopsy results?", "collection_name": "my_docs"}
-{"input": "Is there a prescription for antibiotics?", "collection_name": "my_docs"}
-{"input": "Is there a referral to endocrinology?", "collection_name": "my_docs"}
-{"input": "What are the blood count results?", "collection_name": "my_docs"}
-{"input": "What was the outcome of the procedure?", "collection_name": "my_docs"}
-{"input": "Is there a plan for physical therapy?", "collection_name": "my_docs"}
-{"input": "Is there any immunization record?", "collection_name": "my_docs"}
+{"input": "Using the image, What is the indicator with the highest average weight in the 'Projet de Kaduna : Durabilité au niveau LGA' chart, and what is its average weight?", "modalities": ["https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"], "collection_name": "my_docs"}

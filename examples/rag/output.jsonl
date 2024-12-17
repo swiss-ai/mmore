@@ -1,52 +1,17 @@
 [
   {
-    "input": "Was the patient discharged?",
-    "answer": "Yes, the patient was discharged.",
-    "context": "[1] Patient was discharged in stable condition following a three-day hospitalization for acute bronchitis, with instructions to continue antibiotics and follow up in one week."
-  },
-  {
-    "input": "Are there any chest X-ray findings?",
-    "answer": "Yes, the chest X-ray shows mild chronic interstitial lung changes consistent with prior reports, but no acute abnormalities.",
-    "context": "[1] Chest X-ray reveals no acute abnormalities but shows mild chronic interstitial lung changes consistent with prior reports."
-  },
-  {
-    "input": "Is there a surgery consent mentioned?",
-    "answer": "Yes, the context mentions that the patient has provided verbal and written consent for laparoscopic cholecystectomy.",
-    "context": "[1] The patient has been informed about the potential risks and benefits of laparoscopic cholecystectomy and has provided verbal and written consent."
-  },
-  {
-    "input": "What are the biopsy results?",
-    "answer": "The biopsy results confirm the presence of Helicobacter pylori with associated chronic gastritis.",
-    "context": "[1] Biopsy of the gastric mucosa confirms the presence of Helicobacter pylori with associated chronic gastritis.\n\n[2] The procedure was completed successfully with minimal blood loss and no immediate complications."
-  },
-  {
-    "input": "Is there a prescription for antibiotics?",
-    "answer": "Yes, there is a prescription for antibiotics in the context provided. It prescribes amoxicillin 500 mg orally three times a day for 7 days for the treatment of bacterial sinusitis.",
-    "context": "[1] Prescribe amoxicillin 500 mg orally three times a day for 7 days for treatment of bacterial sinusitis."
-  },
-  {
-    "input": "Is there a referral to endocrinology?",
-    "answer": "Yes, there is a referral to endocrinology for further evaluation of persistent hyperthyroidism.",
-    "context": "[1] Patient is referred to endocrinology for further evaluation of persistent hyperthyroidism noted on recent lab results."
-  },
-  {
-    "input": "What are the blood count results?",
-    "answer": "The complete blood count (CBC) shows mild anemia with a hemoglobin level of 10.5 g/dL.",
-    "context": "[1] Complete blood count (CBC) shows mild anemia with a hemoglobin level of 10.5 g/dL."
-  },
-  {
-    "input": "What was the outcome of the procedure?",
-    "answer": "The outcome of the procedure was successful, with minimal blood loss and no immediate complications.",
-    "context": "[1] The procedure was completed successfully with minimal blood loss and no immediate complications."
-  },
-  {
-    "input": "Is there a plan for physical therapy?",
-    "answer": "Yes, the plan for physical therapy is to have sessions twice weekly for six weeks to improve range of motion and strength in the right shoulder.",
-    "context": "[1] Recommend physical therapy twice weekly for six weeks to improve range of motion and strength in the right shoulder."
-  },
-  {
-    "input": "Is there any immunization record?",
-    "answer": "Yes, there is an immunization record indicating that the patient received the updated influenza vaccine on September 12, 2024, without any adverse reactions.",
-    "context": "[1] Patient received the updated influenza vaccine on September 12, 2024, without any adverse reactions."
+    "input": [
+      {
+        "text": "Using the image, What is the indicator with the highest average weight in the 'Projet de Kaduna : Durabilit\u00e9 au niveau LGA' chart, and what is its average weight?"
+      },
+      {
+        "type": "image_url",
+        "image_url": {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+        }
+      }
+    ],
+    "context": "[1] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.",
+    "answer": "I'm sorry, I can't assist with analyzing images or accessing external URLs. However, if you can provide a description of the chart or any data from it, I'd be happy to help with any questions you have about the information provided."
   }
 ]
