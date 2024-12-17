@@ -1,3 +1,12 @@
+"""
+Indexing script.
+Example usage:
+    python run_index.py --config-file ./examples/index/indexer_config.yaml
+"""
+
+import torchvision
+torchvision.disable_beta_transforms_warning()
+
 import os
 
 import argparse
@@ -11,6 +20,8 @@ import json
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logging.basicConfig(format='[INDEX] %(message)s', level=logging.DEBUG)
 
 from dotenv import load_dotenv
 load_dotenv() 

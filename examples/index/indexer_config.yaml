@@ -2,7 +2,7 @@ indexer:
   dense_model_name: sentence-transformers/all-MiniLM-L6-v2
   sparse_model_name: splade
   db:
-    uri: ./examples/index/med_demo.db
+    uri: ./examples/index/ner.db
     name: db
   filters:
     - type: datatrove

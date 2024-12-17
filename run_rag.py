@@ -1,3 +1,12 @@
+"""
+RAG script.
+Example usage:
+    python run_rag.py --config-file ./examples/rag/rag_config_local.yaml
+"""
+
+import torchvision
+torchvision.disable_beta_transforms_warning()
+
 import argparse
 
 from typing import Literal, List, Dict, Union
@@ -19,6 +28,8 @@ from src.mmore.utils import load_config
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logging.basicConfig(format='[RAG] %(message)s', level=logging.DEBUG)
 
 from dotenv import load_dotenv
 load_dotenv() 
@@ -84,6 +95,18 @@ def create_api(rag: RAGPipeline, endpoint: str):
 
     return app
 
+def main_local(config: RAGInferenceConfig):
+    logger.info('Running RAG pipeline in local mode...')
+    queries = read_queries(config.mode_args.input_file)
+    results = rag(queries, return_dict=True)
+    save_results(results, config.mode_args.output_file)
+    logger.info(f"Results saved to {config.mode_args.output_file}")
+
+def main_api(config: RAGInferenceConfig):
+    logger.info('Running RAG pipeline in API mode...')
+    app = create_api(rag, config.mode_args.endpoint)
+    uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
+
 if __name__ == "__main__":
     args = get_args()
 
@@ -94,11 +117,8 @@ if __name__ == "__main__":
     logger.info('RAG pipeline initialized!')
 
     if config.mode == 'local':
-        queries = read_queries(config.mode_args.input_file)
-        results = rag(queries, return_dict=True)
-        save_results(results, config.mode_args.output_file)
+        main_local(config)
     elif config.mode == 'api':
-        app = create_api(rag, config.mode_args.endpoint)
-        uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
+        main_api(config)
     else:
         raise ValueError(f"Unknown inference mode: {config.mode}. Should be in [api, local]")

@@ -189,7 +189,7 @@ class Indexer:
                     **sample.metadata
                 })
 
-            batch_inserted = self.client.insert(
+            batch_inserted = self.client.upsert(
                 data=data,
                 collection_name=collection_name,
                 partition_name=partition_name,

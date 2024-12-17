@@ -3,24 +3,16 @@ from typing import Dict, List, Any, Optional, Literal
 from dataclasses import dataclass, field
 from src.mmore.type import MultimodalSample
 from multiprocessing import Pool, cpu_count
-from chonkie import Chunk, BaseChunker, SentenceChunker, SemanticChunker
+from chonkie import Chunk, BaseChunker
 
 from mmore.index.postprocessor.base import BasePostProcessor
+from .utils import load_chonkie
 
 import logging
 logger = logging.getLogger(__name__)
 
-
-def load_chonkie(chunking_strategy: str, chunking_args: Dict[str, Any]) -> BaseChunker:
-    if chunking_strategy == 'sentence':
-        return SentenceChunker(**chunking_args)
-    elif chunking_strategy == 'semantic':
-        return SemanticChunker(**chunking_args)
-    else:
-        raise ValueError(f'Unsupported chunker: {chunking_strategy}')
-
 @dataclass
-class ChunkerConfig:
+class MultimodalChunkerConfig:
     chunking_strategy: str
     text_chunker_config: Dict[str, Any] = field(default_factory=lambda: {})
 
@@ -32,7 +24,7 @@ class MultimodalChunker(BasePostProcessor):
         self.text_chunker = text_chunker
 
     @classmethod
-    def from_config(cls, config: ChunkerConfig):
+    def from_config(cls, config: MultimodalChunkerConfig):
         text_chunker = load_chonkie(config.chunking_strategy, config.text_chunker_config)
         return cls(text_chunker=text_chunker)
     

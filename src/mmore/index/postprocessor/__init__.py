@@ -1,6 +1,6 @@
 from .base import BasePostProcessor, BasePostProcessorConfig
 
-from .chunker import MultimodalChunker, ChunkerConfig
+from .chunker import MultimodalChunker, MultimodalChunkerConfig
 from .lang_detector import LangDetector
 from .counter import ModalitiesCounter, WordsCounter
 from .ner import NERecognizer, NERExtractorConfig
@@ -11,7 +11,7 @@ __all__ = ['BasePostProcessor', 'MultimodalChunker', 'LangDetector', 'Modalities
 
 def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
     if config.type == 'chunker':
-        config = load_config(config.args, ChunkerConfig)
+        config = load_config(config.args, MultimodalChunkerConfig)
         return MultimodalChunker.from_config(config)
     elif config.type == 'ner':
         config = load_config(config.args, NERExtractorConfig)
