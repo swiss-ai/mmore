@@ -1,6 +1,7 @@
 rag:
   llm: 
-    llm_name: "gpt-4o-mini"
+    llm_name: "mosaicml/mpt-7b"
+    base_url: "http://localhost:8000/v1"
     max_new_tokens: 100
   retriever:
     db:
@@ -11,4 +12,4 @@ rag:
 mode: local
 mode_args:
   input_file: ./examples/rag/queries.jsonl
-  output_file: ./examples/rag/output.jsonl
+  output_file: ./examples/rag/vllm/output.jsonl

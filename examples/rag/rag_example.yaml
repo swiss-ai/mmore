@@ -1,8 +1,0 @@
-llm: 
-  llm_name: "gpt-4o-mini"
-  max_new_tokens: 100
-retriever:
-  db:
-    uri: ./examples/rag/med_demo.db
-  hybrid_search_weight: 0.5
-  k: 5
