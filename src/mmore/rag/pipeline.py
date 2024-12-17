@@ -129,8 +129,9 @@ class RAGPipeline:
             RunnablePassthrough()
             .assign(docs=retriever)
             .assign(context=lambda x: format_docs(x["docs"]))
-            .map(_process_input)
-            .assign(answer=rag_chain_from_docs)
+            .map(_process_input)  # Process input *before* calling the LLM
+            .assign(input=lambda x: x["input"]) # Ensure input is available for prompt
+            | RunnableMap(answer=rag_chain_from_docs) # Correctly execute LLM chain
         )
         
     # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
