@@ -17,11 +17,11 @@ from .postprocessor import load_postprocessor
 from .postprocessor.base import BasePostProcessor, BasePostProcessorConfig
 from .postprocessor.autoid import AutoID
 
-import hashlib
+from .filter import load_filter
+from .filter.base import BaseFilter, BaseFilterConfig
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 @dataclass
 class DBConfig:
@@ -35,6 +35,7 @@ class IndexerConfig:
     dense_model_name: str
     sparse_model_name: str
     db: DBConfig = field(default_factory=DBConfig)
+    filters: List[BaseFilterConfig] = None
     pp: List[BasePostProcessorConfig] = None
     batch_size: int = 8
 
@@ -42,11 +43,11 @@ class IndexerConfig:
         if isinstance(self.db, dict):
             self.db = DBConfig(**self.db)
 
-
 class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
+    filters: List[BaseFilter]
     post_processors: List[BasePostProcessor]
     client: MilvusClient
     batch_size: int
@@ -58,6 +59,7 @@ class Indexer:
                  dense_model_name, 
                  sparse_model, 
                  sparse_model_name, 
+                 filters: List[BaseFilter],
                  postprocessors: List[BasePostProcessor], 
                  client: MilvusClient, 
                  batch_size: int = 8
@@ -66,8 +68,12 @@ class Indexer:
         self.dense_model = dense_model
         self.sparse_model_name = sparse_model_name
         self.sparse_model = sparse_model
+
+        self.filters = filters
         self.post_processors = postprocessors
+
         self.client = client
+
         self.batch_size = batch_size
 
     @classmethod
@@ -79,6 +85,12 @@ class Indexer:
         # Load the embedding models
         dense_model = load_dense_model(config.dense_model_name)
         sparse_model = load_sparse_model(config.sparse_model_name)
+
+        # Load the filters
+        if config.filters is None:
+            filters = []
+        else:
+            filters = [load_filter(filter_config) for filter_config in config.filters]
 
         # Load the postprocessors
         if config.pp is None:
@@ -98,6 +110,7 @@ class Indexer:
             dense_model=dense_model,
             sparse_model_name=config.sparse_model_name,
             sparse_model=sparse_model,
+            filters=filters,
             postprocessors=postprocessors,
             client=milvus_client,
             batch_size=config.batch_size
@@ -120,6 +133,39 @@ class Indexer:
             batch_size=batch_size
         )
         return indexer
+    
+    def _print_plan(self, total_width: int = 100):
+        # Define total line width
+        section_title = " Filtering Pipeline "
+        post_title = " Post-Processing Pipeline "
+        
+        # Function to create section headers with equal-length lines
+        def _header_line(title):
+            side_width = (total_width - len(title)) // 2
+            return f"{'-' * side_width}{title}{'-' * (total_width - len(title) - side_width)}"
+
+        # Print Filtering pipeline
+        logger.info(_header_line(section_title))
+        for i, filter in enumerate(self.filters):
+            logger.info(f"  [{i+1}] {filter}")
+        
+        # Print PP pipeline
+        logger.info(_header_line(post_title))
+        for i, pp in enumerate(self.post_processors):
+            logger.info(f"  [{i+1}] {pp}")
+
+        # Print closing line
+        logger.info('-' * total_width)
+
+    def _id_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
+        for doc in documents:
+            doc.id = Indexer._compute_hash(doc)
+        return documents
+    
+    def _filter_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
+        for filter in self.filters:
+            documents = [documents[i] for i, flag in enumerate(filter.batch_filter(documents)) if flag]
+        return documents
         
     def _pp_documents(self, documents: List[MultimodalSample]) -> List[MultimodalSample]:
         for pp in self.post_processors:
@@ -139,29 +185,30 @@ class Indexer:
 
         # Process new documents in batches
         inserted = 0
-        for i in tqdm(range(0, len(documents), batch_size), desc="Indexing new documents"):
+        for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
             batch = documents[i:i + batch_size]
 
             dense_embeddings, sparse_embeddings = self.compute_document_embeddings(batch)
 
             data = []
-            for j, (doc, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
+            for j, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
                 data.append({
-                    "id": Indexer._compute_hash(doc),
-                    "text": doc.text,
+                    "id": Indexer._compute_hash(sample),
+                    "doc_id": sample.id,
+                    "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
-                    **{tag: doc.metadata[tag] for tag in doc.metadata.keys()}
+                    **sample.metadata
                 })
 
-            batch_inserted = self.client.insert(
+            batch_inserted = self.client.upsert(
                 data=data,
                 collection_name=collection_name,
                 partition_name=partition_name,
             )
             inserted += list(batch_inserted.values())[0]
 
-        logger.info(f"Updated {inserted} documents in collection {collection_name}")
+        logger.info(f"Updated {inserted} rows in collection {collection_name}")
         return inserted
 
     def compute_document_embeddings(self, documents: List[MultimodalSample]):
@@ -231,9 +278,21 @@ class Indexer:
             partition_name: str = None,
             batch_size: int = 32
         ) -> List[int]:
+        # Print the pipeline plan
+        self._print_plan()
 
+        # ID documents
+        documents = self._id_documents(documents)
+
+        logger.info(f"Filtering...")
+        # Filter documents
+        documents = self._filter_documents(documents)
+
+        logger.info(f"Post-Processing...")
         # Post-process documents
         documents = self._pp_documents(documents)
+
+        #logger.info(f"Cleaning pipelines done!\n")
 
         # Index documents 
         inserted = self._upsert_documents(
@@ -242,6 +301,10 @@ class Indexer:
             partition_name=partition_name,
             batch_size=batch_size
         )
+
+        logger.debug(f"Collection stats:")
+        for k,v in self.client.get_collection_stats(collection_name).items():
+            logger.debug(f"  - {k}: {v}")
 
         return inserted
 

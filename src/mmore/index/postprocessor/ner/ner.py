@@ -7,7 +7,7 @@ from .extractor import NERExtractor, NERExtractorConfig
 
 class NERecognizer(BasePostProcessor):
     def __init__(self, extractor: NERExtractor):
-        super().__init__('ner')
+        super().__init__('🔎 NER')
         self._extractor = extractor
 
     @classmethod

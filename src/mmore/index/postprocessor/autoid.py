@@ -7,7 +7,7 @@ import hashlib
 
 class AutoID(BasePostProcessor):
     def __init__(self):
-        super().__init__('auto_id')
+        super().__init__('#️⃣ Auto ID')
 
     @staticmethod
     def hash_text(text: str) -> str:

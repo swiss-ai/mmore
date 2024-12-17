@@ -1,52 +1,122 @@
 [
   {
-    "input": "Was the patient discharged?",
-    "answer": "Yes, the patient was discharged.",
-    "context": "[1] Patient was discharged in stable condition following a three-day hospitalization for acute bronchitis, with instructions to continue antibiotics and follow up in one week."
+    "input": "When was Barack Obama born?",
+    "answer": "Barack Obama was born on August 4, 1961.",
+    "context": "[1] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[2] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[3] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[4] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[5] Amazon shipped the package from its warehouse in Seattle to a customer in New York."
   },
   {
-    "input": "Are there any chest X-ray findings?",
-    "answer": "Yes, the chest X-ray shows mild chronic interstitial lung changes consistent with prior reports, but no acute abnormalities.",
-    "context": "[1] Chest X-ray reveals no acute abnormalities but shows mild chronic interstitial lung changes consistent with prior reports."
+    "input": "Where was Barack Obama born?",
+    "answer": "Barack Obama was born in Honolulu, Hawaii.",
+    "context": "[1] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[2] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[3] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
   },
   {
-    "input": "Is there a surgery consent mentioned?",
-    "answer": "Yes, the context mentions that the patient has provided verbal and written consent for laparoscopic cholecystectomy.",
-    "context": "[1] The patient has been informed about the potential risks and benefits of laparoscopic cholecystectomy and has provided verbal and written consent."
+    "input": "Who founded Google LLC?",
+    "answer": "Google LLC was founded by Larry Page and Sergey Brin.",
+    "context": "[1] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[4] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
   },
   {
-    "input": "What are the biopsy results?",
-    "answer": "The biopsy results confirm the presence of Helicobacter pylori with associated chronic gastritis.",
-    "context": "[1] Biopsy of the gastric mucosa confirms the presence of Helicobacter pylori with associated chronic gastritis.\n\n[2] The procedure was completed successfully with minimal blood loss and no immediate complications."
+    "input": "Where is Google LLC headquartered?",
+    "answer": "Google LLC is headquartered in Mountain View, California.",
+    "context": "[1] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[4] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
   },
   {
-    "input": "Is there a prescription for antibiotics?",
-    "answer": "Yes, there is a prescription for antibiotics in the context provided. It prescribes amoxicillin 500 mg orally three times a day for 7 days for the treatment of bacterial sinusitis.",
-    "context": "[1] Prescribe amoxicillin 500 mg orally three times a day for 7 days for treatment of bacterial sinusitis."
+    "input": "What is the location of the Eiffel Tower?",
+    "answer": "The Eiffel Tower is located in Paris, France.",
+    "context": "[1] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
   },
   {
-    "input": "Is there a referral to endocrinology?",
-    "answer": "Yes, there is a referral to endocrinology for further evaluation of persistent hyperthyroidism.",
-    "context": "[1] Patient is referred to endocrinology for further evaluation of persistent hyperthyroidism noted on recent lab results."
+    "input": "Where is the Eiffel Tower located?",
+    "answer": "The Eiffel Tower is located in Paris, France.",
+    "context": "[1] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] The conference on artificial intelligence will be held in Tokyo on March 15, 2024."
   },
   {
-    "input": "What are the blood count results?",
-    "answer": "The complete blood count (CBC) shows mild anemia with a hemoglobin level of 10.5 g/dL.",
-    "context": "[1] Complete blood count (CBC) shows mild anemia with a hemoglobin level of 10.5 g/dL."
+    "input": "When will the artificial intelligence conference be held?",
+    "answer": "The artificial intelligence conference will be held in Tokyo on March 15, 2024.",
+    "context": "[1] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[4] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
   },
   {
-    "input": "What was the outcome of the procedure?",
-    "answer": "The outcome of the procedure was successful, with minimal blood loss and no immediate complications.",
-    "context": "[1] The procedure was completed successfully with minimal blood loss and no immediate complications."
+    "input": "Where will the artificial intelligence conference take place?",
+    "answer": "The artificial intelligence conference will take place in Tokyo.",
+    "context": "[1] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
   },
   {
-    "input": "Is there a plan for physical therapy?",
-    "answer": "Yes, the plan for physical therapy is to have sessions twice weekly for six weeks to improve range of motion and strength in the right shoulder.",
-    "context": "[1] Recommend physical therapy twice weekly for six weeks to improve range of motion and strength in the right shoulder."
+    "input": "Where was the package shipped from by Amazon?",
+    "answer": "The package was shipped from Amazon's warehouse in Seattle.",
+    "context": "[1] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[2] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[3] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[4] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[5] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024."
   },
   {
-    "input": "Is there any immunization record?",
-    "answer": "Yes, there is an immunization record indicating that the patient received the updated influenza vaccine on September 12, 2024, without any adverse reactions.",
-    "context": "[1] Patient received the updated influenza vaccine on September 12, 2024, without any adverse reactions."
+    "input": "Where did Amazon ship the package to?",
+    "answer": "Amazon shipped the package to a customer in New York.",
+    "context": "[1] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[2] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[3] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[4] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
+  },
+  {
+    "input": "Who announced the next SpaceX rocket launch?",
+    "answer": "Elon Musk announced the next SpaceX rocket launch.",
+    "context": "[1] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[2] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
+  },
+  {
+    "input": "When will SpaceX launch its next rocket?",
+    "answer": "SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.",
+    "context": "[1] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[2] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[3] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[4] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
+  },
+  {
+    "input": "Where will SpaceX launch its next rocket from?",
+    "answer": "SpaceX will launch its next rocket from Cape Canaveral.",
+    "context": "[1] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[4] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[5] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin."
+  },
+  {
+    "input": "When was Fran\u00e7ois Hollande born?",
+    "answer": "The context provided does not include information about Fran\u00e7ois Hollande's birth date. However, Fran\u00e7ois Hollande was born on August 12, 1954.",
+    "context": "[1] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[2] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[3] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[4] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[5] Amazon shipped the package from its warehouse in Seattle to a customer in New York."
+  },
+  {
+    "input": "Where was Fran\u00e7ois Hollande born?",
+    "answer": "The context provided does not contain information about Fran\u00e7ois Hollande's birthplace.",
+    "context": "[1] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[2] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[3] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[4] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[5] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024."
+  },
+  {
+    "input": "Who founded Google LLC?",
+    "answer": "Google LLC was founded by Larry Page and Sergey Brin.",
+    "context": "[1] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[4] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
+  },
+  {
+    "input": "Where is the headquarters of Google LLC?",
+    "answer": "The headquarters of Google LLC is located in Mountain View, California.",
+    "context": "[1] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[4] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[5] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024."
+  },
+  {
+    "input": "Where is the Tour Eiffel located?",
+    "answer": "The Tour Eiffel, or Eiffel Tower, is located in Paris, France.",
+    "context": "[1] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[2] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] The conference on artificial intelligence will be held in Tokyo on March 15, 2024."
+  },
+  {
+    "input": "When will the conference on intelligence artificielle take place?",
+    "answer": "The conference on artificial intelligence will take place on March 15, 2024.",
+    "context": "[1] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[4] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
+  },
+  {
+    "input": "Where will the intelligence artificielle conference be held?",
+    "answer": "The conference on artificial intelligence will be held in Tokyo.",
+    "context": "[1] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[2] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[5] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year."
+  },
+  {
+    "input": "Who announced the next campaign for LVMH?",
+    "answer": "The provided context does not include any information about LVMH or any announcements related to its campaigns. Therefore, I cannot answer that question based on the given context.",
+    "context": "[1] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[2] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[3] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[4] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[5] Amazon shipped the package from its warehouse in Seattle to a customer in New York."
+  },
+  {
+    "input": "When will LVMH launch its next campaign for the Paris 2024 Olympics?",
+    "answer": "The context provided does not contain any information about LVMH or its campaign for the Paris 2024 Olympics. Therefore, I cannot provide an answer to that question.",
+    "context": "[1] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[2] The conference on artificial intelligence will be held in Tokyo on March 15, 2024.\n\n[3] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[4] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii.\n\n[5] Amazon shipped the package from its warehouse in Seattle to a customer in New York."
+  },
+  {
+    "input": "Where was the package shipped from by La Poste?",
+    "answer": "The context provided does not mention La Poste or where any package was shipped from by them. It only discusses an Amazon package shipped from Seattle to New York.",
+    "context": "[1] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[2] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[3] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
+  },
+  {
+    "input": "Where did La Poste send the package to?",
+    "answer": "The context provided does not mention La Poste or any package sent by it. It only references Amazon shipping a package from Seattle to New York. Therefore, I cannot provide an answer regarding La Poste.",
+    "context": "[1] Amazon shipped the package from its warehouse in Seattle to a customer in New York.\n\n[2] Google LLC, headquartered in Mountain View, California, was founded by Larry Page and Sergey Brin.\n\n[3] The Eiffel Tower, located in Paris, France, attracts millions of tourists every year.\n\n[4] Elon Musk announced that SpaceX will launch its next rocket from Cape Canaveral on December 12, 2024.\n\n[5] Barack Obama was born on August 4, 1961, in Honolulu, Hawaii."
   }
 ]
