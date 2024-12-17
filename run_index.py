@@ -35,7 +35,7 @@ logger.setLevel(logging.INFO)
 logging.basicConfig(format='[INDEX 🗂️ ] %(message)s', level=logging.INFO)
 
 # Suppress overly verbose logs from third-party libraries
-logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 @dataclass
 class IndexerRunConfig:

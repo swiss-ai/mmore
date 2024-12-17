@@ -4,8 +4,13 @@ Example usage:
     python run_rag.py --config-file ./examples/rag/rag_config_local.yaml
 """
 
+# Remove warnings
 import torchvision
 torchvision.disable_beta_transforms_warning()
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*TypedStorage is deprecated.*")
+warnings.filterwarnings("ignore", category=UserWarning, message="BertForMaskedLM has generative capabilities.*")
+
 
 import argparse
 
@@ -36,7 +41,7 @@ logger.setLevel(logging.INFO)
 logging.basicConfig(format='[RAG 🤖] %(message)s', level=logging.INFO)
 
 # Suppress overly verbose logs from third-party libraries
-logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.CRITICAL)
 logging.getLogger("torch").setLevel(logging.WARNING)
 logging.getLogger("uvicorn").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
