@@ -18,8 +18,8 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores.base import VectorStore, VectorStoreRetriever
 # from .models import get_model_wrapper, MultimodalModelWrapper
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from .models.multimodal_model import MultimodalEmbeddings
-from .models.splade import SpladeSparseEmbedding
+from .model.dense.multimodal import MultimodalEmbeddings
+from .model.sparse.splade import SpladeSparseEmbedding
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 
 from langchain_milvus import Milvus

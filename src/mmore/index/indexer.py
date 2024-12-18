@@ -4,14 +4,16 @@ Supports multimodal documents with chunking capabilities.
 """
 from typing import List
 from dataclasses import dataclass, field
-from src.mmore.utils import load_config
-from ..rag.models import load_dense_model, load_sparse_model
-from src.mmore.type import MultimodalSample
+
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
+
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
+
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
-from ..rag.models.multimodal_model import MultimodalEmbeddings
-from tqdm import tqdm
+from mmore.rag.model.dense.multimodal import MultimodalEmbeddings
+from mmore.rag.model import load_dense_model, load_sparse_model
 
 from .postprocessor import load_postprocessor
 from .postprocessor.base import BasePostProcessor, BasePostProcessorConfig
@@ -19,6 +21,8 @@ from .postprocessor.autoid import AutoID
 
 from .filter import load_filter
 from .filter.base import BaseFilter, BaseFilterConfig
+
+from tqdm import tqdm
 
 import logging
 logger = logging.getLogger(__name__)

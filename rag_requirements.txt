@@ -7,6 +7,9 @@ langchain-openai
 langchain-anthropic
 langchain-mistralai
 langchain-cohere
+langchain-aws
+langchain-nvidia-ai-endpoints
+langchain-google-vertexai
 langserve
 pymilvus[model]
 ragas

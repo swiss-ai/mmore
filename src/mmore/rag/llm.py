@@ -39,7 +39,7 @@ class LLMConfig:
     temperature: float = 0.7
 
     def __post_init__(self):
-        self.organization = self.organization.upper() or (
+        self.organization = self.organization or (
             "OPENAI" if self.llm_name in _OPENAI_MODELS else
             "ANTHROPIC" if self.llm_name in _ANTHROPIC_MODELS else
             "MISTRAL" if self.llm_name in _MISTRAL_MODELS else
@@ -47,6 +47,9 @@ class LLMConfig:
             "HF" if self.base_url is None else
             None
         )
+
+        if not self.organization is None:
+            self.organization = self.organization.upper()
 
     @property
     def generation_kwargs(self):

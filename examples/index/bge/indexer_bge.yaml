@@ -1,0 +1,28 @@
+indexer:
+  dense_model_name: BAAI/bge-small-en
+  sparse_model_name: splade
+  db:
+    uri: ./examples/index/bge/ner.db
+    name: db
+  filters:
+    - type: datatrove
+      args:
+        datatrove_name: language
+        exclusion_writer: /mnt/mlo/scratch/homes/teiletch/mmore/examples/index/exclusion_writers/language.jsonl
+        datatrove_args:
+          languages: ["en"]
+    - type: datatrove
+      args:
+        datatrove_name: fineweb
+        exclusion_writer: /mnt/mlo/scratch/homes/teiletch/mmore/examples/index/exclusion_writers/fineweb.jsonl
+  pp:
+    - type: chunker 
+      args:
+        chunking_strategy: sentence
+    # - type: ner
+    #   args:
+    #     llm:
+    #       llm_name: "gpt-4o-mini"
+    - type: lang_detector
+collection_name: my_docs
+documents_path: examples/example_outputs_ner
