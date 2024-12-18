@@ -14,7 +14,7 @@ import sys
 
 
 class MultimodalEmbeddings(Embeddings):
-    def __init__(self, model_name='meta-llama/Llama-3.2-11B-Vision'):
+    def __init__(self, model_name: str):
         super().__init__()
         self.model = AutoModelForImageTextToText.from_pretrained(
             model_name,
@@ -26,30 +26,30 @@ class MultimodalEmbeddings(Embeddings):
 
         """Interface for embedding models.
 
-    This is an interface meant for implementing text embedding models.
+        This is an interface meant for implementing text embedding models.
 
-    Text embedding models are used to map text to a vector (a point in n-dimensional
-    space).
+        Text embedding models are used to map text to a vector (a point in n-dimensional
+        space).
 
-    Texts that are similar will usually be mapped to points that are close to each
-    other in this space. The exact details of what's considered "similar" and how
-    "distance" is measured in this space are dependent on the specific embedding model.
+        Texts that are similar will usually be mapped to points that are close to each
+        other in this space. The exact details of what's considered "similar" and how
+        "distance" is measured in this space are dependent on the specific embedding model.
 
-    This abstraction contains a method for embedding a list of documents and a method
-    for embedding a query text. The embedding of a query text is expected to be a single
-    vector, while the embedding of a list of documents is expected to be a list of
-    vectors.
+        This abstraction contains a method for embedding a list of documents and a method
+        for embedding a query text. The embedding of a query text is expected to be a single
+        vector, while the embedding of a list of documents is expected to be a list of
+        vectors.
 
-    Usually the query embedding is identical to the document embedding, but the
-    abstraction allows treating them independently.
+        Usually the query embedding is identical to the document embedding, but the
+        abstraction allows treating them independently.
 
-    In addition to the synchronous methods, this interface also provides asynchronous
-    versions of the methods.
+        In addition to the synchronous methods, this interface also provides asynchronous
+        versions of the methods.
 
-    By default, the asynchronous methods are implemented using the synchronous methods;
-    however, implementations may choose to override the asynchronous methods with
-    an async native implementation for performance reasons.
-    """
+        By default, the asynchronous methods are implemented using the synchronous methods;
+        however, implementations may choose to override the asynchronous methods with
+        an async native implementation for performance reasons.
+        """
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs.
@@ -65,8 +65,10 @@ class MultimodalEmbeddings(Embeddings):
         for text in texts:
             # replace <attachment> with empty string
             text = text.replace("<attachment>", "")
-            prompt, images = MultimodalEmbeddings._extract_multimodal_inputs(text, pattern=r'<\|image\|>(.*?)<\|image\|>',
-                                                                             proc_token='<|image|>')
+            prompt, images = MultimodalEmbeddings._extract_multimodal_inputs(
+                text, 
+                proc_token='<|image|>'
+            )
             images = [Image.open(image) for image in images]
 
             if images:
@@ -103,20 +105,21 @@ class MultimodalEmbeddings(Embeddings):
 
     @staticmethod
     def _multimodal_to_text(sample: MultimodalSample):
-        s = ''.join([f"{modality.type}{modality.value}{modality.type}" for modality in sample.modalities])
+        s = '\n'.join([f"<|{modality.type}|>{modality.value}<|{modality.type}|>" for modality in sample.modalities])
         s += sample.text
         return s
 
-    # TODO: Add metadata when available
     @staticmethod
-    def _multimodal_to_doc(sample: MultimodalSample):
+    def _multimodal_to_doc(sample: MultimodalSample) -> Document:
         return Document(
             MultimodalEmbeddings._multimodal_to_text(sample),
-            metadata={}
+            metadata=sample.metadata
         )
 
     @staticmethod
-    def _extract_multimodal_inputs(text, pattern: re.Pattern, proc_token: str):
+    def _extract_multimodal_inputs(text, proc_token: str, pattern: str = None) -> tuple[str, list[str]]:
+        pattern = pattern or rf'{re.escape(proc_token)}(.*?){re.escape(proc_token)}'
+
         # Find all matches in the input string
         extracted_strings = re.findall(pattern, text)
 
