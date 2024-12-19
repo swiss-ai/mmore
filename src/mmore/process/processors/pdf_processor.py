@@ -25,7 +25,7 @@ from src.mmore.process.utils import (
     create_sample_list,
     merge_split_with_full_page_indexer,
     create_sample_list_already_saved_images,
-    clean_images,
+    clean_image,
 )
 
 BATCH_SIZE = 1
@@ -135,9 +135,6 @@ class PDFProcessor(Processor):
         pdf_doc = fitz.open(file_path)
         extracted_text = []
         embedded_images = []
-        # Keep track of where each image corresponds in the text
-        # (each image will have a matching attachment_tag in extracted_text)
-        image_positions = []
 
         for page in pdf_doc:
             text = clean_text(page.get_text())
@@ -146,25 +143,11 @@ class PDFProcessor(Processor):
 
             for img_info in page.get_images(full=False):
                 image = self._extract_image_from_pdf(pdf_doc, img_info[0])
-                embedded_images.append(image)
-                extracted_text.append(self.config.attachment_tag)
-                image_positions.append(len(extracted_text) - 1)
-
-        filtered_images, mask = clean_images(embedded_images) # if needed min_width, min_height and variance_threshold can be passed as arguments; current default 512, 512 and 100. 
-
-        # Remove attachment tags for images that were not kept
-        filtered_text = []
-        image_counter = 0
-        for token in extracted_text:
-            if token == self.config.attachment_tag:
-                # Keep this tag only if the image is retained
-                if mask[image_counter]:
-                    filtered_text.append(token)
-                image_counter += 1
-            else:
-                filtered_text.append(token)
-
-        return create_sample(filtered_text, filtered_images)
+                if clean_image(image): # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed 
+                    embedded_images.append(image)
+                    extracted_text.append(self.config.attachment_tag)
+                    
+        return create_sample(extracted_text, embedded_images)
 
     def process_implementation(self, file_path: str, temp_dir: str = "tmp/") -> dict:
         def extract_image_in_page(page, current_image_index) -> Tuple[List[str], int]:

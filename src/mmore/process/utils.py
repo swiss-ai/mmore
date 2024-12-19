@@ -116,55 +116,33 @@ def clean_text(text: str) -> str:
     )
 
 
-def clean_images(images: List[Image.Image], 
-                 min_width=512, 
-                 min_height=512, 
-                 variance_threshold=100) -> Tuple[List[Image.Image], List[bool]]:
+def clean_image(image: Image.Image, min_width=512, min_height=512, variance_threshold=100) -> bool:
     """
-    Filters a list of images based on size and visual content.
-
-    This function removes images that:
-    1. Do not meet the minimum width and height requirements.
-    2. Have a pixel intensity variance below a given threshold (e.g. full black/white).
+    Validates an image based on size and variance (whether its one-colored).
 
     Args:
-        images (List[PIL.Image.Image]): A list of PIL image objects to filter.
+        image (PIL.Image.Image): The image to validate.
         min_width (int, optional): The minimum width an image must have to be considered valid. Defaults to 512.
         min_height (int, optional): The minimum height an image must have to be considered valid. Defaults to 512.
-        variance_threshold (int, optional): The minimum variance in pixel intensity required. 
-                                            Images with a lower variance are considered "empty".
-                                            Defaults to 100.
+        variance_threshold (int, optional): The minimum variance in pixel intensity required. Images with lower variance are considered "empty". Defaults to 100.
 
     Returns:
-        Tuple[List[PIL.Image.Image], List[bool]]:
-            A tuple containing:
-            - A list of filtered images that passed all criteria.
-            - A corresponding boolean mask list indicating which original images were retained (True) or removed (False).
+        bool: True if the image meets all criteria, False otherwise.
     """
-    filtered = []
-    mask = []
-    for img in images:
-        w, h = img.size
+    w, h = image.size
 
-        # Check size criteria
-        if w < min_width or h < min_height:
-            mask.append(False)
-            continue
+    # Check size criteria
+    if w < min_width or h < min_height:
+        return False
 
-        # Check variance threshold
-        gray = img.convert("L")
-        arr = np.array(gray)
-        variance = arr.var()
-        if variance < variance_threshold:
-            # This means the image is mostly one color (e.g. full black or white) and can be considered empty, carries no information 
-            mask.append(False)
-            continue
+    # Check variance threshold
+    gray = image.convert("L")
+    arr = np.array(gray)
+    variance = arr.var()
+    if variance < variance_threshold:
+        return False
 
-        # If all checks pass, we keep the image
-        filtered.append(img)
-        mask.append(True)
-
-    return filtered, mask
+    return True
 
 def _save_temp_image(image: Image.Image, base_path=None) -> str:
     """
