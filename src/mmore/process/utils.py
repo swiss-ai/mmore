@@ -1,4 +1,9 @@
-"""Currently we are not using this file."""
+"""
+Utility functions for processing files, images, PDFs, and text. 
+These functions can be used across various processors for data extraction, 
+cleaning, splitting, and aggregation.
+"""
+
 
 from io import BytesIO
 import logging
@@ -22,10 +27,13 @@ logger = logging.getLogger(__name__)
 
 def download_image(url) -> Image:
     """
-    Download an image from a URL and return a PIL Image object.
+    Download an image from a URL and return it as a PIL Image object.
 
-    :param url: URL of the image.
-    :return: PIL Image object.
+    Args:
+        url (str): URL of the image.
+
+    Returns:
+        Image.Image: PIL Image object of the downloaded image, or None if the download fails.
     """
     try:
         response = requests.get(url)
@@ -39,10 +47,13 @@ def download_image(url) -> Image:
 
 def open_image(path) -> Image:
     """
-    Open an image from a file path and return a PIL Image object.
+    Open an image from a file path and return it as a PIL Image object.
 
-    :param path: Path to the image file.
-    :return: PIL Image object.
+    Args:
+        path (str): Path to the image file.
+
+    Returns:
+        Image.Image: PIL Image object of the opened image, or None if opening fails.
     """
     try:
         img = Image.open(path).convert("RGB")
@@ -54,10 +65,13 @@ def open_image(path) -> Image:
 
 def load_image(file: str) -> Image:
     """
-    Open an image from a file path or URL and return a PIL Image object.
+    Load an image from a file path or URL and return it as a PIL Image object.
 
-    :param file: Path to the image file or URL.
-    :return: PIL Image object.
+    Args:
+        file (str): Path or URL to the image.
+
+    Returns:
+        Image.Image: PIL Image object, or None if loading fails.
     """
     if os.path.exists(file):
         return open_image(file)
@@ -70,6 +84,15 @@ def load_image(file: str) -> Image:
 
 # TODO: Refine this function
 def clean_text(text: str) -> str:
+    """
+    Clean a given text using `cleantext` library. https://pypi.org/project/clean-text/
+
+    Args:
+        text (str): Input text to be cleaned.
+
+    Returns:
+        str: Cleaned text.
+    """
     return clean(
         text=text,
         fix_unicode=True,
@@ -96,6 +119,16 @@ def clean_text(text: str) -> str:
 
 # TODO: Refine this function. Can be useful in order not to extract junk
 def clean_image(image: Image.Image) -> bool:
+    """
+    Note: Not implemented yet.
+    Check if an image meets the minimum size criteria for processing.
+
+    Args:
+        image (Image.Image): Image to check.
+
+    Returns:
+        bool: True if the image meets size criteria, False otherwise.
+    """
     width, height = image.size
     min_width, min_height = 100, 100
     if width < min_width or height < min_height:
@@ -105,6 +138,16 @@ def clean_image(image: Image.Image) -> bool:
 
 
 def _save_temp_image(image: Image.Image, base_path=None) -> str:
+    """
+    Save an image as a temporary file.
+
+    Args:
+        image (Image.Image): Image to save.
+        base_path (str, optional): Base directory for saving the file.
+
+    Returns:
+        str: Path to the saved image.
+    """
     try:
         # use systems temp dir if no path is provided 
         temp_dir = base_path or tempfile.gettempdir()
@@ -124,6 +167,18 @@ def _save_temp_image(image: Image.Image, base_path=None) -> str:
 
 
 def create_sample(texts: List[str], images: List[Image.Image], path=None) -> dict:
+    """
+    Create a sample dictionary containing text, images, and optional metadata.
+    This function is called within all processors.
+
+    Args:
+        texts (List[str]): List of text strings.
+        images (List[Image.Image]): List of images.
+        path (str, optional): Path for metadata. Defaults to None.
+
+    Returns:
+        dict: Sample dictionary with text, image modalities, and metadata.
+    """
     base_path = os.environ.get("MMORE_RESULTS_PATH", None)
     if base_path is not None:
         base_path = Path(base_path) / str(uuid4())
@@ -177,6 +232,15 @@ def evenly_split_across_gpus(x_list, num_gpus):
 
 
 def clean_pdf_list(pdf_list: List[FileDescriptor]) -> List[FileDescriptor]:
+    """
+    Filter and return a list of valid PDF files.
+
+    Args:
+        pdf_list (List[FileDescriptor]): List of file descriptors representing PDFs.
+
+    Returns:
+        List[FileDescriptor]: List of valid PDF file descriptors.
+    """
     clean_list = []
     for files in pdf_list:
         try:
@@ -190,12 +254,15 @@ def clean_pdf_list(pdf_list: List[FileDescriptor]) -> List[FileDescriptor]:
 
 def evenly_split_accross_gpus_num_pages(x_list, num_gpus):
     """
-    Evenly split a list of things across multiple GPUs.
-    The goal is to have a similar number of pages per GPU.
+    Evenly split a list of files across multiple GPUs based on the number of pages in each file.
+    The goal is to have a similar number of pages on each GPU.
 
-    :param x_list: List of things to split.
-    :param num_gpus: Number of GPUs to split across.
-    :return: List of things split across GPUs.
+    Args:
+        x_list (List[FileDescriptor]): List of file descriptors to split.
+        num_gpus (int): Number of GPUs to distribute files across.
+
+    Returns:
+        List[List[FileDescriptor]]: List of file groups assigned to each GPU.
     """
 
     def get_num_pages(file: FileDescriptor) -> int:
@@ -218,7 +285,8 @@ def evenly_split_accross_gpus_num_pages(x_list, num_gpus):
         # Add file to this GPU list and update page count
         gpu_lists[min_gpu].append(file)
         page_totals[min_gpu] += get_num_pages(file)
-    print(
+    
+    logger.info(
         f"Chunks size: {[sum([get_num_pages(file) for file in chunk]) for chunk in gpu_lists]}"
     )
     return gpu_lists
@@ -228,10 +296,16 @@ def merge_multiple_files_in_one(
         files: List["FileDescriptor"],
 ) -> Tuple[FileDescriptor, Dict[str, int]]:
     """
-    Merge multiple PDF files into one while keeping an index of file boundaries.
+    Merge multiple PDF files into a single file while keeping an index of page boundaries.
+
+    Args:
+        files (List[FileDescriptor]): List of file descriptors to merge.
+
+    Returns:
+        Tuple[FileDescriptor, Dict[str, int]]: Merged file descriptor and index of page boundaries.
     """
     if len(files) == 0:
-        print("No files to merge")
+        logger.info("No files to merge")
         return None, None
     merged_document = fitz.open()  # Create a new PDF document
     page_indices = {}  # Dictionary to store the starting page of each file
@@ -250,7 +324,7 @@ def merge_multiple_files_in_one(
 
     temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
     if current_page == 0:
-        print("No pages to merge")
+        logger.info("No pages to merge")
         return None, None
     merged_document.save(temp_file.name)
     merged_document.close()
@@ -300,7 +374,19 @@ def create_sample_list_already_saved_images(texts: List[str], images: List[List[
 
 def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: int) -> Tuple[
     List[List[FileDescriptor]], List[List[Tuple[int, str]]]]:
+    """
+    Merge and split files while maintaining a full page index.
+
+    Args:
+        files (List[FileDescriptor]): List of file descriptors to process.
+        num_gpus (int): Number of GPUs to distribute files across.
+
+    Returns:
+        Tuple[List[List[FileDescriptor]], List[List[Tuple[int, str]]]]:
+        File descriptors per GPU and their corresponding page indices.
+    """
     def build_pdf(pdf_pages: List[Tuple[str, Tuple[int, int]]]):
+        """Create a merged PDF from specific page ranges."""
         output_pdf = fitz.open()
         for file_path, (lower, upper) in pdf_pages:
             pdf = fitz.open(file_path)

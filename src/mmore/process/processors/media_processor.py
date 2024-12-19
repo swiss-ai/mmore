@@ -15,13 +15,34 @@ logger = logging.getLogger(__name__)
 
 
 class MediaProcessor(Processor):
+    """
+    A processor for handling media files, including video and audio. Extracts text via transcription
+    and images (frames) from supported media files.
+
+    Attributes:
+        files (List[FileDescriptor]): List of files to be processed.
+        config (ProcessorConfig): Configuration for the processor.
+        device (torch.device): Device (CPU/GPU) used for processing.
+        transcription_pipeline (pipeline): Hugging Face pipeline for transcription.
+    """
     def __init__(self, files, config=None):
+        """
+        Args:
+            files (List[FileDescriptor]): List of files to process.
+            config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
+        """
         super().__init__(files, config=config)
         self.device = None
         self.transcription_pipeline = None
 
     def load_models(self, device=None, fast_mode=False):
-        print("Loading models", device, fast_mode)
+        """
+        Load the transcription model using Hugging Face pipeline.
+
+        Args:
+            device (torch.device, optional): Device to load the model on (CPU or GPU).
+            fast_mode (bool, optional): Whether to use the fast model. Defaults to False.
+        """
         self.device = (
             device
             if device is not None
@@ -38,9 +59,6 @@ class MediaProcessor(Processor):
                 device=self.device,
                 return_timestamps=True,
             )
-            logger.info(
-                f"MediaProcessor: {model_name} model loaded successfully on device {device}."
-            )
         except Exception as e:
             logger.error(
                 f"MediaProcessor: Error loading Hugging Face Whisper model on device {device}: {e}"
@@ -49,6 +67,10 @@ class MediaProcessor(Processor):
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
+        """
+        Returns:
+            bool: True if the file is a supported media format, False otherwise.
+        """
         return file.file_extension.lower() in [
             ".mp4",
             ".avi",
@@ -60,28 +82,75 @@ class MediaProcessor(Processor):
         ]
 
     def require_gpu(self) -> bool:
+        """
+        Returns:
+            tuple: A tuple (True, True) indicating GPU requirement for both standard and fast modes.
+        """
         return True, True
 
     def process_implementation(self, file_path):
+        """
+        Process a media file in standard mode.
+
+        Args:
+            file_path (str): Path to the media file.
+
+        Returns:
+            dict: A dictionary containing the transcription and extracted images.
+        """
         return self._process(file_path, fast_mode=False)
 
     def process_fast_implementation(self, file_path):
+        """
+        Process a media file in fast mode.
+
+        Args:
+            file_path (str): Path to the media file.
+
+        Returns:
+            dict: A dictionary containing the transcription and extracted images.
+        """
         return self._process(file_path, fast_mode=True)
 
     def _process(self, file_path: str, fast_mode=False):
+        """
+        Core processing logic for extracting transcription (text) and images from media files.
+
+        Args:
+            file_path (str): Path to the media file.
+            fast_mode (bool): Whether to use fast processing mode.
+
+        Returns:
+            dict: Processed sample with transcription and images.
+        """
         text = self._extract_text(file_path, fast_mode=fast_mode)
         images = self._extract_images(file_path)
         return create_sample([text], images, file_path)
 
     def split_files_across_gpus(self):
-        """Split the files evenly across the available GPUs."""
+        """ Split the files evenly across the available GPUs. """
         num_gpus = torch.cuda.device_count()
         return evenly_split_across_gpus(self.files, num_gpus)
 
     def _extract_text(self, file_path: str, fast_mode=False) -> str:
+        """
+        Extract transcription text from a media file.
+
+        Args:
+            file_path (str): Path to the media file.
+            fast_mode (bool): Whether to use fast processing mode.
+
+        Returns:
+            str: Transcription text.
+        """
         def _prepare_audio_file(file_path: str, ext: str, temp_audio):
             """
-            Extracts audio from a video or reads an audio file for transcription.
+            Prepare the audio file for transcription by extracting or converting audio.
+
+            Args:
+                file_path (str): Path to the media file.
+                ext (str): File extension of the media file.
+                temp_audio: Temporary file object for audio storage.
             """
             try:
                 if ext in [".mp4", ".avi", ".mov", ".mkv"]:
@@ -116,7 +185,25 @@ class MediaProcessor(Processor):
             return ""
 
     def _extract_images(self, file_path: str) -> List[Image.Image]:
+        """
+        Extract frames as images from a video file.
+
+        Args:
+            file_path (str): Path to the media file.
+
+        Returns:
+            list: List of extracted PIL images.
+        """
         def _extract_video_frames(file_path: str) -> List[Image.Image]:
+            """
+            Extract video frames at intervals specified by the sample rate.
+
+            Args:
+                file_path (str): Path to the video file.
+
+            Returns:
+                list: List of extracted PIL images.
+            """
             images = []
             try:
                 clip = AudioFileClip(file_path)
@@ -146,7 +233,7 @@ class MediaProcessor(Processor):
 
         ext = os.path.splitext(file_path)[1].lower()
 
-        if ext not in [".mp3", ".flac", ".wav"]:
+        if ext in [".mp3", ".flac", ".wav"]:
             logger.info(
                 f"MediaProcessor: No images to extract from the file {file_path}."
             )

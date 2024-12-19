@@ -12,22 +12,53 @@ logger = logging.getLogger(__name__)
 
 
 class EMLProcessor(Processor):
+    """
+    A processor for handling email files (.eml). Extracts email headers, text content, and embedded images.
+
+    Attributes:
+        files (List[FileDescriptor]): List of EML files to be processed.
+        config (ProcessorConfig): Configuration for the processor, including options such as the 
+                                   placeholder tag for embedded images (e.g., "<attachment>").
+    """
     def __init__(self, files, config=None):
+        """
+        Args:
+            files (List[FileDescriptor]): List of files to process.
+            config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
+        """
         super().__init__(files, config=config or ProcessorConfig())
     
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
+        """
+        Args:
+            file (FileDescriptor): The file descriptor to check.
+
+        Returns:
+            bool: True if the file is an EML file, False otherwise.
+        """
         return file.file_extension.lower() in [".eml"]
 
     def require_gpu(self) -> bool:
+        """
+        Returns:
+            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
+        """
         return False, False
 
     def process_implementation(self, file_path: str) -> Dict[str, Any]:
         """
-        Process a single EML file. Extracts text content and embedded images.
+        Process a single EML file. Extracts text content, email headers, and embedded images. 
+
+        Args:
+            file_path (str): Path to the EML file.
+
+        Returns:
+            dict: A dictionary containing processed text, embedded images, and metadata.
+
+        The method parses the EML file, extracts email headers, text content, and embedded images.
+        Embedded images are replaced with a placeholder tag from the processor configuration.
         """
-        logger.info(f"Processing EML file: {file_path}")
-        print(f"Processing EML file: {file_path}")
         try:
             with open(file_path, 'rb') as f:
                 msg = email.message_from_bytes(f.read(), policy=policy.default)
@@ -64,7 +95,7 @@ class EMLProcessor(Processor):
                     image_data = part.get_payload(decode=True)
                     image = Image.open(io.BytesIO(image_data)).convert("RGB")
                     embedded_images.append(image)
-                    all_text.append("<attachment>")
+                    all_text.append(self.config.attachment_tag) # default token is "<attachment>"
                 except Exception as e:
                     logger.error(f"Error extracting image from EML: {e}")
 
