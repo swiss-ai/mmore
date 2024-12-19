@@ -21,6 +21,7 @@ from typing import Tuple, Dict
 from pathlib import Path
 from uuid import uuid4
 import json
+import numpy as np 
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +82,6 @@ def load_image(file: str) -> Image:
         logger.error(f"Invalid image file or URL: {file}")
         return None
 
-
-# TODO: Refine this function
 def clean_text(text: str) -> str:
     """
     Clean a given text using `cleantext` library. https://pypi.org/project/clean-text/
@@ -117,25 +116,33 @@ def clean_text(text: str) -> str:
     )
 
 
-# TODO: Refine this function. Can be useful in order not to extract junk
-def clean_image(image: Image.Image) -> bool:
+def clean_image(image: Image.Image, min_width=512, min_height=512, variance_threshold=100) -> bool:
     """
-    Note: Not implemented yet.
-    Check if an image meets the minimum size criteria for processing.
+    Validates an image based on size and variance (whether its one-colored).
 
     Args:
-        image (Image.Image): Image to check.
+        image (PIL.Image.Image): The image to validate.
+        min_width (int, optional): The minimum width an image must have to be considered valid. Defaults to 512.
+        min_height (int, optional): The minimum height an image must have to be considered valid. Defaults to 512.
+        variance_threshold (int, optional): The minimum variance in pixel intensity required. Images with lower variance are considered "empty". Defaults to 100.
 
     Returns:
-        bool: True if the image meets size criteria, False otherwise.
+        bool: True if the image meets all criteria, False otherwise.
     """
-    width, height = image.size
-    min_width, min_height = 100, 100
-    if width < min_width or height < min_height:
-        logger.debug(f"Image filtered out due to small size: {width}x{height}")
-        return False
-    return True
+    w, h = image.size
 
+    # Check size criteria
+    if w < min_width or h < min_height:
+        return False
+
+    # Check variance threshold
+    gray = image.convert("L")
+    arr = np.array(gray)
+    variance = arr.var()
+    if variance < variance_threshold:
+        return False
+
+    return True
 
 def _save_temp_image(image: Image.Image, base_path=None) -> str:
     """

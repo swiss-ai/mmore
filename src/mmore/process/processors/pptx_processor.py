@@ -3,7 +3,7 @@ import io
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from PIL import Image
-from src.mmore.process.utils import clean_text, create_sample
+from src.mmore.process.utils import clean_text, create_sample, clean_image
 from src.mmore.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 from typing import List, Dict, Any
@@ -72,9 +72,11 @@ class PPTXProcessor(Processor):
             # Extract images from shape
             if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 try:
-                    pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGB")
-                    embedded_images.append(pil_image)
-                    all_text.append(self.config.attachment_tag)
+                    pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")
+                    if clean_image(pil_image):
+                        embedded_images.append(pil_image)
+                        all_text.append(self.config.attachment_tag)
+
                 except Exception as e:
                     logger.error(f"Failed to extract image from slide: {e}")
 
