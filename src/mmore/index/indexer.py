@@ -320,13 +320,13 @@ def get_model_from_index(client: MilvusClient, index_name: Literal['dense_embedd
         index_config = client.describe_index(collection_name, index_name)
         return DenseModelConfig(
             model_name=index_config['model_name'], 
-            is_multimodal=index_config['is_multimodal'],
+            is_multimodal=index_config['is_multimodal'] == 'True',
         )
     elif index_name == 'sparse_embedding':
         index_config = client.describe_index(collection_name, index_name)
         return SparseModelConfig(
             model_name=index_config['model_name'], 
-            is_multimodal=index_config['is_multimodal'],
+            is_multimodal=index_config['is_multimodal'] == 'True',
         )
     else:
         raise ValueError(f"Invalid index_name: {index_name}. Must be 'dense_embedding' or 'sparse_embedding'.")
