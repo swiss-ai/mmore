@@ -1,0 +1,26 @@
+indexer:
+  dense_model:
+    model_name: meta-llama/Llama-3.2-11B-Vision
+    is_multimodal: true
+  sparse_model:
+    model_name: splade
+  db:
+    uri: ./examples/index/llamavision/ner.db
+  filters:
+    - type: datatrove
+      args:
+        datatrove_name: language
+        exclusion_writer: /mnt/mlo/scratch/homes/teiletch/mmore/examples/index/exclusion_writers/language.jsonl
+        datatrove_args:
+          languages: ["en"]
+    - type: datatrove
+      args:
+        datatrove_name: fineweb
+        exclusion_writer: /mnt/mlo/scratch/homes/teiletch/mmore/examples/index/exclusion_writers/fineweb.jsonl
+  pp:
+    - type: chunker 
+      args:
+        chunking_strategy: sentence
+    - type: lang_detector
+collection_name: my_docs
+documents_path: examples/example_outputs_ner

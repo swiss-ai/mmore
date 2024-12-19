@@ -9,7 +9,7 @@ from src.mmore.utils import load_config
 
 from src.mmore.index.indexer import get_model_from_index
 from src.mmore.index.indexer import DBConfig
-from src.mmore.rag.models import load_dense_model, load_sparse_model
+from src.mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
@@ -20,6 +20,8 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
+import logging
+logger = logging.getLogger(__name__)
 
 @dataclass
 class RetrieverConfig:
@@ -52,11 +54,13 @@ class Retriever(BaseRetriever):
         client = MilvusClient(uri=config.db.uri, db_name=config.db.name)
 
         # Init models
-        dense_model_name = get_model_from_index(client, "dense_embedding")
-        dense_model = load_dense_model(dense_model_name)
+        dense_model_config = get_model_from_index(client, "dense_embedding")
+        dense_model = DenseModel.from_config(dense_model_config)
+        logger.info(f"Loaded dense model: {dense_model_config}")
 
-        sparse_model_name = get_model_from_index(client, "sparse_embedding")
-        sparse_model = load_sparse_model(sparse_model_name)
+        sparse_model_config = get_model_from_index(client, "sparse_embedding")
+        sparse_model = SparseModel.from_config(sparse_model_config)
+        logger.info(f"Loaded sparse model: {sparse_model_config}")
 
         return cls(
             dense_model=dense_model,
