@@ -1,9 +1,10 @@
 indexer:
-  dense_model_name: sentence-transformers/all-MiniLM-L6-v2
-  sparse_model_name: splade
+  dense_model:
+    model_name: text-embedding-3-small
+  sparse_model:
+    model_name: splade
   db:
-    uri: ./examples/index/ner.db
-    name: db
+    uri: ./examples/index/openai/ner.db
   filters:
     - type: datatrove
       args:

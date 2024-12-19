@@ -12,14 +12,13 @@ from src.mmore.type import MultimodalSample
 
 import sys
 
-
 class MultimodalEmbeddings(Embeddings):
     def __init__(self, model_name: str):
         super().__init__()
         self.model = AutoModelForImageTextToText.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map="auto"
         )
         self.processor = AutoProcessor.from_pretrained(model_name)
         self.device = self.model.device
@@ -87,7 +86,7 @@ class MultimodalEmbeddings(Embeddings):
                 outputs = self.model(**inputs, output_hidden_states=True)
                 last_hidden_state = outputs.hidden_states[0]
                 embedding = last_hidden_state.mean(dim=1)  # Shape: (1, hidden_size)
-                embedding = embedding.cpu().numpy().squeeze(0)
+                embedding = embedding.cpu().numpy().squeeze(0).astype(np.float32)
                 embeddings.append(embedding)
 
         return embeddings

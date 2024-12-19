@@ -1,4 +1,4 @@
-from .dense import DenseModel
-from .sparse import load_sparse_model
+from .dense import DenseModel, DenseModelConfig
+from .sparse import SparseModel, SparseModelConfig
 
-__all__ = ['']
+__all__ = ['DenseModel', 'SparseModel', 'DenseModelConfig', 'SparseModelConfig']

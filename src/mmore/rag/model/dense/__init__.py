@@ -1,1 +1,1 @@
-from .base import DenseModel
+from .base import DenseModel, DenseModelConfig

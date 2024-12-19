@@ -1,9 +1,11 @@
 indexer:
-  dense_model_name: text-embedding-3-small
-  sparse_model_name: splade
+  dense_model:
+    model_name: meta-llama/Llama-3.2-11B-Vision-Instruct
+    is_multimodal: true
+  sparse_model:
+    model_name: splade
   db:
-    uri: ./examples/index/openai/ner.db
-    name: db
+    uri: ./examples/index/llamavision/ner.db
   filters:
     - type: datatrove
       args:
@@ -19,10 +21,6 @@ indexer:
     - type: chunker 
       args:
         chunking_strategy: sentence
-    # - type: ner
-    #   args:
-    #     llm:
-    #       llm_name: "gpt-4o-mini"
     - type: lang_detector
 collection_name: my_docs
 documents_path: examples/example_outputs_ner

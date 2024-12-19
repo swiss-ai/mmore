@@ -1,1 +1,1 @@
-from .base import SparseModel
+from .base import SparseModel, SparseModelConfig

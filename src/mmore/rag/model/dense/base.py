@@ -59,7 +59,7 @@ loaders = {
 @dataclass
 class DenseModelConfig:
     model_name: str
-    multimodal: bool = False
+    is_multimodal: bool = False
 
     @property
     def organization(self) -> str:
@@ -83,7 +83,7 @@ class DenseModelConfig:
 class DenseModel(Embeddings):
     @classmethod
     def from_config(cls, config: DenseModelConfig) -> 'DenseModel':
-        if config.organization == 'HF' and config.multimodal:
+        if config.organization == 'HF' and config.is_multimodal:
             return MultimodalEmbeddings(model_name=config.model_name)
         else:
             return loaders[config.organization](model=config.model_name)

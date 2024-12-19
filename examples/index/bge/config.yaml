@@ -1,9 +1,10 @@
 indexer:
-  dense_model_name: BAAI/bge-small-en
-  sparse_model_name: splade
+  dense_model:
+    model_name: BAAI/bge-small-en
+  sparse_model:
+    model_name: splade
   db:
     uri: ./examples/index/bge/ner.db
-    name: db
   filters:
     - type: datatrove
       args:
