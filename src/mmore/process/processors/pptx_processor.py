@@ -72,7 +72,7 @@ class PPTXProcessor(Processor):
             # Extract images from shape
             if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 try:
-                    pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGB")
+                    pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")
                     embedded_images.append(pil_image)
                     all_text.append(self.config.attachment_tag)
                 except Exception as e:

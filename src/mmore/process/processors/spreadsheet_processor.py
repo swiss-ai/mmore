@@ -6,7 +6,7 @@ from typing import List
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
-from src.mmore.process.utils import clean_text, clean_image, create_sample
+from src.mmore.process.utils import clean_text, clean_images, create_sample
 from src.mmore.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
