@@ -7,7 +7,7 @@ import click
 
 @click.group()
 def main():
-    """climate-data-portal"""
+    """mmore: Massive Multimodal Open RAG & Extraction"""
     pass
 
 main.add_command(index)
