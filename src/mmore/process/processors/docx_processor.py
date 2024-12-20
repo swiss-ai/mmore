@@ -3,8 +3,8 @@ import io
 from docx import Document
 from typing import List
 from PIL import Image
-from src.mmore.process.utils import clean_text, create_sample
-from src.mmore.type import FileDescriptor
+from ...process.utils import clean_text, create_sample
+from ...type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

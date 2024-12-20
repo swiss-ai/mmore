@@ -53,6 +53,8 @@ dependencies = [
     "cuda-python>=12.6.2",
     "ucx-py-cu12>=0.40.0",
     "pytest>=8.3.4",
+    "langdetect>=1.0.9",
+    "httpx==0.27.2",
 ]
 
 [project.optional-dependencies]

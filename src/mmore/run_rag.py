@@ -7,15 +7,16 @@ from pathlib import Path
 import json
 
 import uvicorn
+import click 
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from langserve import add_routes
 
-from src.mmore.rag.pipeline import RAGPipeline, RAGConfig
-from src.mmore.rag.types import MMOREOutput, MMOREInput
-from src.mmore.utils import load_config
+from .rag.pipeline import RAGPipeline, RAGConfig
+from .rag.types import MMOREOutput, MMOREInput
+from .utils import load_config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -84,10 +85,13 @@ def create_api(rag: RAGPipeline, endpoint: str):
 
     return app
 
-if __name__ == "__main__":
-    args = get_args()
 
-    config = load_config(args.config_file, RAGInferenceConfig)
+
+@click.command()
+@click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
+def rag(config_file):
+    """Run RAG."""
+    config = load_config(config_file, RAGInferenceConfig)
     
     logger.info('Creating the RAG Pipeline...')
     rag = RAGPipeline.from_config(config.rag)
@@ -102,3 +106,7 @@ if __name__ == "__main__":
         uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
     else:
         raise ValueError(f"Unknown inference mode: {config.mode}. Should be in [api, local]")
+    
+
+if __name__ == '__main__':
+    rag()

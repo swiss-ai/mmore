@@ -38,7 +38,14 @@ Note: we are mapping the folder `test_data` to the location `/app/test_data` ins
 
 Inside the docker session you can run
 ```
-python run_process.py --config_file examples/process_config.yaml
+# run processing
+mmore process --config_file examples/process_config.yaml
+
+# run indexer
+mmore index --config-file ./examples/index/indexer_config.yaml
+
+# run rag
+mmore rag --config-file ./examples/rag/rag_config_local.yaml
 ```
 
 ### Manual installation
@@ -65,14 +72,21 @@ If you want to install a CPU-only version you can run
 uv sync --extra cpu
 ```
 
-5. Activate virtual environment
+5. Run a test command
+To run the following commands either prepend every command with `uv run` or run once:
 ```
 source .venv/bin/activate
 ```
 
-6. Run a test command
 ```
-python run_process.py --config_file examples/process_config.yaml
+# run processing
+mmore process --config_file examples/process_config.yaml
+
+# run indexer
+mmore index --config-file ./examples/index/indexer_config.yaml
+
+# run rag
+mmore rag --config-file ./examples/rag/rag_config_local.yaml
 ```
 
 ### Usage

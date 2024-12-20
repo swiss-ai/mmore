@@ -1,7 +1,7 @@
 import re
 from typing import Dict, List, Any, Optional, Literal
 from dataclasses import dataclass, field
-from src.mmore.type import MultimodalSample
+from ...type import MultimodalSample
 from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker, SentenceChunker, SemanticChunker
 

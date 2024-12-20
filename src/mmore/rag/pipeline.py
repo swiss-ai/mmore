@@ -16,11 +16,11 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
-from src.mmore.rag.llm import LLM, LLMConfig
-from src.mmore.rag.types import QuotedAnswer, CitedAnswer
+from .retriever import Retriever, RetrieverConfig
+from .llm import LLM, LLMConfig
+from .types import QuotedAnswer, CitedAnswer
 
-from src.mmore.utils import load_config
+from ..utils import load_config
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.

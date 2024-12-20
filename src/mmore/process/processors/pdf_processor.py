@@ -17,10 +17,10 @@ import re
 from marker.models import load_all_models
 import tempfile
 from marker.settings import settings
-from src.mmore.type import FileDescriptor
+from ...type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
-from src.mmore.process.utils import (
+from ...process.utils import (
     clean_text,
     create_sample,
     create_sample_list,

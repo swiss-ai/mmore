@@ -7,9 +7,9 @@ from PIL import Image
 from transformers import pipeline
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from src.mmore.type import FileDescriptor
+from ...type import FileDescriptor
 from .processor import Processor
-from src.mmore.process.utils import create_sample, evenly_split_across_gpus
+from ...process.utils import create_sample, evenly_split_across_gpus
 
 logger = logging.getLogger(__name__)
 

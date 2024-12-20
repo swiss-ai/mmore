@@ -1,10 +1,10 @@
 import pypdfium2
 import time
 from typing import List
-from src.mmore.process.crawler import Crawler, CrawlerConfig
-from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from .process.crawler import Crawler, CrawlerConfig
+from .process.dispatcher import Dispatcher, DispatcherConfig
 import yaml
-from src.mmore.process.processors.processor import ProcessorResult
+from .process.processors.processor import ProcessorResult
 
 overall_start_time = time.time()
 import os
@@ -57,20 +57,15 @@ with suppress_warnings_and_stdout():
 
 # python src/mmore/process/run_process.py ./test_data --output_result_path=/mloscratch/homes/sallinen/End2End/tmp/all.pkl
 
-def main():
-    parser = argparse.ArgumentParser(description='Process documents from a directory')
-    
-    # Add arguments
-    
-    parser.add_argument('--config_file', type=str, 
-                      help='Dispatcher configuration file path',
-                      required=True)
+@click.command()
+@click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
+def process(config_file):
+    """Process documents from a directory."""
+    click.echo(f'Dispatcher configuration file path: {config_file}')
 
-
-    args = parser.parse_args()
     overall_start_time = time.time()
 
-    with open(args.config_file, 'r') as f:
+    with open(config_file, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
         
     if config.get("data_path"):
@@ -86,8 +81,10 @@ def main():
         ],
     )
     elif isinstance(config.get("crawler_config"), str):
+        # TODO: Bug? crawler_config was never specified in args
         crawler_config = CrawlerConfig.from_yaml(args.crawler_config)
     elif isinstance(config.get("crawler_config"), dict):
+        # TODO: Bug? crawler_config was never specified in args
         crawler_config = CrawlerConfig.from_dict(args.crawler_config)
     else:
         raise ValueError("Invalid crawler configuration")
@@ -146,4 +143,4 @@ def main():
     
 if __name__ == "__main__":
     with suppress_warnings_and_stdout():
-        main()
+        process()

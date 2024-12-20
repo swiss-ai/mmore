@@ -4,9 +4,9 @@ Supports multimodal documents with chunking capabilities.
 """
 from typing import List
 from dataclasses import dataclass, field
-from src.mmore.utils import load_config
+from ..utils import load_config
 from ..rag.models import load_dense_model, load_sparse_model
-from src.mmore.type import MultimodalSample
+from ..type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding

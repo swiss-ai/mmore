@@ -3,8 +3,8 @@ import io
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from PIL import Image
-from src.mmore.process.utils import clean_text, create_sample
-from src.mmore.type import FileDescriptor
+from ...process.utils import clean_text, create_sample
+from ...type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 from typing import List, Dict, Any
 

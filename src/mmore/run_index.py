@@ -2,9 +2,11 @@ import os
 
 import argparse
 
-from src.mmore.utils import load_config
-from src.mmore.type import MultimodalSample
-from src.mmore.index.indexer import IndexerConfig, Indexer
+from .utils import load_config
+from .type import MultimodalSample
+from .index.indexer import IndexerConfig, Indexer
+
+import click 
 
 from dataclasses import dataclass, field
 import json
@@ -31,20 +33,12 @@ def load_results(path: str, file_type: str = None):
     logger.info(f"Loaded {len(results)} results")
     return results
 
-def get_args():
-    # Create argument parser
-    parser = argparse.ArgumentParser(description='Index files for specified documents')
-    parser.add_argument('--config_file', type=str, required=True, help='Path to a config file.')
-
-    # Parse the arguments
-    return parser.parse_args()
-
-if __name__ == "__main__":
-    # get script args
-    args = get_args()
-
+@click.command()
+@click.option('--config-file', type=str, required=True, help='Path to a config file.')
+def index(config_file):
+    """Index files for specified documents."""
     # Load the config file
-    config = load_config(args.config_file, IndexerRunConfig) 
+    config = load_config(config_file, IndexerRunConfig) 
     
     logger.info("Creating the indexer...")
     indexer = Indexer.from_documents(
@@ -53,3 +47,7 @@ if __name__ == "__main__":
         collection_name=config.collection_name
     )
     logger.info("Documents indexed!")
+
+
+if __name__ == '__main__':
+    index()
