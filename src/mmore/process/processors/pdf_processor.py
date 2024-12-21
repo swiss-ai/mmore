@@ -24,7 +24,8 @@ from src.mmore.process.utils import (
     create_sample,
     create_sample_list,
     merge_split_with_full_page_indexer,
-    create_sample_list_already_saved_images
+    create_sample_list_already_saved_images,
+    clean_image,
 )
 
 BATCH_SIZE = 1
@@ -132,20 +133,21 @@ class PDFProcessor(Processor):
 
     def process_fast_implementation(self, file_path: str) -> dict:
         pdf_doc = fitz.open(file_path)
-        all_text = []
+        extracted_text = []
         embedded_images = []
 
         for page in pdf_doc:
             text = clean_text(page.get_text())
             if text.strip():
-                all_text.append(text)
+                extracted_text.append(text)
 
             for img_info in page.get_images(full=False):
                 image = self._extract_image_from_pdf(pdf_doc, img_info[0])
-                embedded_images.append(image)
-                all_text.append(self.config.attachment_tag)
-
-        return create_sample(all_text, embedded_images)
+                if clean_image(image): # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed 
+                    embedded_images.append(image)
+                    extracted_text.append(self.config.attachment_tag)
+                    
+        return create_sample(extracted_text, embedded_images)
 
     def process_implementation(self, file_path: str, temp_dir: str = "tmp/") -> dict:
         def extract_image_in_page(page, current_image_index) -> Tuple[List[str], int]:
