@@ -52,7 +52,7 @@ See [the `/docs` directory](/docs) for additional details on each modules and ha
 
 | **Category**      | **File Types**                           | **Supported Device**      |  **Fast Mode**      |
 |--------------------|------------------------------------------|--------------------------| --------------------------|
-| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT               | CPU                      | :x:
+| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML              | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
 | **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
