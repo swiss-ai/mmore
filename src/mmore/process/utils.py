@@ -129,6 +129,9 @@ def clean_image(image: Image.Image, min_width=512, min_height=512, variance_thre
     Returns:
         bool: True if the image meets all criteria, False otherwise.
     """
+    if image is None: 
+        return False
+    
     w, h = image.size
 
     # Check size criteria
