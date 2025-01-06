@@ -1,4 +1,9 @@
-<h1 align="center">:cow: MMORE :robot:</h1>
+<h1 align="center"> 
+
+![image](https://github.com/user-attachments/assets/502e2c7e-1200-498a-9ebd-10a27ed48ab6)
+
+</h1>
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
