@@ -5,33 +5,41 @@ from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
+from mmore.process.post_processor import BasePostProcessor
 from mmore.type import MultimodalSample
 
-FILTER_TYPES = Literal[
-    'datatrove',
+TAGGER_TYPES = Literal[
+    'modalities_counter',
+    'words_counter',
+    'lang_detector'
 ]
 
 @dataclass
-class BaseFilterConfig:
-    type: FILTER_TYPES
+class BaseTaggerConfig:
+    type: TAGGER_TYPES
     name: str = None
+    metadata_key: str = None
     args: Any = field(default_factory=lambda: {})
 
     def __post_init__(self):
         if self.name is None:
             self.name = self.type
+        if self.metadata_key is None:
+            self.metadata_key = self.type
 
-class BaseFilter(ABC):
+class BaseTagger(BasePostProcessor):
     name: str
+    metadata_key: str
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, metadata_key: str):
         self.name = name
+        self.metadata_key = metadata_key
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
     @abstractmethod
-    def filter(self, sample: MultimodalSample) -> bool | Tuple[bool, str]:
+    def tag(self, sample: MultimodalSample) -> Any:
         """Abstract method for processing a sample.
 
         Args:
@@ -43,7 +51,7 @@ class BaseFilter(ABC):
         """
         pass
 
-    def batch_filter(self, batch: List[MultimodalSample]) -> List[bool | Tuple[bool, str]]:
+    def batch_tag(self, batch: List[MultimodalSample]) -> List[Any]:
         """
         Overwrite this method to implement batched filtering. Batches have size `self.batch_size`, except possibly the last one.
         Args:
@@ -52,4 +60,9 @@ class BaseFilter(ABC):
         Returns: a list, the same size as `batch`, containing the filter result for each document
 
         """
-        return list(map(self.filter, tqdm(batch, desc=f'{self.name}')))
+        return list(map(self.tag, tqdm(batch, desc=f'{self.name}')))
+    
+    def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
+        tag = self.tag(sample)
+        sample.metadata[self.metadata_key] = tag
+        return [sample]

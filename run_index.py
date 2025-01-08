@@ -19,8 +19,8 @@ from src.mmore.utils import load_config
 from src.mmore.type import MultimodalSample
 from src.mmore.index.indexer import IndexerConfig, Indexer
 
+from typing import List
 from dataclasses import dataclass, field
-import json
 
 from dotenv import load_dotenv
 load_dotenv() 
@@ -39,20 +39,10 @@ logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 @dataclass
 class IndexerRunConfig:
-    documents_path: str
+    documents_path: str | List[str]
     indexer: IndexerConfig
     collection_name: str = 'my_docs'
     batch_size: int = 64
-
-def load_results(path: str, file_type: str = None):
-    # Load the results computed and saved by 'run_process.py'
-    results = []
-    logger.info(f"Loading results from {path}")
-    with open(path + '/merged/merged_results.jsonl', "rb") as f:
-        for line in f:
-            results.append(MultimodalSample.from_dict(json.loads(line)))
-    logger.debug(f"Loaded {len(results)} results")
-    return results
 
 def get_args():
     # Create argument parser
@@ -68,11 +58,14 @@ if __name__ == "__main__":
 
     # Load the config file
     config = load_config(args.config_file, IndexerRunConfig) 
+
+    # Load the documents
+    documents = MultimodalSample.from_jsonl(config.documents_path)
     
     logger.info("Creating the indexer...")
     indexer = Indexer.from_documents(
         config=config.indexer, 
-        documents=load_results(config.documents_path),
+        documents=documents,
         collection_name=config.collection_name,
         batch_size=config.batch_size
     )
