@@ -59,8 +59,8 @@ See [`examples/rag`](../examples/rag/) for other use cases.
 
 ## :mag: Modules
 The RAG decomposes into two main modules:
-1. The retriever (`MOORERetriever`), which retrieves multimodal documents from the database. 
-2. The LLM (`MOORELLM`), which wraps different types of multimodal-able LLMs.
+1. The `Retriever`, which retrieves multimodal documents from the database. 
+2. The `LLM`, which wraps different types of multimodal-able LLMs.
 
 #### Retriever
 Here is an example on how to use the retriever module alone. Note that it assumes that you already created a DB using [the indexer module](index.md).

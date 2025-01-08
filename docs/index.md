@@ -14,8 +14,6 @@ Here is a minimal example to index [processed documents](process.md).
         db:
             uri: ./proc_demo.db
             name: my_db
-        chunker:
-            chunking_strategy: sentence
     collection_name: my_docs
     documents_path: './output'
     ```
