@@ -8,12 +8,15 @@ from mmore.utils import load_config
 
 __all__ = ['ModalitiesCounter', 'WordsCounter', 'LangDetector']
 
+TAGGERS_LOADERS_MAP = {
+    'modalities_counter': ModalitiesCounter,
+    'words_counter': WordsCounter,
+    'lang_detector': LangDetector
+}
+TAGGER_TYPES = list(TAGGERS_LOADERS_MAP.keys())
+
 def load_tagger(config: BaseTaggerConfig):
-    if config.type == 'modalities_counter':
-        return ModalitiesCounter()
-    elif config.type == 'words_counter':
-        return WordsCounter()
-    elif config.type == 'lang_detector':
-        return LangDetector()
+    if config.type in TAGGER_TYPES:
+        return TAGGERS_LOADERS_MAP[config.type].from_config(config)
     else:
         raise ValueError(f"Unrecognized tagger type: {config.type}")

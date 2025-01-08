@@ -8,12 +8,6 @@ from dataclasses import dataclass, field
 from mmore.process.post_processor import BasePostProcessor
 from mmore.type import MultimodalSample
 
-TAGGER_TYPES = Literal[
-    'modalities_counter',
-    'words_counter',
-    'lang_detector'
-]
-
 @dataclass
 class BaseTaggerConfig:
     type: TAGGER_TYPES
