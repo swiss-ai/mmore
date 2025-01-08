@@ -17,6 +17,8 @@ from typing import Any, Dict, List
 import logging
 import validators
 
+import json
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +47,11 @@ class MultimodalSample:
     text: str | List[Dict[str, str]]
     modalities: List[MultimodalRawInput]
     metadata: Dict[str, str] | None = None
+    id: str = None
+
+    def __post_init__(self):
+        if self.id is None:
+            self.id = str(hash(self.text))
 
     def to_dict(self):
         if isinstance(self.text, list):
@@ -61,22 +68,27 @@ class MultimodalSample:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]):
-        if isinstance(data, MultimodalSample):
-            return data
-
-        key = "conversations" if "conversations" in data else "text"
-        # Take care of quotes in the text (jsonl serialization)
-        if key == "text":
-            data[key] = data[key]
-        else:
-            for conv in data[key]:
-                for k, v in conv.items():
-                    conv[k] = v
+        # key = "conversations" if "conversations" in data else "text"
+        # # Take care of quotes in the text (jsonl serialization)
+        # if key == "text":
+        #     data[key] = data[key]
+        # else:
+        #     for conv in data[key]:
+        #         for k, v in conv.items():
+        #             conv[k] = v
         return cls(
-            text=data[key],
-            modalities=[MultimodalRawInput(**m) for m in data["modalities"]],
-            metadata=data.get("metadata", None),
+            text=data["text"],
+            modalities=[MultimodalRawInput(**m) for m in data.get("modalities", [])],
+            metadata=data.get("metadata", {}),
         )
+    
+    @classmethod
+    def from_jsonl(cls, file_path: str) -> List["MultimodalSample"]:
+        samples = []
+        with open(file_path, "r") as f:
+            for line in f:
+                samples.append(cls.from_dict(json.loads(line)))
+        return samples
 
 class FileDescriptor:
     """

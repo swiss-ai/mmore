@@ -67,7 +67,7 @@ class DatatroveFilter(BaseFilter):
     datatrove_filter: DatatroveBaseFilter
     
     def __init__(self, name: str, datatrove_filter: DatatroveBaseFilter):
-        self.name = name
+        super().__init__(name)
         self.datatrove_filter = datatrove_filter
 
     @classmethod

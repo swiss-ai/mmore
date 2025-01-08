@@ -5,7 +5,7 @@ from src.mmore.type import MultimodalSample
 from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker
 
-from mmore.index.postprocessor.base import BasePostProcessor
+from mmore.process.post_processor import BasePostProcessor
 from .utils import load_chonkie
 
 import logging

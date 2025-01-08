@@ -7,17 +7,9 @@ from dataclasses import dataclass, field
 
 from mmore.type import MultimodalSample
 
-PP_TYPES = Literal[
-    'chunker', 
-    'lang_detector', 
-    'modalities_counter', 
-    'words_counter',
-    'ner'
-]
-
 @dataclass
 class BasePostProcessorConfig:
-    type: PP_TYPES
+    type: str
     name: str = None
     args: Any = field(default_factory=lambda: {})
 
@@ -34,6 +26,9 @@ class BasePostProcessor(ABC):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
+    def __call__(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
+        return self.process(sample, **kwargs)
+
     @abstractmethod
     def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
         """Abstract method for processing a sample.
@@ -47,6 +42,14 @@ class BasePostProcessor(ABC):
         pass
 
     def batch_process(self, samples: List[MultimodalSample], **kwargs) -> List[MultimodalSample]:
+        """
+        Process a batch of samples.
+        Args:
+            samples: a list of samples to process
+            kwargs: additional arguments to pass to the process method
+
+        Returns: a list of processed samples
+        """
         res = []
 
         for s in tqdm(samples, desc=f'{self.name}'):

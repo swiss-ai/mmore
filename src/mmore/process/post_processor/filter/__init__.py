@@ -1,5 +1,4 @@
-from .base import BaseFilter, BaseFilterConfig
-
+from .base import BaseFilter, BaseFilterConfig, FILTER_TYPES
 from .datatrove_wrapper import DatatroveFilter, DatatroveFilterConfig
 
 from mmore.utils import load_config
@@ -7,7 +6,7 @@ from mmore.utils import load_config
 __all__ = ['BaseFilter', 'DatatroveFilter']
 
 def load_filter(config: BaseFilterConfig) -> BaseFilter:
-    if config.type == 'datatrove':
+    if config.type == 'datatrove_filter':
         config = load_config(config.args, DatatroveFilterConfig)
         return DatatroveFilter.from_config(config)
     else:
