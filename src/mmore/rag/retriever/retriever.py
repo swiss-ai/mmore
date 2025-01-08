@@ -10,6 +10,8 @@ from src.mmore.utils import load_config
 from src.mmore.index.indexer import get_model_from_index
 from src.mmore.index.indexer import DBConfig
 from src.mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
+from src.mmore.rag.retriever.query_expansion.base import BaseQueryExpansion, QueryExpansionConfig
+from src.mmore.rag.retriever.query_expansion import load_query_expansion
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
@@ -28,6 +30,7 @@ class RetrieverConfig:
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
+    query_expansion: QueryExpansionConfig = None 
 
 
 class Retriever(BaseRetriever):
@@ -35,8 +38,10 @@ class Retriever(BaseRetriever):
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
     client: MilvusClient
+    query_expansion: BaseQueryExpansion 
     hybrid_search_weight: float
     k: int
+    
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -62,12 +67,19 @@ class Retriever(BaseRetriever):
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
+        # Init the query expansion module
+        if config.query_expansion is not None:
+            query_expansion = load_query_expansion(config)
+        else:
+            query_expansion = None
+
         return cls(
             dense_model=dense_model,
             sparse_model=sparse_model,
             client=client,
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
+            query_expansion=query_expansion
         )
 
     def compute_query_embeddings(self, query: str) -> Tuple[List[float], List[float]]:
@@ -101,6 +113,10 @@ class Retriever(BaseRetriever):
         assert search_type in get_args(
             self._search_types), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)
+        
+        # Expand the query
+        if self.query_expansion is not None:
+            query = self.query_expansion.expand_query(query, partition_name, collection_name)
 
         dense_embedding, sparse_embedding = self.compute_query_embeddings(query)
 
