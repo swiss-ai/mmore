@@ -8,13 +8,9 @@ from dataclasses import dataclass, field
 from mmore.process.post_processor import BasePostProcessor
 from mmore.type import MultimodalSample
 
-FILTER_TYPES = Literal[
-    'datatrove_filter',
-]
-
 @dataclass
 class BaseFilterConfig:
-    type: FILTER_TYPES
+    type: str
     name: str = None
     args: Any = field(default_factory=lambda: {})
 

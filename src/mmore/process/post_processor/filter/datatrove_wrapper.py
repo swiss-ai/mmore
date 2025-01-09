@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from mmore.type import MultimodalSample
 
-from .base import BaseFilter
+from .base import BaseFilter, BaseFilterConfig
 
 import nltk
 nltk.download('punkt_tab', quiet=True)
@@ -30,38 +30,26 @@ from datatrove.data import Media, Document
 from datatrove.pipeline.writers.jsonl import JsonlWriter
 
 FILTERS_MAP = {
-        'language': LanguageFilter,
-        'gopher-repetition': GopherRepetitionFilter,
-        'gopher-quality': GopherQualityFilter,
-        'fineweb': FineWebQualityFilter,
-        'c4': C4QualityFilter,
+        'filter_language': LanguageFilter,
+        'filter_gopher-repetition': GopherRepetitionFilter,
+        'filter_gopher-quality': GopherQualityFilter,
+        'filter_fineweb': FineWebQualityFilter,
+        'filter_c4': C4QualityFilter,
         'sampler': SamplerFilter,
-        'regex': RegexFilter,
-        'fasttext': FastTextClassifierFilter,
-        'lambda': LambdaFilter,
-        'unigram-logprob': UnigramLogProbFilter,
-        'url': URLFilter,
+        'filter_regex': RegexFilter,
+        'filter_fasttext': FastTextClassifierFilter,
+        'filter_lambda': LambdaFilter,
+        'filter_unigram-logprob': UnigramLogProbFilter,
+        'filter_url': URLFilter,
 }
+DATATROVE_FILTERS = list(FILTERS_MAP.keys())
 
-def load_datatrove(filter_name: str, filter_args: Dict[str, Any]) -> DatatroveBaseFilter:
+def load_datatrove_filter(filter_name: str, filter_args: Dict[str, Any]) -> DatatroveBaseFilter:
     if filter_name not in FILTERS_MAP:
         raise ValueError(f'Unsupported filter: {filter_name}')
-
+    if 'exclusion_writer' in filter_args and isinstance(filter_args['exclusion_writer'], str):
+        filter_args['exclusion_writer'] = JsonlWriter(filter_args['exclusion_writer'])
     return FILTERS_MAP[filter_name](**filter_args)
-
-@dataclass
-class DatatroveFilterConfig:
-    datatrove_name: str
-    exclusion_writer: Union[str, JsonlWriter] = None
-    datatrove_args: Dict[str, Any] = field(default_factory=lambda: {})
-
-    def __post_init__(self):
-        if isinstance(self.exclusion_writer, str):
-            self.exclusion_writer = JsonlWriter(self.exclusion_writer)
-
-    @property
-    def filter_args(self):
-        return {'exclusion_writer': self.exclusion_writer, **self.datatrove_args}
 
 class DatatroveFilter(BaseFilter):
     datatrove_filter: DatatroveBaseFilter
@@ -71,8 +59,8 @@ class DatatroveFilter(BaseFilter):
         self.datatrove_filter = datatrove_filter
 
     @classmethod
-    def from_config(cls, config: DatatroveFilterConfig):
-        datatrove_filter = load_datatrove(config.datatrove_name, config.filter_args)
+    def from_config(cls, config: BaseFilterConfig) -> 'DatatroveFilter':
+        datatrove_filter = load_datatrove_filter(config.type, config.args)
         return cls(name=datatrove_filter.name, datatrove_filter=datatrove_filter)
     
     @staticmethod

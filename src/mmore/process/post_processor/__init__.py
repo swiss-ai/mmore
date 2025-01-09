@@ -4,18 +4,17 @@ from .base import BasePostProcessor, BasePostProcessorConfig
 
 from .chunker import MultimodalChunker, MultimodalChunkerConfig
 from .ner import NERecognizer, NERExtractorConfig
-from .tagger import TAGGER_TYPES, load_tagger, ModalitiesCounter, WordsCounter
-from .filter import FILTER_TYPES, load_filter, BaseFilter
+from .tagger import TAGGER_TYPES, load_tagger
+from .filter import FILTER_TYPES, load_filter
 
 from mmore.utils import load_config
 
-__all__ = ['BasePostProcessor', 'MultimodalChunker', 'LangDetector', 'ModalitiesCounter', 
-           'WordsCounter', 'NERecognizer', 'BaseFilter']
+__all__ = ['BasePostProcessor', 'BasePostProcessorConfig', 'load_postprocessor']
 
 def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
-    if config.type in get_args(FILTER_TYPES):
+    if config.type in FILTER_TYPES:
         return load_filter(config)
-    elif config.type in get_args(TAGGER_TYPES):
+    elif config.type in TAGGER_TYPES:
         return load_tagger(config)
     elif config.type == 'chunker':
         config = load_config(config.args, MultimodalChunkerConfig)
