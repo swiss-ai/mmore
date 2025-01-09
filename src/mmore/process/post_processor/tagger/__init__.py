@@ -1,4 +1,4 @@
-from .base import BaseTaggerConfig, TAGGER_TYPES
+from .base import BaseTaggerConfig
 
 from .modalities import ModalitiesCounter
 from .words import WordsCounter

@@ -10,7 +10,7 @@ from mmore.type import MultimodalSample
 
 @dataclass
 class BaseTaggerConfig:
-    type: TAGGER_TYPES
+    type: str
     name: str = None
     metadata_key: str = None
     args: Any = field(default_factory=lambda: {})
