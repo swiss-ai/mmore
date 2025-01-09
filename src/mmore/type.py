@@ -10,7 +10,7 @@ Classes:
 """
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 import os
 from typing import Any, Dict, List
@@ -46,12 +46,14 @@ class MultimodalSample:
     """
     text: str | List[Dict[str, str]]
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, str] | None = None
+    metadata: Dict[str, str] = field(default_factory=dict)
     id: str = None
 
     def __post_init__(self):
         if self.id is None:
             self.id = str(hash(self.text))
+        if self.metadata is None:
+            self.metadata = {}
 
     def to_dict(self):
         if isinstance(self.text, list):
