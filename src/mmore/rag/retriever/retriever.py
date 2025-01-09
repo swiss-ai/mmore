@@ -3,14 +3,14 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
-from typing import List, Dict, Any, Tuple, Literal, get_args
+from typing import List, Dict, Any, Tuple, Literal, get_args, Optional
 from dataclasses import dataclass, field
 from src.mmore.utils import load_config
 
 from src.mmore.index.indexer import get_model_from_index
 from src.mmore.index.indexer import DBConfig
 from src.mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
-from src.mmore.rag.retriever.query_expansion.base import BaseQueryExpansion, QueryExpansionConfig
+from src.mmore.rag.retriever.query_expansion.base import BaseQueryExpansion, BaseQueryExpansionConfig
 from src.mmore.rag.retriever.query_expansion import load_query_expansion
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
@@ -30,7 +30,7 @@ class RetrieverConfig:
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
-    query_expansion: QueryExpansionConfig = None 
+    query_expansion: BaseQueryExpansionConfig = None 
 
 
 class Retriever(BaseRetriever):
@@ -38,7 +38,7 @@ class Retriever(BaseRetriever):
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
     client: MilvusClient
-    query_expansion: BaseQueryExpansion 
+    query_expansion: Optional[BaseQueryExpansion] = None 
     hybrid_search_weight: float
     k: int
     
@@ -69,7 +69,8 @@ class Retriever(BaseRetriever):
 
         # Init the query expansion module
         if config.query_expansion is not None:
-            query_expansion = load_query_expansion(config)
+            query_expansion = load_query_expansion(config.query_expansion)
+            logger.info(f"Retrieving with query expansion method: {config.query_expansion.query_expansion_type}")
         else:
             query_expansion = None
 
@@ -116,7 +117,7 @@ class Retriever(BaseRetriever):
         
         # Expand the query
         if self.query_expansion is not None:
-            query = self.query_expansion.expand_query(query, partition_name, collection_name)
+            query = self.query_expansion.expand_query(query, partition_names, collection_name)
 
         dense_embedding, sparse_embedding = self.compute_query_embeddings(query)
 

@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BaseQueryExpansionConfig:
-    query_expansion_type: Literal["PRF", "LLMs"]
+    query_expansion_type: Literal["PRF", "LLMsExpansion"]
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt-4o'))
 
 
 class BaseQueryExpansion(ABC):
     """Handles query expansion for RAG retriever."""
 
-    def __init__(self, config: QueryExpansionConfig):
+    def __init__(self, config: BaseQueryExpansionConfig):
         self.config = config
 
     @abstractmethod

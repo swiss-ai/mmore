@@ -16,7 +16,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from src.mmore.rag.retriever.retriever  import Retriever, RetrieverConfig
 from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.rag.types import QuotedAnswer, CitedAnswer
 

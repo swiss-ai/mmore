@@ -3,23 +3,23 @@ LLMs Module abstract class for Query Expansion in RAG Retriever.
 """
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from .base import BaseQueryExpansion, BaseQueryExpansionConfig
+
 from src.mmore.utils import load_config
 from src.mmore.rag.llm import LLM, LLMConfig
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
-
 
 import logging
 logger = logging.getLogger(__name__)
 
-class LLMs(BaseQueryExpansion):
+class LLMsExpansion(BaseQueryExpansion):
     """Handles Language Model based Query Expansion for RAG retriever."""
     LLM: BaseChatModel
 
-    def __init__(self, config: LLMsConfig):
-        super().__init__(config)
-        self.LLM = LLM.from_config(config.llm)
+    def __init__(self, LLMsConfig: BaseQueryExpansionConfig):
+        super().__init__(LLMsConfig)
+        self.LLM = LLM.from_config(LLMsConfig.llm)
 
-    def expand_query(self, query: str, collection_name: str, partition_name: str) -> str:
+    def expand_query(self, query: str, collection_name: str, partition_names: str) -> str:
         """
         Expand the query with similar terms.
         We formulate the query expansion problem as follows: given a query
@@ -38,11 +38,10 @@ class LLMs(BaseQueryExpansion):
             f"Answer the following query: {query}\n"
             "Provide the rationale before answering. Limit the response to less than 50 words."
         )
-        
+
         # Generate the expanded query
-        response = self.LLM.generate(prompt, max_length=100)
-        
+        response = self.LLM.invoke(prompt).content
+
         # Repeat the original query 5 times before appending the response
         expanded_query = f"{query} " * 5 + response.strip()
-
         return expanded_query

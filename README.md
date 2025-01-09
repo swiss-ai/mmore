@@ -47,7 +47,6 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    *Supports API hosting or local inference.*
 
 5. **:tada: Evaluation**  
-   *Coming soon*
    An easy way to evaluate the performance of your RAG system using Ragas
 
 See [the `/docs` directory](/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
