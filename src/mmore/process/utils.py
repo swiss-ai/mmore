@@ -4,7 +4,6 @@ These functions can be used across various processors for data extraction,
 cleaning, splitting, and aggregation.
 """
 
-
 from io import BytesIO
 import logging
 import tempfile
@@ -21,7 +20,7 @@ from typing import Tuple, Dict
 from pathlib import Path
 from uuid import uuid4
 import json
-import numpy as np 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +81,7 @@ def load_image(file: str) -> Image:
         logger.error(f"Invalid image file or URL: {file}")
         return None
 
+
 def clean_text(text: str) -> str:
     """
     Clean a given text using `cleantext` library. https://pypi.org/project/clean-text/
@@ -129,9 +129,9 @@ def clean_image(image: Image.Image, min_width=512, min_height=512, variance_thre
     Returns:
         bool: True if the image meets all criteria, False otherwise.
     """
-    if image is None: 
+    if image is None:
         return False
-    
+
     w, h = image.size
 
     # Check size criteria
@@ -147,6 +147,7 @@ def clean_image(image: Image.Image, min_width=512, min_height=512, variance_thre
 
     return True
 
+
 def _save_temp_image(image: Image.Image, base_path=None) -> str:
     """
     Save an image as a temporary file.
@@ -161,7 +162,7 @@ def _save_temp_image(image: Image.Image, base_path=None) -> str:
     try:
         # use systems temp dir if no path is provided 
         temp_dir = base_path or tempfile.gettempdir()
-        pid = os.getpid() # add pid to avoid conflicts
+        pid = os.getpid()  # add pid to avoid conflicts
         unique_prefix = f"temp_{pid}_"
         temp_file = tempfile.NamedTemporaryFile(
             delete=False, suffix=".png", prefix=unique_prefix, dir=temp_dir
@@ -176,7 +177,7 @@ def _save_temp_image(image: Image.Image, base_path=None) -> str:
         logger.error(f"Failed to save temporary image: {e}")
 
 
-def create_sample(texts: List[str], images: List[Image.Image], path=None) -> dict:
+def create_sample(texts: List[str], images: List[Image.Image], path: str) -> dict:
     """
     Create a sample dictionary containing text, images, and optional metadata.
     This function is called within all processors.
@@ -184,7 +185,7 @@ def create_sample(texts: List[str], images: List[Image.Image], path=None) -> dic
     Args:
         texts (List[str]): List of text strings.
         images (List[Image.Image]): List of images.
-        path (str, optional): Path for metadata. Defaults to None.
+        path (str): Path of the file that was used to generate this sample.
 
     Returns:
         dict: Sample dictionary with text, image modalities, and metadata.
@@ -295,7 +296,7 @@ def evenly_split_accross_gpus_num_pages(x_list, num_gpus):
         # Add file to this GPU list and update page count
         gpu_lists[min_gpu].append(file)
         page_totals[min_gpu] += get_num_pages(file)
-    
+
     logger.info(
         f"Chunks size: {[sum([get_num_pages(file) for file in chunk]) for chunk in gpu_lists]}"
     )
@@ -395,6 +396,7 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
         Tuple[List[List[FileDescriptor]], List[List[Tuple[int, str]]]]:
         File descriptors per GPU and their corresponding page indices.
     """
+
     def build_pdf(pdf_pages: List[Tuple[str, Tuple[int, int]]]):
         """Create a merged PDF from specific page ranges."""
         output_pdf = fitz.open()

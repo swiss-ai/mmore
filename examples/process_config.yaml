@@ -34,3 +34,4 @@ dispatcher_config:
       - TABLE_REC_BATCH_SIZE: 1
 
 data_path: test_data/
+dashboard_backend_url: http://172.16.2.121:8000

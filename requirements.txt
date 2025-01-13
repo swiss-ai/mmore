@@ -21,3 +21,8 @@ markdownify
 trafilatura
 moviepy
 pymilvus
+motor
+fastapi[standard]==0.115.6
+pydantic
+pymongo
+requests

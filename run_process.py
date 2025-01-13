@@ -7,7 +7,8 @@ import argparse
 from typing import List
 
 import pypdfium2
-from src.mmore.process.crawler import Crawler, CrawlerConfig
+from src.mmore.dashboard.backend.client import DashboardClient
+from src.mmore.process.crawler import Crawler, CrawlerConfig, DispatcherReadyResult
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from src.mmore.process.processors.processor import ProcessorResult
 
@@ -51,6 +52,9 @@ def main():
     crawler = Crawler(config=load_crawler_config(config))
     crawl_result = crawler.crawl()
 
+    dashboard_url = config.get("dashboard_backend_url", None)
+    DashboardClient(dashboard_url).init_db(len(crawl_result))
+
     dispatcher = Dispatcher(result=crawl_result, config=load_dispatcher_config(config))
     results = list(dispatcher())
 
@@ -60,6 +64,7 @@ def main():
 def load_crawler_config(config: dict) -> CrawlerConfig:
     if config.get("data_path"):
         data_path = config.get("data_path")
+        output_path = config.get("dispatcher_config", {}).get("output_path")
         return CrawlerConfig(
             root_dirs=[data_path],
             supported_extensions=[
@@ -68,7 +73,8 @@ def load_crawler_config(config: dict) -> CrawlerConfig:
                 ".mp4", ".avi", ".mov", ".mkv",
                 ".mp3", ".wav", ".aac",
                 ".eml",
-            ]
+            ],
+            output_path=output_path
         )
     elif isinstance(config.get("crawler_config"), str):
         return CrawlerConfig.from_yaml(config.get("crawler_config"))
