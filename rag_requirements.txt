@@ -12,14 +12,12 @@ langchain-nvidia-ai-endpoints
 langchain-google-vertexai
 langserve
 pymilvus[model]
+xformers
 ragas
 nltk
 python-dotenv
 dacite
-chonkie
-langdetect
 validators
-datatrove[processing]
 fastapi
 uvicorn
 httpx==0.27.2

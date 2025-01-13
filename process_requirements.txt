@@ -20,3 +20,6 @@ markdown
 markdownify
 trafilatura
 moviepy
+chonkie
+langdetect
+datatrove[processing]
