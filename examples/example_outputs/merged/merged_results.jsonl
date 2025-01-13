@@ -1,6 +1,0 @@
-{"text": "This is a document with an image <attachment> and a video <attachment>.", "modalities": [{"type": "image", "value": "image_url_1.jpg"}, {"type": "video", "value": "video_url_1.mp4"}], "metadata": {}}
-{"text": "A report containing an audio clip <attachment> and a chart <attachment>.", "modalities": [{"type": "audio", "value": "audio_url_1.mp3"}, {"type": "chart", "value": "chart_url_1.png"}], "metadata": {}}
-{"text": "Presentation with a slide deck <attachment> and a supporting document <attachment>.", "modalities": [{"type": "presentation", "value": "slides_url_1.pptx"}, {"type": "document", "value": "doc_url_1.pdf"}], "metadata": {}}
-{"text": "Email containing a voice note <attachment> and a photo <attachment>.", "modalities": [{"type": "audio", "value": "voice_note_url_1.mp3"}, {"type": "image", "value": "photo_url_1.jpg"}], "metadata": {}}
-{"text": "Research paper includes a dataset <attachment> and a supplementary video <attachment>.", "modalities": [{"type": "dataset", "value": "dataset_url_1.csv"}, {"type": "video", "value": "video_url_2.mp4"}], "metadata": {}}
-{"text": "A news article with a linked map <attachment> and an infographic <attachment>.", "modalities": [{"type": "map", "value": "map_url_1.html"}, {"type": "infographic", "value": "infographic_url_1.png"}], "metadata": {}}
