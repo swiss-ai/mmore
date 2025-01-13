@@ -52,7 +52,7 @@ loaders = {
     'MISTRAL': MistralAIEmbeddings,
     'NVIDIA': NVIDIAEmbeddings,
     'AWS': BedrockEmbeddings,
-    'HF': lambda model, **kwargs: HuggingFaceEmbeddings(model_name=model, multi_process=True, **kwargs),
+    'HF': lambda model, **kwargs: HuggingFaceEmbeddings(model_name=model, show_progress=True, model_kwargs={'trust_remote_code': True}, **kwargs),
     'FAKE': lambda **kwargs: FakeEmbeddings(size=2048), # For testing purposes, don't use in production
 }
 
