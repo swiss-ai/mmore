@@ -32,7 +32,7 @@ class IndexerConfig:
     dense_model: DenseModelConfig
     sparse_model: SparseModelConfig
     db: DBConfig = field(default_factory=DBConfig)
-    batch_size: int = 8
+    batch_size: int = 64
 
     def __post_init__(self):
         if isinstance(self.db, dict):
@@ -51,7 +51,7 @@ class Indexer:
                  dense_model_config: DenseModelConfig, 
                  sparse_model_config: SparseModelConfig, 
                  client: MilvusClient, 
-                 batch_size: int = 8
+                 batch_size: int = 64
             ):
         # Load the embedding models
         self.dense_model_config = dense_model_config
@@ -90,7 +90,7 @@ class Indexer:
         documents: List[MultimodalSample],
         collection_name: str = 'my_docs',
         partition_name: str = None,
-        batch_size: int = 32,
+        batch_size: int = 64,
     ):
         indexer = Indexer.from_config(config)
         indexer.index_documents(
@@ -162,50 +162,38 @@ class Indexer:
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
             partition_name: str = None,
-            batch_size: int = 32
+            batch_size: int = 64
         ) -> List[int]:
 
-        dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(documents, self.dense_model_config.is_multimodal))
-        sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(documents, self.sparse_model_config.is_multimodal))
+        # logger.info(f"Computing dense embeddings...")
+        # dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(documents, self.dense_model_config.is_multimodal))
+        # logger.info(f"Computing sparse embeddings...")
+        # sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(documents, self.sparse_model_config.is_multimodal))
+        # logger.info(f"Embeddings computed!")
 
-        data = [{
-                "id": sample.id,
-                #"doc_id": sample.id,
-                "text": sample.text,
-                "dense_embedding": d,
-                "sparse_embedding": s.reshape(1, -1),
-                **sample.metadata
-            } for sample, d, s in zip(documents, dense_embeddings, sparse_embeddings)]
-        
-        inserted = self.client.upsert(
-            data=data,
-            collection_name=collection_name,
-            partition_name=partition_name,
-        )
+        # Process new documents in batches
+        inserted = 0
+        for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
+            batch = documents[i:i + batch_size]
+            dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(batch, self.dense_model_config.is_multimodal))
+            sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
+            data = []
+            for _, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
+                data.append({
+                    "id": sample.id,
+                    #"doc_id": sample.id,
+                    "text": sample.text,
+                    "dense_embedding": d,
+                    "sparse_embedding": s.reshape(1, -1),
+                    **sample.metadata
+                })
 
-        # # Process new documents in batches
-        # inserted = 0
-        # for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
-        #     batch = documents[i:i + batch_size]
-            #    dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(batch, self.dense_model_config.is_multimodal))
-            #    sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
-        #     data = []
-        #     for _, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
-        #         data.append({
-        #             "id": sample.id,
-        #             #"doc_id": sample.id,
-        #             "text": sample.text,
-        #             "dense_embedding": d,
-        #             "sparse_embedding": s.reshape(1, -1),
-        #             **sample.metadata
-        #         })
-
-        #     batch_inserted = self.client.upsert(
-        #         data=data,
-        #         collection_name=collection_name,
-        #         partition_name=partition_name,
-        #     )
-        #     inserted += list(batch_inserted.values())[0]
+            batch_inserted = self.client.upsert(
+                data=data,
+                collection_name=collection_name,
+                partition_name=partition_name,
+            )
+            inserted += list(batch_inserted.values())[0]
 
         return inserted
     
@@ -220,7 +208,7 @@ class Indexer:
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
             partition_name: str = None,
-            batch_size: int = 32
+            batch_size: int = 64
         ) -> List[int]:   
         # Create collection
         if not self.client.has_collection(collection_name):
