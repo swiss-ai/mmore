@@ -113,5 +113,6 @@ tmp/
 scheduler-file.json
 requirements-dev.lock
 requirements.lock
-.
-examples/outputs/
+
+# Examples
+examples
