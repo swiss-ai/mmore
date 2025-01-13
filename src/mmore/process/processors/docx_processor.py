@@ -77,7 +77,7 @@ class DOCXProcessor(Processor):
             doc = Document(file_path)
         except Exception as e:
             logger.error(f"Failed to open Word file {file_path}: {e}")
-            return create_sample([], [])
+            return create_sample([], [], None)
 
         embedded_images = _extract_images(doc)
         all_text = []
