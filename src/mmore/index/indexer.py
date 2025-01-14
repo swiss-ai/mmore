@@ -32,7 +32,6 @@ class IndexerConfig:
     dense_model: DenseModelConfig
     sparse_model: SparseModelConfig
     db: DBConfig = field(default_factory=DBConfig)
-    batch_size: int = 64
 
     def __post_init__(self):
         if isinstance(self.db, dict):
@@ -43,15 +42,14 @@ class Indexer:
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
     client: MilvusClient
-    batch_size: int
 
     _DEFAULT_FIELDS = ['id', 'text', 'dense_embedding', 'sparse_embedding']
 
-    def __init__(self, 
-                 dense_model_config: DenseModelConfig, 
-                 sparse_model_config: SparseModelConfig, 
-                 client: MilvusClient, 
-                 batch_size: int = 64
+    def __init__(
+                self, 
+                dense_model_config: DenseModelConfig, 
+                sparse_model_config: SparseModelConfig, 
+                client: MilvusClient, 
             ):
         # Load the embedding models
         self.dense_model_config = dense_model_config
@@ -60,8 +58,6 @@ class Indexer:
         self.sparse_model = SparseModel.from_config(sparse_model_config)
 
         self.client = client
-
-        self.batch_size = batch_size
 
     @classmethod
     def from_config(cls, config: str | IndexerConfig):
@@ -80,7 +76,6 @@ class Indexer:
             dense_model_config=config.dense_model,
             sparse_model_config=config.sparse_model,
             client=milvus_client,
-            batch_size=config.batch_size
         )
 
     @classmethod
@@ -145,7 +140,7 @@ class Indexer:
             model_name=self.dense_model_config.model_name,
             is_multimodal=self.dense_model_config.is_multimodal,
             metric_type="COSINE",
-            params={"nlist": 128},
+            #params={"nlist": 128},
         )
 
         logger.info(f"Creating index for sparse embeddings with model {self.sparse_model_config.model_name}")
@@ -164,30 +159,26 @@ class Indexer:
             partition_name: str = None,
             batch_size: int = 64
         ) -> List[int]:
-
-        # logger.info(f"Computing dense embeddings...")
-        # dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(documents, self.dense_model_config.is_multimodal))
-        # logger.info(f"Computing sparse embeddings...")
-        # sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(documents, self.sparse_model_config.is_multimodal))
-        # logger.info(f"Embeddings computed!")
-
         # Process new documents in batches
         inserted = 0
         for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
+            # Get the batch
             batch = documents[i:i + batch_size]
+
+            # Compute embeddings
             dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(batch, self.dense_model_config.is_multimodal))
             sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
-            data = []
-            for _, (sample, d, s) in enumerate(zip(batch, dense_embeddings, sparse_embeddings)):
-                data.append({
+
+            # Insert the batch
+            data = [{
                     "id": sample.id,
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
                     **sample.metadata
-                })
-
-            batch_inserted = self.client.upsert(
+                } for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)]
+            
+            batch_inserted = self.client.insert(
                 data=data,
                 collection_name=collection_name,
                 partition_name=partition_name,
@@ -203,7 +194,8 @@ class Indexer:
             logger.info(f"  - {k}: {v}")
         logger.info("-"*50)
 
-    def index_documents(self, 
+    def index_documents(
+            self, 
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
             partition_name: str = None,
