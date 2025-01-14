@@ -147,7 +147,7 @@ class PDFProcessor(Processor):
                     embedded_images.append(image)
                     extracted_text.append(self.config.attachment_tag)
                     
-        return create_sample(extracted_text, embedded_images)
+        return create_sample(extracted_text, embedded_images, file_path)
 
     def process_implementation(self, file_path: str, temp_dir: str = "tmp/") -> dict:
         def extract_image_in_page(page, current_image_index) -> Tuple[List[str], int]:

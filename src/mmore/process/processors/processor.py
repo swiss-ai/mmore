@@ -1,7 +1,10 @@
 import logging
 import json
 from typing import Any, Dict, List, Union
+
+from src.mmore.dashboard.backend.client import DashboardClient
 from src.mmore.process.crawler import FileDescriptor, URLDescriptor
+from src.mmore.process.execution_state import ExecutionState
 from src.mmore.type import MultimodalSample, MultimodalRawInput
 from PIL import Image
 import torch
@@ -93,11 +96,13 @@ class ProcessorConfig:
     
     Attributes:
         attachment_tag (str): Tag used for attachments (default: "<attachment>") - This is what we use for Multimodal Meditron.
+        dashboard_url (str): URL of the dashboard backend API.
         custom_config (Dict[str, Any]): Dictionary of custom configurations.
     """
 
-    def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}):
+    def __init__(self, attachement_tag: str = "<attachment>", dashboard_url: str = None, custom_config: Dict[str, Any] = {}):
         self.attachment_tag = attachement_tag
+        self.dashboard_url = dashboard_url
         self.custom_config = custom_config
 
 
@@ -159,16 +164,18 @@ class Processor:
     def __init__(
             self,
             files: List[Union[FileDescriptor, URLDescriptor]],
-            config: ProcessorConfig = None,
+            config: ProcessorConfig = None
     ):
         """
         Args:
             files (List[Union[FileDescriptor, URLDescriptor]]): The files to process.
+            dashboard_url (str): The URL of the dashboard backend API.
             config (ProcessorConfig): Configuration for the processor.
         """
 
         self.files = files
         self.config = config
+        self.dashboard_url = config.dashboard_url
 
     def __call__(self, fast: bool = False) -> ProcessorResult:
         """
@@ -180,7 +187,13 @@ class Processor:
         Returns:
             ProcessorResult: The result of the processing operation.
         """
-        return self.process_fast() if fast else self.process()
+        if ExecutionState.get_should_stop_execution():
+            logger.warning("ExecutionState says to stop, Processor execution aborted")
+            return ProcessorResult([])
+        result = self.process_fast() if fast else self.process()
+        new_state = self.ping_dashboard()
+        ExecutionState.set_should_stop_execution(new_state)
+        return result
 
     def __contains__(self, file: FileDescriptor) -> bool:
         """
@@ -440,3 +453,15 @@ class Processor:
             new_samples.append(new_sample)
 
         return ProcessorResult(new_samples)
+
+    def ping_dashboard(self) -> bool:
+        """
+        Sends a ping to the dashboard to indicate that the processing is complete.
+        Opportunity to check if the processing should be stopped (the idea is to not do this at the beginning of the process for tradeoff/performance reasons).
+        """
+        if os.environ.get("RANK") is not None:
+            worker_id = os.environ.get("RANK")
+        else:
+            worker_id = os.getpid()
+        finished_file_paths = [file.file_path for file in self.files]
+        return DashboardClient(self.dashboard_url).report(worker_id, finished_file_paths)

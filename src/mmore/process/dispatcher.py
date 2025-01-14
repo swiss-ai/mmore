@@ -1,5 +1,7 @@
 import logging
 from typing import Any, Dict, List, Type, Tuple, Optional
+
+from .execution_state import ExecutionState
 from .processors.url_processor import URLProcessor
 from .crawler import DispatcherReadyResult, FileDescriptor
 from .processors.processor import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig, ProcessorResult
@@ -144,9 +146,11 @@ class Dispatcher:
             self,
             result: DispatcherReadyResult,
             config: DispatcherConfig = DispatcherConfig(),
+            dashboard_url: Optional[str] = None,
             start_cluster=False,
     ):
         self.result = result
+        self.dashboard_url = dashboard_url
         self.config = config
         self.start_cluster = start_cluster
         self.intermediate_map = {}
@@ -177,6 +181,8 @@ class Dispatcher:
         """
         Dispatches the tasks locally.
         """
+        ExecutionState.initialize(distributed_mode=False)
+
         processor_configs = self.config.processor_config or {}
 
         for processor, files in task_lists:
@@ -187,7 +193,7 @@ class Dispatcher:
             logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
-            processor_config = ProcessorConfig(custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_url=self.dashboard_url, custom_config=processor_config)
             res = processor(files, processor_config)(self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
             yield res
@@ -203,6 +209,7 @@ class Dispatcher:
             kwargs["scheduler_file"] = absolute_scheduler_path
 
         client = Client(**kwargs)
+        ExecutionState.initialize(distributed_mode=True, client=client)
 
         futures = []
         processor_configs = self.config.processor_config or {}
@@ -216,7 +223,7 @@ class Dispatcher:
                 f"Dispatching {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
 
-            processor_config = ProcessorConfig(custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_url=self.dashboard_url, custom_config=processor_config)
 
             def process_files(files, processor_config):
                 return processor(files, processor_config)(
