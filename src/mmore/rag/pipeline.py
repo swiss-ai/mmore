@@ -8,8 +8,6 @@ from typing import Union, List, Dict, Optional, Any
 
 from dataclasses import dataclass, field
 
-from src.mmore.rag import BaseRAGPipeline, BaseRAGConfig
-
 from langchain.chains.base import Chain
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
@@ -18,7 +16,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.rag.implementations.regular_rag.retriever import Retriever, RetrieverConfig
 from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.rag.types import QuotedAnswer, CitedAnswer
 
@@ -33,14 +31,14 @@ Context:
 
 
 @dataclass
-class RAGConfig(BaseRAGConfig):
+class RAGConfig:
     """Configuration for RAG pipeline."""
     retriever: RetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
 
-class RAGPipeline(BaseRAGPipeline):
+class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
 
     retriever: Retriever

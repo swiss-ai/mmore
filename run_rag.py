@@ -27,7 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from langserve import add_routes
 
-from src.mmore.rag.implementations.regular_rag.pipeline import RAGPipeline, RAGConfig
+from mmore.rag.pipeline import RAGPipeline, RAGConfig
 from src.mmore.rag.types import MMOREOutput, MMOREInput
 from src.mmore.utils import load_config
 
