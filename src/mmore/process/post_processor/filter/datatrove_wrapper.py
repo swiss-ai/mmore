@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 
 from .base import BaseFilter, BaseFilterConfig
 

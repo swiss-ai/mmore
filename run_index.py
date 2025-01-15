@@ -13,9 +13,9 @@ import os
 
 import argparse
 
-from src.mmore.utils import load_config
-from src.mmore.type import MultimodalSample
-from mmore.index.implementations.indexer import IndexerConfig, Indexer
+from mmore.utils import load_config
+from mmore.types.type import MultimodalSample
+from mmore.index.implementations.regular_rag.indexer import IndexerConfig, Indexer
 
 from typing import List
 from dataclasses import dataclass, field

@@ -1,7 +1,7 @@
 import logging
 import markdown
 import markdownify
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 import tempfile
 from PIL import Image

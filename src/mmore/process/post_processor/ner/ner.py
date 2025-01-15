@@ -1,7 +1,7 @@
 from typing import List
 
 from mmore.process.post_processor import BasePostProcessor
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 
 from .extractor import NERExtractor, NERExtractorConfig
 

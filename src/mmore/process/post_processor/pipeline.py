@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass, field
 from typing import List
 
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 import logging

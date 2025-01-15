@@ -1,7 +1,7 @@
 import logging
 from typing import List
 from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 from .processor import Processor
 
 logger = logging.getLogger(__name__)

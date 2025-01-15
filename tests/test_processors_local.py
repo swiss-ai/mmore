@@ -7,7 +7,7 @@ from src.mmore.process.processors.pdf_processor import PDFProcessor
 from src.mmore.process.processors.pptx_processor import PPTXProcessor
 from src.mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
 from src.mmore.process.processors.processor import ProcessorConfig
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 
 SAMPLES_DIR = "tests/samples/"
 

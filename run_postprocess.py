@@ -5,7 +5,7 @@ from typing import List
 
 from mmore.process.post_processor.pipeline import PPPipelineConfig, PPPipeline
 
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 from mmore.utils import load_config
 
 import logging

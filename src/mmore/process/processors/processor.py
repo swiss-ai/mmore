@@ -2,7 +2,7 @@ import logging
 import json
 from typing import Any, Dict, List, Union
 from src.mmore.process.crawler import FileDescriptor, URLDescriptor
-from src.mmore.type import MultimodalSample, MultimodalRawInput
+from mmore.types.type import MultimodalSample, MultimodalRawInput
 from PIL import Image
 import torch
 import torch.multiprocessing as mp

@@ -13,7 +13,7 @@ from multiprocessing import Pool, cpu_count
 import re
 from urllib.parse import urljoin
 from src.mmore.process.utils import clean_text, create_sample, evenly_split_across_gpus
-from src.mmore.type import URLDescriptor
+from mmore.types.type import URLDescriptor
 from .processor import Processor, ProcessorResult, ProcessorConfig
 from surya.ocr import run_ocr
 from surya.model.detection.model import (

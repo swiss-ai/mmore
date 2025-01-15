@@ -5,7 +5,7 @@ from email import policy
 from PIL import Image
 from typing import Dict, Any
 from src.mmore.process.utils import clean_text, create_sample
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

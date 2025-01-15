@@ -7,7 +7,7 @@ from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
 from src.mmore.process.utils import clean_text, create_sample
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
