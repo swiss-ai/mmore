@@ -16,7 +16,7 @@ import re
 from marker.models import load_all_models
 import tempfile
 from marker.settings import settings
-from src.mmore.type import FileDescriptor
+from mmore.types.type import FileDescriptor
 from .processor import Processor, ProcessorConfig
 
 from src.mmore.process.utils import (

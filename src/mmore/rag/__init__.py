@@ -1,6 +1,6 @@
-from base_pipeline import BaseRAGConfig, BaseRAGPipeline
+from base_pipeline import BaseRAGPipeline, BaseRAGConfig
 
 __all__ = [
-    "BaseRAGConfig",
     "BaseRAGPipeline",
+    "BaseRAGConfig",
 ]
