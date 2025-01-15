@@ -55,22 +55,16 @@ sudo apt-get install -y --no-install-recommends \
     libgtk-3-0 libreoffice libjpeg-dev
 
 # Install Rye
-echo "Setting up Rye"
-export RYE_HOME="/opt/rye"
-export PATH="$RYE_HOME/shims:$PATH"
-if [ ! -d "$RYE_HOME" ]; then
-  curl -sSf https://rye.astral.sh/get | RYE_TOOLCHAIN_VERSION="3.11" RYE_INSTALL_OPTION="--yes" bash
-  echo 'export RYE_HOME="/opt/rye"' >> ~/.bashrc
-  echo 'export PATH="$RYE_HOME/shims:$PATH"' >> ~/.bashrc
-fi
+echo "Setting up UV"
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Navigate to the project directory
 echo "Navigating to mmore folder: $MMORE_FOLDER"
 cd "$MMORE_FOLDER" || { echo "Directory $MMORE_FOLDER does not exist! Exiting."; exit 1; }
 
 # Sync Rye to install dependencies
-echo "Syncing Rye (installing dependencies)"
-rye sync
+echo "Syncing UV (installing dependencies)"
+uv sync
 
 # Configure environment variables
 echo "Setting up environment variables"

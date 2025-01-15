@@ -3,79 +3,99 @@ name = "mmore"
 version = "0.1.0"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 authors = [
-    {name = "Example Author", email = "author@example.com"}
 ]
-readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
-    "torch>=2.5.1",
-    "Pillow==10.2.0",
-    "PyMuPDF==1.24.14",
-    "Unidecode==1.3.8",
-    "clean-text==0.6.0",
-    "docx2pdf==0.1.8",
-    "lxml_html_clean",
-    "markdown==3.7",
-    "markdownify==0.14.1",
-    "marker-pdf==0.3.10",
-    "moviepy==2.1.1",
-    "numpy==1.26.3",
-    "openpyxl==3.1.5",
-    "pandas==2.2.3",
-    "py7zr==0.22.0",
-    "python-docx==1.1.2",
-    "python-pptx==1.0.2",
-    "rarfile==4.2",
-    "requests==2.28.1",
-    "selenium==4.27.1",
-    "surya-ocr==0.6.13",
-    "trafilatura==1.4.0",
-    "validators==0.34.0",
-    "xlrd==2.0.1",
-    "transformers==4.47.0",
-    "datasets==2.19.1",
-    "langchain==0.2.17",
-    "langchain-milvus==0.1.7",
-    "langchain-huggingface==0.0.3",
-    "langchain-openai==0.1.20",
-    "langchain-anthropic==0.1.23",
-    "langchain-mistralai==0.1.13",
-    "langchain-cohere==0.2.4",
-    "langserve==0.2.3",
-    "pymilvus==2.5.0",
-    "langserve[all]",
+    "surya-ocr",
+    "requests",
+    "Pillow",
+    "PyMuPDF",
+    "python-docx",
+    "python-pptx",
+    "selenium",
+    "clean-text",
+    "Unidecode",
+    "docx2pdf",
+    "validators",
+    "rarfile",
+    "openpyxl",
+    "xlrd",
+    "py7zr",
+    "pandas",
+    "validators",
+    "rarfile",
+    "markdown",
+    "markdownify",
+    "trafilatura",
+    "moviepy",
+    "chonkie",
+    "langdetect",
+    "datatrove[processing]",
+    "transformers==4.46.2",
+    "datasets",
+    "langchain",
+    "langchain-milvus",
+    "langchain-huggingface",
+    "langchain-openai",
+    "langchain-anthropic",
+    "langchain-mistralai",
+    "langchain-cohere",
+    "langchain-aws",
+    "langchain-nvidia-ai-endpoints",
+    "langchain-google-vertexai",
+    "langserve",
     "pymilvus[model]",
-    "fastapi[standard]",
-    "fastapi==0.115.5",
-    "uvicorn==0.32.1",
-    "ragas==0.2.6",
-    "nltk==3.9.1",
-    "python-dotenv==1.0.1",
-    "dacite==1.8.1",
-    "chonkie==0.2.1.post1",
-    "click>=8.1.7",
-    "dask-cuda>=24.10.0",
-    "cuda-python>=12.6.2",
-    "ucx-py-cu12>=0.40.0",
-    "pytest>=8.3.4",
+    "xformers",
+    "ragas",
+    "nltk",
+    "python-dotenv",
+    "dacite",
+    "validators",
+    "fastapi",
+    "uvicorn",
     "httpx==0.27.2",
-    "emoji==1.6.3",
+    "click>=8.1.7",
+    "ucx-py-cu12>=0.40.0",
+    "marker-pdf==0.3.10",
 ]
-requires-python = ">= 3.8"
+
+[project.optional-dependencies]
+cpu = [
+    "torch>=2.5.1",
+]
+cu124 = [
+    "torch>=2.5.1",
+]
+
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu124" },
+  ],
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
+  { index = "pytorch-cu124", extra="cu124", marker = "platform_machine != 'aarch64'"},
+  # { url = "https://download.pytorch.org/whl/cu124/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu124",  marker = "platform_machine == 'aarch64'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[project.scripts]
+mmore = "mmore:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.rye]
-managed = true
-dev-dependencies = []
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
-
-[[tool.rye.sources]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu124"
