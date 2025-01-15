@@ -5,8 +5,6 @@ Example usage:
 """
 
 # Remove warnings
-import torchvision
-torchvision.disable_beta_transforms_warning()
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message=".*TypedStorage is deprecated.*")
 warnings.filterwarnings("ignore", category=UserWarning, message="BertForMaskedLM has generative capabilities.*")
@@ -17,7 +15,7 @@ import argparse
 
 from src.mmore.utils import load_config
 from src.mmore.type import MultimodalSample
-from src.mmore.index.indexer import IndexerConfig, Indexer
+from mmore.index.implementations.indexer import IndexerConfig, Indexer
 
 from typing import List
 from dataclasses import dataclass, field
