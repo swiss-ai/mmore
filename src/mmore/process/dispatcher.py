@@ -163,7 +163,7 @@ class Dispatcher:
         for file_path_list in self.result.file_paths.values():
             for file in file_path_list:
                 processor = AutoProcessor.from_file(file)
-                logger.info(f"Assigned file {file.file_path} to processor: {processor}")
+                logger.debug(f"Assigned file {file.file_path} to processor: {processor}")
                 processor_map[processor].append(file)
 
         url_processor = URLProcessor
@@ -203,6 +203,10 @@ class Dispatcher:
             kwargs["scheduler_file"] = absolute_scheduler_path
 
         client = Client(**kwargs)
+        client.run(lambda: os.environ.update({"PYTHONPATH": os.getcwd()}))
+        dask.config.set({"distributed.worker.daemon": False})
+        print(f"Dask client started with version {client.get_versions()})")
+        print(client.run(lambda: os.environ))
 
         futures = []
         processor_configs = self.config.processor_config or {}
@@ -317,7 +321,8 @@ class Dispatcher:
     def save_individual_processor_results(self, results: ProcessorResult, cls_name) -> None:
         if not self.config.output_path:
             return
-
+        
+        print(f"Saving results for {cls_name}: {results}")
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")

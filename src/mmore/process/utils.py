@@ -400,8 +400,11 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
         output_pdf = fitz.open()
         for file_path, (lower, upper) in pdf_pages:
             pdf = fitz.open(file_path)
-            output_pdf.insert_pdf(pdf, lower, upper)
-
+            try:
+                output_pdf.insert_pdf(pdf, lower, upper)
+            except Exception as e:
+                logger.error(f"Failed to merge file {file_path}: {e}")
+                continue
         temp_file = tempfile.NamedTemporaryFile(
             delete=False, suffix=".pdf"
         )
@@ -412,11 +415,17 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
 
     def get_total_pages():
         total = 0
-        for descriptor in files:
-            total += len(fitz.open(descriptor.file_path))
-        return total
+        delete_index = []
+        for i, descriptor in enumerate(files):
+            try:
+                total += len(fitz.open(descriptor.file_path))
+            except Exception as e:
+                logger.error(f"Failed to open pdf at {descriptor.file_path}: {e}")
+                delete_index.append(i)
+        return total, delete_index
 
-    total_pages = get_total_pages()
+    total_pages, delete_index = get_total_pages()
+    files = [file for i, file in enumerate(files) if i not in delete_index]
 
     full_page_indexer = [list() for _ in range(num_gpus)]
     pages_per_gpu = (total_pages // num_gpus) + 1
@@ -428,7 +437,11 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
     current_num_pages = 0
 
     for file in files:
-        pdf_file = fitz.open(file.file_path)
+        try:
+            pdf_file = fitz.open(file.file_path)
+        except Exception as e:  
+            logger.error(f"Failed to open pdf at {file.file_path}: {e}")
+            continue
         current_gpu_pages.append((file.file_path, [0, 0]))
 
         for i, _ in enumerate(pdf_file):

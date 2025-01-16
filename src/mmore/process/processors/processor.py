@@ -26,7 +26,10 @@ class ProcessorResult:
         """
         self.samples = []
         for sample in data:
-            self.samples.append(MultimodalSample.from_dict(sample))
+            if isinstance(sample, MultimodalSample):
+                self.samples.append(sample)
+            else:
+                self.samples.append(MultimodalSample.from_dict(sample))
 
     def to_jsonl(self, path: str, append: bool = False):
         """
@@ -207,6 +210,7 @@ class Processor:
             return self._consolidate_modalities(
                 results)  # Consolidate modalities: ensure that the files will be available after processing
         except Exception as e:
+            logger.error(f"Failed processing: {str(e)}")
             return ProcessorResult([])
 
     def process_fast(self) -> ProcessorResult:
@@ -266,7 +270,6 @@ class Processor:
         num_gpus = torch.cuda.device_count()
         if num_gpus <= 0:
             raise ValueError("No GPUs available.")
-        
         chunks = self.split_files_across_gpus()
         mp.set_start_method("spawn", force=True)
 
@@ -438,5 +441,6 @@ class Processor:
                 sample.metadata
             )
             new_samples.append(new_sample)
-
+        # We have a list of ProcessorResult, we need to merge them
         return ProcessorResult(new_samples)
+

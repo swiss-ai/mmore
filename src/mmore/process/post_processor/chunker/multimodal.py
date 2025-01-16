@@ -64,7 +64,7 @@ class MultimodalChunker(BasePostProcessor):
             # Chunk using the text chunker
             text_chunks = self.text_chunker.chunk(sample.text)
         except Exception as e:
-            print(f"Chunking error on sample with length: {len(sample.text)} ")
+            logger.error(f"Chunking error on sample with length: {len(sample.text): {e}} ")
             return []
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
