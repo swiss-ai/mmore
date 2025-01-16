@@ -140,7 +140,8 @@ class Indexer:
             model_name=self.dense_model_config.model_name,
             is_multimodal=self.dense_model_config.is_multimodal,
             metric_type="COSINE",
-            #params={"nlist": 128},
+            index_type="IVF_FLAT",
+            params={"nlist": 128},
         )
 
         logger.info(f"Creating index for sparse embeddings with model {self.sparse_model_config.model_name}")
