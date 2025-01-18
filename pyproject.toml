@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 authors = [
 ]
-requires-python = ">=3.10"
+requires-python = "==3.10"
 dependencies = [
     "surya-ocr",
     "requests",
@@ -14,6 +14,7 @@ dependencies = [
     "python-pptx",
     "selenium",
     "clean-text",
+    "dask[complete]",
     "Unidecode",
     "docx2pdf",
     "validators",

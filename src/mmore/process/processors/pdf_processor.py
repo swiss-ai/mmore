@@ -195,12 +195,13 @@ class PDFProcessor(Processor):
             full_text, temp_dir
         )
 
-        split_pages = re.split(settings.PAGE_SEPARATOR, content)
+        split_pages = content.split(settings.PAGE_SEPARATOR)
 
         # get the index of the first pages of the files that were processed in this GPU
-        # index is a dict with the file name as key and the index of the first page as value
         index = self.full_page_indexer[torch.cuda.current_device()]
 
+        split_pages = split_pages[1:] if split_pages[0] == "{0}" else split_pages
+        
         all_files = []
         all_images = []
         IMAGE_LIST = list(images.values())
@@ -211,7 +212,7 @@ class PDFProcessor(Processor):
 
         previous_file_name = None
         current_image_index = 0
-
+        
         for page, (true_page_number, filename) in zip(split_pages, index):
             if previous_file_name is None:
                 previous_file_name = filename
@@ -235,6 +236,30 @@ class PDFProcessor(Processor):
 
         sample_list = create_sample_list_already_saved_images(all_files, all_images, FILE_LIST)
         return sample_list
+
+    def reconstruct_results(self, results):
+        # Some files were splitted across GPUs, we need to reconstruct the results by iterating over the list of lists
+        # We know that the splitted files were only splitted at the end, so we can iterate over the list of lists, take the last element, and check if the metadata.file_name is the same in all the other lists
+        new_results = []
+        for i in range(len(results)):
+            if i == len(results) - 1:
+                data = results[i]
+                new_results.append(data)
+                break
+            last_filename = results[i][-1]['metadata']['file_path']
+            if results[i+1][0]['metadata']['file_path'] == last_filename:
+                need_to_append = results[i+1][0]
+                logger.info(f"File {results[i+1][0]['metadata']['file_path']} was splitted across GPUs and the results are inconsistent. We need to reconstruct the results.")
+                results[i+1] = results[i+1][1:]
+                temp = results[i]
+                last_sample = results[i][-1]
+                last_sample['text'] += need_to_append['text']
+                temp[-1] = last_sample
+                new_results.append(temp)
+            else:
+                new_results.append(results[i])
+        return new_results
+
 
     @staticmethod
     def _extract_image_from_pdf(pdf_doc, xref) -> Image.Image:
@@ -264,7 +289,6 @@ class PDFProcessor(Processor):
         Split the files across GPUs.
         """
         chunked_files, self.full_page_indexer = merge_split_with_full_page_indexer(self.files, torch.cuda.device_count())
-
         return chunked_files
 
     @classmethod

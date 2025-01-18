@@ -410,7 +410,7 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
         )
 
         output_pdf.save(temp_file)
-
+        
         return [FileDescriptor.from_filename(file_path=temp_file.name)]
 
     def get_total_pages():
@@ -426,7 +426,6 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
 
     total_pages, delete_index = get_total_pages()
     files = [file for i, file in enumerate(files) if i not in delete_index]
-
     full_page_indexer = [list() for _ in range(num_gpus)]
     pages_per_gpu = (total_pages // num_gpus) + 1
 
@@ -446,12 +445,12 @@ def merge_split_with_full_page_indexer(files: List[FileDescriptor], num_gpus: in
 
         for i, _ in enumerate(pdf_file):
             if current_num_pages >= pages_per_gpu:
-                current_gpu_pages[-1][1][1] = i
+                current_gpu_pages[-1][1][1] = i + 1
                 gpu_file_descriptors.append(build_pdf(current_gpu_pages))
                 current_gpu += 1
                 current_num_pages = 0
                 current_gpu_pages.clear()
-                current_gpu_pages.append((file.file_path, [i + 1, i + 1]))
+                current_gpu_pages.append((file.file_path, [i + 2, i + 2]))
 
             full_page_indexer[current_gpu].append((i, file.file_path))
             current_num_pages += 1
