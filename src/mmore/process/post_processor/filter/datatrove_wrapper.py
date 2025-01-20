@@ -84,7 +84,12 @@ class DatatroveFilter(BaseFilter):
             str: If the document must be ignored, the reason.
         """
         # Filter the document
-        return self.datatrove_filter.filter(DatatroveFilter.sample_to_doc(sample))
+        res = self.datatrove_filter.filter(DatatroveFilter.sample_to_doc(sample))
+        if isinstance(res, bool):
+            return res
+        else:
+            return res[0]
+        #return self.datatrove_filter.filter(DatatroveFilter.sample_to_doc(sample))
     
     def batch_filter(self, batch):
         """Abstract method for processing a batch of samples.
