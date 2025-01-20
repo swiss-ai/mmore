@@ -38,7 +38,7 @@ logger.setLevel(logging.INFO)
 # Global logging configuration
 #logging.basicConfig(format='%(asctime)s: %(message)s')
 #logging.basicConfig(format='%(message)s')
-logging.basicConfig(format='[RAG 🤖] %(message)s', level=logging.INFO)
+logging.basicConfig(format='[RAG 🤖 -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 # Suppress overly verbose logs from third-party libraries
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
