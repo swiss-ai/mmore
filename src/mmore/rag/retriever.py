@@ -177,6 +177,9 @@ class Retriever(BaseRetriever):
             run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
+        if self.k == 0: 
+            return []
+    
         # For compatibility
         if isinstance(query.get('partition_name', None), str):
             query['partition_name'] = [query['partition_name']]

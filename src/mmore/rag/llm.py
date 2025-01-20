@@ -35,7 +35,7 @@ class LLMConfig:
     llm_name: str
     base_url: str = None
     organization: str = None
-    max_new_tokens: int = 100
+    max_new_tokens: int = None
     temperature: float = 0.7
 
     def __post_init__(self):
