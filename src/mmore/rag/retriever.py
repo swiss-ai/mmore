@@ -98,6 +98,9 @@ class Retriever(BaseRetriever):
         Returns:
             List of matching documents with specified output fields
         """
+        if k == 0: 
+            return []
+    
         assert search_type in get_args(
             self._search_types), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)
@@ -177,9 +180,6 @@ class Retriever(BaseRetriever):
             run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
-        if self.k == 0: 
-            return []
-    
         # For compatibility
         if isinstance(query.get('partition_name', None), str):
             query['partition_name'] = [query['partition_name']]
