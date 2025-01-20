@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 # Global logging configuration
 #logging.basicConfig(format='%(asctime)s: %(message)s')
 #logging.basicConfig(format='%(message)s')
-logging.basicConfig(format='[PP 🧹] %(message)s', level=logging.INFO)
+logging.basicConfig(format='[PP 🧹-- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 @dataclass
 class PPInferenceConfig:
