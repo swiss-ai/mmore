@@ -5,11 +5,10 @@ Works in conjunction with the Indexer class for document retrieval.
 
 from typing import List, Dict, Any, Tuple, Literal, get_args
 from dataclasses import dataclass, field
-from src.mmore.utils import load_config
+from ..utils import load_config
 
-from src.mmore.index.indexer import get_model_from_index
-from src.mmore.index.indexer import DBConfig
-from src.mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
+from mmore.index.indexer import get_model_from_index
+from mmore.index.indexer import DBConfig
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 

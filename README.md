@@ -19,12 +19,80 @@ Well, MMORE is here to help you!
 
 ## Quick Start
 
-### Installation
+### Installation with Docker (recommended)
 
-We currently support installation through rye. Refer to the documentation for instructions on installation.
-The `scripts/setup.sh` script will install all the dependencies and install rye for you.
+Note: Please see section Manual Installation below how to install without docker
 
-We also provide a docker image for easy deployment.
+
+1. Install [docker](https://docs.docker.com/get-started/get-docker/)
+2. Open a terminal and build the image with the following command
+```
+docker build . --tag mmore
+```
+
+To build for CPU-only platforms (results in smaller image size), you can use
+```
+docker build --build-arg PLATFORM=cpu -t mmore .
+```
+
+Start an interactive session with
+```
+docker run -it -v ./test_data:/app/test_data mmore
+```
+Note: we are mapping the folder `test_data` to the location `/app/test_data` inside the container. The default location given in the `examples/process_config.yaml` maps to this folder, which we are using in the next step.
+
+Inside the docker session you can run
+```
+# run processing
+mmore process --config_file examples/process_config.yaml
+
+# run indexer
+mmore index --config-file ./examples/index/indexer_config.yaml
+
+# run rag
+mmore rag --config-file ./examples/rag/rag_config_local.yaml
+```
+
+### Manual installation
+Currently only for Linux systems
+
+1. Install system dependencies
+```
+sudo apt update
+sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+```
+2. Install uv: https://docs.astral.sh/uv/getting-started/installation/
+3. Clone this repository
+```
+git clone https://github.com/swiss-ai/mmore
+cd mmore
+```
+4. Install project and dependencies
+```
+uv sync
+```
+
+If you want to install a CPU-only version you can run
+```
+uv sync --extra cpu
+```
+
+5. Run a test command
+To run the following commands either prepend every command with `uv run` or run once:
+```
+source .venv/bin/activate
+```
+
+```
+# run processing
+mmore process --config_file examples/process_config.yaml
+
+# run indexer
+mmore index --config-file ./examples/index/indexer_config.yaml
+
+# run rag
+mmore rag --config-file ./examples/rag/rag_config_local.yaml
+```
 
 ### Usage
 
