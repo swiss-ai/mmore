@@ -1,26 +1,45 @@
-ARG BASE_IMAGE="nvidia/cuda:12.2.2-base-ubuntu22.04"
+ARG PLATFORM
+ARG UV_ARGUMENTS=""
 
-FROM ${BASE_IMAGE}
+# We select the image based on the platform argument
+
+# Define GPU image
+FROM "nvidia/cuda:12.2.2-base-ubuntu22.04" AS gpu
+ARG PLATFORM
+RUN echo "Using GPU image"
+
+# Define cpu image
+FROM ubuntu:22.04 as cpu
+ARG PLATFORM
+ARG UV_ARGUMENTS="--extra cpu"
+RUN echo "Using CPU-only image"
+
+# Select image
+FROM ${PLATFORM:-gpu}
+ARG PLATFORM
+
+COPY --from=ghcr.io/astral-sh/uv:0.5.8 /uv /uvx /bin/
 
 RUN apt-get update && \
    apt-get install -y  --no-install-recommends  \
       nano curl ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice libjpeg-dev
 
-ENV RYE_HOME="/opt/rye"
-ENV PATH="$RYE_HOME/shims:$PATH"
 
-RUN echo 'export RYE_HOME="/opt/rye"' >> ~/.bashrc
-RUN echo 'export PATH="$RYE_HOME/shims:$PATH"' >> ~/.bashrc
+# Copy the project into the image
+ADD . /app
 
-RUN curl -sSf https://rye.astral.sh/get | RYE_TOOLCHAIN_VERSION="3.11" RYE_INSTALL_OPTION="--yes" bash
-RUN rye config --set-bool behavior.global-python=true
+# Sync the project into a new environment, using the frozen lockfile
+WORKDIR /app
 
-COPY .python-version pyproject.toml .python-version requirements.lock README.md ./
-COPY src ./src
+# Define the build argument with a default value of an empty string (optional)
 
-RUN rye sync
+RUN uv sync --frozen ${UV_ARGUMENTS}
 
-ENV PATH="/.venv/bin:$PATH"
+
+# make uv's python the default python for the image
+ENV PATH="/app/.venv/bin:$PATH"
+
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 
 ENTRYPOINT /bin/bash
+
