@@ -2,7 +2,7 @@ import logging
 from typing import List
 from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor
-from .processor import Processor
+from .processor import Processor, ProcessorResult
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +39,9 @@ class TextProcessor(Processor):
         Returns:
             tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
         """
-        return False, False
+        return False
 
-    def process_implementation(self, file_path: str) -> dict:
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Process a text file, clean its content, and return a dictionary with the cleaned text.
 
@@ -51,15 +51,16 @@ class TextProcessor(Processor):
         Returns:
             dict: A dictionary containing cleaned text, an empty list of modalities, and metadata.
         """
+        super().process_one_file(file_path, fast=fast)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Failed to read file {file_path}: {e}")
-            return {"text": "", "modalities": []}
+            return self.create_sample([], [], file_path)
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error in file {file_path}: {e}")
-            return {"text": "", "modalities": []}
+            return self.create_sample([], [], file_path)
 
         cleaned_text = clean_text(text)
-        return {"text": cleaned_text, "modalities": [], "metadata": {"file_path": file_path}}
+        return self.create_sample([cleaned_text], [], file_path)

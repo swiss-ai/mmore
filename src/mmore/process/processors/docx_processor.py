@@ -3,9 +3,9 @@ import io
 from docx import Document
 from typing import List
 from PIL import Image
-from src.mmore.process.utils import clean_text, create_sample
+from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig
+from .processor import Processor, ProcessorConfig, ProcessorResult
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,7 @@ class DOCXProcessor(Processor):
         """
         super().__init__(files, config=config or ProcessorConfig())
 
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(self, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -38,9 +37,9 @@ class DOCXProcessor(Processor):
         Returns:
             tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
         """        
-        return False, False
+        return False
 
-    def process_implementation(self, file_path: str) -> dict:
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Process a single DOCX file. Extracts text content and embedded images.
 
@@ -54,6 +53,7 @@ class DOCXProcessor(Processor):
         and extracts embedded images. Images in the paragraphs are replaced with a placeholder tag
         defined in the processor configuration (e.g., "<attachment>").
         """
+        super().process_one_file(file_path, fast=fast)
 
         # First, we define a helper functions
         def _extract_images(doc: Document) -> List[Image.Image]:
@@ -77,7 +77,7 @@ class DOCXProcessor(Processor):
             doc = Document(file_path)
         except Exception as e:
             logger.error(f"Failed to open Word file {file_path}: {e}")
-            return create_sample([], [])
+            return self.create_sample([], [], file_path)
 
         embedded_images = _extract_images(doc)
         all_text = []
@@ -92,4 +92,4 @@ class DOCXProcessor(Processor):
             if "w:drawing" in xml: 
                 all_text.append(self.config.attachment_tag)
 
-        return create_sample(all_text, embedded_images, file_path)
+        return self.create_sample(all_text, embedded_images, file_path)

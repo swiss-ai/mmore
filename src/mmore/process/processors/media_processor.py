@@ -8,8 +8,7 @@ from transformers import pipeline
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from src.mmore.type import FileDescriptor
-from .processor import Processor
-from src.mmore.process.utils import create_sample, evenly_split_across_gpus
+from .processor import Processor, ProcessorResult
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +64,7 @@ class MediaProcessor(Processor):
             )
             self.transcription_pipeline = None
 
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(self, file: FileDescriptor) -> bool:
         """
         Returns:
             bool: True if the file is a supported media format, False otherwise.
@@ -84,11 +82,11 @@ class MediaProcessor(Processor):
     def require_gpu(self) -> bool:
         """
         Returns:
-            tuple: A tuple (True, True) indicating GPU requirement for both standard and fast modes.
+            tuple: A tuple (True) indicating GPU requirement for both standard and fast modes.
         """
-        return True, True
+        return True
 
-    def process_implementation(self, file_path):
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Process a media file in standard mode.
 
@@ -98,39 +96,10 @@ class MediaProcessor(Processor):
         Returns:
             dict: A dictionary containing the transcription and extracted images.
         """
-        return self._process(file_path, fast_mode=False)
-
-    def process_fast_implementation(self, file_path):
-        """
-        Process a media file in fast mode.
-
-        Args:
-            file_path (str): Path to the media file.
-
-        Returns:
-            dict: A dictionary containing the transcription and extracted images.
-        """
-        return self._process(file_path, fast_mode=True)
-
-    def _process(self, file_path: str, fast_mode=False):
-        """
-        Core processing logic for extracting transcription (text) and images from media files.
-
-        Args:
-            file_path (str): Path to the media file.
-            fast_mode (bool): Whether to use fast processing mode.
-
-        Returns:
-            dict: Processed sample with transcription and images.
-        """
-        text = self._extract_text(file_path, fast_mode=fast_mode)
+        super().process_one_file(file_path, fast=fast)
+        text = self._extract_text(file_path, fast_mode=fast)
         images = self._extract_images(file_path)
-        return create_sample([text], images, file_path)
-
-    def split_files_across_gpus(self):
-        """ Split the files evenly across the available GPUs. """
-        num_gpus = torch.cuda.device_count()
-        return evenly_split_across_gpus(self.files, num_gpus)
+        return self.create_sample([text], images, file_path)
 
     def _extract_text(self, file_path: str, fast_mode=False) -> str:
         """

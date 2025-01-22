@@ -1,6 +1,12 @@
+import datetime
 import logging
 import json
+import tempfile
+from functools import partial
+from pathlib import Path
 from typing import Any, Dict, List, Union
+from uuid import uuid4
+
 from src.mmore.process.crawler import FileDescriptor, URLDescriptor
 from src.mmore.type import MultimodalSample, MultimodalRawInput
 from PIL import Image
@@ -19,7 +25,7 @@ class ProcessorResult:
         samples (List[MultimodalSample]): List of processed multimodal samples.
     """
 
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: Union[List[Dict[str, Any]], List[MultimodalSample]]):
         """
         Args:
             data (List[Dict[str, Any]]): A list of dictionaries representing processed samples.
@@ -183,7 +189,7 @@ class Processor:
         Returns:
             ProcessorResult: The result of the processing operation.
         """
-        return self.process_fast() if fast else self.process()
+        return self.process(fast)
 
     def __contains__(self, file: FileDescriptor) -> bool:
         """
@@ -197,7 +203,7 @@ class Processor:
         """
         return self.accepts(file)
 
-    def process(self) -> ProcessorResult:
+    def process(self, fast: bool = False) -> ProcessorResult:
         """
         Process the files using the standard processing method.
 
@@ -206,30 +212,14 @@ class Processor:
         """
         gpu_required, _ = self.require_gpu()
         try:
-            results = self.process_with_gpu(fast_mode=False) if gpu_required else self.process_with_cpu(fast_mode=False)
-            return self._consolidate_modalities(
-                results)  # Consolidate modalities: ensure that the files will be available after processing
+            if gpu_required:
+                results = self.process_with_gpu(fast_mode=fast)
+            else:
+                results = self.process_with_cpu(fast_mode=fast)
+            return results
         except Exception as e:
             logger.error(f"Failed processing: {str(e)}")
             return ProcessorResult([])
-
-    def process_fast(self) -> ProcessorResult:
-        """
-        Process the files using the fast processing method.
-
-        Returns:
-            ProcessorResult: The result of the fast processing operation.
-        """
-        try:
-            _, gpu_required = self.require_gpu()
-            results = self.process_with_gpu(fast_mode=True) if gpu_required else self.process_with_cpu(fast_mode=True)
-            return self._consolidate_modalities(
-                results)  # Consolidate modalities: ensure that the files will be available after processing
-        except NotImplementedError:
-            logger.warning(
-                f"Fast processing not implemented for {self.__class__.__name__}, falling back to generic processing."
-            )
-            return self.process()
 
     def process_files_on_gpu(self, files, gpu_id, fast_mode, results):
         """
@@ -246,11 +236,7 @@ class Processor:
         # Process each file using the provided method
         for file in files:
             try:
-                if fast_mode:
-                    process_method = self.process_fast_implementation
-                else:
-                    process_method = self.process_implementation
-                result = process_method(file.file_path)
+                result = self.process_one_file(file.file_path, fast_mode)
                 if type(result) == dict:
                     result = [result]
                 results.append(result)
@@ -261,19 +247,62 @@ class Processor:
         # Clean up after processing
         self.cleanup()
 
-    def process_with_gpu(self, fast_mode) -> Dict[str, Any]:
+    def process_with_gpu(self, fast_mode) -> ProcessorResult:
         """
         Processes a single file using a custom processing method.
             :param file: The file to process.
             :param process_method: The method to use for processing.
         """
+
+        def process_files_on_gpu(self, files, gpu_id, fast_mode, results):
+            """
+            Process a chunk of files on a specific GPU.
+            Each process in the multiprocessing pool handles one GPU.
+            """
+            # Set the GPU device for this process
+            device = torch.device(f"cuda:{gpu_id}")
+            torch.cuda.set_device(device)
+
+            # Load models onto the specified GPU
+            self.load_models(device)
+
+            # Process each file using the provided method
+            for file in files:
+                try:
+                    result = self.process_one_file(file.file_path, fast=fast_mode)
+                    if type(result) == dict:
+                        result = [result]
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Failed processing {os.path.basename(file.file_path)}: {str(e)}")
+                    results.append(None)
+
+            # Clean up after processing
+            self.cleanup()
+
         num_gpus = torch.cuda.device_count()
         if num_gpus <= 0:
             raise ValueError("No GPUs available.")
-        chunks = self.split_files_across_gpus()
-        mp.set_start_method("spawn", force=True)
 
+        def split_list_evenly(x_list, nbr_splits):
+            """
+            Evenly split a list of things across multiple GPUs.
+
+            :param x_list: List of things to split.
+            :param nbr_splits: Number of GPUs to split across.
+            :return: List of things split across GPUs.
+            """
+            x_per_gpu = len(x_list) // nbr_splits
+            x_split = [x_list[i * x_per_gpu: (i + 1) * x_per_gpu] for i in range(nbr_splits)]
+            # NOTE : If the number of things is not divisible by the number of GPUs, the last GPU will get the remainder, and can get 0 to x_per_gpu - 1 things.
+            # Nevertheless, if we consider that processing each thing takes the same amount of time, this will not be a problem.
+            return x_split
+
+        chunks = split_list_evenly(self.files, num_gpus)
+
+        mp.set_start_method("spawn", force=True)
         results = mp.Manager().list()
+
         processes = []
 
         for gpu_id, files in enumerate(chunks):
@@ -304,16 +333,10 @@ class Processor:
     def process_with_cpu(self, fast_mode) -> ProcessorResult:
         num_cores = mp.cpu_count()
         with mp.Pool(processes=num_cores) as pool:
-            if fast_mode:
-                process_method = self.process_fast_implementation
-            else:
-                process_method = self.process_implementation
-            results = pool.map(process_method, [file.file_path for file in self.files])
-        self.cleanup()  # Clean up the processor, if necessary (useful for quitting selenium drivers etc.)
+            process = partial(self.process_one_file, fast=fast_mode)
+            paths = [file.file_path for file in self.files]
+            results = pool.map(process, paths)
         return ProcessorResult(results)
-
-    def reconstruct_results(self, results):
-        return results
 
     def load_models(self, device: str):
         """
@@ -322,125 +345,104 @@ class Processor:
         """
         raise NotImplementedError
 
-    def process_implementation(self, file_path):
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Processes a single file in a standard way.
             :param file: The file to process.
         """
-        raise NotImplementedError
-
-    def process_fast_implementation(self, file_path):
-        """
-        Processes a single file in a fast way.
-            :param file: The file to process.
-        """
-        logger.debug(f"No fast implementation, using standard for {os.path.basename(file_path)}")
-        return self.process_implementation(file_path)
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            return self.create_sample([], [], file_path)
 
     def require_gpu(self) -> bool:
         """
-        Returns if the procesor and the fast processor require a GPU.
+        Returns if the processor requires a GPU
         """
         raise NotImplementedError
 
-    def split_files_across_gpus(self) -> List[List[FileDescriptor]]:
-        """
-        Splits the files across the available GPUs.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(self, file: FileDescriptor) -> bool:
         """
         Returns True if the processor can accept the file, False otherwise.
             :param file: The file to check.
         """
         raise NotImplementedError
 
-    def cleanup(self):
+    def get_file_len(self, file: FileDescriptor) -> int:
         """
-        Cleans up the processor.
-        """
-        pass
+          Used for dispatching.
+          For files with unequal size distribution, this helps dispatch tasks
+          more appropriately based on the computation size it represents.
 
-    @classmethod
-    def compute_rank(cls, list_of_files: List[FileDescriptor]) -> int:
-        """
-        Computes the rank of the files (a measure of how much processing is required).
-            :param list_of_files: The list of files to compute the size of.
-        """
-        return len(list_of_files)  # Default rank is the number of files
+          Specifically used in PDFProcessor.
 
-    @classmethod
-    def get_file_len(cls, file: FileDescriptor) -> int:
-        """
-        Returns the length of the file.
-            :param file: The file to check.
-        """
-        # Especially useful for large file who require more processing
+          Args:
+              file (FileDescriptor): The file to be processed.
+          """
         return 1
 
-    def _consolidate_modalities(self, result: ProcessorResult) -> ProcessorResult:
+    def create_sample(self, texts: List[str], images: List[Image.Image], path) -> ProcessorResult:
         """
-        Consolidates modalities in the processing result by updating file paths and copying files 
-        (e.g., images) to a specified output directory.
+        Create a sample dictionary containing text, images, and optional metadata.
+        This function is called within all processors.
 
         Args:
-            result (ProcessorResult): The result containing samples with modalities to be consolidated.
+            texts (List[str]): List of text strings.
+            images (List[Image.Image]): List of images.
+            path (str, optional): Path for metadata. Defaults to None.
 
         Returns:
-            ProcessorResult: A new ProcessorResult object with updated modalities paths.
+            dict: Sample dictionary with text, image modalities, and metadata.
         """
-        def save_new_image(image_path: str, output_folder_path: str) -> str | None:
+
+        def _save_temp_image(image: Image.Image, base_path=None) -> str:
             """
-            Saves a copy of the image to a new location.
+            Save an image as a temporary file.
 
             Args:
-                image_path (str): The original path of the image.
-                output_folder_path (str): The destination folder to save the image.
+                image (Image.Image): Image to save.
+                base_path (str, optional): Base directory for saving the file.
 
             Returns:
-                Optional[str]: The new image path or None.
+                str: Path to the saved image.
             """
             try:
-                image = Image.open(image_path)
-                new_path = os.path.join(output_folder_path, "images", os.path.basename(image_path))
-                image.save(new_path)
-                return new_path
+                # use systems temp dir if no path is provided
+                temp_dir = base_path or tempfile.gettempdir()
+                date_prefix = datetime.now().strftime("%Y-%m-%d_")
+                temp_file = tempfile.NamedTemporaryFile(delete=False, prefix=date_prefix, suffix=".png", dir=temp_dir)
+                temp_file_path: str = temp_file.name
+                image.save(temp_file_path, format="PNG")
+                temp_file.close()
+                if base_path:
+                    return Path(temp_file_path).relative_to(base_path)
+                return temp_file_path
             except Exception as e:
-                logger.error(f"Failed to save image {image_path if image_path else 'Unknown'}: {str(e)}")
-                return None
+                logger.error(f"Failed to save temporary image: {e}")
 
-        # Create a new list of samples with updated modalities paths
-        new_samples = []
-        output_path = self.config.custom_config.get("output_path", "output")
-        os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
+        base_path = os.environ.get("MMORE_RESULTS_PATH", None)
+        if base_path is not None:
+            base_path = Path(base_path) / str(uuid4())
+            base_path.mkdir(exist_ok=True)
 
-        for sample in result.samples:
-            old_modalities = sample.modalities
-            new_modalities = []
-            for modality in old_modalities:
-                modality_type = modality.type
-                modality_value = modality.value
+        sample = {
+            "text": "\n".join(texts),
+            "modalities": [
+                {"type": "image", "value": _save_temp_image(img, base_path=base_path)}
+                for img in images
+            ],
+            "metadata": {"file_path": path},
+        }
 
-                if modality_type == "image":
-                    new_modality_value = save_new_image(modality_value, output_path)
+        if path is None:
+            sample.pop("metadata")
 
-                    # Only add the modality if the new path is valid
-                    if new_modality_value:
-                        new_modalities.append(MultimodalRawInput(modality_type, new_modality_value))
-                    else:
-                        logger.warning(f"Skipping invalid or failed image modality: {modality_value}")
-                else:
-                    # Keep non-image modalities unchanged
-                    new_modalities.append(modality)
+        if base_path:
+            try:
+                with open(base_path / "descriptor.json", "w") as f:
+                    json.dump(sample, f)
 
-            new_sample = MultimodalSample(
-                sample.text,
-                new_modalities,
-                sample.metadata
-            )
-            new_samples.append(new_sample)
-        # We have a list of ProcessorResult, we need to merge them
-        return ProcessorResult(new_samples)
+                return ProcessorResult([sample])
+            except:
+                pass
 
+        return ProcessorResult([sample])

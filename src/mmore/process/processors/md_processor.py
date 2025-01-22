@@ -2,11 +2,12 @@ import logging
 import markdown
 import markdownify
 from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig
+from .processor import Processor, ProcessorConfig, ProcessorResult
 import tempfile
 from PIL import Image
 import os
 import io
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,7 @@ class MarkdownProcessor(Processor):
         super().__init__(files, config=config or ProcessorConfig())
         self.md = markdown.Markdown()
 
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(self, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -45,9 +45,9 @@ class MarkdownProcessor(Processor):
         Returns:
             tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
         """
-        return False, False
+        return False
 
-    def process_implementation(self, file_path: str) -> dict:
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Process a Markdown file to extract text and embedded images.
 
@@ -61,56 +61,29 @@ class MarkdownProcessor(Processor):
         downloads or loads local images, and replaces image tags with a placeholder defined
         in the processor configuration.
         """
-
-        if not os.path.exists(file_path):
-            logger.error(f"File not found: {file_path}")
-            return {"text": [], "modalities": [], "error": "File not found"}  # TODO: ???
+        super().process_one_file(file_path, fast=fast)
 
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error reading file {file_path}: {e}")
-            return {"text": [], "modalities": [], "error": "Encoding error"}
+            return self.create_sample([], [], file_path)
         except IOError as e:
             logger.error(f"IO error reading file {file_path}: {e}")
-            return {"text": [], "modalities": [], "error": "IO error"}
+            return self.create_sample([], [], file_path)
 
         try:
             content, embedded_images = self.process_md(content, file_path, self.config.attachment_tag)
-            return {
-                "text": content,
-                "modalities": [{"type": "image", "value": img} for img in embedded_images],
-                "metadata": {"file_path": file_path}
-            }
-
+            return self.create_sample([content], embedded_images, file_path)
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")
-            return {"text": [], "modalities": [], "error": "Processing error"}  # TODO: ???
+            return self.create_sample([], [], file_path)
+
+
 
     @staticmethod
-    def save_temp_image(image: Image.Image, base_path: str) -> str:
-        """
-        Save an image to a temporary file.
-
-        Args:
-            image (Image.Image): The PIL Image to save.
-            base_path (str): Directory path where the temporary file should be saved.
-
-        Returns:
-            str: Path to the saved temporary file.
-        """
-        os.makedirs(base_path, exist_ok=True)
-
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=base_path, suffix='.png') as tmp:
-            image.save(tmp.name)
-
-        return tmp.name
-
-    @staticmethod
-    def process_md(
-            content: str, file_path: str, attachment_tag: str = None
-    ) -> str:
+    def process_md(content: str, file_path: str, attachment_tag: str = None) -> (str, list[Image.Image]):
         """
         The actual proccessing logic for Markdown files. 
 
@@ -137,14 +110,18 @@ class MarkdownProcessor(Processor):
                 src_path = os.path.join(os.path.dirname(file_path), src)
                 if src.startswith(('http://', 'https://')):
                     # Download remote image
-                    import requests
                     response = requests.get(src, timeout=10)
                     if response.status_code == 200:
                         # Save to temp directory or process as needed
                         image_data = response.content
                         image = Image.open(io.BytesIO(image_data))
 
-                        path = MarkdownProcessor.save_temp_image(image, base_path=os.path.join(os.getcwd(), 'tmp'))
+                        def save_temp_image(image: Image.Image, base_path: str) -> str:
+                            os.makedirs(base_path, exist_ok=True)
+                            with tempfile.NamedTemporaryFile(mode='w', delete=True, dir=base_path, suffix='.png') as tmp:
+                                image.save(tmp.name)
+                            return tmp.name
+                        path = save_temp_image(image, base_path=os.path.join(os.getcwd(), 'tmp'))
                         embedded_images.append(path)
                     else:
                         logger.error(f"Failed to download image from {src}. Status code: {response.status_code}")
@@ -153,7 +130,7 @@ class MarkdownProcessor(Processor):
 
                 elif os.path.exists(src_path):
                     image = Image.open(src_path)
-                    embedded_images.append(src_path)
+                    embedded_images.append(image)
                 else:
                     html = html.replace(tag, "")
                     logger.error(f"Image {src} not found in {file_path}")

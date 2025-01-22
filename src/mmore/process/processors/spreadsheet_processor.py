@@ -6,9 +6,9 @@ from typing import List
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
-from src.mmore.process.utils import clean_text, create_sample
+from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig
+from .processor import Processor, ProcessorConfig, ProcessorResult
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,7 @@ class SpreadsheetProcessor(Processor):
         """
         super().__init__(files, config=config or ProcessorConfig())
 
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(self, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -46,9 +45,9 @@ class SpreadsheetProcessor(Processor):
         Returns:
             tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
         """        
-        return False, False
+        return False
 
-    def process_implementation(self, file_path):
+    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
         """
         Process a spreadsheet file to extract text and images (if applicable).
 
@@ -60,7 +59,8 @@ class SpreadsheetProcessor(Processor):
 
         The method extracts text from supported spreadsheet formats and images only from `.xlsx` files.
         """
-        # First, we define helper functions
+        super().process_one_file(file_path, fast=fast)
+
         def _extract_text(file_path: str) -> str:
             """
             Extract text content from an Excel or CSV/TSV file.
@@ -162,4 +162,4 @@ class SpreadsheetProcessor(Processor):
         cleaned_text = clean_text(text)
         images = _extract_images(file_path)
 
-        return create_sample([cleaned_text], images, file_path)
+        return self.create_sample([cleaned_text], images, file_path)

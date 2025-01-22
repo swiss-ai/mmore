@@ -20,7 +20,7 @@ def test_docx_process_standard():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = DOCXProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -29,7 +29,7 @@ def test_docx_process_fast():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = DOCXProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -39,7 +39,7 @@ def test_eml_process_standard():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = EMLProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -49,7 +49,7 @@ def test_md_process_standard():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = MarkdownProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -60,7 +60,7 @@ def test_media_process_standard():
     config = ProcessorConfig(custom_config={"normal_model": "model-name"})
     processor = MediaProcessor([get_file_descriptor(sample_file)], config=config)
     processor.load_models()
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -80,7 +80,7 @@ def test_pptx_process_standard():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = PPTXProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
@@ -90,7 +90,7 @@ def test_spreadsheet_process_standard():
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
     config = ProcessorConfig()
     processor = SpreadsheetProcessor([get_file_descriptor(sample_file)], config=config)
-    result = processor.process_implementation(sample_file)
+    result = processor.process_one_file(sample_file)
     assert result["text"], "Text should not be empty"
     assert isinstance(result["modalities"], list), "Modalities should be a list"
 
