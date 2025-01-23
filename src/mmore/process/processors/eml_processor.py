@@ -3,10 +3,10 @@ import io
 import email
 from email import policy
 from PIL import Image
-from typing import Dict, Any
+from typing import Dict, Any, List
 from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,8 @@ class EMLProcessor(Processor):
         """
         super().__init__(files, config=config or ProcessorConfig())
     
-    def accepts(self, file: FileDescriptor) -> bool:
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool:  
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -45,7 +46,7 @@ class EMLProcessor(Processor):
         """
         return False
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a single EML file. Extracts text content, email headers, and embedded images. 
 
@@ -58,7 +59,6 @@ class EMLProcessor(Processor):
         The method parses the EML file, extracts email headers, text content, and embedded images.
         Embedded images are replaced with a placeholder tag from the processor configuration.
         """
-        super().process_one_file(file_path, fast=fast)
 
         try:
             with open(file_path, 'rb') as f:
@@ -90,14 +90,17 @@ class EMLProcessor(Processor):
                 except Exception as e:
                     logger.error(f"Error extracting text from EML: {e}")
 
-            # extract images
+            # extract images only if passed argument in config is True
             elif part.get_content_type().startswith('image/'):
-                try:
-                    image_data = part.get_payload(decode=True)
-                    image = Image.open(io.BytesIO(image_data)).convert("RGB")
-                    embedded_images.append(image)
-                    all_text.append(self.config.attachment_tag) # default token is "<attachment>"
-                except Exception as e:
-                    logger.error(f"Error extracting image from EML: {e}")
-
+                if self.config.extract_images:
+                    try:
+                        image_data = part.get_payload(decode=True)
+                        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                        embedded_images.append(image)
+                        all_text.append(self.config.attachment_tag) # default token is "<attachment>"
+                    except Exception as e:
+                        logger.error(f"Error extracting image from EML: {e}")
+                else:
+                    embedded_images = []
+                    
         return self.create_sample(all_text, embedded_images, file_path)

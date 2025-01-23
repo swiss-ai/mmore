@@ -7,8 +7,8 @@ from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
 from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,9 @@ class SpreadsheetProcessor(Processor):
         """
         super().__init__(files, config=config or ProcessorConfig())
 
-    def accepts(self, file: FileDescriptor) -> bool:
+
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool: 
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -47,7 +49,7 @@ class SpreadsheetProcessor(Processor):
         """        
         return False
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a spreadsheet file to extract text and images (if applicable).
 
@@ -59,7 +61,6 @@ class SpreadsheetProcessor(Processor):
 
         The method extracts text from supported spreadsheet formats and images only from `.xlsx` files.
         """
-        super().process_one_file(file_path, fast=fast)
 
         def _extract_text(file_path: str) -> str:
             """
@@ -141,7 +142,7 @@ class SpreadsheetProcessor(Processor):
                 return []
 
             try:
-                images = []
+                embedded_images = []
                 wb = load_workbook(filename=file_path, data_only=True)
                 for sheet in wb.worksheets:
                     if hasattr(sheet, "_images"):
@@ -151,15 +152,17 @@ class SpreadsheetProcessor(Processor):
                                 img = PILImage.open(io.BytesIO(img_bytes)).convert(
                                     "RGB"
                                 )
-                                images.append(img)
-                logger.info(f"Extracted {len(images)} images from {file_path}.")
-                return images
+                                embedded_images.append(img)
+                logger.info(f"Extracted {len(embedded_images)} images from {file_path}.")
+                return embedded_images
             except Exception as e:
                 logger.error(f"Failed to extract images from {file_path}: {e}")
                 return []
 
-        text = _extract_text(file_path)
-        cleaned_text = clean_text(text)
-        images = _extract_images(file_path)
-
-        return self.create_sample([cleaned_text], images, file_path)
+        all_text = clean_text(_extract_text(file_path))
+        if self.config.extract_images:
+            embedded_images = _extract_images(file_path)
+        else: 
+            embedded_images = []
+        
+        return self.create_sample([all_text], embedded_images, file_path)

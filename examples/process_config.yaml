@@ -1,6 +1,6 @@
 dispatcher_config:
   output_path: examples/outputs/
-  use_fast_processors: false
+  use_fast_processors: true
   distributed: false
   scheduler_file: scheduler-file.json
   process_batch_sizes:
@@ -33,4 +33,4 @@ dispatcher_config:
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
 
-data_path: test_data/
+data_path: examples/sample_data/pdf

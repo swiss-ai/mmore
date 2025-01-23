@@ -44,7 +44,7 @@ class MultimodalSample:
         modalities (List[MultimodalRawInput]): List of modalities (e.g., images, audio).
         metadata (Dict[str, str] | None): Additional metadata associated with the sample.
     """
-    text: str | List[Dict[str, str]]
+    text: str
     modalities: List[MultimodalRawInput]
     metadata: Dict[str, str] = field(default_factory=dict)
     id: str = None
@@ -91,6 +91,12 @@ class MultimodalSample:
             for line in f:
                 samples.append(cls.from_dict(json.loads(line)))
         return samples
+    
+    @staticmethod
+    def to_jsonl(file_path: str, samples: List["MultimodalSample"]) -> None:
+        with open(file_path, "w") as f:
+            for sample in samples:
+                f.write(json.dumps(sample.to_dict()) + "\n")
 
 class FileDescriptor:
     """

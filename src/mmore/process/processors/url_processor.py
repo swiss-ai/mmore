@@ -13,7 +13,7 @@ from multiprocessing import Pool, cpu_count
 import re
 from urllib.parse import urljoin
 from src.mmore.type import URLDescriptor
-from .processor import Processor, ProcessorResult, ProcessorConfig
+from .processor import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,5 +28,5 @@ class URLProcessor(Processor):
     def require_gpu(self) -> bool:
         return True
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process_one_file(self, file_path: str, fast: bool = False):
         return NotImplementedError("URLProcessor is not implemented")

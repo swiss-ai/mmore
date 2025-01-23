@@ -3,7 +3,7 @@ from src.mmore.process.processors.docx_processor import DOCXProcessor
 from src.mmore.process.processors.eml_processor import EMLProcessor
 from src.mmore.process.processors.md_processor import MarkdownProcessor
 from src.mmore.process.processors.media_processor import MediaProcessor
-from src.mmore.process.processors.pdf_processor import PDFProcessor
+from mmore.process.processors.pdf_processor_old import PDFProcessor
 from src.mmore.process.processors.pptx_processor import PPTXProcessor
 from src.mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
 from src.mmore.process.processors.processor import ProcessorConfig

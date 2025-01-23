@@ -7,8 +7,8 @@ from PIL import Image
 from transformers import pipeline
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,8 @@ class MediaProcessor(Processor):
             )
             self.transcription_pipeline = None
 
-    def accepts(self, file: FileDescriptor) -> bool:
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool: 
         """
         Returns:
             bool: True if the file is a supported media format, False otherwise.
@@ -86,7 +87,7 @@ class MediaProcessor(Processor):
         """
         return True
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         """
         Process a media file in standard mode.
 
@@ -96,7 +97,6 @@ class MediaProcessor(Processor):
         Returns:
             dict: A dictionary containing the transcription and extracted images.
         """
-        super().process_one_file(file_path, fast=fast)
         text = self._extract_text(file_path, fast_mode=fast)
         images = self._extract_images(file_path)
         return self.create_sample([text], images, file_path)

@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Type, Tuple, Optional
 from .processors.url_processor import URLProcessor
 from .crawler import DispatcherReadyResult, FileDescriptor
-from .processors.processor import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig, ProcessorResult
+from .processors.processor import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
 import torch
 import logging
 import os
@@ -10,6 +10,7 @@ from operator import itemgetter
 from tqdm import tqdm
 from dask.distributed import as_completed, Client
 import dask.config
+from src.mmore.type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
@@ -188,13 +189,14 @@ class Dispatcher:
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
             processor_config = ProcessorConfig(custom_config=processor_config)
-            res = processor(files, processor_config)(self.config.use_fast_processors)
+            proc = processor(processor_config)
+            res = proc(files, self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
             yield res
 
     def _dispatch_distributed(
             self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
-    ) -> List[ProcessorResult]:
+    ) -> List[List[MultimodalSample]]:
         kwargs = {}
         if self.config.scheduler_file:
             absolute_scheduler_path = os.path.join(os.getcwd(), self.config.scheduler_file)
@@ -245,7 +247,7 @@ class Dispatcher:
 
         return results
 
-    def dispatch(self) -> List[ProcessorResult]:
+    def dispatch(self) -> List[List[MultimodalSample]]:
         """
         Dispatches the result to the appropriate processor.
         """
@@ -315,10 +317,10 @@ class Dispatcher:
 
         return results
 
-    def __call__(self) -> List[ProcessorResult]:
+    def __call__(self) -> List[List[MultimodalSample]]:
         return self.dispatch()
 
-    def save_individual_processor_results(self, results: ProcessorResult, cls_name) -> None:
+    def save_individual_processor_results(self, results: List[MultimodalSample], cls_name) -> None:
         if not self.config.output_path:
             return
         
@@ -326,6 +328,6 @@ class Dispatcher:
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")
-        results.to_jsonl(output_file, append=True)
+        MultimodalSample.to_jsonl(output_file, results)
 
         logger.info(f"Results saved to {output_file}")

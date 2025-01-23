@@ -1,13 +1,14 @@
 import logging
 import markdown
 import markdownify
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 import tempfile
 from PIL import Image
 import os
 import io
 import requests
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class MarkdownProcessor(Processor):
         super().__init__(files, config=config or ProcessorConfig())
         self.md = markdown.Markdown()
 
-    def accepts(self, file: FileDescriptor) -> bool:
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool: 
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -40,14 +42,7 @@ class MarkdownProcessor(Processor):
         """
         return file.file_extension.lower() in [".md"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """
-        return False
-
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a Markdown file to extract text and embedded images.
 
@@ -61,7 +56,6 @@ class MarkdownProcessor(Processor):
         downloads or loads local images, and replaces image tags with a placeholder defined
         in the processor configuration.
         """
-        super().process_one_file(file_path, fast=fast)
 
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -74,8 +68,8 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
         try:
-            content, embedded_images = self.process_md(content, file_path, self.config.attachment_tag)
-            return self.create_sample([content], embedded_images, file_path)
+            all_text, embedded_images = self.process_md(content, file_path, self.config.attachment_tag, self.config.extract_images)
+            return self.create_sample([all_text], embedded_images, file_path)
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")
             return self.create_sample([], [], file_path)
@@ -83,7 +77,7 @@ class MarkdownProcessor(Processor):
 
 
     @staticmethod
-    def process_md(content: str, file_path: str, attachment_tag: str = None) -> (str, list[Image.Image]):
+    def process_md(content: str, file_path: str, attachment_tag: str = None, extract_images: bool = True) -> (str, list[Image.Image]):
         """
         The actual proccessing logic for Markdown files. 
 
@@ -100,7 +94,11 @@ class MarkdownProcessor(Processor):
         html = md.convert(content)
 
         # Extract image links
-        image_tags = [line for line in html.split("\n") if "<img" in line]
+        if extract_images:
+            image_tags = [line for line in html.split("\n") if "<img" in line]
+        else:
+            image_tags = []
+
         embedded_images = []
         for tag in image_tags:
             src = tag.split('src="')[1].split('"')[0]
@@ -143,7 +141,5 @@ class MarkdownProcessor(Processor):
             html = html.replace(tag, "#attachment")
 
         content = markdownify.markdownify(html)
-        content = content.replace(
-            "#attachment", attachment_tag if attachment_tag else "<attachment>"
-        )
+        content = content.replace("#attachment", attachment_tag if attachment_tag else "<attachment>")
         return content, embedded_images

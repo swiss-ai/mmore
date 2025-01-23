@@ -6,8 +6,8 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from PIL import Image
 from src.mmore.process.utils import clean_text, clean_image
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorConfig, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -22,15 +22,16 @@ class PPTXProcessor(Processor):
         config (ProcessorConfig): Configuration for the processor.
     """
 
-    def __init__(self, files, config=None):
+    def __init__(self, config=None):
         """
         Args:
             files (List[FileDescriptor]): List of files to process.
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
-        super().__init__(files, config=config or ProcessorConfig())
+        super().__init__(config=config or ProcessorConfig())
 
-    def accepts(self, file: FileDescriptor) -> bool:
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool: 
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -47,7 +48,7 @@ class PPTXProcessor(Processor):
         """
         return False
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a single PPTX file. Extracts text, images, and notes from each slide.
 
@@ -60,7 +61,6 @@ class PPTXProcessor(Processor):
         The method processes each slide, extracting text and images from shapes,
         and extracts notes if present. The elements are sorted by their vertical position.
         """
-        super().process_one_file(file_path, fast=fast)
 
         logger.info(f"Processing PowerPoint file: {file_path}")
         try:
@@ -89,15 +89,18 @@ class PPTXProcessor(Processor):
                             all_text.append(cleaned_text)
 
                     # Extract images from shape
-                    if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                        try:
-                            pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")
-                            if clean_image(pil_image):
-                                embedded_images.append(pil_image)
-                                all_text.append(self.config.attachment_tag)
+                    if self.config.extract_images:
+                        if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                            try:
+                                pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")
+                                if clean_image(pil_image):
+                                    embedded_images.append(pil_image)
+                                    all_text.append(self.config.attachment_tag)
 
-                        except Exception as e:
-                            logger.error(f"Failed to extract image from slide: {e}")
+                            except Exception as e:
+                                logger.error(f"Failed to extract image from slide: {e}")
+                    else:
+                        embedded_images = []
 
                 # 2) Extract text from slide notes if present
                 if slide.has_notes_slide and slide.notes_slide.notes_text_frame:

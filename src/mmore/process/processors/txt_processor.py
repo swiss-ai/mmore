@@ -1,8 +1,8 @@
 import logging
 from typing import List
 from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor
-from .processor import Processor, ProcessorResult
+from src.mmore.type import FileDescriptor, MultimodalSample
+from .processor import Processor
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class TextProcessor(Processor):
         """
         return False
 
-    def process_one_file(self, file_path: str, fast: bool = False) -> ProcessorResult:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a text file, clean its content, and return a dictionary with the cleaned text.
 
@@ -51,10 +51,9 @@ class TextProcessor(Processor):
         Returns:
             dict: A dictionary containing cleaned text, an empty list of modalities, and metadata.
         """
-        super().process_one_file(file_path, fast=fast)
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                text = f.read()
+                all_text = f.read()
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Failed to read file {file_path}: {e}")
             return self.create_sample([], [], file_path)
@@ -62,5 +61,5 @@ class TextProcessor(Processor):
             logger.error(f"Encoding error in file {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        cleaned_text = clean_text(text)
-        return self.create_sample([cleaned_text], [], file_path)
+        all_text = clean_text(all_text)
+        return self.create_sample([all_text], [], file_path)

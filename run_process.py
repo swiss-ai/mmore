@@ -9,7 +9,7 @@ from typing import List
 import pypdfium2
 from src.mmore.process.crawler import Crawler, CrawlerConfig
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
-from src.mmore.process.processors.processor import ProcessorResult
+from src.mmore.type import MultimodalSample
 
 # Configure torch backend
 torch.backends.cuda.enable_mem_efficient_sdp(False)
@@ -86,7 +86,7 @@ def load_dispatcher_config(config: dict) -> DispatcherConfig:
         logger.warning("Using default dispatcher configuration: use_fast_processors=True, distributed=False")
         return DispatcherConfig(use_fast_processors=True, distributed=False)
 
-def save_merged_results(results: List[ProcessorResult], config: dict) -> None:
+def save_merged_results(results: List[List[MultimodalSample]], config: dict) -> None:
     output_path = config.get("dispatcher_config", {}).get("output_path")
     if not output_path:
         return
@@ -95,8 +95,10 @@ def save_merged_results(results: List[ProcessorResult], config: dict) -> None:
     os.makedirs(merged_output_path, exist_ok=True)
 
     output_file = os.path.join(merged_output_path, f"merged_results_{os.getpid()}.jsonl")
-    merged_results = ProcessorResult.merge(results)
-    merged_results.to_jsonl(output_file)
+    # merged_results = ProcessorResult.merge(results)
+    # merged_results.to_jsonl(output_file)
+    for res in results:
+        MultimodalSample.to_jsonl(output_file, res)
 
     logger.info(f"Merged results saved to {output_file}")
 
