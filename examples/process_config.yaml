@@ -1,6 +1,6 @@
 dispatcher_config:
   output_path: examples/outputs/
-  use_fast_processors: true
+  use_fast_processors: false
   distributed: false
   scheduler_file: scheduler-file.json
   process_batch_sizes:

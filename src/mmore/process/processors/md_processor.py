@@ -23,13 +23,13 @@ class MarkdownProcessor(Processor):
                                    placeholder tag for embedded images (e.g., "<attachment>").
         md (markdown.Markdown): Instance of the Markdown parser used to convert content to HTML.
     """
-    def __init__(self, files, config=None):
+    def __init__(self, config=None):
         """
         Args:
             files (List[FileDescriptor]): List of files to process.
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
-        super().__init__(files, config=config or ProcessorConfig())
+        super().__init__(config=config or ProcessorConfig())
         self.md = markdown.Markdown()
 
     @classmethod

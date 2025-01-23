@@ -194,59 +194,6 @@ class Dispatcher:
             self.save_individual_processor_results(res, processor.__name__)
             yield res
 
-    def _dispatch_distributed(
-            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
-    ) -> List[List[MultimodalSample]]:
-        kwargs = {}
-        if self.config.scheduler_file:
-            absolute_scheduler_path = os.path.join(os.getcwd(), self.config.scheduler_file)
-            if not os.path.exists(absolute_scheduler_path):
-                logger.error(f"Scheduler file {absolute_scheduler_path} does not exist")
-            kwargs["scheduler_file"] = absolute_scheduler_path
-
-        client = Client(**kwargs)
-        client.run(lambda: os.environ.update({"PYTHONPATH": os.getcwd()}))
-        dask.config.set({"distributed.worker.daemon": False})
-        print(f"Dask client started with version {client.get_versions()})")
-        print(client.run(lambda: os.environ))
-
-        futures = []
-        processor_configs = self.config.processor_config or {}
-
-        for processor, files in task_lists:
-            processor_config = processor_configs.get(processor.__name__, [])
-            processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
-            processor_config['output_path'] = self.config.output_path
-
-            logger.info(
-                f"Dispatching {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
-            )
-
-            processor_config = ProcessorConfig(custom_config=processor_config)
-
-            def process_files(files, processor_config):
-                return processor(files, processor_config)(
-                    self.config.use_fast_processors
-                )
-
-            try:
-                future = client.submit(process_files, files, processor_config, key=processor.__name__)
-                futures.append(future)
-            except Exception as e:
-                logger.error(f"Error dispatching task to {processor.__name__}: {e}")
-
-        results = []
-        for future, result in tqdm(
-                as_completed(futures, with_results=True), total=len(futures)
-        ):
-            try:
-                results.append(result)
-                self.save_individual_processor_results(result, future.key)
-            except Exception as e:
-                logger.error(f"Error gathering result: {e}")
-
-        return results
-
     def dispatch(self) -> List[List[MultimodalSample]]:
         """
         Dispatches the result to the appropriate processor.
@@ -324,7 +271,6 @@ class Dispatcher:
         if not self.config.output_path:
             return
         
-        print(f"Saving results for {cls_name}: {results}")
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")

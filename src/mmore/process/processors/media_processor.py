@@ -5,6 +5,7 @@ import torch
 from typing import List
 from PIL import Image
 from transformers import pipeline
+from accelerate import Accelerator
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from src.mmore.type import FileDescriptor, MultimodalSample
@@ -12,45 +13,20 @@ from .processor import Processor
 
 logger = logging.getLogger(__name__)
 
-
 class MediaProcessor(Processor):
-    """
-    A processor for handling media files, including video and audio. Extracts text via transcription
-    and images (frames) from supported media files.
-
-    Attributes:
-        files (List[FileDescriptor]): List of files to be processed.
-        config (ProcessorConfig): Configuration for the processor.
-        device (torch.device): Device (CPU/GPU) used for processing.
-        transcription_pipeline (pipeline): Hugging Face pipeline for transcription.
-    """
-    def __init__(self, files, config=None):
-        """
-        Args:
-            files (List[FileDescriptor]): List of files to process.
-            config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
-        """
-        super().__init__(files, config=config)
+    def __init__(self, config=None):
+        super().__init__(config=config)
         self.device = None
         self.transcription_pipeline = None
+        self.accelerator = Accelerator()  
 
     def load_models(self, device=None, fast_mode=False):
-        """
-        Load the transcription model using Hugging Face pipeline.
-
-        Args:
-            device (torch.device, optional): Device to load the model on (CPU or GPU).
-            fast_mode (bool, optional): Whether to use the fast model. Defaults to False.
-        """
-        self.device = (
-            device
-            if device is not None
-            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        )
-        model_name = self.config.custom_config.get("normal_model",
-                                                   "openai/whisper-large-v3-turbo") if fast_mode else self.config.custom_config.get(
-            "fast_model", "openai/whisper-tiny")
-
+        """Load models using accelerate's device handling"""
+        self.device = self.accelerator.device
+        model_name = (self.config.custom_config.get("fast_model", "openai/whisper-tiny") 
+                     if fast_mode else 
+                     self.config.custom_config.get("normal_model", "openai/whisper-large-v3"))
+        
         try:
             self.transcription_pipeline = pipeline(
                 self.config.custom_config.get("type", "automatic-speech-recognition"),
@@ -58,11 +34,32 @@ class MediaProcessor(Processor):
                 device=self.device,
                 return_timestamps=True,
             )
+            # prepare pipeline for distributed inference
+            self.transcription_pipeline = self.accelerator.prepare(self.transcription_pipeline)
         except Exception as e:
-            logger.error(
-                f"MediaProcessor: Error loading Hugging Face Whisper model on device {device}: {e}"
-            )
+            logger.error(f"Error loading model: {e}")
             self.transcription_pipeline = None
+
+    def process_batch(self, files, fast_mode, num_workers):
+        if fast_mode:
+            return super().process_batch(files, fast_mode, num_workers)
+        
+        # split files across processes
+        with self.accelerator.split_between_processes(files) as files_chunk:
+            if not self.transcription_pipeline:
+                self.load_models(fast_mode=False)
+            
+            results = []
+            for file_path in files_chunk:
+                try:
+                    sample = self.process(file_path, fast=False)
+                    results.append(sample)
+                except Exception as e:
+                    logger.error(f"Error processing {file_path}: {e}")
+            
+            # gather results from all processes
+            gathered_results = self.accelerator.gather(results)
+            return gathered_results
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool: 

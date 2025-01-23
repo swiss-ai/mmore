@@ -15,13 +15,13 @@ class TextProcessor(Processor):
         files (List[FileDescriptor]): List of files to be processed.
         config (ProcessorConfig): Configuration for the processor.
     """
-    def __init__(self, files: List[FileDescriptor], config=None):
+    def __init__(self, config=None):
         """
         Args:
             files (List[FileDescriptor]): List of files to process.
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
-        super().__init__(files, config=config)
+        super().__init__(config=config)
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:

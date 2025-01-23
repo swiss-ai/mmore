@@ -6,7 +6,6 @@ import warnings
 import argparse
 from typing import List
 
-import pypdfium2
 from src.mmore.process.crawler import Crawler, CrawlerConfig
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from src.mmore.type import MultimodalSample
