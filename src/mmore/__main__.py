@@ -1,16 +1,9 @@
 import click
 
-from .run_index import index as run_index
-from .run_rag import rag as run_rag
-from .run_retriever import retrieve as run_retrieve
-from .run_postprocess import postprocess as run_postprocess
-from .run_process import process as run_process
-
 from contextlib import contextmanager
 import warnings
 import sys
 import os
-
 
 @contextmanager
 def suppress_warnings_and_stdout():
@@ -45,6 +38,7 @@ def main():
 @click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
 def process(config_file):
     """Process documents from a directory."""
+    from .run_process import process as run_process
     run_process(config_file)
 
 @main.command()
@@ -52,6 +46,7 @@ def process(config_file):
 @click.option('--input-data', type=str, required=True, help='Path to the input data.')
 def postprocess(config_file, input_data):
     """Run the post-processors pipeline."""
+    from .run_postprocess import postprocess as run_postprocess
     run_postprocess(config_file, input_data)
 
 @main.command()
@@ -60,6 +55,7 @@ def postprocess(config_file, input_data):
 @click.option('--collection-name', '-n', type=str, required=True, help='Name of the collection to index.')
 def index(config_file, input_data, collection_name):
     """Run the indexer."""
+    from .run_index import index as run_index
     with suppress_warnings_and_stdout():
         run_index(config_file, input_data, collection_name)
 
@@ -69,12 +65,14 @@ def index(config_file, input_data, collection_name):
 @click.option('--output-file', '-o', type=str, required=True, help='Path to the output file.')
 def retrieve(config_file, input_file, output_file):
     """Retrieve documents for specified queries."""
+    from .run_retriever import retrieve as run_retrieve
     run_retrieve(config_file, input_file, output_file)
 
 @main.command()
 @click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
 def rag(config_file):
     """Run the Retrieval-Augmented Generation (RAG) pipeline."""
+    from .run_rag import rag as run_rag
     run_rag(config_file)
 
 if __name__ == "__main__":
