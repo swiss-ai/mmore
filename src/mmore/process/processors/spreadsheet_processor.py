@@ -42,13 +42,6 @@ class SpreadsheetProcessor(Processor):
         """
         return file.file_extension.lower() in [".xlsx", ".xls", ".csv", ".tsv"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """        
-        return False
-
     def process(self, file_path: str) -> MultimodalSample:
         """
         Process a spreadsheet file to extract text and images (if applicable).
@@ -160,7 +153,7 @@ class SpreadsheetProcessor(Processor):
                 return []
 
         all_text = clean_text(_extract_text(file_path))
-        if self.config.extract_images:
+        if self.config.custom_config.get("extract_images", True):
             embedded_images = _extract_images(file_path)
         else: 
             embedded_images = []

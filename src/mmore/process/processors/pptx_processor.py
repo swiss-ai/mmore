@@ -8,7 +8,6 @@ from PIL import Image
 from src.mmore.process.utils import clean_text, clean_image
 from src.mmore.type import FileDescriptor, MultimodalSample
 from .processor import Processor, ProcessorConfig
-from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +39,6 @@ class PPTXProcessor(Processor):
             bool: True if the file is a PPTX file, False otherwise.
         """
         return file.file_extension.lower() in [".pptx"]
-
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """
-        return False
 
     def process(self, file_path: str) -> MultimodalSample:
         """
@@ -89,7 +81,7 @@ class PPTXProcessor(Processor):
                             all_text.append(cleaned_text)
 
                     # Extract images from shape
-                    if self.config.extract_images:
+                    if self.config.custom_config.get("extract_images", True):
                         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                             try:
                                 pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")

@@ -77,7 +77,7 @@ class DOCXProcessor(Processor):
             logger.error(f"Failed to open Word file {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        if self.config.extract_images: 
+        if self.config.custom_config.get("extract_images", True): 
             embedded_images = _extract_images(doc)
         else:
             embedded_images = []
@@ -89,7 +89,7 @@ class DOCXProcessor(Processor):
             if cleaned.strip():
                 all_text.append(cleaned)
 
-            if self.config.extract_images:
+            if self.config.custom_config.get("extract_images", True):
                 xml = para._p.xml
                 # check if there are any images in the paragraph, replace with <attachment> token
                 if "w:drawing" in xml: 

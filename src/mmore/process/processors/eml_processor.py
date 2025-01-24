@@ -19,7 +19,7 @@ class EMLProcessor(Processor):
         files (List[FileDescriptor]): List of EML files to be processed.
         config (ProcessorConfig): Configuration for the processor, including options such as the 
                                    placeholder tag for embedded images (e.g., "<attachment>").
-    """
+    """    
     def __init__(self, config=None):
         """
         Args:
@@ -38,13 +38,6 @@ class EMLProcessor(Processor):
             bool: True if the file is an EML file, False otherwise.
         """
         return file.file_extension.lower() in [".eml"]
-
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """
-        return False
 
     def process(self, file_path: str) -> MultimodalSample:
         """
@@ -92,7 +85,7 @@ class EMLProcessor(Processor):
 
             # extract images only if passed argument in config is True
             elif part.get_content_type().startswith('image/'):
-                if self.config.extract_images:
+                if self.config.custom_config.get("extract_images", True):
                     try:
                         image_data = part.get_payload(decode=True)
                         image = Image.open(io.BytesIO(image_data)).convert("RGB")

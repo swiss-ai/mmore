@@ -1,16 +1,11 @@
 import datetime
 import logging
-import json
 import tempfile
-from functools import partial
-from pathlib import Path
 from typing import Any, Dict, List, Union
-from uuid import uuid4
 
 from src.mmore.process.crawler import FileDescriptor, URLDescriptor
 from src.mmore.type import MultimodalSample, MultimodalRawInput
 from PIL import Image
-import torch
 import torch.multiprocessing as mp
 import os
 
@@ -25,9 +20,8 @@ class ProcessorConfig:
         custom_config (Dict[str, Any]): Dictionary of custom configurations.
     """
 
-    def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}, extract_images: bool = True):
+    def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}):
         self.attachment_tag = attachement_tag
-        self.extract_images = extract_images
         self.custom_config = custom_config
 
 
@@ -110,7 +104,7 @@ class Processor:
             List[MultimodalSample]: The result of the processing operation.
         """
         files_paths = [file.file_path for file in files]
-        res = self.process_batch(files_paths, fast, num_workers=1) # self.config.num_workers ...
+        res = self.process_batch(files_paths, fast, num_workers=os.cpu_count()) # self.config.num_workers ...
         return res
 
     def process(self, file_path) -> MultimodalSample:
@@ -138,81 +132,6 @@ class Processor:
             results = pool.map(process, files_paths)
         
         return results
-    
-        # def process_files_on_gpu(self, files, gpu_id, fast_mode, results):
-        #     """
-        #     Process a chunk of files on a specific GPU.
-        #     Each process in the multiprocessing pool handles one GPU.
-        #     """
-        #     # Set the GPU device for this process
-        #     device = torch.device(f"cuda:{gpu_id}")
-        #     torch.cuda.set_device(device)
-
-        #     # Load models onto the specified GPU
-        #     self.load_models(device)
-
-        #     # Process each file using the provided method
-        #     for file in files:
-        #         try:
-        #             result = self.process_one_file(file.file_path, fast=fast_mode)
-        #             if type(result) == dict:
-        #                 result = [result]
-        #             results.append(result)
-        #         except Exception as e:
-        #             logger.error(f"Failed processing {os.path.basename(file.file_path)}: {str(e)}")
-        #             results.append(None)
-
-        #     # Clean up after processing
-        #     self.cleanup()
-
-        # num_gpus = torch.cuda.device_count()
-        # if num_gpus <= 0:
-        #     raise ValueError("No GPUs available.")
-
-        # def split_list_evenly(x_list, nbr_splits):
-        #     """
-        #     Evenly split a list of things across multiple GPUs.
-
-        #     :param x_list: List of things to split.
-        #     :param nbr_splits: Number of GPUs to split across.
-        #     :return: List of things split across GPUs.
-        #     """
-        #     x_per_gpu = len(x_list) // nbr_splits
-        #     x_split = [x_list[i * x_per_gpu: (i + 1) * x_per_gpu] for i in range(nbr_splits)]
-        #     # NOTE : If the number of things is not divisible by the number of GPUs, the last GPU will get the remainder, and can get 0 to x_per_gpu - 1 things.
-        #     # Nevertheless, if we consider that processing each thing takes the same amount of time, this will not be a problem.
-        #     return x_split
-
-        # chunks = split_list_evenly(self.files, num_gpus)
-
-        # mp.set_start_method("spawn", force=True)
-        # results = mp.Manager().list()
-
-        # processes = []
-
-        # for gpu_id, files in enumerate(chunks):
-        #     process = mp.Process(
-        #         target=process_files_on_gpu,
-        #         args=(files, gpu_id, fast_mode, results),
-        #     )
-        #     processes.append(process)
-        #     process.start()
-
-        # for process in processes:
-        #     process.join()
-
-        # results = list(results)
-        # results = self.reconstruct_results(results)
-        # results = [sample for sample in results if sample is not None]
-
-        # # results can be a list of list of samples, we need to flatten it
-        # if isinstance(results[0], list):
-        #     results = [
-        #         sample
-        #         for sublist in results
-        #         for sample in sublist
-        #         if sample is not None
-        #     ]
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:

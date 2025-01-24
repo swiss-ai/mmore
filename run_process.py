@@ -94,8 +94,7 @@ def save_merged_results(results: List[List[MultimodalSample]], config: dict) -> 
     os.makedirs(merged_output_path, exist_ok=True)
 
     output_file = os.path.join(merged_output_path, f"merged_results_{os.getpid()}.jsonl")
-    # merged_results = ProcessorResult.merge(results)
-    # merged_results.to_jsonl(output_file)
+
     for res in results:
         MultimodalSample.to_jsonl(output_file, res)
 

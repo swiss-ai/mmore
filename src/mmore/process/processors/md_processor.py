@@ -8,7 +8,6 @@ from PIL import Image
 import os
 import io
 import requests
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
         try:
-            all_text, embedded_images = self.process_md(content, file_path, self.config.attachment_tag, self.config.extract_images)
+            all_text, embedded_images = self.process_md(content, file_path, self.config.attachment_tag, self.config.custom_config.get("extract_images", True))
             return self.create_sample([all_text], embedded_images, file_path)
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")

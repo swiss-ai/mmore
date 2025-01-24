@@ -123,4 +123,4 @@ requirements-dev.lock
 requirements.lock
 
 # Examples
-examples
+examples/outputs

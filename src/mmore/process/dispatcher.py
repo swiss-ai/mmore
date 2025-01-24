@@ -65,6 +65,7 @@ class DispatcherConfig:
             processor_config: Optional[Dict] = None,
             process_batch_sizes: Optional[Dict] = None,
             batch_multiplier: int = 1,
+            extract_images: bool = False,
     ) -> None:
         """
         Initialize the DispatcherConfig object.
@@ -82,6 +83,7 @@ class DispatcherConfig:
         self.processor_config = processor_config
         self.process_batch_sizes = process_batch_sizes
         self.batch_multiplier = batch_multiplier
+        self.extract_images = extract_images
 
     from typing import Dict, Optional
 
@@ -96,6 +98,7 @@ class DispatcherConfig:
             processor_config=config.get("processor"),
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
+            extract_images=config.get("extract_images", False),
         )
 
     @staticmethod
@@ -119,6 +122,7 @@ class DispatcherConfig:
             "processor": self.processor_config,
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
+            "extract_images": self.extract_images,
         }
 
     def __str__(self) -> str:
@@ -132,6 +136,7 @@ class DispatcherConfig:
             f"processor_config={self.processor_config}, "
             f"process_batch_sizes={self.process_batch_sizes}, "
             f"batch_multiplier={self.batch_multiplier}"
+            f"extract_images={self.extract_images}"
             f")"
         )
 
@@ -184,6 +189,7 @@ class Dispatcher:
             processor_config = processor_configs.get(processor.__name__, [])
             processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
             processor_config['output_path'] = self.config.output_path
+            processor_config['extract_images'] = self.config.extract_images
 
             logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
@@ -193,6 +199,56 @@ class Dispatcher:
             res = proc(files, self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
             yield res
+
+    def _dispatch_distributed(
+            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
+    ) -> List[List[MultimodalSample]]:
+        kwargs = {}
+        if self.config.scheduler_file:
+            absolute_scheduler_path = os.path.join(os.getcwd(), self.config.scheduler_file)
+            if not os.path.exists(absolute_scheduler_path):
+                logger.error(f"Scheduler file {absolute_scheduler_path} does not exist")
+            kwargs["scheduler_file"] = absolute_scheduler_path
+
+        client = Client(**kwargs)
+
+        futures = []
+        processor_configs = self.config.processor_config or {}
+
+        for processor, files in task_lists:
+            processor_config = processor_configs.get(processor.__name__, [])
+            processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
+            processor_config['output_path'] = self.config.output_path
+            processor_config['extract_images'] = self.config.extract_images
+
+            logger.info(
+                f"Dispatching {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+            )
+
+            processor_config = ProcessorConfig(custom_config=processor_config)
+
+            def process_files(files, processor_config):
+                return processor(files, processor_config)(
+                    self.config.use_fast_processors
+                )
+
+            try:
+                future = client.submit(process_files, files, processor_config, key=processor.__name__)
+                futures.append(future)
+            except Exception as e:
+                logger.error(f"Error dispatching task to {processor.__name__}: {e}")
+
+        results = []
+        for future, result in tqdm(
+                as_completed(futures, with_results=True), total=len(futures)
+        ):
+            try:
+                results.append(result)
+                self.save_individual_processor_results(result, future.key)
+            except Exception as e:
+                logger.error(f"Error gathering result: {e}")
+
+        return results
 
     def dispatch(self) -> List[List[MultimodalSample]]:
         """

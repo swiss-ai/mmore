@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor, MultimodalSample
 from .processor import Processor
@@ -34,12 +33,6 @@ class TextProcessor(Processor):
         """
         return file.file_extension.lower() in [".txt"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """
-        return False
 
     def process(self, file_path: str) -> MultimodalSample:
         """
