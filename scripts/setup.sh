@@ -9,10 +9,7 @@ sudo apt update
 # Install system dependencies
 sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 
-# Install Rye
-curl -sSf https://rye.astral.sh/get | RYE_TOOLCHAIN_VERSION="3.11" RYE_INSTALL_OPTION="--yes" bash
-echo "export PATH=\"\$HOME/.rye/bin:\$PATH\"" >> "$HOME/.bashrc"
-source "$HOME/.rye/env"
-# Install Python dependencies   
-rye sync
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrcuv sync
 source .venv/bin/activate

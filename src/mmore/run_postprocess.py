@@ -6,12 +6,9 @@ from mmore.type import MultimodalSample
 from mmore.utils import load_config
 
 import logging
+PP_EMOJI = "🧹"
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-# Global logging configuration
-#logging.basicConfig(format='%(asctime)s: %(message)s')
-#logging.basicConfig(format='%(message)s')
-logging.basicConfig(format='[PP 🧹-- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(format=f'[PP {PP_EMOJI}-- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 # TODO: We should find a way to load the dataset in a more generic way
 def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:

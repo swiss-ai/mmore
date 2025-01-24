@@ -5,6 +5,14 @@ processed_texts/
 *.lock
 *.zip
 *.log
+.local/
+.bashrc
+.zcompdump
+dask.yaml
+*.fish
+uv-receipt.json
+*.crl
+.gitconfig
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -120,4 +128,4 @@ examples/outputs/
 .venv
 
 # Examples
-examples
+examples/outputs

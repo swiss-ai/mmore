@@ -7,8 +7,8 @@ import json
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logging.basicConfig(format='[INDEX 🗂️  -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+INDEX_EMOJI = "🗂️"
+logging.basicConfig(format=f'[INDEX {INDEX_EMOJI}  -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 from dotenv import load_dotenv
 load_dotenv() 

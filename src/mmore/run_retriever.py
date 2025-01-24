@@ -15,14 +15,8 @@ import logging
 from src.mmore.utils import load_config
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logging.basicConfig(format='[Retriever 🔍-- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-# Suppress overly verbose logs from third-party libraries
-logging.getLogger("transformers").setLevel(logging.CRITICAL)
-logging.getLogger("torch").setLevel(logging.WARNING)
-logging.getLogger("uvicorn").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("fastapi").setLevel(logging.WARNING)
+RETRIVER_EMOJI = "🔍"
+logging.basicConfig(format=f'[RETRIEVER {RETRIVER_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 def read_queries(input_file: Path) -> List[str]:
     with open(input_file, 'r') as f:

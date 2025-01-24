@@ -55,42 +55,43 @@ sudo apt-get install -y --no-install-recommends \
     libgtk-3-0 libreoffice libjpeg-dev
 
 # Install Rye
-echo "Setting up Rye"
-export RYE_HOME="/opt/rye"
-export PATH="$RYE_HOME/shims:$PATH"
-if [ ! -d "$RYE_HOME" ]; then
-  curl -sSf https://rye.astral.sh/get | RYE_TOOLCHAIN_VERSION="3.11" RYE_INSTALL_OPTION="--yes" bash
-  echo 'export RYE_HOME="/opt/rye"' >> ~/.bashrc
-  echo 'export PATH="$RYE_HOME/shims:$PATH"' >> ~/.bashrc
-fi
+echo "Setting up UV"
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Navigate to the project directory
 echo "Navigating to mmore folder: $MMORE_FOLDER"
 cd "$MMORE_FOLDER" || { echo "Directory $MMORE_FOLDER does not exist! Exiting."; exit 1; }
+export PATH="$HOME/.local/bin:$PATH"
 
 # Sync Rye to install dependencies
-echo "Syncing Rye (installing dependencies)"
-rye sync
+echo "Syncing UV (installing dependencies)"
+uv sync
+
+# Extract the distributed configuration from the YAML file
+distributed=$(grep -A3 'dispatcher_config:' examples/process_config.yaml | tail -n1) # Get the line after 'dispatcher_config:'
+distributed=${distributed//*distributed: /} # Remove the 'distributed: ' prefix to get the value of the dispatcher_config.distributed value
 
 # Configure environment variables
 echo "Setting up environment variables"
 export PATH="/.venv/bin:$PATH"
 export DASK_DISTRIBUTED__WORKER__DAEMON=False
 
-# Start the worker
-echo "Starting the worker..."
+# Dask part of the script
 source .venv/bin/activate
-dask config set distributed.worker.daemon false
+if [ "$distributed" = "true" ]; then
+  pip list | grep dask 
+  echo "Distributed mode enabled"
+  # Start the Dask scheduler if the current node is the MASTER (rank 0)
+  if [ "$RANK" -eq 0 ]; then
+    echo "Starting the scheduler because it is the MASTER node (rank 0)"
+    dask --h
+    dask scheduler --scheduler-file scheduler-file.json &
+  fi
 
-# Start the Dask scheduler if the current node is the MASTER (rank 0)
-if [ "$RANK" -eq 0 ]; then
-  echo "Starting the scheduler because it is the MASTER node (rank 0)"
-  dask scheduler --scheduler-file scheduler-file.json &
+  # Start the Dask worker
+  echo "Starting the worker of every node"
+  dask worker --scheduler-file scheduler-file.json &
 fi
-
-# Start the Dask worker
-echo "Starting the worker of every node"
-dask worker --scheduler-file scheduler-file.json &
 
 # Run the end-to-end test if the current node is the MASTER (rank 0)
 if [ "$RANK" -eq 0 ]; then
