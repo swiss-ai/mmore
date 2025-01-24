@@ -121,6 +121,11 @@ tmp/
 scheduler-file.json
 requirements-dev.lock
 requirements.lock
+.
+examples/outputs/
+
+
+.venv
 
 # Examples
 examples/outputs

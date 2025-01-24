@@ -36,6 +36,8 @@ class ComputeDescriptor:
         }
 
 
+from dataclasses import dataclass
+@dataclass
 class DispatcherConfig:
     """
     A configuration class for the dispatcher.
@@ -55,46 +57,26 @@ class DispatcherConfig:
         └── merged_results.jsonl
             
     """
+    output_path: str
+    use_fast_processors: bool = True
+    distributed: bool = False
+    scheduler_file: Optional[str] = None
+    processor_config: Optional[Dict] = None
+    process_batch_sizes: Optional[List[Dict[str, float]]] = None
+    batch_multiplier: int = 1
+    extract_images: bool = False
 
-    def __init__(
-            self,
-            use_fast_processors: bool = True,
-            distributed: bool = False,
-            scheduler_file: Optional[str] = None,
-            output_path: Optional[str] = None,
-            processor_config: Optional[Dict] = None,
-            process_batch_sizes: Optional[Dict] = None,
-            batch_multiplier: int = 1,
-            extract_images: bool = False,
-    ) -> None:
-        """
-        Initialize the DispatcherConfig object.
-
-        :param use_fast_processors: Whether to use fast processors.
-        :param distributed: Whether the dispatcher is running in distributed mode.
-        :param scheduler_file: Path to the scheduler file (if distributed).
-        :param output_path: Path to save the output. If None, the output is not saved.
-        :param batch_multiplier: Multiplier for batch sizes.
-        """
-        self.use_fast_processors = use_fast_processors
-        self.distributed = distributed
-        self.scheduler_file = scheduler_file
-        self.output_path = output_path
-        self.processor_config = processor_config
-        self.process_batch_sizes = process_batch_sizes
-        self.batch_multiplier = batch_multiplier
-        self.extract_images = extract_images
-
-    from typing import Dict, Optional
+    def __post_init__(self):
+        os.makedirs(self.output_path, exist_ok=True)
 
     @staticmethod
     def from_dict(config: Dict) -> "DispatcherConfig":
         """Create a DispatcherConfig object from a dictionary."""
         return DispatcherConfig(
+            output_path=config["output_path"],
             use_fast_processors=config.get("use_fast_processors", True),
             distributed=config.get("distributed", False),
             scheduler_file=config.get("scheduler_file"),
-            output_path=config.get("output_path"),
             processor_config=config.get("processor"),
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
@@ -149,7 +131,7 @@ class Dispatcher:
     def __init__(
             self,
             result: DispatcherReadyResult,
-            config: DispatcherConfig = DispatcherConfig(),
+            config: DispatcherConfig,
             start_cluster=False,
     ):
         self.result = result
