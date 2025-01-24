@@ -1,6 +1,6 @@
 dispatcher_config:
-  output_path: examples/outputs/
-  use_fast_processors: true
+  output_path: examples/process/outputs/
+  use_fast_processors: false
   distributed: false
   extract_images: true
   scheduler_file: scheduler-file.json
@@ -33,5 +33,4 @@ dispatcher_config:
       - LAYOUT_BATCH_SIZE: 1
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
-
-data_path: examples/sample_data/
+data_path: examples/sample_data
