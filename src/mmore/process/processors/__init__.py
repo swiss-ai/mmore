@@ -1,6 +1,6 @@
 # Register all processors here
 
-from .processor import ProcessorRegistry, Processor
+from .base import ProcessorRegistry, Processor
 import pkgutil
 import importlib
 

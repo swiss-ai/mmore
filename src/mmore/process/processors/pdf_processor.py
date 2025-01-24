@@ -6,7 +6,7 @@ import logging
 from PIL import Image, UnidentifiedImageError
 from typing import List
 from src.mmore.type import FileDescriptor, MultimodalSample, MultimodalRawInput
-from .processor import Processor, ProcessorConfig
+from .base import Processor, ProcessorConfig
 from src.mmore.process.utils import clean_text, clean_image
 
 from tqdm import tqdm
@@ -15,8 +15,6 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
-
-logger = logging.getLogger(__name__)
 
 class PDFProcessor(Processor):
     def __init__(self, config=None):
@@ -42,7 +40,7 @@ class PDFProcessor(Processor):
             self.converter = PdfConverter(artifact_dict=create_model_dict(), config=config_parser.generate_config_dict())
 
             results = []
-            for file_path in tqdm(files, desc="Processing PDFs", total=len(files)):
+            for file_path in tqdm(files, desc="Processing PDFs...", total=len(files)):
                 results.append(self.process(file_path))
 
             return results

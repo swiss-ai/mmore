@@ -7,7 +7,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from PIL import Image
 from src.mmore.process.utils import clean_text, clean_image
 from src.mmore.type import FileDescriptor, MultimodalSample
-from .processor import Processor, ProcessorConfig
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 

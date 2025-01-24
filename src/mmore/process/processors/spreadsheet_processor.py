@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
 from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor, MultimodalSample
-from .processor import Processor, ProcessorConfig
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 

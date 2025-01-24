@@ -1,7 +1,7 @@
 import logging
 from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor, MultimodalSample
-from .processor import Processor
+from .base import Processor
 
 logger = logging.getLogger(__name__)
 

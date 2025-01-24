@@ -8,7 +8,7 @@ from transformers import pipeline
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from src.mmore.type import FileDescriptor, MultimodalSample
-from .processor import Processor, ProcessorConfig
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 

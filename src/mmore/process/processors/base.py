@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import datetime
 import logging
 import tempfile
@@ -71,7 +73,7 @@ class AutoProcessor:
         return None
 
 
-class Processor:
+class Processor(ABC):
     """
     Base class for processors, which process a list of files.
 
@@ -93,11 +95,47 @@ class Processor:
 
         self.config = config
 
-    def __call__(self, files, fast: bool = False) -> List[MultimodalSample]:
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool:
+        """
+        Returns True if the processor can accept the file, False otherwise.
+            :param file: The file to check.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def process(self, file_path) -> MultimodalSample:
+        """
+        ABSTRACT METHOD:
+        Process a single file and return the result.
+        
+        Args:
+            file_path (str): The path to the file to process.
+
+        Returns:
+            MultimodalSample: The result of the processing operation.
+        """
+        pass 
+    
+    def process_fast(self, file_path) -> List[MultimodalSample]:
+        """
+        Process a single file in fast mode and return the result.
+        This method should be overwritten if a processor supports fast mode.
+
+        Args:
+            file_path (str): The path to the file to process.
+
+        Returns:
+            List[MultimodalSample]: The result of the processing operation.
+        """
+        return self.process(file_path)
+
+    def __call__(self, files: List[Union[FileDescriptor, URLDescriptor]], fast: bool = False) -> List[MultimodalSample]:
         """
         Process the files, either in fast mode or normal mode.
 
         Args:
+            files (List[Union[FileDescriptor, URLDescriptor]]): The files to process.
             fast (bool): Whether to use fast processing (default: False).
 
         Returns:
@@ -107,39 +145,27 @@ class Processor:
         res = self.process_batch(files_paths, fast, num_workers=os.cpu_count()) # self.config.num_workers ...
         return res
 
-    def process(self, file_path) -> MultimodalSample:
-        """
-        Process the files using the standard processing method.
-
-        Returns:
-            List[MultimodalSample]: The result of the processing operation.
-        """
-        raise NotImplementedError
-    
-    def process_fast(self, file_path) -> List[MultimodalSample]:
-        return self.process(file_path)
-
-    def process_batch(self, files_paths, fast_mode, num_workers) -> List[MultimodalSample]:
+    def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
         """
         Processes a single file using a custom processing method.
-            :param file: The file to process.
-            :param process_method: The method to use for processing.
-        """
+        This method should be overwritten if a processor supports custom batch processing.
 
-        # for all 
+        Args:
+            file_path (str): The path to the file to process.
+            fast_mode (bool): Whether to use fast processing (default: False).
+            num_workers (int): Number of workers to use for multiprocessing (default: 1).
+
+        Returns:
+            MultimodalSample: The result of the processing operation.
+        """
+        # use fast mode if user requests it
+        process_func = self.process_fast if fast_mode else self.process
+
+        # process files in parallel using multiprocessing pool
         with mp.Pool(processes=num_workers) as pool:
-            process = self.process if not fast_mode else self.process_fast
-            results = pool.map(process, files_paths)
+            results = pool.map(process_func, files_paths)
         
         return results
-
-    @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
-        """
-        Returns True if the processor can accept the file, False otherwise.
-            :param file: The file to check.
-        """
-        raise NotImplementedError
 
     @classmethod
     def get_file_len(cls, file: FileDescriptor) -> int:

@@ -3,7 +3,7 @@ from typing import List
 import trafilatura
 from src.mmore.process.utils import clean_text
 from src.mmore.type import URLDescriptor
-from .processor import Processor, ProcessorConfig
+from .base import Processor, ProcessorConfig
 import re 
 import requests
 from PIL import Image

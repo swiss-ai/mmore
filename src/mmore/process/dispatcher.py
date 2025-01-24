@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Type, Tuple, Optional
 from .processors.url_processor import URLProcessor
 from .crawler import DispatcherReadyResult, FileDescriptor
-from .processors.processor import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
+from .processors.base import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
 import torch
 import logging
 import os
