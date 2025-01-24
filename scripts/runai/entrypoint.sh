@@ -1,11 +1,9 @@
 #!/bin/bash
 
-EXECUTOR="python"
 SCRIPT="run_process.py"
 while getopts e:s:c:p: flag
 do
     case "${flag}" in
-        e) EXECUTOR="${OPTARG}";;
         s) SCRIPT="${OPTARG}";;
         c) CONFIG="${OPTARG}";;
         p) REPO_PATH="${OPTARG}";;
@@ -24,14 +22,12 @@ source .env
 set +o allexport
 
 # TODO: Update when final version is released (Install libraries)
-#bash scripts/setup.sh
-pip install -r rag_requirements.txt
-export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+pip install -e '.[rag]'
 
 echo "Start time: $(date)"
 
 # Launch script
-echo "Running: $EXECUTOR $SCRIPT --config-file $CONFIG"
-$EXECUTOR $SCRIPT --config-file $CONFIG
+echo "Running: python -m mmore $SCRIPT --config-file $CONFIG"
+python -m mmore $SCRIPT --config-file $CONFIG
 
 echo "End time: $(date)"

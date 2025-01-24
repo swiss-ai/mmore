@@ -5,26 +5,26 @@ import warnings
 import sys
 import os
 
-@contextmanager
-def suppress_warnings_and_stdout():
-    # Suppress specific warnings
-    warnings.filterwarnings('ignore', category=FutureWarning, message="The input name `inputs` is deprecated*")
-    warnings.filterwarnings('ignore', category=FutureWarning, message="*UserWarning:*")
+# @contextmanager
+# def suppress_warnings_and_stdout():
+#     # Suppress specific warnings
+#     warnings.filterwarnings('ignore', category=FutureWarning, message="The input name `inputs` is deprecated*")
+#     warnings.filterwarnings('ignore', category=FutureWarning, message="*UserWarning:*")
     
-    pypdfium_message = "-> Cannot close object, library is destroyed. This may cause a memory leak!*"
-    # Redirect stdout to devnull to catch pypdfium messages
-    old_stdout = sys.stdout
-    devnull = open(os.devnull, 'w')
-    # Suppress pypdfium warnings
-    sys.stdout = devnull
+#     pypdfium_message = "-> Cannot close object, library is destroyed. This may cause a memory leak!*"
+#     # Redirect stdout to devnull to catch pypdfium messages
+#     old_stdout = sys.stdout
+#     devnull = open(os.devnull, 'w')
+#     # Suppress pypdfium warnings
+#     sys.stdout = devnull
     
-    try:
-        sys.stdout = devnull
-        yield
+#     try:
+#         sys.stdout = devnull
+#         yield
         
-    finally:
-        sys.stdout = old_stdout
-        devnull.close()
+#     finally:
+#         sys.stdout = old_stdout
+#         devnull.close()
 
 # import logging
 # logger = logging.getLogger(__name__)
@@ -41,7 +41,6 @@ def main():
 def process(config_file):
     """Process documents from a directory."""
     from .run_process import process as run_process
-    #with suppress_warnings_and_stdout():
     run_process(config_file)
 
 @main.command()
@@ -50,8 +49,7 @@ def process(config_file):
 def postprocess(config_file, input_data):
     """Run the post-processors pipeline."""
     from .run_postprocess import postprocess as run_postprocess
-    with suppress_warnings_and_stdout():
-        run_postprocess(config_file, input_data)
+    run_postprocess(config_file, input_data)
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Path to the configuration file.')
@@ -60,8 +58,7 @@ def postprocess(config_file, input_data):
 def index(config_file, input_data, collection_name):
     """Run the indexer."""
     from .run_index import index as run_index
-    with suppress_warnings_and_stdout():
-        run_index(config_file, input_data, collection_name)
+    run_index(config_file, input_data, collection_name)
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')
@@ -70,16 +67,14 @@ def index(config_file, input_data, collection_name):
 def retrieve(config_file, input_file, output_file):
     """Retrieve documents for specified queries."""
     from .run_retriever import retrieve as run_retrieve
-    with suppress_warnings_and_stdout():
-        run_retrieve(config_file, input_file, output_file)
+    run_retrieve(config_file, input_file, output_file)
 
 @main.command()
 @click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
 def rag(config_file):
     """Run the Retrieval-Augmented Generation (RAG) pipeline."""
     from .run_rag import rag as run_rag
-    with suppress_warnings_and_stdout():
-        run_rag(config_file)
+    run_rag(config_file)
 
 if __name__ == "__main__":
     main()
