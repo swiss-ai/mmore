@@ -41,6 +41,24 @@ pip install -e '.[rag]'
 
 ---
 
+
+### Minimal Example
+
+```python
+from mmore.process.processors.pdf_processor import PDFProcessor 
+from mmore.process.processors.base import ProcessorConfig
+from mmore.type import MultimodalSample
+
+pdf_file_paths = ["examples/sample_data/pdf/calendar.pdf"]
+out_file = "results/example.jsonl"
+
+pdf_processor_config = ProcessorConfig(custom_config={"output_path": "results"})
+pdf_processor = PDFProcessor(config=pdf_processor_config)
+result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
+
+MultimodalSample.to_jsonl(out_file, result_pdf)
+```
+
 ### Installation Option 2: uv
 
 #### Step 1: Install system dependencies
@@ -144,23 +162,6 @@ mmore rag --config-file ./examples/rag/rag_config_local.yaml
 
 ---
 
-
-### Minimal Example
-
-```python
-from mmore.process.processors.pdf_processor import PDFProcessor 
-from mmore.process.processors.base import ProcessorConfig
-from mmore.type import MultimodalSample
-
-pdf_file_paths = ["examples/sample_data/pdf/calendar.pdf"]
-out_file = "results/example.jsonl"
-
-pdf_processor_config = ProcessorConfig(custom_config={"output_path": "results"})
-pdf_processor = PDFProcessor(config=pdf_processor_config)
-result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
-
-MultimodalSample.to_jsonl(out_file, result_pdf)
-```
 
 ### Usage
 
