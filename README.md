@@ -144,11 +144,6 @@ mmore rag --config-file ./examples/rag/rag_config_local.yaml
 
 ---
 
-### Manual Installation
-
-If you prefer to install without Docker, follow the installation options 1 or 2 above based on your preference.
-
----
 
 ### Minimal Example
 
