@@ -16,3 +16,10 @@ source "$HOME/.rye/env"
 # Install Python dependencies   
 rye sync
 source .venv/bin/activate
+
+python -m ensurepip --default-pip 
+pip install -r requirements.txt 
+pip install -r rag_requirements.txt 
+pip install -r graphrag_requirements.txt 
+export PYTHONPATH=/mloscratch/homes/ordonnea/mmore/src/ 
+huggingface-cli login

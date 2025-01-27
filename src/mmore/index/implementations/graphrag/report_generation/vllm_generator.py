@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 import networkx as nx
 from langchain_core.runnables.config import RunnableConfig
 
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+
 from mmore.types.graphrag.graphs.community import Community
 from mmore.types.graphrag.prompts import IndexingPromptBuilder
 from .generator import CommunityReportGenerator

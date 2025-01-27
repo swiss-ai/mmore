@@ -9,6 +9,7 @@ from mmore.utils import load_config
 
 from mmore.index.implementations.regular_rag.indexer import get_model_from_index
 from mmore.index.implementations.regular_rag.indexer import DBConfig
+from mmore.rag.base_retriever import RetrieverConfig
 from src.mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
@@ -24,13 +25,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 @dataclass
-class RetrieverConfig:
+class RegularRetrieverConfig(RetrieverConfig):
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
 
 
-class Retriever(BaseRetriever):
+class RegularRetriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
@@ -46,9 +47,9 @@ class Retriever(BaseRetriever):
     }
 
     @classmethod
-    def from_config(cls, config: str | RetrieverConfig):
+    def from_config(cls, config: str | RegularRetrieverConfig):
         if isinstance(config, str):
-            config = load_config(config, RetrieverConfig)
+            config = load_config(config, RegularRetrieverConfig)
 
         # Init the client
         client = MilvusClient(uri=config.db.uri, db_name=config.db.name)

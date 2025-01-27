@@ -6,6 +6,8 @@ from langchain_core.runnables.config import RunnableConfig
 
 from typing import Any, List, Dict
 
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+
 from mmore.types.graphrag.prompts import IndexingPromptBuilder
 
 from .prompt_builder import SummarizeDescriptionPromptBuilder

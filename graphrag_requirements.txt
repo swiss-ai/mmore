@@ -1,3 +1,4 @@
+vllm
 graspologic
 tableprint
-langchain-language
+langchain_chroma

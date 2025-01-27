@@ -51,7 +51,7 @@ class KeyPointsContextBuilder:
                     Document(
                         page_content=report,
                         metadata={
-                            "score": p.score,
+                            "rank": p.score,
                             "analyst": k,
                             "token_count": report_token,
                         },
@@ -62,7 +62,7 @@ class KeyPointsContextBuilder:
         # importance score of the key points
         sorted_documents = sorted(
             documents,
-            key=lambda x: x.metadata["score"],
+            key=lambda x: x.metadata["rank"],
             reverse=True,
         )
 

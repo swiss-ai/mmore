@@ -1,11 +1,11 @@
 """Local Search module."""
 
 from .prompt_builder import LocalSearchPromptBuilder
-from .retriever import LocalSearchRetriever
-from .search import LocalSearch
+from .local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
 
 __all__ = [
-    "LocalSearch",
+    "GraphRAGLocalRetriever",
+    "GraphRAGLocalRetrieverConfig",
     "LocalSearchPromptBuilder",
     "LocalSearchRetriever",
 ]

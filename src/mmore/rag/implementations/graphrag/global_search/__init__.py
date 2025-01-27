@@ -1,5 +1,5 @@
 """Global Query Search Module."""
 
-from .search import GlobalSearch
+from .global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
 
-__all__ = ["GlobalSearch"]
+__all__ = ["GlobalSearch", "GlobalSearchConfig"]

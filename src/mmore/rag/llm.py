@@ -77,17 +77,19 @@ class LLM(BaseChatModel):
             os.environ[f"{org}_API_KEY"] = getpass()
 
     @classmethod
-    def from_config(cls, config: str | LLMConfig):
+    def from_config(cls, config: str | LLMConfig, **kwargs):
         if isinstance(config, str):
             config = load_config(config, LLMConfig)
 
         if config.organization == "HF":
-            return ChatHuggingFace(llm=HuggingFacePipeline.from_model_id(
+            chat_models = ChatHuggingFace(llm=HuggingFacePipeline.from_model_id(
                 config.llm_name,
                 task="text-generation",
                 device_map="auto",
                 pipeline_kwargs=config.generation_kwargs
             ))
+            chat_models.llm.pipeline.tokenizer.pad_token_id = chat_models.llm.pipeline.tokenizer.eos_token_id
+            return chat_models
         else:
             loader = loaders.get(config.organization, ChatOpenAI)
             return loader(

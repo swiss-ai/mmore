@@ -5,6 +5,7 @@ Integrates Milvus retrieval with HuggingFace text generation.
 """
 
 from typing import Union, List, Dict, Optional, Any
+from abc import ABC
 
 from dataclasses import dataclass, field
 
@@ -16,7 +17,11 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from mmore.rag.implementations.regular_rag.retriever import Retriever, RetrieverConfig
+from langchain_core.retrievers import BaseRetriever
+
+from mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
+from mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
+from mmore.rag.implementations.graphrag.local_search.local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
 from src.mmore.rag.llm import LLM, LLMConfig
 from src.mmore.rag.types import QuotedAnswer, CitedAnswer
 
@@ -30,10 +35,11 @@ Context:
 """
 
 
+
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
-    retriever: RetrieverConfig
+    retriever: GraphRAGLocalRetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
@@ -41,13 +47,13 @@ class RAGConfig:
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
 
-    retriever: Retriever
+    retriever: BaseRetriever
     llm: BaseChatModel
     prompt_template: str
 
     def __init__(
             self,
-            retriever: Retriever,
+            retriever: BaseRetriever,
             prompt_template: str,
             llm: BaseChatModel,
     ):
@@ -66,9 +72,8 @@ class RAGPipeline:
     def from_config(cls, config: str | RAGConfig):
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
-
-        retriever = Retriever.from_config(config.retriever)
         llm = LLM.from_config(config.llm)
+        retriever = GraphRAGLocalRetriever.from_config(config.retriever)
         chat_template = ChatPromptTemplate.from_messages(
             [
                 ("system", config.system_prompt),
@@ -81,6 +86,7 @@ class RAGPipeline:
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
         """Format documents for prompt."""
+        print(docs)
         return "\n\n".join(f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs)
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 
@@ -111,7 +117,7 @@ class RAGPipeline:
         if isinstance(queries, Dict):
             queries = [queries]
 
-        results = self.rag_chain.batch(queries)
+        results = [self.rag_chain.invoke(query) for query in queries]
 
         if return_dict:
             return results

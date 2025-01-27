@@ -11,7 +11,6 @@ from ragas.metrics import FactualCorrectness, SemanticSimilarity
 from langchain_huggingface import HuggingFaceEmbeddings
 from mmore.rag.pipeline import RAGPipeline, RAGConfig
 from mmore.index.implementations.regular_rag.indexer import IndexerConfig, Indexer, DBConfig
-from mmore.rag.implementations.regular_rag.retriever import RetrieverConfig
 from src.mmore.rag.llm import LLM, LLMConfig
 from mmore.types.type import MultimodalSample
 from src.mmore.utils import load_config

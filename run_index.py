@@ -14,8 +14,9 @@ import os
 import argparse
 
 from src.mmore.utils import load_config
-from src.mmore.type import MultimodalSample
-from mmore.index.implementations.indexer import IndexerConfig, Indexer
+from src.mmore.types.type import MultimodalSample
+from mmore.index import BaseIndexer, BaseIndexerConfig
+from mmore.index.implementations.graphrag.graphrag_indexer import GraphRAGIndexerConfig, GraphRAGIndexer
 
 from typing import List
 from dataclasses import dataclass, field
@@ -38,7 +39,7 @@ logging.getLogger("transformers").setLevel(logging.CRITICAL)
 @dataclass
 class IndexerRunConfig:
     documents_path: str | List[str]
-    indexer: IndexerConfig
+    indexer: GraphRAGIndexerConfig
     collection_name: str = 'my_docs'
     batch_size: int = 64
 
@@ -61,9 +62,9 @@ if __name__ == "__main__":
     documents = MultimodalSample.from_jsonl(config.documents_path)
     
     logger.info("Creating the indexer...")
-    indexer = Indexer.from_documents(
+    
+    indexer = GraphRAGIndexer.from_documents(
         config=config.indexer, 
         documents=documents,
         collection_name=config.collection_name,
-        batch_size=config.batch_size
     )

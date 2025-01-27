@@ -5,8 +5,8 @@ Example usage:
 """
 
 # Remove warnings
-import torchvision
-torchvision.disable_beta_transforms_warning()
+#import torchvision
+# torchvision.disable_beta_transforms_warning()
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message=".*TypedStorage is deprecated.*")
 warnings.filterwarnings("ignore", category=UserWarning, message="BertForMaskedLM has generative capabilities.*")

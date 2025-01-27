@@ -10,6 +10,8 @@ from langchain_core.runnables.config import RunnableConfig
 from langchain_core.prompt_values import StringPromptValue
 from tqdm import tqdm
 
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+
 from mmore.types.graphrag.prompts import IndexingPromptBuilder
 
 from .prompt_builder import EntityExtractionPromptBuilder

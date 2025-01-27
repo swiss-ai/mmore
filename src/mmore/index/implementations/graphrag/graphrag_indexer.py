@@ -10,6 +10,9 @@ from mmore.utils import load_config
 from mmore.utils.graphrag.artifacts import save_artifacts, get_artifacts_dir_name
 from langchain_core.language_models import LanguageModelLike
 
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+from mmore.rag.model.dense.base import DenseModel, DenseModelConfig
+
 
 from mmore.index.implementations.graphrag import SimpleIndexer, TextUnitExtractor
 from mmore.index.implementations.graphrag.graph_generation import (
@@ -31,33 +34,28 @@ from mmore.index.implementations.graphrag.artifacts_generation import (
 from mmore.index.implementations.graphrag.report_generation.vllm_generator import vLLMCommunityReportGenerator
 from mmore.index.implementations.graphrag.report_generation import CommunityReportWriter
 
+from mmore.index import BaseIndexerConfig, BaseIndexer
 
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 
 from langchain_chroma.vectorstores import Chroma as ChromaVectorStore
 
+import os
+
 
 @dataclass
-class GraphRAGIndexerConfig:
-    llm_type: str
+class GraphRAGIndexerConfig(BaseIndexerConfig):
     llm_model: str
-    embedding_type: str
-    embedding_model: str
-    collection_name: str = "multimeditron"
+    dense_model: DenseModelConfig
     output_dir: str = "./temp/artifacts"
-    cache_dir: str ="./temp/cache"
     chunk_size: int = 1200
     chunk_overlap: int = 100
 
     def __post_init__(self):
-        self.cache_dir = Path(self.cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir = Path(self.output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-class GraphRAGIndexer:
+class GraphRAGIndexer(BaseIndexer):
     """Adapter class that implements GraphRAG indexing for the Meditron pipeline"""
     indexer: SimpleIndexer
     output_dir: Path
@@ -66,21 +64,17 @@ class GraphRAGIndexer:
     def __init__(
             self, 
             llm_model: str,
-            llm_type: str,
-            embedding_type: str, 
-            embedding_model: str, 
+            dense_model: DenseModel,
             collection_name: str, 
             output_dir: Path, 
-            cache_dir: Path, 
             chunk_size: int, 
             chunk_overlap: int, 
-            llm: LanguageModelLike = None, 
             ):
         
-        if llm is None:
-            self.llm = vLLMWrapper(llm_model)
-
+        os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
+        llm = vLLMWrapper(llm_model)
         self.llm_model = llm_model
+
         self.output_dir = output_dir
         
         text_splitter = TokenTextSplitter(
@@ -105,39 +99,29 @@ class GraphRAGIndexer:
             er_description_summarizer=entity_summarizer,
         )
         
-        community_detector = HierarchicalLeidenCommunityDetector()
 
-        entities_collection = f"entity-{collection_name}"
         vector_store = ChromaVectorStore(
-            collection_name=entities_collection,
+            collection_name=f"entity-{collection_name}",
             persist_directory=str(output_dir / "vector_stores"),
-            embedding_function=make_embedding_instance(
-                embedding_type,
-                embedding_model, 
-                cache_dir),
+            embedding_function=dense_model,
         )
 
-        generators = {
-            'entities': EntitiesArtifactsGenerator(entities_vector_store=vector_store),
-            'relationships': RelationshipsArtifactsGenerator(),
-            'text_units': TextUnitsArtifactsGenerator(),
-            'communities': vLLMCommunitiesReportsArtifactsGenerator(
-                report_generator=vLLMCommunityReportGenerator.build_default(
-                    llm=llm,
-                    chain_config={"tags": ["community-report"]},
-                ),
-                report_writer=CommunityReportWriter(),
-            )
-        }
+        communities_report_artifacts_generator = vLLMCommunitiesReportsArtifactsGenerator(
+            report_generator=vLLMCommunityReportGenerator.build_default(
+                llm=llm,
+                chain_config={"tags": ["community-report"]},
+            ),
+            report_writer=CommunityReportWriter(),
+        )
         
         self.indexer = SimpleIndexer(
             text_unit_extractor=text_unit_extractor,
             graph_generator=graph_generator,
-            community_detector=community_detector,
-            entities_artifacts_generator=generators['entities'],
-            relationships_artifacts_generator=generators['relationships'],
-            text_units_artifacts_generator=generators['text_units'],
-            communities_report_artifacts_generator=generators['communities'],
+            community_detector=HierarchicalLeidenCommunityDetector(),
+            entities_artifacts_generator=EntitiesArtifactsGenerator(entities_vector_store=vector_store),
+            relationships_artifacts_generator=RelationshipsArtifactsGenerator(),
+            text_units_artifacts_generator=TextUnitsArtifactsGenerator(),
+            communities_report_artifacts_generator=communities_report_artifacts_generator,
         )
 
     def index_documents(
@@ -163,33 +147,31 @@ class GraphRAGIndexer:
         return artifacts
 
     @classmethod
-    def from_config(cls, config_path: str, llm: LanguageModelLike = None):
+    def from_config(cls, config: str | GraphRAGIndexerConfig, collection_name: str = 'med_docs'):
         """Create indexer instance from config file"""
-        config = load_config(config_path, GraphRAGIndexerConfig)
+        if isinstance(config, str):
+            config = load_config(config, GraphRAGIndexerConfig)
+
+        dense_model = DenseModel.from_config(config.dense_model)
         return cls(
             llm_model=config.llm_model,
-            llm_type=config.llm_type,
-            embedding_type=config.embedding_type,
-            embedding_model=config.embedding_model,
-            collection_name=config.collection_name,
+            dense_model=dense_model,
+            collection_name=collection_name,
             output_dir=config.output_dir,
-            cache_dir=config.cache_dir,
             chunk_size=config.chunk_size,
             chunk_overlap=config.chunk_overlap,
-            llm=llm,
         )
 
     @classmethod
     def from_documents(
         cls,
-        config_path: str,
+        config: str | GraphRAGIndexerConfig,
         documents: List[MultimodalSample],
         collection_name: str = 'med_docs',
         partition_name: Optional[str] = None,
-        llm: LanguageModelLike = None
     ):
         """Create and run indexer directly from documents"""
-        indexer = cls.from_config(config_path, llm)
+        indexer = cls.from_config(config, collection_name=collection_name)
         indexer.index_documents(
             documents=documents,
         )
