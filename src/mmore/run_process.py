@@ -1,11 +1,11 @@
 import time
 from typing import List
 
-from mmore.type import MultimodalSample
-from mmore.utils import load_config
+from type import MultimodalSample
+from utils import load_config
 
-from .process.crawler import Crawler, CrawlerConfig
-from .process.dispatcher import Dispatcher, DispatcherConfig
+from src.mmore.process.crawler import Crawler, CrawlerConfig
+from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
 import yaml
 
 overall_start_time = time.time()
@@ -90,11 +90,10 @@ def process(config_file):
     output_file = os.path.join(merged_output_path, "merged_results.jsonl")
 
     os.makedirs(merged_output_path, exist_ok=True)
-
     for res in results:
-        MultimodalSample.to_jsonl(output_file, res)
+        MultimodalSample.to_jsonl(output_file, res, append_mode=True)
 
-    logger.info(f"Merged results saved to {output_file}")
+    logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
 
     overall_end_time = time.time()
     overall_time = overall_end_time - overall_start_time
@@ -102,4 +101,8 @@ def process(config_file):
     
     
 if __name__ == "__main__":
-    process()
+    parser = argparse.ArgumentParser(description="Run the processing pipeline.")
+    parser.add_argument("--config_file", required=True, help="Path to the process configuration file.")
+    args = parser.parse_args()
+    
+    process(args.config_file)

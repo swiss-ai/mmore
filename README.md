@@ -51,10 +51,14 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
   libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
   libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 ```
+3. Clone this repository
 
 #### Step 2: Install `uv`
 
 Refer to the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/) for detailed instructions.
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 #### Step 3: Clone this repository
 
