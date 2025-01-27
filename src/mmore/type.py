@@ -93,9 +93,8 @@ class MultimodalSample:
         return samples
     
     @staticmethod
-    def to_jsonl(file_path: str, samples: List["MultimodalSample"], append_mode=True) -> None:
-        mode = "a" if append_mode else "w"
-        with open(file_path, mode) as f:
+    def to_jsonl(file_path: str, samples: List["MultimodalSample"]) -> None:
+        with open(file_path, "a") as f:
             for sample in samples:
                 f.write(json.dumps(sample.to_dict()) + "\n")
 

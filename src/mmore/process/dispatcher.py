@@ -310,6 +310,6 @@ class Dispatcher:
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")
-        MultimodalSample.to_jsonl(output_file, results, append_mode=True)
+        MultimodalSample.to_jsonl(output_file, results)
 
         logger.info(f"Results saved to {output_file}")

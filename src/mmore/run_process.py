@@ -1,8 +1,8 @@
 import time
 from typing import List
 
-from type import MultimodalSample
-from utils import load_config
+from .type import MultimodalSample
+from .utils import load_config
 
 from src.mmore.process.crawler import Crawler, CrawlerConfig
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
@@ -91,7 +91,7 @@ def process(config_file):
 
     os.makedirs(merged_output_path, exist_ok=True)
     for res in results:
-        MultimodalSample.to_jsonl(output_file, res, append_mode=True)
+        MultimodalSample.to_jsonl(output_file, res)
 
     logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
 
