@@ -60,6 +60,8 @@ process = [
     "langdetect>=1.0.9",
     "trafilatura==1.4.0",
     "datatrove[processing]",
+    "validators==0.34.0",
+    "bokeh"
 ]
 
 rag = [

@@ -204,29 +204,27 @@ class Dispatcher:
             processor_config['extract_images'] = self.config.extract_images
 
             logger.info(
-                f"Dispatching {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
 
             processor_config = ProcessorConfig(custom_config=processor_config)
 
-            def process_files(files, processor_config):
-                return processor(files, processor_config)(
-                    self.config.use_fast_processors
-                )
+            def process_files(files, processor_config, processor_name) -> Tuple[List[MultimodalSample], str]:
+                return processor(processor_config)(files, self.config.use_fast_processors), processor_name
 
             try:
-                future = client.submit(process_files, files, processor_config, key=processor.__name__)
+                future = client.submit(process_files, files, processor_config, processor.__name__)
                 futures.append(future)
             except Exception as e:
                 logger.error(f"Error dispatching task to {processor.__name__}: {e}")
 
         results = []
-        for future, result in tqdm(
+        for future, (result, processor_name) in tqdm(
                 as_completed(futures, with_results=True), total=len(futures)
         ):
             try:
                 results.append(result)
-                self.save_individual_processor_results(result, future.key)
+                self.save_individual_processor_results(result, processor_name)
             except Exception as e:
                 logger.error(f"Error gathering result: {e}")
 
@@ -312,6 +310,6 @@ class Dispatcher:
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")
-        MultimodalSample.to_jsonl(output_file, results)
+        MultimodalSample.to_jsonl(output_file, results, append_mode=True)
 
         logger.info(f"Results saved to {output_file}")

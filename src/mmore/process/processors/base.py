@@ -25,6 +25,7 @@ class ProcessorConfig:
     def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}):
         self.attachment_tag = attachement_tag
         self.custom_config = custom_config
+        self.custom_config["attachment_tag"] = attachement_tag
 
 
 class ProcessorRegistry:

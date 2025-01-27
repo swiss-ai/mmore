@@ -61,7 +61,10 @@ Currently only for Linux systems
 sudo apt update
 sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 ```
-2. Install uv: https://docs.astral.sh/uv/getting-started/installation/
+2. Install uv: https://docs.astral.sh/uv/getting-started/installation/ 
+````
+curl -LsSf https://astral.sh/uv/install.sh | sh
+````
 3. Clone this repository
 ```
 git clone https://github.com/swiss-ai/mmore
