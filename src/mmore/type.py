@@ -94,7 +94,7 @@ class MultimodalSample:
     
     @staticmethod
     def to_jsonl(file_path: str, samples: List["MultimodalSample"]) -> None:
-        with open(file_path, "w") as f:
+        with open(file_path, "a") as f:
             for sample in samples:
                 f.write(json.dumps(sample.to_dict()) + "\n")
 

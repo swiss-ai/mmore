@@ -5,16 +5,17 @@ import io
 import logging
 from PIL import Image, UnidentifiedImageError
 from typing import List
-from src.mmore.type import FileDescriptor, MultimodalSample, MultimodalRawInput
+from src.mmore.type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 from src.mmore.process.utils import clean_text, clean_image
-
-from tqdm import tqdm
 
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
+import re
+
+IMG_REGEX = "!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 class PDFProcessor(Processor):
     def __init__(self, config=None):
@@ -40,7 +41,7 @@ class PDFProcessor(Processor):
             self.converter = PdfConverter(artifact_dict=create_model_dict(), config=config_parser.generate_config_dict())
 
             results = []
-            for file_path in tqdm(files, desc="Processing PDFs...", total=len(files)):
+            for file_path in files:
                 results.append(self.process(file_path))
 
             return results
@@ -48,6 +49,7 @@ class PDFProcessor(Processor):
     def process(self, file_path: str) -> List[MultimodalSample]:
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
+        text = re.sub(IMG_REGEX, "<attachment", text)
         images = images.values()
         return self.create_sample([text], images, file_path)
 

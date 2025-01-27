@@ -235,3 +235,10 @@ class Processor(ABC):
             {"file_path": file_path} if file_path is not None else None
         )
         return sample
+    
+    @staticmethod
+    def get_file_size(file_path: str) -> int:
+        """
+        Get size of the file (in bytes).
+        """
+        return os.path.getsize(file_path)
