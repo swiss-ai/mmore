@@ -19,7 +19,7 @@ Well, MMORE is here to help you!
 
 ## MMORE Installation Guide
 
-### Installation Option 1: pip
+### Installation Option 1: pip (recommended)
 
 To install all dependencies, run:
 
