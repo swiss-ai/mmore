@@ -41,7 +41,7 @@ pip install -e '.[rag]'
 
 ---
 
-### Installation Option 2: uv (Linux Only)
+### Installation Option 2: uv
 
 #### Step 1: Install system dependencies
 
@@ -168,7 +168,8 @@ MultimodalSample.to_jsonl(out_file, result_pdf)
 
 To launch the MMORE pipeline follow the specialised instructions in the docs.
 
-![The MMORE pipelines archicture](resources/mmore_architecture.png)
+![The MMORE pipelines archicture](https://github.com/user-attachments/assets/b887915a-7f7b-4b0a-b317-7754abf9fb5a)
+
 
 1. **:page_facing_up: Input Documents**  
    Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
