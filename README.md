@@ -87,13 +87,13 @@ Alternatively, prepend each command with `uv run`:
 
 ```bash
 # Run processing
-mmore process --config_file examples/process_config.yaml
+python -m mmore process --config_file examples/process_config.yaml
 
 # Run indexer
-mmore index --config-file ./examples/index/indexer_config.yaml
+python -m mmore index --config-file ./examples/index/indexer_config.yaml
 
 # Run RAG
-mmore rag --config-file ./examples/rag/rag_config_local.yaml
+python -m mmore rag --config-file ./examples/rag/rag_config_local.yaml
 ```
 
 ---
@@ -130,13 +130,13 @@ docker run -it -v ./test_data:/app/test_data mmore
 
 ```bash
 # Run processing
-python -m mmore process --config-file examples/process/config.yaml
+mmore process --config-file examples/process/config.yaml
 
 # Run indexer
-python -m mmore index --config-file ./examples/index/indexer_config.yaml
+mmore index --config-file ./examples/index/indexer_config.yaml
 
 # Run RAG
-python -m mmore rag --config-file ./examples/rag/rag_config_local.yaml
+mmore rag --config-file ./examples/rag/rag_config_local.yaml
 ```
 
 ---
