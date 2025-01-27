@@ -17,91 +17,163 @@ A scalable multimodal pipeline for processing, indexing, and querying multimodal
 Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
 Well, MMORE is here to help you!
 
-## Quick Start
+## MMORE Installation Guide
 
-### Installation with Docker (recommended)
+### Installation Option 1: pip
 
-Note: Please see section Manual Installation below how to install without docker
+To install all dependencies, run:
 
-
-1. Install [docker](https://docs.docker.com/get-started/get-docker/)
-2. Open a terminal and build the image with the following command
-```
-docker build . --tag mmore
+```bash
+pip install -e '.[all]'
 ```
 
-To build for CPU-only platforms (results in smaller image size), you can use
-```
-docker build --build-arg PLATFORM=cpu -t mmore .
+To install only processor-related dependencies, run:
+
+```bash
+pip install -e '.[processor]'
 ```
 
-Start an interactive session with
-```
-docker run -it -v ./test_data:/app/test_data mmore
-```
-Note: we are mapping the folder `test_data` to the location `/app/test_data` inside the container. The default location given in the `examples/process_config.yaml` maps to this folder, which we are using in the next step.
+To install only RAG-related dependencies, run:
 
-Inside the docker session you can run
-```
-# run processing
-mmore process --config_file examples/process_config.yaml
-
-# run indexer
-mmore index --config-file ./examples/index/indexer_config.yaml
-
-# run rag
-mmore rag --config-file ./examples/rag/rag_config_local.yaml
+```bash
+pip install -e '.[rag]'
 ```
 
-### Manual installation
-Currently only for Linux systems
+---
 
-1. Install system dependencies
-```
+### Installation Option 2: uv
+
+#### Step 1: Install system dependencies
+
+```bash
 sudo apt update
-sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
+  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 ```
-2. Install uv: https://docs.astral.sh/uv/getting-started/installation/ 
-````
-curl -LsSf https://astral.sh/uv/install.sh | sh
-````
 3. Clone this repository
+
+#### Step 2: Install `uv`
+
+Refer to the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/) for detailed instructions.
 ```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### Step 3: Clone this repository
+
+```bash
 git clone https://github.com/swiss-ai/mmore
 cd mmore
 ```
-4. Install project and dependencies
-```
+
+#### Step 4: Install project and dependencies
+
+```bash
 uv sync
 ```
 
-If you want to install a CPU-only version you can run
-```
+For CPU-only installation, use:
+
+```bash
 uv sync --extra cpu
 ```
 
-5. Run a test command
-To run the following commands either prepend every command with `uv run` or run once:
-```
+#### Step 5: Run a test command
+
+Activate the virtual environment before running commands:
+
+```bash
 source .venv/bin/activate
 ```
 
-```
-# run processing
-mmore process --config_file examples/process_config.yaml
+Alternatively, prepend each command with `uv run`:
 
-# run indexer
+```bash
+# Run processing
+python -m mmore process --config_file examples/process_config.yaml
+
+# Run indexer
+python -m mmore index --config-file ./examples/index/indexer_config.yaml
+
+# Run RAG
+python -m mmore rag --config-file ./examples/rag/rag_config_local.yaml
+```
+
+---
+
+### Installation Option 3: Docker
+
+**Note:** For manual installation without Docker, refer to the section below.
+
+#### Step 1: Install Docker
+
+Follow the official [Docker installation guide](https://docs.docker.com/get-started/get-docker/).
+
+#### Step 2: Build the Docker image
+
+```bash
+docker build . --tag mmore
+```
+
+To build for CPU-only platforms (results in a smaller image size):
+
+```bash
+docker build --build-arg PLATFORM=cpu -t mmore .
+```
+
+#### Step 3: Start an interactive session
+
+```bash
+docker run -it -v ./test_data:/app/test_data mmore
+```
+
+*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process_config.yaml`.
+
+#### Step 4: Run the application inside the container
+
+```bash
+# Run processing
+mmore process --config-file examples/process/config.yaml
+
+# Run indexer
 mmore index --config-file ./examples/index/indexer_config.yaml
 
-# run rag
+# Run RAG
 mmore rag --config-file ./examples/rag/rag_config_local.yaml
+```
+
+---
+
+### Manual Installation
+
+If you prefer to install without Docker, follow the installation options 1 or 2 above based on your preference.
+
+---
+
+### Minimal Example
+
+```python
+from mmore.process.processors.pdf_processor import PDFProcessor 
+from mmore.process.processors.base import ProcessorConfig
+from mmore.type import MultimodalSample
+
+pdf_file_paths = ["examples/sample_data/pdf/calendar.pdf"]
+out_file = "results/example.jsonl"
+
+pdf_processor_config = ProcessorConfig(custom_config={"output_path": "results"})
+pdf_processor = PDFProcessor(config=pdf_processor_config)
+result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
+
+MultimodalSample.to_jsonl(out_file, result_pdf)
 ```
 
 ### Usage
 
 To launch the MMORE pipeline follow the specialised instructions in the docs.
 
-![The MMORE pipelines archicture](resources/mmore_architecture.png)
+![The MMORE pipelines archicture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
+
 
 1. **:page_facing_up: Input Documents**  
    Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
