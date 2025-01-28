@@ -248,7 +248,7 @@ class Crawler:
 
     def __init__(
             self,
-            config: CrawlerConfig = None,
+            config: Optional[CrawlerConfig] = None,
             root_dirs: List[str] = None,
             output_path: str = None,
             lax_mode: bool = False,
@@ -323,10 +323,11 @@ class Crawler:
             logger.info(f"New total files to process: {sum(len(files) for files in files.values())}")
         return files
 
-    def crawl(self) -> DispatcherReadyResult:
+    def crawl(self, skip_already_processed: bool = False) -> DispatcherReadyResult:
         """
         Crawl the configured directories and URLs.
-
+        Args:
+            skip_already_processed (bool): if set to True, the crawler will scan the outputs folder and detect files that correspond to them, and skip them.
         Returns:
             DispatcherReadyResult: The result of the crawl operation, ready to be dispatched to the processors.
         """
@@ -353,7 +354,7 @@ class Crawler:
         urls: List[URLDescriptor] = self.files["url"]
         file_paths: Dict[str, List[FileDescriptor]] = self.files["local"]
 
-        if self.config.output_path:
+        if self.config.output_path and skip_already_processed:
             logger.info(f"Checking if some of those files to process have already been processed.")
             file_paths = self._filter_out_already_processed_files(files=file_paths, output_path=self.config.output_path)
 

@@ -5,6 +5,14 @@ processed_texts/
 *.lock
 *.zip
 *.log
+.local/
+.bashrc
+.zcompdump
+dask.yaml
+*.fish
+uv-receipt.json
+*.crl
+.gitconfig
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -113,6 +121,12 @@ tmp/
 scheduler-file.json
 requirements-dev.lock
 requirements.lock
+.
+examples/outputs/
+
+
+.venv
 
 # Examples
-examples
+examples/outputs
+outputs/

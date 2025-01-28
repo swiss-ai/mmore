@@ -6,14 +6,13 @@ The process module enables the extraction and standardization of text and images
 #### :technologist: Global installation
 Setup the project in each device you want to use using our setup script or looking at what it does and doing it manually.
 ```bash
-bash scripts/setup.sh
+pip install -e '.[all]'
 ```
 
 #### :computer: Running locally
 You need to specify the input folder by modifying the [config file](https://github.com/OpenMeditron/End2End/blob/dask-cuda-poc/examples/process_config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
 ```bash
-source .venv/bin/activate
-python run_process.py --config_file examples/process_config.yaml
+python -m mmore process --config-file examples/process/config.yaml
 ```
 The output of the pipeline has the following structure:
 ```
@@ -90,16 +89,13 @@ The project supports multiple file types and utilizes various AI-based tools for
 | **EML**                               | [python built-in library](https://docs.python.org/3/library/email.html) | N/A                                                                                                                         |
 | **MP4, MOV, AVI, MKV, MP3, WAV, AAC** | [moviepy](https://pypi.org/project/moviepy/) for video frame extraction; [whisper-large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) for transcription | [whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                  |
 | **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction                                      | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
-| **Webpages (TBD)**                         | [selenium](https://selenium-python.readthedocs.io/) to navigate the webpage; [requests](https://docs.python-requests.org/en/master/) for images; [surya](https://github.com/VikParuchuri/surya) for OCR and extraction | [selenium](https://selenium-python.readthedocs.io/) to navigate the webpage and extract content; [requests](https://docs.python-requests.org/en/master/) for images; [trafilatura](https://trafilatura.readthedocs.io/en/latest/) for content extraction |
+| **Webpages (TBD)**                         | TODO| [selenium](https://selenium-python.readthedocs.io/) to navigate the webpage and extract content; [requests](https://docs.python-requests.org/en/master/) for images; [trafilatura](https://trafilatura.readthedocs.io/en/latest/) for content extraction |
 ---
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
 
 ## :wrench: Customization
-The system is designed to be extensible, allowing you to register custom processors for handling new file types or specialized processing. To implement a new processor you need to inherit the `Processor` class and implement a minimum of 3 methods:
-- accepts: defines the file types your processor supports
-- process_implementation: to process a single file
-- require_gpu: to check if the processor requires a GPU
+The system is designed to be extensible, allowing you to register custom processors for handling new file types or specialized processing. To implement a new processor you need to inherit the `Processor` class and implement only two methods:
+- accepts: defines the file types your processor supports (e.g. docx)
+- process: how to process a single file (input:file type, output: Multimodal sample, see other processors for reference)
 
 See `TextProcessor` in `src/process/processors/text_processor.py` for a minimal example.
-
-The power of this achitecture is to easily accomodate for any new file type or processing method ! Feel free to add your own processors and share them with the community.

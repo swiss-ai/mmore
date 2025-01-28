@@ -1,7 +1,9 @@
 import re
 from typing import Dict, List, Any, Optional, Literal
 from dataclasses import dataclass, field
-from src.mmore.type import MultimodalSample
+
+from mmore.type import MultimodalSample
+
 from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker
 
@@ -64,7 +66,7 @@ class MultimodalChunker(BasePostProcessor):
             # Chunk using the text chunker
             text_chunks = self.text_chunker.chunk(sample.text)
         except Exception as e:
-            print(f"Chunking error on sample with length: {len(sample.text)} ")
+            logger.error(f"Chunking error on sample with length: {len(sample.text): {e}} ")
             return []
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)

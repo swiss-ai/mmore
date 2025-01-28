@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 import os
 from getpass import getpass
 
-from src.mmore.utils import load_config
+from ..utils import load_config
 
 _OPENAI_MODELS = ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo', 'davinci', 'curie', 'babbage', 'ada']
 _ANTHROPIC_MODELS = ['claude-1', 'claude-1.3', 'claude-2', 'claude-instant-1', 'claude-instant-1.1', 'claude-instant-1.2']
@@ -35,7 +35,7 @@ class LLMConfig:
     llm_name: str
     base_url: str = None
     organization: str = None
-    max_new_tokens: int = 100
+    max_new_tokens: int = None
     temperature: float = 0.7
 
     def __post_init__(self):
