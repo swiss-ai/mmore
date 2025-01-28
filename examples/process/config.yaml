@@ -2,6 +2,7 @@ dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
+  dashboard_backend_url: http://172.16.2.121:8000
   extract_images: true
   scheduler_file: scheduler-file.json #put absolute path!
   process_batch_sizes:

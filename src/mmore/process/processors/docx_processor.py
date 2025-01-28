@@ -6,7 +6,7 @@ from PIL import Image
 from src.mmore.process.utils import clean_text
 from src.mmore.type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
-from docx.opc.constants import RELATIONSHIP_TYPE as RT 
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class DOCXProcessor(Processor):
         super().__init__(config=config or ProcessorConfig())
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:  
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -49,7 +49,7 @@ class DOCXProcessor(Processor):
         defined in the processor configuration (e.g., "<attachment>").
         """
 
-        # First, we define a helper functions 
+        # First, we define a helper functions
         def _extract_images(doc: Document) -> List[Image.Image]:
             """
             Extract embedded images from the DOCX document.
@@ -77,7 +77,7 @@ class DOCXProcessor(Processor):
             logger.error(f"Failed to open Word file {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        if self.config.custom_config.get("extract_images", True): 
+        if self.config.custom_config.get("extract_images", True):
             embedded_images = _extract_images(doc)
         else:
             embedded_images = []
@@ -92,7 +92,7 @@ class DOCXProcessor(Processor):
             if self.config.custom_config.get("extract_images", True):
                 xml = para._p.xml
                 # check if there are any images in the paragraph, replace with <attachment> token
-                if "w:drawing" in xml: 
+                if "w:drawing" in xml:
                     all_text.append(self.config.attachment_tag)
 
         return self.create_sample(all_text, embedded_images, file_path)
