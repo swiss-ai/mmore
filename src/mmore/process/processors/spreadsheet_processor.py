@@ -6,9 +6,9 @@ from typing import List
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
-from src.mmore.process.utils import clean_text, create_sample
-from mmore.types.type import FileDescriptor
-from .processor import Processor, ProcessorConfig
+from src.mmore.process.utils import clean_text
+from src.mmore.types.type import FileDescriptor, MultimodalSample
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -22,16 +22,17 @@ class SpreadsheetProcessor(Processor):
         files (List[FileDescriptor]): List of files to be processed.
         config (ProcessorConfig): Configuration for the processor.
     """
-    def __init__(self, files, config=None):
+    def __init__(self, config=None):
         """
         Args:
             files (List[FileDescriptor]): List of files to process.
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
-        super().__init__(files, config=config or ProcessorConfig())
+        super().__init__(config=config or ProcessorConfig())
+
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(cls, file: FileDescriptor) -> bool: 
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -41,14 +42,7 @@ class SpreadsheetProcessor(Processor):
         """
         return file.file_extension.lower() in [".xlsx", ".xls", ".csv", ".tsv"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """        
-        return False, False
-
-    def process_implementation(self, file_path):
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a spreadsheet file to extract text and images (if applicable).
 
@@ -60,7 +54,7 @@ class SpreadsheetProcessor(Processor):
 
         The method extracts text from supported spreadsheet formats and images only from `.xlsx` files.
         """
-        # First, we define helper functions
+
         def _extract_text(file_path: str) -> str:
             """
             Extract text content from an Excel or CSV/TSV file.
@@ -141,7 +135,7 @@ class SpreadsheetProcessor(Processor):
                 return []
 
             try:
-                images = []
+                embedded_images = []
                 wb = load_workbook(filename=file_path, data_only=True)
                 for sheet in wb.worksheets:
                     if hasattr(sheet, "_images"):
@@ -151,15 +145,17 @@ class SpreadsheetProcessor(Processor):
                                 img = PILImage.open(io.BytesIO(img_bytes)).convert(
                                     "RGB"
                                 )
-                                images.append(img)
-                logger.info(f"Extracted {len(images)} images from {file_path}.")
-                return images
+                                embedded_images.append(img)
+                logger.info(f"Extracted {len(embedded_images)} images from {file_path}.")
+                return embedded_images
             except Exception as e:
                 logger.error(f"Failed to extract images from {file_path}: {e}")
                 return []
 
-        text = _extract_text(file_path)
-        cleaned_text = clean_text(text)
-        images = _extract_images(file_path)
-
-        return create_sample([cleaned_text], images, file_path)
+        all_text = clean_text(_extract_text(file_path))
+        if self.config.custom_config.get("extract_images", True):
+            embedded_images = _extract_images(file_path)
+        else: 
+            embedded_images = []
+        
+        return self.create_sample([all_text], embedded_images, file_path)

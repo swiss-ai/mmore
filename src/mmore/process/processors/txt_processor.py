@@ -1,8 +1,7 @@
 import logging
-from typing import List
 from src.mmore.process.utils import clean_text
-from mmore.types.type import FileDescriptor
-from .processor import Processor
+from src.mmore.types.type import FileDescriptor, MultimodalSample
+from .base import Processor
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +14,13 @@ class TextProcessor(Processor):
         files (List[FileDescriptor]): List of files to be processed.
         config (ProcessorConfig): Configuration for the processor.
     """
-    def __init__(self, files: List[FileDescriptor], config=None):
+    def __init__(self, config=None):
         """
         Args:
             files (List[FileDescriptor]): List of files to process.
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
-        super().__init__(files, config=config)
+        super().__init__(config=config)
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -34,14 +33,8 @@ class TextProcessor(Processor):
         """
         return file.file_extension.lower() in [".txt"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """
-        return False, False
 
-    def process_implementation(self, file_path: str) -> dict:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a text file, clean its content, and return a dictionary with the cleaned text.
 
@@ -53,13 +46,13 @@ class TextProcessor(Processor):
         """
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                text = f.read()
+                all_text = f.read()
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Failed to read file {file_path}: {e}")
-            return {"text": "", "modalities": []}
+            return self.create_sample([], [], file_path)
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error in file {file_path}: {e}")
-            return {"text": "", "modalities": []}
+            return self.create_sample([], [], file_path)
 
-        cleaned_text = clean_text(text)
-        return {"text": cleaned_text, "modalities": [], "metadata": {"file_path": file_path}}
+        all_text = clean_text(all_text)
+        return self.create_sample([all_text], [], file_path)

@@ -3,15 +3,16 @@ import io
 from docx import Document
 from typing import List
 from PIL import Image
-from src.mmore.process.utils import clean_text, create_sample
-from mmore.types.type import FileDescriptor
+from src.mmore.process.utils import clean_text
+from mmore.types.type import FileDescriptor, MultimodalSample
 from .processor import Processor, ProcessorConfig
+from docx.opc.constants import RELATIONSHIP_TYPE as RT 
 
 logger = logging.getLogger(__name__)
 
 
 class DOCXProcessor(Processor):
-    def __init__(self, files, config=None):
+    def __init__(self, config=None):
         """
         A processor for handling Microsoft Word documents (.docx). Extracts text content and embedded images.
 
@@ -20,10 +21,10 @@ class DOCXProcessor(Processor):
             config (ProcessorConfig): Config for the processor, which includes options such as
                                     the placeholder tag for embedded images (e.g., "<attachment>").
         """
-        super().__init__(files, config=config or ProcessorConfig())
+        super().__init__(config=config or ProcessorConfig())
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:
+    def accepts(cls, file: FileDescriptor) -> bool:  
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -33,14 +34,7 @@ class DOCXProcessor(Processor):
         """
         return file.file_extension.lower() in [".docx"]
 
-    def require_gpu(self) -> bool:
-        """
-        Returns:
-            tuple: A tuple (False, False) indicating no GPU requirement for both standard and fast modes.
-        """        
-        return False, False
-
-    def process_implementation(self, file_path: str) -> dict:
+    def process(self, file_path: str) -> MultimodalSample:
         """
         Process a single DOCX file. Extracts text content and embedded images.
 
@@ -55,7 +49,7 @@ class DOCXProcessor(Processor):
         defined in the processor configuration (e.g., "<attachment>").
         """
 
-        # First, we define a helper functions
+        # First, we define a helper functions 
         def _extract_images(doc: Document) -> List[Image.Image]:
             """
             Extract embedded images from the DOCX document.
@@ -68,18 +62,26 @@ class DOCXProcessor(Processor):
             """
             images = []
             for rel in doc.part.rels.values():
-                if "image" in rel.reltype:
-                    image = Image.open(io.BytesIO(rel.target_part.blob)).convert("RGB")
-                    images.append(image)
+                if rel.reltype == RT.IMAGE and not rel.is_external:
+                    try:
+                        blob = rel.target_part.blob
+                        image = Image.open(io.BytesIO(blob)).convert("RGB")
+                        images.append(image)
+                    except Exception as e:
+                        logger.error(f"Failed to extract image: {e}")
             return images
 
         try:
             doc = Document(file_path)
         except Exception as e:
             logger.error(f"Failed to open Word file {file_path}: {e}")
-            return create_sample([], [])
+            return self.create_sample([], [], file_path)
 
-        embedded_images = _extract_images(doc)
+        if self.config.custom_config.get("extract_images", True): 
+            embedded_images = _extract_images(doc)
+        else:
+            embedded_images = []
+
         all_text = []
         for para in doc.paragraphs:
             cleaned = clean_text(para.text)
@@ -87,9 +89,10 @@ class DOCXProcessor(Processor):
             if cleaned.strip():
                 all_text.append(cleaned)
 
-            xml = para._p.xml
-            # check if there are any images in the paragraph, replace with <attachment> token
-            if "w:drawing" in xml: 
-                all_text.append(self.config.attachment_tag)
+            if self.config.custom_config.get("extract_images", True):
+                xml = para._p.xml
+                # check if there are any images in the paragraph, replace with <attachment> token
+                if "w:drawing" in xml: 
+                    all_text.append(self.config.attachment_tag)
 
-        return create_sample(all_text, embedded_images, file_path)
+        return self.create_sample(all_text, embedded_images, file_path)

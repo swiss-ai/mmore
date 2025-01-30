@@ -1,0 +1,13 @@
+rag:
+  llm:
+    llm_name: meta-llama/Llama-3.2-3B-Instruct
+    max_new_tokens: 150
+  retriever: 
+    artifact_path: ./temp/artifacts/artifacts-meta-llama/Llama-3.3-70B-Instruct
+    output_dir: ./temp/artifacts/vector-stores/
+    dense_model: 
+      model_name: sentence-transformers/all-mpnet-base-v2
+mode: local
+mode_args:
+  input_file: ./examples/rag/queries.jsonl
+  output_file: ./examples/rag/graphrag/global/output.jsonl

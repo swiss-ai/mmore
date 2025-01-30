@@ -4,7 +4,8 @@ Supports multimodal documents with chunking capabilities.
 """
 from typing import List, Dict, Any, Literal
 from dataclasses import dataclass, field
-
+from ..utils import load_config
+from ..type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 
 from mmore.index.base_indexer import BaseIndexer, BaseIndexerConfig
@@ -142,7 +143,8 @@ class Indexer(BaseIndexer):
             model_name=self.dense_model_config.model_name,
             is_multimodal=self.dense_model_config.is_multimodal,
             metric_type="COSINE",
-            #params={"nlist": 128},
+            index_type="IVF_FLAT",
+            params={"nlist": 128},
         )
 
         logger.info(f"Creating index for sparse embeddings with model {self.sparse_model_config.model_name}")

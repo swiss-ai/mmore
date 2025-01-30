@@ -22,6 +22,7 @@ from langchain_core.retrievers import BaseRetriever
 from mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
 from mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
 from mmore.rag.implementations.graphrag.local_search.local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
+from mmore.rag.base_retriever import RetrieverConfig
 from mmore.rag.llm import LLM, LLMConfig
 from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
 from mmore.rag.types import QuotedAnswer, CitedAnswer
@@ -32,7 +33,7 @@ DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
 
 Context:
-{context}
+{context}d
 """
 
 
@@ -40,7 +41,7 @@ Context:
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
-    retriever: GraphRAGGlobalRetrieverConfig
+    retriever: RetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
@@ -74,7 +75,7 @@ class RAGPipeline:
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
         llm = LLM.from_config(config.llm)
-        retriever = GraphRAGGlobalRetriever.from_config(config.retriever, llm)
+        retriever = RegularRetriever.from_config(config.retriever, llm)
         chat_template = ChatPromptTemplate.from_messages(
             [
                 ("system", config.system_prompt),

@@ -1,0 +1,10 @@
+rag:
+  llm:
+    llm_name: meta-llama/Llama-3.3-70B-Instruct
+    organization: VLLM
+  retriever: 
+    artifact_path: ./temp/artifacts/artifacts-meta-llama/Llama-3.3-70B-Instruct
+mode: local
+mode_args:
+  input_file: ./examples/rag/icd11_queries.jsonl
+  output_file: ./examples/rag/graphrag/global/output.jsonl

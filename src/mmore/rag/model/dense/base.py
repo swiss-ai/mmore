@@ -2,6 +2,7 @@ from langchain_core.embeddings import Embeddings
 
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
+#from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_cohere import CohereEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_community.embeddings import FakeEmbeddings
@@ -44,6 +45,7 @@ _AWS_MODELS = [
 
 loaders = {
     'OPENAI': OpenAIEmbeddings,
+    #'GOOGLE': VertexAIEmbeddings,
     'COHERE': CohereEmbeddings,
     'MISTRAL': MistralAIEmbeddings,
     'HF': lambda model, **kwargs: HuggingFaceEmbeddings(model_name=model, model_kwargs={'trust_remote_code': True}, **kwargs),
