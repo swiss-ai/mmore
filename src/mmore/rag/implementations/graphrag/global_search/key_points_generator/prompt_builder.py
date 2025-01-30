@@ -2,7 +2,6 @@ from pathlib import Path
 
 from langchain_core.output_parsers.base import BaseOutputParser
 from langchain_core.prompts import (
-    BasePromptTemplate,
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
 )
@@ -32,7 +31,7 @@ class KeyPointsGeneratorPromptBuilder(PromptBuilder):
         self._show_references = show_references
         self._repeat_instructions = repeat_instructions
 
-    def build(self) -> tuple[BasePromptTemplate, BaseOutputParser]:
+    def build(self) -> tuple[ChatPromptTemplate, BaseOutputParser]:
         if self._system_prompt_path:
             prompt = Path.read_text(self._system_prompt_path)
         else:

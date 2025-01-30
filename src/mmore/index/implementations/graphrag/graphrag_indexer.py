@@ -4,13 +4,16 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 from langchain_text_splitters import TokenTextSplitter
+from langchain_core.language_models import LanguageModelLike
+from langchain_core.language_models.chat_models import BaseChatModel
+
+
 
 from mmore.types.type import MultimodalSample
 from mmore.utils import load_config
 from mmore.utils.graphrag.artifacts import save_artifacts, get_artifacts_dir_name
-from langchain_core.language_models import LanguageModelLike
 
-from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+from mmore.rag.llm import LLMConfig, LLM
 from mmore.rag.model.dense.base import DenseModel, DenseModelConfig
 
 
@@ -45,7 +48,7 @@ import os
 
 @dataclass
 class GraphRAGIndexerConfig(BaseIndexerConfig):
-    llm_model: str
+    llm: LLMConfig
     dense_model: DenseModelConfig
     output_dir: str = "./temp/artifacts"
     chunk_size: int = 1200
@@ -63,7 +66,7 @@ class GraphRAGIndexer(BaseIndexer):
     
     def __init__(
             self, 
-            llm_model: str,
+            llm: BaseChatModel,
             dense_model: DenseModel,
             collection_name: str, 
             output_dir: Path, 
@@ -71,9 +74,7 @@ class GraphRAGIndexer(BaseIndexer):
             chunk_overlap: int, 
             ):
         
-        os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
-        llm = vLLMWrapper(llm_model)
-        self.llm_model = llm_model
+        self.llm_model = llm._llm_type
 
         self.output_dir = output_dir
         
@@ -153,8 +154,10 @@ class GraphRAGIndexer(BaseIndexer):
             config = load_config(config, GraphRAGIndexerConfig)
 
         dense_model = DenseModel.from_config(config.dense_model)
+        llm = LLM.from_config(config.llm)
+        
         return cls(
-            llm_model=config.llm_model,
+            llm=llm,
             dense_model=dense_model,
             collection_name=collection_name,
             output_dir=config.output_dir,

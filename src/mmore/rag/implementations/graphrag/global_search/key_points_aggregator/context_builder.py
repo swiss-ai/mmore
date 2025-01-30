@@ -43,7 +43,7 @@ class KeyPointsContextBuilder:
                 )
                 report_token = self._token_counter.count_tokens(report)
                 if total_tokens + report_token > self._max_tokens:
-                    _LOGGER.warning("Reached max tokens for key points aggregation ...")
+                    _LOGGER.debug("Reached max tokens for key points aggregation ...")
                     max_token_limit_reached = True
                     break
                 total_tokens += report_token

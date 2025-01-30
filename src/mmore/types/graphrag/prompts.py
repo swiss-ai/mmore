@@ -1,12 +1,12 @@
 from typing import Any, Protocol
 
 from langchain_core.output_parsers.base import BaseOutputParser
-from langchain_core.prompts import BasePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from typing_extensions import Unpack
 
 
 class PromptBuilder(Protocol):
-    def build(self) -> tuple[BasePromptTemplate, BaseOutputParser]: ...
+    def build(self) -> tuple[ChatPromptTemplate, BaseOutputParser]: ...
 
 
 class IndexingPromptBuilder(PromptBuilder, Protocol):

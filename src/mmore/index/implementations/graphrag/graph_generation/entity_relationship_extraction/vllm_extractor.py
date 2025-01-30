@@ -8,6 +8,9 @@ import networkx as nx
 import pandas as pd
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.prompt_values import StringPromptValue
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ChatMessage
+from langchain_core.outputs import LLMResult
+
 from tqdm import tqdm
 
 from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
@@ -71,7 +74,7 @@ class vLLMEntityRelationshipExtractor(EntityRelationshipExtractor):
         for _, row in text_units.iterrows():
             chain_input = self._prompt_builder.prepare_chain_input(text_unit=row['text_unit'])
 
-            formatted_prompt = self._prompt_template.format(**chain_input)
+            formatted_prompt = self._prompt_template.format_messages(**chain_input)
             prompts.append({
                 'prompt': formatted_prompt,
                 'metadata': {
@@ -81,12 +84,12 @@ class vLLMEntityRelationshipExtractor(EntityRelationshipExtractor):
             })
         return prompts
     
-    def _process_vllm_outputs(self, outputs: List[str], metadata: List[Dict]) -> List[nx.Graph]:
+    def _process_vllm_outputs(self, outputs: List[LLMResult], metadata: List[Dict]) -> List[nx.Graph]:
         """Process vLLM outputs into graphs."""
         graphs = []
         for output, meta in zip(outputs, metadata):
             try:                
-                graph = self._output_parser.parse(output)
+                graph = self._output_parser.parse_result(output.generations[0])
                 
                 for node in graph.nodes():
                     graph.nodes[node]['text_unit_ids'] = [meta['text_id']]
@@ -118,8 +121,8 @@ class vLLMEntityRelationshipExtractor(EntityRelationshipExtractor):
 
         _LOGGER.info(f"Processing {len(prompts)} text units in parallel...")
 
-        outputs = self._llm(prompts, max_tokens=2048)
+        outputs = self._llm.generate(prompts, max_tokens=2048)
         
-        graphs = self._process_vllm_outputs(outputs, metadata)
+        graphs = self._process_vllm_outputs(outputs.flatten(), metadata)
         
         return graphs

@@ -4,12 +4,14 @@ from dataclasses import dataclass
 import logging
 from typing import List, Dict, Any
 from pathlib import Path
+import json
 
 from langchain_core.documents import Document
 from langchain_core.output_parsers.base import BaseOutputParser
-from langchain_core.prompts import BasePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 
 from mmore.rag.base_retriever import RetrieverConfig
 
@@ -47,12 +49,27 @@ def _format_docs(documents: list[Document]) -> str:
     context_data_str: str = "\n".join(context_data)
     return context_data_str
 
+def get_json_response(result: str) -> str : 
+    count = 0
+    first = -1
+    index = 0
+    for c in result:
+        if c == '{':
+            count += 1
+            first = result.index(c)
+        elif c == '}':
+            count -= 1
+        index += 1
+        if count == 0 and first != -1:
+            return result[first:index]
+    return result
+
 class GraphRAGGlobalRetriever(BaseRetriever):
     """Retriever for key points using vLLM-based language model."""
     llm : BaseChatModel
     community_report_context_builder: CommunityReportContextBuilder
     keypoints_context_builder: KeyPointsContextBuilder
-    prompt_template: BasePromptTemplate
+    prompt_template: ChatPromptTemplate
     output_parser: BaseOutputParser
 
     @classmethod
@@ -88,26 +105,21 @@ class GraphRAGGlobalRetriever(BaseRetriever):
         self, 
         query: str,
         document: Document
-    ) -> Dict[str, Any]:
+    ) -> List[BaseMessage]:
         """Prepare prompt for a single document."""
         context_data = _format_docs([document])
         chain_input = {"global_query": query, "context_data": context_data}
+        prompt = self.prompt_template.format_messages(**chain_input)
         
-        return self.prompt_template.format(**chain_input) 
+        return self.prompt_template.format_messages(**chain_input) 
 
     def _process_vllm_output(self, output: str) -> KeyPointsResult:
         """Process vLLM output into a KeyPointsResult object."""
         try:
             if "<|eot_id|><|start_header_id|>assistant<|end_header_id|>" in output:
                 output = output.split("<|eot_id|><|start_header_id|>assistant<|end_header_id|>")[1].strip()
-            if "--- Response ---" in output:
-                json_str = output.split("--- Response ---")[1].strip()
-            elif "Reponse: " in output:
-                json_str = output.split("Reponse: ")[1].strip()
-            elif "### Response" in output:
-                json_str = output.split("### Response")[1].strip()
-            else:
-                json_str = output.strip()
+            
+            json_str = get_json_response(output)
 
             return self.output_parser.parse(json_str)
 
@@ -125,20 +137,28 @@ class GraphRAGGlobalRetriever(BaseRetriever):
             List of Document objects containing relevant key points
         """
         context_documents = self.community_report_context_builder()
+
+        query = query["input"]
         
         all_prompts = [self._prepare_prompt(query, doc) for doc in context_documents]
         
         _LOGGER.info(f"Processing {len(all_prompts)} documents...")
         
         for idx, prompt in enumerate(all_prompts):
-            _LOGGER.debug(f"Prompt {idx}: {prompt}")
+           _LOGGER.debug(f"Prompt {idx}:\n {prompt}")
 
-        outputs = [self.llm.invoke(prompt).content for prompt in all_prompts]
+        outputs = self.llm.generate(all_prompts, max_tokens=2048)
+
+        results = []
+        for gens in outputs.generations:
+            for gen in gens:
+                text = gen.text
+                results.append(text)
         
-        for idx, output in enumerate(outputs):
-            _LOGGER.debug(f"Output {idx}: {output}")
+        for idx, result in enumerate(results):
+            _LOGGER.debug(f"Output {idx}: {result}")
 
-        result_keypoints = [self._process_vllm_output(output) for output in outputs]
+        result_keypoints = [self._process_vllm_output(result) for result in results]
 
         result_keypoints = dict(zip([f"Analyst-{i + 1}" for i in range(len(result_keypoints))], result_keypoints))
         

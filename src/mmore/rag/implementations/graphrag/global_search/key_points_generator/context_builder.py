@@ -88,7 +88,7 @@ class CommunityReportContextBuilder:
             report_str_token_count = self._token_counter.count_tokens(report_str)
 
             if token_count + report_str_token_count > self._max_tokens:
-                _LOGGER.warning("Reached max tokens for a community report call ...")
+                _LOGGER.debug("Reached max tokens for a community report call ...")
                 # we cut a new document here
                 documents.append(
                     Document(

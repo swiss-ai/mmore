@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import networkx as nx
 from langchain_core.runnables.config import RunnableConfig
+from langchain_core.outputs import LLMResult
 
 from typing import Any, List, Dict
 
@@ -55,7 +56,7 @@ class vLLMEntityRelationshipDescriptionSummarizer:
                 description_list=node["description"]
             )
             
-            formatted_prompt = self._prompt_template.format(**chain_input)
+            formatted_prompt = self._prompt_template.format_messages(**chain_input)
             prompts.append({
                 'prompt': formatted_prompt,
                 'metadata': {
@@ -78,7 +79,7 @@ class vLLMEntityRelationshipDescriptionSummarizer:
                 description_list=edge["description"]
             )
             
-            formatted_prompt = self._prompt_template.format(**chain_input)
+            formatted_prompt = self._prompt_template.format_messages(**chain_input)
             prompts.append({
                 'prompt': formatted_prompt,
                 'metadata': {
@@ -92,12 +93,12 @@ class vLLMEntityRelationshipDescriptionSummarizer:
     def _process_vllm_outputs(
         self, 
         graph: nx.Graph, 
-        outputs: List[str], 
+        outputs: List[LLMResult], 
         metadata: List[Dict]
     ) -> nx.Graph:
         """Process vLLM outputs and update the graph."""
         for output, meta in zip(outputs, metadata):
-            summary = self._output_parser.parse(output)
+            summary = self._output_parser.parse_result(output.generations[0])
 
             if "\n" in summary:
                 summary = summary.split("\n")[0]
@@ -128,7 +129,7 @@ class vLLMEntityRelationshipDescriptionSummarizer:
         all_prompts = node_prompts + edge_prompts
 
         for prompt in all_prompts:
-            _LOGGER.info(f"Prompt: {prompt['prompt']})")
+            _LOGGER.debug(f"Prompt: {prompt['prompt']})")
 
         if not all_prompts:
             return graph
@@ -140,9 +141,9 @@ class vLLMEntityRelationshipDescriptionSummarizer:
         metadata = [item['metadata'] for item in all_prompts]
         
         # Get vLLM outputs
-        outputs = self._llm(prompts, max_tokens=512)
+        outputs = self._llm.generate(prompts, max_tokens=512)
         
         # Process outputs and update graph
-        graph = self._process_vllm_outputs(graph, outputs, metadata)
+        graph = self._process_vllm_outputs(graph, outputs.flatten(), metadata)
         
         return graph

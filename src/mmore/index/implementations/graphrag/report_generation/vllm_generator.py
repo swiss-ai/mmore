@@ -16,6 +16,8 @@ from .generator import CommunityReportGenerator
 from .prompt_builder import CommunityReportGenerationPromptBuilder
 from .utils import CommunityReportResult
 
+import json
+
 _LOGGER = logging.getLogger(__name__)
 
 class vLLMCommunityReportGenerator(CommunityReportGenerator):
@@ -63,9 +65,82 @@ class vLLMCommunityReportGenerator(CommunityReportGenerator):
                 graph=graph,
             )
             
-            formatted_prompt = self._prompt_template.format(**chain_input)
+            formatted_prompt = self._prompt_template.format_messages(**chain_input)
             prompts.append(formatted_prompt)
         return prompts
+    
+    def _validate_and_fix_json(self, text: str) -> str:
+        """
+        Validates and fixes JSON output from LLM before passing to parser.
+        Ensures all findings have both summary and explanation fields.
+    
+        Args:
+            text (str): The JSON string from LLM
+    
+        Returns:
+            str: Fixed JSON string ready for parsing
+        """
+        try:
+            data = json.loads(text)
+        
+            if "findings" not in data or not isinstance(data["findings"], list):
+                data["findings"] = []
+                
+            complete_findings = []
+            for finding in data["findings"]:
+                if not isinstance(finding, dict):
+                    continue
+                    
+                if "summary" in finding and "explanation" not in finding:
+                    continue
+                    
+                if "summary" in finding and "explanation" in finding:
+                    complete_findings.append(finding)
+            
+            data["findings"] = complete_findings
+            
+            return json.dumps(data, indent=4)
+            
+        except json.JSONDecodeError:
+            try:
+                lines = text.split("\n")
+                complete_json = []
+                findings_started = False
+                last_complete_index = -1
+                
+                for i, line in enumerate(lines):
+                    if '"findings": [' in line:
+                        findings_started = True
+                    
+                    if findings_started and '"explanation":' in line:
+                        last_complete_index = i
+                        
+                    complete_json.append(line)
+                
+                if last_complete_index == -1:
+                    return '\n'.join(lines[:-1]) + '"\n     }\n        ]\n}'
+                
+                complete_json = lines[:last_complete_index + 1]
+                
+                if complete_json[-1].strip().endswith(","):
+                    complete_json[-1] = complete_json[-1].rstrip(",")
+                    
+                complete_json.extend([
+                    "           \"}",
+                    "        ]",
+                    "    }"
+                ])
+                
+                return '\n'.join(complete_json)
+                
+            except Exception as e:
+                return json.dumps({
+                    "title": "",
+                    "summary": "",
+                    "rating": 0.0,
+                    "rating_explanation": "",
+                    "findings": []
+                })
 
     def _process_vllm_outputs(
         self, 
@@ -74,10 +149,14 @@ class vLLMCommunityReportGenerator(CommunityReportGenerator):
         """Process vLLM outputs into community reports."""
         reports = []
         for output in outputs:
-
-            report = self._output_parser.parse(output)
-            reports.append(report)
-                
+            try :
+                output = self._validate_and_fix_json(output)
+                report = self._output_parser.parse(output)
+                reports.append(report)
+            except Exception as e:
+                _LOGGER.error(f"Error processing output: {str(e)} \n for output {output}")
+                reports.append(CommunityReportResult(title="", summary="", rating=0.0, rating_explanation="", findings=[]))
+                    
         return reports
 
     def invoke(
@@ -104,16 +183,20 @@ class vLLMCommunityReportGenerator(CommunityReportGenerator):
 
 
         
-        outputs = self._llm(prompts, max_tokens=2048)
+        outputs = self._llm.generate(prompts, max_tokens=2048)
 
-        for i in range(len(outputs)):
-            outputs[i] = "{" + outputs[i].split("{", 1)[1]
-            if "```" in outputs[i]:
-                outputs[i] = outputs[i].split("```")[0]
+        results = []
+        for gens in outputs.generations:
+            for gen in gens:
+                text = gen.text
+                text = "{" + text.split("{", 1)[1]
+                if "```" in text:
+                    text = text.split("```")[0]
+                text = text.replace(", {}", "")
+                results.append(text)
             
-            outputs[i] = outputs[i].replace(", {}", "")
 
 
-        reports = self._process_vllm_outputs(outputs)
+        reports = self._process_vllm_outputs(results)
         
         return reports[0] if not isinstance(community, list) else reports

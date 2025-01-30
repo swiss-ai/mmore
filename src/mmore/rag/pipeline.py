@@ -22,10 +22,11 @@ from langchain_core.retrievers import BaseRetriever
 from mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
 from mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
 from mmore.rag.implementations.graphrag.local_search.local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
-from src.mmore.rag.llm import LLM, LLMConfig
-from src.mmore.rag.types import QuotedAnswer, CitedAnswer
+from mmore.rag.llm import LLM, LLMConfig
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+from mmore.rag.types import QuotedAnswer, CitedAnswer
 
-from src.mmore.utils import load_config
+from mmore.utils import load_config
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
@@ -39,7 +40,7 @@ Context:
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
-    retriever: GraphRAGLocalRetrieverConfig
+    retriever: GraphRAGGlobalRetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
@@ -54,7 +55,7 @@ class RAGPipeline:
     def __init__(
             self,
             retriever: BaseRetriever,
-            prompt_template: str,
+            prompt_template: ChatPromptTemplate,
             llm: BaseChatModel,
     ):
         # Get modules
@@ -73,7 +74,7 @@ class RAGPipeline:
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
         llm = LLM.from_config(config.llm)
-        retriever = GraphRAGLocalRetriever.from_config(config.retriever)
+        retriever = GraphRAGGlobalRetriever.from_config(config.retriever, llm)
         chat_template = ChatPromptTemplate.from_messages(
             [
                 ("system", config.system_prompt),
@@ -86,7 +87,6 @@ class RAGPipeline:
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
         """Format documents for prompt."""
-        print(docs)
         return "\n\n".join(f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs)
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 

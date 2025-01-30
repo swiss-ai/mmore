@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.output_parsers.base import BaseOutputParser
-from langchain_core.prompts import BasePromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from typing_extensions import Unpack
 
 from mmore.types.graphrag.prompts import IndexingPromptBuilder
@@ -63,7 +63,6 @@ class EntityExtractionPromptBuilder(IndexingPromptBuilder):
 
         Args:
             prompt (str | None, optional): The prompt string.
-            prompt_path (Path | None, optional): The path to the prompt file.
             entity_types (list[str], optional): The list of entity types.
             tuple_delimiter (str, optional): The delimiter for tuples.
             record_delimiter (str, optional): The delimiter for records.
@@ -71,10 +70,8 @@ class EntityExtractionPromptBuilder(IndexingPromptBuilder):
         """  # noqa: D202
 
         self._prompt: str | None
-        if prompt is None and prompt_path is None:
+        if prompt is None:
             self._prompt = DEFAULT_ER_EXTRACTION_PROMPT
-        else:
-            self._prompt = prompt
 
         self._prompt_path = prompt_path
 
@@ -83,7 +80,7 @@ class EntityExtractionPromptBuilder(IndexingPromptBuilder):
         self._record_delimiter = record_delimiter
         self._completion_delimiter = completion_delimiter
 
-    def build(self) -> tuple[BasePromptTemplate, BaseOutputParser]:
+    def build(self) -> tuple[ChatPromptTemplate, BaseOutputParser]:
         """Build the template and output parser.
 
         Note:
@@ -95,10 +92,9 @@ class EntityExtractionPromptBuilder(IndexingPromptBuilder):
             and the `EntityExtractionOutputParser` object.
         """
         if self._prompt:
-            prompt_template = PromptTemplate.from_template(self._prompt)
-        else:
-            assert self._prompt_path is not None
-            prompt_template = PromptTemplate.from_file(self._prompt_path)
+            prompt_template = ChatPromptTemplate.from_template(self._prompt)
+
+        
 
         return (
             prompt_template.partial(

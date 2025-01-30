@@ -9,6 +9,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_mistralai import ChatMistralAI
 from langchain_cohere import ChatCohere
 
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+
 from dataclasses import dataclass, field
 
 import os
@@ -26,7 +28,8 @@ loaders = {
     "ANTHROPIC": ChatAnthropic,
     "MISTRAL": ChatMistralAI,
     "COHERE": ChatCohere,
-    "HF": ChatHuggingFace
+    "HF": ChatHuggingFace,
+    "VLLM": vLLMWrapper
 }
 
 # TODO (@paultltc): Add generation kwargs
@@ -53,7 +56,7 @@ class LLMConfig:
 
     @property
     def generation_kwargs(self):
-        max_token_key = "max_new_tokens" if (self.organization in ["ANTHROPIC", "MISTRAL", "COHERE", "HF"]) \
+        max_token_key = "max_new_tokens" if (self.organization in ["ANTHROPIC", "MISTRAL", "COHERE", "HF", "VLLM"]) \
                          else "max_completion_tokens"
         return {
             "temperature": self.temperature,
@@ -68,7 +71,7 @@ class LLMConfig:
         else:
             return "EMPTY"
     
-class LLM(BaseChatModel):
+class LLM():
     """Class parsing the model name and arguments to load the correct LangChain model"""
     @staticmethod
     def _check_key(org):
@@ -90,6 +93,10 @@ class LLM(BaseChatModel):
             ))
             chat_models.llm.pipeline.tokenizer.pad_token_id = chat_models.llm.pipeline.tokenizer.eos_token_id
             return chat_models
+        elif config.organization == "VLLM":
+            return vLLMWrapper(
+                model_name=config.llm_name
+            )
         else:
             loader = loaders.get(config.organization, ChatOpenAI)
             return loader(

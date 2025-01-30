@@ -89,12 +89,13 @@ class EntitiesArtifactsGenerator:
                     ),  # TODO: Remove once langchain is fixed
                 )
             )
-
+        """
         self._entities_vector_store.add_texts(
             texts_to_embed,
             metadatas=texts_metadata,
             ids=texts_ids,
         )
+        """
 
         entity_to_commnunities_map = _make_entity_to_communities_map(detection_result)
 
