@@ -4,8 +4,8 @@ Supports multimodal documents with chunking capabilities.
 """
 from typing import List, Dict, Any, Literal
 from dataclasses import dataclass, field
-from ..utils import load_config
-from ..type import MultimodalSample
+from mmore.utils import load_config
+from mmore.types.type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 
 from mmore.index.base_indexer import BaseIndexer, BaseIndexerConfig

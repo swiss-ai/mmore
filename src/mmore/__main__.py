@@ -55,10 +55,11 @@ def postprocess(config_file, input_data):
 @click.option('--config-file', '-c', type=str, required=True, help='Path to the configuration file.')
 @click.option('--input-data', '-f', type=str, required=True, help='Path to the JSONL data.')
 @click.option('--collection-name', '-n', type=str, required=True, help='Name of the collection to index.')
-def index(config_file, input_data, collection_name):
+@click.option('--indexer-type', '-i', type=str, default='regular', help='Type of indexer to use (regular or graphrag).')
+def index(config_file, input_data, collection_name, indexer_type):
     """Run the indexer."""
     from .run_index import index as run_index
-    run_index(config_file, input_data, collection_name)
+    run_index(config_file, input_data, collection_name, indexer_type)
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')
@@ -70,7 +71,7 @@ def retrieve(config_file, input_file, output_file):
     run_retrieve(config_file, input_file, output_file)
 
 @main.command()
-@click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
+@click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')
 def rag(config_file):
     """Run the Retrieval-Augmented Generation (RAG) pipeline."""
     from .run_rag import rag as run_rag

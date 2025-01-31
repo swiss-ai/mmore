@@ -1,4 +1,5 @@
 rag:
+  rag_type: graphrag
   llm:
     llm_name: meta-llama/Llama-3.3-70B-Instruct
     organization: VLLM

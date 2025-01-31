@@ -4,7 +4,7 @@ RAG pipeline.
 Integrates Milvus retrieval with HuggingFace text generation.
 """
 
-from typing import Union, List, Dict, Optional, Any
+from typing import Union, List, Dict, Optional, Any, Type
 from abc import ABC
 
 from dataclasses import dataclass, field
@@ -22,10 +22,12 @@ from langchain_core.retrievers import BaseRetriever
 from mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
 from mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
 from mmore.rag.implementations.graphrag.local_search.local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
+
 from mmore.rag.base_retriever import RetrieverConfig
 from mmore.rag.llm import LLM, LLMConfig
 from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
 from mmore.rag.types import QuotedAnswer, CitedAnswer
+
 
 from mmore.utils import load_config
 
@@ -41,13 +43,24 @@ Context:
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
-    retriever: RetrieverConfig
+    retriever: GraphRAGGlobalRetrieverConfig
+    rag_type: str = "regular"
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
 
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
+
+    _indexers: Dict[str, Type[BaseRetriever]] = {
+        "graphrag": GraphRAGGlobalRetriever,
+        "regular": RegularRetriever
+    }
+    
+    _config_types: Dict[str, Type[RetrieverConfig]] = {
+        "graphrag": GraphRAGGlobalRetrieverConfig,
+        "regular": RegularRetrieverConfig
+    }
 
     retriever: BaseRetriever
     llm: BaseChatModel
@@ -71,11 +84,11 @@ class RAGPipeline:
         return str(self.rag_chain)
 
     @classmethod
-    def from_config(cls, config: str | RAGConfig):
+    def from_config(cls, config: str | RAGConfig) -> 'RAGPipeline':
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
         llm = LLM.from_config(config.llm)
-        retriever = RegularRetriever.from_config(config.retriever, llm)
+        retriever = cls._indexers[config.rag_type].from_config(config.retriever, llm=llm)
         chat_template = ChatPromptTemplate.from_messages(
             [
                 ("system", config.system_prompt),
