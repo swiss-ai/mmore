@@ -1,0 +1,5 @@
+llm:
+  llm_name: meta-llama/Llama-3.3-70B-Instruct
+  organization: VLLM
+dense_model: 
+  model_name: BAAI/bge-small-en

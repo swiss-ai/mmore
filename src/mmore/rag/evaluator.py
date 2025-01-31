@@ -9,12 +9,11 @@ from ragas.metrics import LLMContextPrecisionWithReference, LLMContextRecall, Co
 from ragas.metrics import FactualCorrectness, SemanticSimilarity
 
 from langchain_huggingface import HuggingFaceEmbeddings
-from ..rag.pipeline import RAGPipeline, RAGConfig
-from ..index.indexer import IndexerConfig, Indexer, DBConfig
-from ..rag.retriever import RetrieverConfig
-from ..rag.llm import LLM, LLMConfig
-from ..type import MultimodalSample
-from ..utils import load_config
+from mmore.rag.pipeline import RAGPipeline, RAGConfig
+from mmore.index.implementations.regular_rag.indexer import IndexerConfig, Indexer
+from src.mmore.rag.llm import LLM, LLMConfig
+from mmore.types.type import MultimodalSample
+from src.mmore.utils import load_config
 from typing import Union, List
 from dataclasses import dataclass, field
 

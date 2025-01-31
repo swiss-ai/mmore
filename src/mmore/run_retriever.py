@@ -1,7 +1,9 @@
 from dotenv import load_dotenv
 load_dotenv() 
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from src.mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
+from src.mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
+from src.mmore.rag.base_retriever import RetrieverConfig
 from tqdm import tqdm
 import time
 
@@ -46,7 +48,7 @@ def retrieve(config_file, input_file, output_file):
     config = load_config(config_file, RetrieverConfig)
 
     logger.info('Running retriever...')
-    retriever = Retriever.from_config(config.retriever)
+    retriever = RegularRetriever.from_config(config.retriever)
     logger.info('Retriever loaded!')
     
     queries = read_queries(Path(input_file))  # Added missing argument

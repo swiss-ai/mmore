@@ -4,8 +4,8 @@ from docx import Document
 from typing import List
 from PIL import Image
 from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
-from .base import Processor, ProcessorConfig
+from mmore.types.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 from docx.opc.constants import RELATIONSHIP_TYPE as RT 
 
 logger = logging.getLogger(__name__)

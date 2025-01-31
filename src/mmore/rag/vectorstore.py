@@ -24,7 +24,7 @@ from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbeddi
 
 from langchain_milvus import Milvus
 
-from type import MultimodalSample
+from mmore.types.type import MultimodalSample
 import collections
 import sys
 import nltk

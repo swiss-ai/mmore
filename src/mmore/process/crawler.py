@@ -2,7 +2,7 @@ import os
 import logging
 from typing import List, Dict, Optional
 import validators
-from src.mmore.type import FileDescriptor, URLDescriptor
+from mmore.types.type import FileDescriptor, URLDescriptor
 
 logger = logging.getLogger(__name__)
 

@@ -2,13 +2,13 @@ import logging
 from typing import List
 import trafilatura
 from src.mmore.process.utils import clean_text
-from src.mmore.type import URLDescriptor
+from src.mmore.types.type import URLDescriptor
 from .base import Processor, ProcessorConfig
 import re 
 import requests
 from PIL import Image
 import io
-from src.mmore.type import MultimodalSample
+from src.mmore.types.type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 

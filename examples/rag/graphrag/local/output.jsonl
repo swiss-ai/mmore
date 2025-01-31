@@ -1,0 +1,122 @@
+[
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen was Barack Obama born?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nAugust 4, 1961.",
+    "context": "",
+    "input": "When was Barack Obama born?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere was Barack Obama born?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nHonolulu, Hawaii.",
+    "context": "",
+    "input": "Where was Barack Obama born?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho founded Google LLC?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nGoogle LLC was founded by Larry Page and Sergey Brin in 1998.",
+    "context": "",
+    "input": "Who founded Google LLC?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nGoogle LLC is headquartered in Mountain View, California.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin have a direct relationship with each other as co-founders.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere is Google LLC headquartered?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nGoogle LLC is headquartered in Mountain View, California.",
+    "context": "[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nGoogle LLC is headquartered in Mountain View, California.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin have a direct relationship with each other as co-founders.\n\n",
+    "input": "Where is Google LLC headquartered?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhat is the location of the Eiffel Tower?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nThe Eiffel Tower is located in Paris, France.",
+    "context": "",
+    "input": "What is the location of the Eiffel Tower?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere is the Eiffel Tower located?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nThe Eiffel Tower is located in Paris, France.",
+    "context": "",
+    "input": "Where is the Eiffel Tower located?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nThe report does not contain any information about an artificial intelligence conference<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen will the artificial intelligence conference be held?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nThe report does not contain any information about an artificial intelligence conference\n\n",
+    "input": "When will the artificial intelligence conference be held?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere will the artificial intelligence conference take place?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Where will the artificial intelligence conference take place?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere was the package shipped from by Amazon?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Where was the package shipped from by Amazon?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere did Amazon ship the package to?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Where did Amazon ship the package to?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho announced the next SpaceX rocket launch?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Who announced the next SpaceX rocket launch?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen will SpaceX launch its next rocket?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "When will SpaceX launch its next rocket?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere will SpaceX launch its next rocket from?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Where will SpaceX launch its next rocket from?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen was Fran\u00e7ois Hollande born?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nFran\u00e7ois Hollande was born on December 15, 1951.",
+    "context": "",
+    "input": "When was Fran\u00e7ois Hollande born?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere was Fran\u00e7ois Hollande born?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nFran\u00e7ois Hollande was born in Poitiers, France.",
+    "context": "",
+    "input": "Where was Fran\u00e7ois Hollande born?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nGoogle LLC is the central entity in the community, being a company with its headquarters in Mountain View, California.\n\n\n\n[70.0] \n--- Analyst-1 ---\n\nImportance Score: 70.0\n\nMountain View, California is the location of Google LLC's headquarters.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho founded Google LLC?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nLarry Page and Sergey Brin are the co-founders of Google LLC.",
+    "context": "[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nGoogle LLC is the central entity in the community, being a company with its headquarters in Mountain View, California.\n\n\n\n[70.0] \n--- Analyst-1 ---\n\nImportance Score: 70.0\n\nMountain View, California is the location of Google LLC's headquarters.\n\n",
+    "input": "Who founded Google LLC?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nGoogle LLC is headquartered in Mountain View, California.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nMountain View, California is the location of Google LLC's headquarters.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere is the headquarters of Google LLC?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nMountain View, California",
+    "context": "[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nGoogle LLC is headquartered in Mountain View, California.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nMountain View, California is the location of Google LLC's headquarters.\n\n",
+    "input": "Where is the headquarters of Google LLC?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere is the Tour Eiffel located?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nThe Tour Eiffel is located in Paris, France.",
+    "context": "",
+    "input": "Where is the Tour Eiffel located?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nThe provided reports do not mention a conference on artificial intelligence.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen will the conference on intelligence artificielle take place?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nThe provided reports do not mention a conference on artificial intelligence.\n\n",
+    "input": "When will the conference on intelligence artificielle take place?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[95.0] \n--- Analyst-1 ---\n\nImportance Score: 95.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nThe community revolves around Google LLC, a company headquartered in Mountain View, California.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin have a direct relationship with each other as co-founders.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nAs co-founders of Google LLC, Larry Page and Sergey Brin are likely to have significant influence on the company's decisions and actions.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nMountain View, California is the location of Google LLC's headquarters.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere will the intelligence artificielle conference be held?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "[95.0] \n--- Analyst-1 ---\n\nImportance Score: 95.0\n\nLarry Page and Sergey Brin are co-founders of Google LLC.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nThe community revolves around Google LLC, a company headquartered in Mountain View, California.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nLarry Page and Sergey Brin have a direct relationship with each other as co-founders.\n\n\n\n[90.0] \n--- Analyst-1 ---\n\nImportance Score: 90.0\n\nAs co-founders of Google LLC, Larry Page and Sergey Brin are likely to have significant influence on the company's decisions and actions.\n\n\n\n[80.0] \n--- Analyst-1 ---\n\nImportance Score: 80.0\n\nMountain View, California is the location of Google LLC's headquarters.\n\n",
+    "input": "Where will the intelligence artificielle conference be held?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho announced the next campaign for LVMH?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Who announced the next campaign for LVMH?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen will LVMH launch its next campaign for the Paris 2024 Olympics?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "When will LVMH launch its next campaign for the Paris 2024 Olympics?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:\n[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nLa Poste is a French postal service, and it is not clear if it shipped the package from France or another location.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere was the package shipped from by La Poste?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "[0.0] \n--- Analyst-1 ---\n\nImportance Score: 0.0\n\nLa Poste is a French postal service, and it is not clear if it shipped the package from France or another location.\n\n",
+    "input": "Where was the package shipped from by La Poste?"
+  },
+  {
+    "answer": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\nToday Date: 27 Jan 2025\n\nUse the following context to answer the questions. If none of the context answer the question, just say you don't know.\n\nContext:<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere did La Poste send the package to?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't know.",
+    "context": "",
+    "input": "Where did La Poste send the package to?"
+  }
+]

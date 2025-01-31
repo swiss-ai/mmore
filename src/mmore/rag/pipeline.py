@@ -4,7 +4,8 @@ RAG pipeline.
 Integrates Milvus retrieval with HuggingFace text generation.
 """
 
-from typing import Union, List, Dict, Optional, Any
+from typing import Union, List, Dict, Optional, Any, Type
+from abc import ABC
 
 from dataclasses import dataclass, field
 
@@ -16,24 +17,34 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from .retriever import Retriever, RetrieverConfig
-from .llm import LLM, LLMConfig
-from .types import QuotedAnswer, CitedAnswer
+from langchain_core.retrievers import BaseRetriever
 
-from ..utils import load_config
+from mmore.rag.implementations.regular_rag.retriever import RegularRetriever, RegularRetrieverConfig
+from mmore.rag.implementations.graphrag.global_search.global_retriever import GraphRAGGlobalRetriever, GraphRAGGlobalRetrieverConfig
+from mmore.rag.implementations.graphrag.local_search.local_retriever import GraphRAGLocalRetriever, GraphRAGLocalRetrieverConfig
+
+from mmore.rag.base_retriever import RetrieverConfig
+from mmore.rag.llm import LLM, LLMConfig
+from mmore.index.implementations.graphrag.vllm_model import vLLMWrapper
+from mmore.rag.types import QuotedAnswer, CitedAnswer
+
+
+from mmore.utils import load_config
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
 
 Context:
-{context}
+{context}d
 """
+
 
 
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
-    retriever: RetrieverConfig
+    retriever: GraphRAGGlobalRetrieverConfig
+    rag_type: str = "regular"
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
     system_prompt: str = DEFAULT_PROMPT
 
@@ -41,14 +52,24 @@ class RAGConfig:
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
 
-    retriever: Retriever
+    _indexers: Dict[str, Type[BaseRetriever]] = {
+        "graphrag": GraphRAGGlobalRetriever,
+        "regular": RegularRetriever
+    }
+    
+    _config_types: Dict[str, Type[RetrieverConfig]] = {
+        "graphrag": GraphRAGGlobalRetrieverConfig,
+        "regular": RegularRetrieverConfig
+    }
+
+    retriever: BaseRetriever
     llm: BaseChatModel
     prompt_template: str
 
     def __init__(
             self,
-            retriever: Retriever,
-            prompt_template: str,
+            retriever: BaseRetriever,
+            prompt_template: ChatPromptTemplate,
             llm: BaseChatModel,
     ):
         # Get modules
@@ -63,12 +84,11 @@ class RAGPipeline:
         return str(self.rag_chain)
 
     @classmethod
-    def from_config(cls, config: str | RAGConfig):
+    def from_config(cls, config: str | RAGConfig) -> 'RAGPipeline':
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
-
-        retriever = Retriever.from_config(config.retriever)
         llm = LLM.from_config(config.llm)
+        retriever = cls._indexers[config.rag_type].from_config(config.retriever, llm=llm)
         chat_template = ChatPromptTemplate.from_messages(
             [
                 ("system", config.system_prompt),
@@ -111,7 +131,7 @@ class RAGPipeline:
         if isinstance(queries, Dict):
             queries = [queries]
 
-        results = self.rag_chain.batch(queries)
+        results = [self.rag_chain.invoke(query) for query in queries]
 
         if return_dict:
             return results

@@ -6,7 +6,7 @@ from tqdm import tqdm
 from dataclasses import dataclass, field
 
 from mmore.process.post_processor import BasePostProcessor
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 
 @dataclass
 class BaseTaggerConfig:

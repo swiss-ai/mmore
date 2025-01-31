@@ -5,8 +5,6 @@ from langchain_openai import OpenAIEmbeddings
 #from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_cohere import CohereEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
-from langchain_aws import BedrockEmbeddings
 from langchain_community.embeddings import FakeEmbeddings
 
 from .multimodal import MultimodalEmbeddings
@@ -50,8 +48,6 @@ loaders = {
     #'GOOGLE': VertexAIEmbeddings,
     'COHERE': CohereEmbeddings,
     'MISTRAL': MistralAIEmbeddings,
-    'NVIDIA': NVIDIAEmbeddings,
-    'AWS': BedrockEmbeddings,
     'HF': lambda model, **kwargs: HuggingFaceEmbeddings(model_name=model, model_kwargs={'trust_remote_code': True}, **kwargs),
     'FAKE': lambda **kwargs: FakeEmbeddings(size=2048), # For testing purposes, don't use in production
 }

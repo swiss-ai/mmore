@@ -5,7 +5,7 @@ import io
 import logging
 from PIL import Image, UnidentifiedImageError
 from typing import List
-from src.mmore.type import FileDescriptor, MultimodalSample
+from src.mmore.types.type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 from src.mmore.process.utils import clean_text, clean_image
 

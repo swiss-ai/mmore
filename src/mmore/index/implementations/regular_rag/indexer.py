@@ -4,11 +4,13 @@ Supports multimodal documents with chunking capabilities.
 """
 from typing import List, Dict, Any, Literal
 from dataclasses import dataclass, field
-from ..utils import load_config
-from ..type import MultimodalSample
+from mmore.utils import load_config
+from mmore.types.type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 
-from mmore.type import MultimodalSample
+from mmore.index.base_indexer import BaseIndexer, BaseIndexerConfig
+
+from mmore.types.type import MultimodalSample
 from mmore.utils import load_config
 
 from langchain_core.embeddings import Embeddings
@@ -28,7 +30,7 @@ class DBConfig:
     name: str = 'my_db'
 
 @dataclass
-class IndexerConfig:
+class IndexerConfig(BaseIndexerConfig):
     """Configuration for the Indexer class. Currently db is local, if you wish to use Milvus standalone please check the Milvus documentation."""
     dense_model: DenseModelConfig
     sparse_model: SparseModelConfig
@@ -38,7 +40,7 @@ class IndexerConfig:
         if isinstance(self.db, dict):
             self.db = DBConfig(**self.db)
 
-class Indexer:
+class Indexer(BaseIndexer):
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
@@ -211,7 +213,7 @@ class Indexer:
         self._log_collection_stats(collection_name)
 
         # Index documents 
-        inserted = self._index_documents(
+        inserted = self.index_documents(
             documents,
             collection_name=collection_name,
             partition_name=partition_name,

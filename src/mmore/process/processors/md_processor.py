@@ -1,8 +1,8 @@
 import logging
 import markdown
 import markdownify
-from src.mmore.type import FileDescriptor, MultimodalSample
-from .base import Processor, ProcessorConfig
+from src.mmore.types.type import FileDescriptor, MultimodalSample
+from .processor import Processor, ProcessorConfig
 import tempfile
 from PIL import Image
 import os

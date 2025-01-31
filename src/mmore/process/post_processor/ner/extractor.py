@@ -21,7 +21,7 @@ from langchain_core.output_parsers.base import BaseOutputParser
 
 from .output_parser import EntityExtractionOutputParser
 
-from mmore.type import MultimodalSample
+from mmore.types.type import MultimodalSample
 from mmore.rag.llm import LLM, LLMConfig
 
 _LOGGER = logging.getLogger(__name__)

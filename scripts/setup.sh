@@ -13,3 +13,12 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4
 curl -LsSf https://astral.sh/uv/install.sh | sh
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrcuv sync
 source .venv/bin/activate
+
+python -m ensurepip --default-pip 
+pip install -r requirements.txt 
+pip install -r rag_requirements.txt 
+pip install -r graphrag_requirements.txt 
+huggingface-cli login
+
+export VLLM_WORKER_MULTIPROC_METHOD=spawn
+export PYTHONPATH=/mloscratch/homes/ordonnea/mmore/src/ 
