@@ -1,5 +1,7 @@
 import logging
 from typing import Any, Dict, List, Type, Tuple, Optional
+
+from .execution_state import ExecutionState
 from .processors.url_processor import URLProcessor
 from .crawler import DispatcherReadyResult, FileDescriptor
 from .processors.base import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
@@ -65,6 +67,7 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
+    dashboard_backend_url: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -81,6 +84,7 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
+            dashboard_backend_url=config.get("dashboard_backend_url", None)
         )
 
     @staticmethod
@@ -105,6 +109,7 @@ class DispatcherConfig:
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,
+            "dashboard_backend_url": self.dashboard_backend_url
         }
 
     def __str__(self) -> str:
@@ -119,6 +124,7 @@ class DispatcherConfig:
             f"process_batch_sizes={self.process_batch_sizes}, "
             f"batch_multiplier={self.batch_multiplier}"
             f"extract_images={self.extract_images}"
+            f"dashboard_backend_url={self.dashboard_backend_url}"
             f")"
         )
 
@@ -165,6 +171,8 @@ class Dispatcher:
         """
         Dispatches the tasks locally.
         """
+        ExecutionState.initialize(distributed_mode=False)
+
         processor_configs = self.config.processor_config or {}
 
         for processor, files in task_lists:
@@ -176,7 +184,7 @@ class Dispatcher:
             logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
-            processor_config = ProcessorConfig(custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_url=self.config.dashboard_backend_url, custom_config=processor_config)
             proc = processor(processor_config)
             res = proc(files, self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
@@ -193,6 +201,7 @@ class Dispatcher:
             kwargs["scheduler_file"] = absolute_scheduler_path
 
         client = Client(**kwargs)
+        ExecutionState.initialize(distributed_mode=True, client=client)
 
         futures = []
         processor_configs = self.config.processor_config or {}
@@ -207,7 +216,7 @@ class Dispatcher:
                 f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
 
-            processor_config = ProcessorConfig(custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_url=self.dashboard_url, custom_config=processor_config)
 
             def process_files(files, processor_config, processor_name) -> Tuple[List[MultimodalSample], str]:
                 return processor(processor_config)(files, self.config.use_fast_processors), processor_name
@@ -306,7 +315,7 @@ class Dispatcher:
     def save_individual_processor_results(self, results: List[MultimodalSample], cls_name) -> None:
         if not self.config.output_path:
             return
-        
+
         processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")

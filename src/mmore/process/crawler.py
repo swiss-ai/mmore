@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 from typing import List, Dict, Optional
@@ -47,6 +48,9 @@ class DispatcherReadyResult:
             for file_path in file_list
         ]
 
+    def __len__(self):
+        return len(self.urls) + sum(len(file_list) for file_list in self.file_paths.values())
+
     def __repr__(self):
         """
         Returns a string representation of the DispatcherReadyResult object.
@@ -88,6 +92,70 @@ class DispatcherReadyResult:
         return DispatcherReadyResult(urls=urls, file_paths=file_paths)
 
 
+class FindAlreadyComputedFiles:
+    """
+    This class is used to get the list of all files that have already been processed.
+    It will traverse the output_path directory and get all the results.jsonl files
+    where in each line (representing a sample) we have the metadata of the file_path that was used to create that sample.
+    > See create_sample in utils.py (file_path is in metadata of the sample).
+
+    Reminder here is the structure of the output_path directory (see DispatcherConfig):
+    output_path
+    ├── processors
+    | ├── Processor_type_1
+    | | └── results.jsonl
+    | ├── Processor_type_2
+    | | └── results.jsonl
+    | ├── ...
+    |
+    └── merged
+        └── merged_results.jsonl
+    """
+
+    def __init__(self, output_path: str):
+        """
+        output_path: the path where the output of the Process is stored.
+        """
+        if output_path is None:
+            raise ValueError("output_path must be provided.")
+        self.output_path = output_path
+
+    def _get_all_samples_jsonl_paths(self, output_path):
+        # Get all the results.jsonl files in the output_path directory.
+        samples_files = []
+        for root, _, files in os.walk(output_path):
+            for file in files:
+                if file.endswith("results.jsonl"):
+                    samples_files.append(os.path.join(root, file))
+        return samples_files
+
+    def _get_metadata_jsonl_path(self, results_jsonl_path):
+        # read jsonl file and for each item in the file, get the metadata's file_path
+        # return the list of all file_path in this jsonl file
+        file_paths = []
+        with open(results_jsonl_path, "r") as f:
+            for i, line in enumerate(f):
+                data = json.loads(line)
+                if "metadata" in data and "file_path" in data["metadata"]:
+                    file_paths.append(data["metadata"]["file_path"])
+                else:
+                    print(f"Warning file_path not found in metadate (line{i} of {results_jsonl_path})")
+        return file_paths
+
+    def get_all_files_already_processed(self) -> set[str]:
+        """
+        This function returns the set of all files path's that have already been processed.
+        Returns:
+             set of all files path's that have already been processed.
+        """
+        samples = self._get_all_samples_jsonl_paths(self.output_path)
+        files_already_processed = set()
+        for f in samples:
+            l = self._get_metadata_jsonl_path(f)
+            files_already_processed.update(l)
+        return files_already_processed
+
+
 class CrawlerConfig:
     """
     Configuration for the Crawler.
@@ -96,10 +164,12 @@ class CrawlerConfig:
         root_dirs (List[str]): List of root directories to crawl.
         supported_extensions (List[str]): List of file extensions to include.
     """
+
     def __init__(
             self,
             root_dirs: List[str],
             supported_extensions: Optional[List[str]] = None,
+            output_path: Optional[str] = None,
     ):
         """
         Initialize a CrawlerConfig object.
@@ -107,9 +177,11 @@ class CrawlerConfig:
         Args:
             root_dirs (List[str]): List of root directories to crawl.
             supported_extensions (Optional[List[str]]): List of file extensions to include.
+            output_path (Optional[str]): Path to the output directory, useful to take a look at the already processed files and discard them.
         """
         self.root_dirs = root_dirs
         self.supported_extensions = supported_extensions or []
+        self.output_path = output_path
 
     @staticmethod
     def from_dict(config: Dict):
@@ -125,6 +197,7 @@ class CrawlerConfig:
         return CrawlerConfig(
             root_dirs=config.get("root_dirs", []),
             supported_extensions=config.get("supported_extensions", None),
+            output_path=config.get("output_path", None),
         )
 
     @staticmethod
@@ -158,6 +231,7 @@ class CrawlerConfig:
         return {
             "root_dirs": self.root_dirs,
             "supported_extensions": self.supported_extensions,
+            "output_path": self.output_path,
         }
 
 
@@ -171,10 +245,12 @@ class Crawler:
         dirs (List[str]): List of directories to crawl.
         lax_mode (bool): Whether to skip unrecognized paths or raise an error.
     """
+
     def __init__(
             self,
-            config: CrawlerConfig = None,
+            config: Optional[CrawlerConfig] = None,
             root_dirs: List[str] = None,
+            output_path: str = None,
             lax_mode: bool = False,
     ):
         """
@@ -183,6 +259,7 @@ class Crawler:
         Args:
             config (CrawlerConfig): The crawler configuration.
             root_dirs (List[str]): List of root directories to crawl.
+            output_path (str): Path to the output directory, useful to take a look at the already processed files and discard them.
             lax_mode (bool): Whether to skip unrecognized paths or raise an error.
 
         Raises:
@@ -192,7 +269,9 @@ class Crawler:
         if not config:
             if not root_dirs:
                 raise ValueError("Either config or root_dirs must be provided.")
-            config = CrawlerConfig(root_dirs=root_dirs)
+            if not output_path:
+                raise ValueError("Either config or output_path must be provided.")
+            config = CrawlerConfig(root_dirs=root_dirs, output_path=output_path)
 
         self.config = config
         self.files = {"local": {}, "url": []}
@@ -222,10 +301,33 @@ class Crawler:
                             FileDescriptor.from_filename(filepath)
                         )
 
-    def crawl(self) -> DispatcherReadyResult:
+    def _filter_out_already_processed_files(self, files: Dict[str, List[FileDescriptor]], output_path: str) -> Dict[
+        str, List[FileDescriptor]]:
+        """
+        Avoid processing files that have already been processed.
+        Immutable function.
+        Args:
+            files: the crawled files that want to be processed. We want to remove the files that have already been processed.
+            output_path: the path where the outputs of the "process" is stored.
+        Returns:
+            filtered out 'files' to process.
+        """
+        all_files_done: set[str] = FindAlreadyComputedFiles(output_path).get_all_files_already_processed()
+        logger.info(f"Found {len(all_files_done)} files already processed.")
+
+        for root_dir, files_in_dir in files.items():
+            files[root_dir] = [f for f in files_in_dir if f.file_path not in all_files_done]
+
+        if len(all_files_done) > 0:
+            logger.info(f"Removed {len(all_files_done)} files already processed.")
+            logger.info(f"New total files to process: {sum(len(files) for files in files.values())}")
+        return files
+
+    def crawl(self, skip_already_processed: bool = False) -> DispatcherReadyResult:
         """
         Crawl the configured directories and URLs.
-
+        Args:
+            skip_already_processed (bool): if set to True, the crawler will scan the outputs folder and detect files that correspond to them, and skip them.
         Returns:
             DispatcherReadyResult: The result of the crawl operation, ready to be dispatched to the processors.
         """
@@ -249,6 +351,11 @@ class Crawler:
         )
         logger.info(f"Found {total_files} files/URLs to process.")
 
-        return DispatcherReadyResult(
-            urls=self.files["url"], file_paths=self.files["local"]
-        )
+        urls: List[URLDescriptor] = self.files["url"]
+        file_paths: Dict[str, List[FileDescriptor]] = self.files["local"]
+
+        if self.config.output_path and skip_already_processed:
+            logger.info(f"Checking if some of those files to process have already been processed.")
+            file_paths = self._filter_out_already_processed_files(files=file_paths, output_path=self.config.output_path)
+
+        return DispatcherReadyResult(urls=urls, file_paths=file_paths)

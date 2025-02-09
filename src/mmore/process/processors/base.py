@@ -3,9 +3,11 @@ from abc import ABC, abstractmethod
 import datetime
 import logging
 import tempfile
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
+from src.mmore.dashboard.backend.client import DashboardClient
 from src.mmore.process.crawler import FileDescriptor, URLDescriptor
+from src.mmore.process.execution_state import ExecutionState
 from src.mmore.type import MultimodalSample, MultimodalRawInput
 from PIL import Image
 import torch.multiprocessing as mp
@@ -22,8 +24,9 @@ class ProcessorConfig:
         custom_config (Dict[str, Any]): Dictionary of custom configurations.
     """
 
-    def __init__(self, attachement_tag: str = "<attachment>", custom_config: Dict[str, Any] = {}):
+    def __init__(self, attachement_tag: str = "<attachment>", dashboard_backend_url: Optional[str] = None, custom_config: Dict[str, Any] = {}):
         self.attachment_tag = attachement_tag
+        self.dashboard_backend_url = dashboard_backend_url
         self.custom_config = custom_config
         self.custom_config["attachment_tag"] = attachement_tag
 
@@ -142,8 +145,13 @@ class Processor(ABC):
         Returns:
             List[MultimodalSample]: The result of the processing operation.
         """
+        if ExecutionState.get_should_stop_execution():
+            logger.warning("ExecutionState says to stop, Processor execution aborted")
+            return []
         files_paths = [file.file_path for file in files]
-        res = self.process_batch(files_paths, fast, num_workers=os.cpu_count()) # self.config.num_workers ...
+        res = self.process_batch(files_paths, fast, num_workers=os.cpu_count())
+        new_state = self.ping_dashboard(files_paths)
+        ExecutionState.set_should_stop_execution(new_state)
         return res
 
     def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
@@ -243,3 +251,14 @@ class Processor(ABC):
         Get size of the file (in bytes).
         """
         return os.path.getsize(file_path)
+
+    def ping_dashboard(self, finished_file_paths) -> bool:
+        """
+        Sends a ping to the dashboard to indicate that the processing is complete.
+        Opportunity to check if the processing should be stopped (the idea is to not do this at the beginning of the process for tradeoff/performance reasons).
+        """
+        if os.environ.get("RANK") is not None:
+            worker_id = os.environ.get("RANK")
+        else:
+            worker_id = os.getpid()
+        return DashboardClient(self.config.dashboard_backend_url).report(worker_id, finished_file_paths)

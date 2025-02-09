@@ -1,6 +1,7 @@
 import time
 from typing import List
 
+from src.mmore.dashboard.backend.client import DashboardClient
 from .type import MultimodalSample
 from .utils import load_config
 
@@ -33,13 +34,13 @@ class ProcessInference:
     data_path: str
     dispatcher_config: DispatcherConfig
 
-def process(config_file):
+def process(config_file: str):
     """Process documents from a directory."""
     click.echo(f'Dispatcher configuration file path: {config_file}')
 
     overall_start_time = time.time()
 
-    config = load_config(config_file, ProcessInference)
+    config: ProcessInference = load_config(config_file, ProcessInference)
         
     if config.data_path:
         data_path = config.data_path
@@ -52,16 +53,8 @@ def process(config_file):
             ".mp3", ".wav", ".aac",  # Audio files
             ".eml", # Emails 
         ],
+        output_path=config.dispatcher_config.output_path
     )
-    # elif isinstance(config.crawler_config, str):
-    #     # TODO: Bug? crawler_config was never specified in args
-    #     crawler_config = CrawlerConfig.from_yaml(args.crawler_config)
-    # elif isinstance(config.crawler_config, dict):
-    #     # TODO: Bug? crawler_config was never specified in args
-    #     crawler_config = CrawlerConfig.from_dict(args.crawler_config)
-    # else:
-    #     raise ValueError("Invalid crawler configuration")
-    
     logger.info(f"Using crawler configuration: {crawler_config}")
     crawler = Crawler(config=crawler_config)
 
@@ -69,16 +62,17 @@ def process(config_file):
     crawl_result = crawler.crawl()
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
-    #logger.info(crawl_result)
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")
 
-    dispatcher_config = config.dispatcher_config
+    dispatcher_config: DispatcherConfig= config.dispatcher_config
+
+    url = dispatcher_config.dashboard_backend_url
+    DashboardClient(url).init_db(len(crawl_result))
     
     logger.info(f"Using dispatcher configuration: {dispatcher_config}")
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
 
     dispatch_start_time = time.time()
-    results = []
     results = list(dispatcher())
     
     dispatch_end_time = time.time()

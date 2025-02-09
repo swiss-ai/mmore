@@ -61,7 +61,11 @@ process = [
     "trafilatura==1.4.0",
     "datatrove[processing]",
     "validators==0.34.0",
-    "bokeh"
+    "bokeh",
+    "motor==3.6.0",
+    "fastapi[standard]==0.115.6",
+    "pydantic== 2.10.4",
+    "pymongo==4.9.2"
 ]
 
 rag = [
