@@ -35,7 +35,7 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
 
 2. Start your RAG pipeline using the `run_rag.py` script and your config file
     ```bash
-    python src/mmore/rag/run_rag.py --config_file /path/to/config.yaml
+    python -m src.mmore.run_rag --config_file /path/to/config.yaml
     ```
 
 3. Query the server like any other LangServe server

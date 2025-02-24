@@ -101,4 +101,8 @@ def rag(config_file):
     
 
 if __name__ == '__main__':
-    rag()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file")
+    args = parser.parse_args()
+
+    rag(args.config_file)
