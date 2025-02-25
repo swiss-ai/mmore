@@ -39,4 +39,10 @@ def index(config_file, input_data, collection_name):
     logger.info("Documents indexed!")
 
 if __name__ == '__main__':
-    index()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file", required=True, help="Path to the index configuration file.")
+    parser.add_argument("--input_data", required=True, help="Path to the jsonl of the documents.")
+    parser.add_argument("--collection_name", required=True)
+
+    args = parser.parse_args()
+    index(args.config_file, args.input_data, args.collection_name)
