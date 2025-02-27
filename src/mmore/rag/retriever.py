@@ -9,6 +9,7 @@ from ..utils import load_config
 
 from mmore.index.indexer import get_model_from_index
 from mmore.index.indexer import DBConfig
+from mmore.rag.model import DenseModel, SparseModel
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
@@ -179,6 +180,9 @@ class Retriever(BaseRetriever):
             run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
+        if self.k == 0:
+            return []
+
         # For compatibility
         if isinstance(query.get('partition_name', None), str):
             query['partition_name'] = [query['partition_name']]
