@@ -9,6 +9,7 @@ from ..utils import load_config
 
 from mmore.index.indexer import get_model_from_index
 from mmore.index.indexer import DBConfig
+from mmore.rag.model import DenseModel, SparseModel
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
