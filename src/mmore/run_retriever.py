@@ -65,4 +65,10 @@ def retrieve(config_file, input_file, output_file):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file", required=True, help="Path to the index configuration file.")
+    parser.add_argument("--input_file", required=True, help="Path to the input file of queries.")
+    parser.add_argument("--output_file", required=True, help="Path to the output file of selected documents.")
+
+    args = parser.parse_args()
     retrieve()
