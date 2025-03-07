@@ -1,6 +1,6 @@
 ### Install dependencies
 ```bash
-pip install -r requirements.txt
+pip install -r backend_requirements.txt
 ```
 ### Run the backend on port 8000
 ```bash
