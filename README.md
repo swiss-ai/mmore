@@ -101,6 +101,7 @@ uv sync --extra cpu
 Activate the virtual environment before running commands:
 
 ```bash
+python -m venv .venv
 source .venv/bin/activate
 ```
 
