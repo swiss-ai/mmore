@@ -53,7 +53,12 @@ class PDFProcessor(Processor):
                 )
                 results = []
                 for file_path in files:
-                    results.append(self.process(file_path))
+                    try:
+                        res = self.process(file_path)
+                        results.append(res)
+                    except Exception as e:
+                        logging.error(f"Failed to process {file_path}: {str(e)}")
+
                 return results
             else: # Multiple GPUs available
                 batches = self._split_files(files, num_gpus)
