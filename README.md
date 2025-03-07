@@ -108,13 +108,13 @@ Alternatively, prepend each command with `uv run`:
 
 ```bash
 # Run processing
-python -m mmore process --config_file examples/process_config.yaml
+python -m mmore process --config-file examples/process/config.yaml
 
 # Run indexer
-python -m mmore index --config-file ./examples/index/indexer_config.yaml
+python -m mmore index --config-file examples/index/config.yaml
 
 # Run RAG
-python -m mmore rag --config-file ./examples/rag/rag_config_local.yaml
+python -m mmore rag --config-file examples/rag/api/rag_api.yaml
 ```
 
 ---
@@ -154,10 +154,10 @@ docker run -it -v ./test_data:/app/test_data mmore
 mmore process --config-file examples/process/config.yaml
 
 # Run indexer
-mmore index --config-file ./examples/index/indexer_config.yaml
+mmore index --config-file examples/index/config.yaml
 
 # Run RAG
-mmore rag --config-file ./examples/rag/rag_config_local.yaml
+mmore rag --config-file examples/rag/api/rag_api.yaml
 ```
 
 ---
@@ -174,11 +174,11 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
 
 2. [**:mag: Process**](./docs/process.md) 
-   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible ! Add your own processors to handle new file types.  
+   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.  
    *Supports fast processing for specific types.*
 
 3. [**:file_folder: Index**](./docs/index.md) 
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and only need to provide a standard API. 
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. 
 
 4. [**:robot: RAG**](./docs/rag.md) 
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
@@ -186,7 +186,7 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
 
 5. **:tada: Evaluation**  
    *Coming soon*
-   An easy way to evaluate the performance of your RAG system using Ragas
+   An easy way to evaluate the performance of your RAG system using Ragas.
 
 See [the `/docs` directory](/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
 
@@ -195,7 +195,7 @@ See [the `/docs` directory](/docs) for additional details on each modules and ha
 
 | **Category**      | **File Types**                           | **Supported Device**      |  **Fast Mode**      |
 |--------------------|------------------------------------------|--------------------------| --------------------------|
-| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML              | CPU                      | :x:
+| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML           | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
 | **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
@@ -209,9 +209,10 @@ We welcome contributions to improve the current state of the pipeline, feel free
 - Open a pull request to fix a bug or add a new feature
 - You can find ongoing new features and bugs in the [Issues]
    
-Don't hesitate to star the project :star: if you find it interesting! (you would be our star)
+Don't hesitate to star the project :star: if you find it interesting! (you would be our star).
 
 ## License
+
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
 
 ## Acknowledgements
