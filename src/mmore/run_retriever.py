@@ -40,8 +40,11 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
     with open(output_file, 'w') as f:
         json.dump(formatted_results, f, indent=2)
 
-def retrieve(config_file, input_file, output_file):
-    """Retrieve documents for specified queries."""
+def retrieve(config_file, input_file, output_file, document_ids=None):
+    """Retrieve documents for specified queries.
+    
+    If 'document_ids' is provided, function bypasses the vectore-based similarity search and instead retrieved only the documents with the given IDs"""
+
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
 
@@ -50,18 +53,37 @@ def retrieve(config_file, input_file, output_file):
     logger.info('Retriever loaded!')
     
     queries = read_queries(Path(input_file))  # Added missing argument
-    # Measure time for the retrieval process
-    logger.info("Starting document retrieval...")
-    start_time = time.time()  # Start timer
-    retrieved_docs = [retriever.invoke(query) for query in tqdm(queries, desc="Retrieving documents", unit="query")] 
-    end_time = time.time()  # End timer
-    
-    time_taken = end_time - start_time
-    logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
-    logger.info(f'Retrieved documents!')
 
-    save_results(retrieved_docs, queries, Path(output_file))  # Added missing argument
-    logger.info(f"Done! Results saved to {output_file}")
+    # Process the document_ids provided, split into individual IDs, strip any extra whitespace, and filter out any empty strings
+    if document_ids:
+        doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()]
+    else:
+        doc_ids_list = []
+
+    if doc_ids_list:
+        logger.info(f"Manual document IDs specified: {doc_ids_list}")
+
+        # Retrieve specified documents once from Milvus
+        # Since these documents are to be used for all queries, we replicate the same list of retrieved documents for each query
+        retrieved_docs_all = [retriever.get_documents_by_ids(doc_ids_list)] * len(queries)
+
+        # Save the results along with the queries to the output file
+        save_results(retrieved_docs_all, queries, Path(output_file))
+        logger.info(f"Done! Results saved to {output_file}")
+
+    else:
+        # Measure time for the retrieval process
+        logger.info("Starting document retrieval...")
+        start_time = time.time()  # Start timer
+        retrieved_docs = [retriever.invoke(query) for query in tqdm(queries, desc="Retrieving documents", unit="query")] 
+        end_time = time.time()  # End timer
+        
+        time_taken = end_time - start_time
+        logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
+        logger.info(f'Retrieved documents!')
+
+        save_results(retrieved_docs, queries, Path(output_file))  # Added missing argument
+        logger.info(f"Done! Results saved to {output_file}")
 
 
 if __name__ == "__main__":

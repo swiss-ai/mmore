@@ -201,3 +201,36 @@ class Retriever(BaseRetriever):
             )
             for i, result in enumerate(results[0])
         ]
+    
+    def get_documents_by_ids(self, doc_ids: list[str], collection_name: str = 'my_docs') -> list[Document]:
+        """
+        Fetch documents with the specified IDs from Milvus (if they exist).
+        """
+
+        # If no document IDs are provided, return empty list
+        if not doc_ids:
+            return []
+        
+        # Build a comma-seperated string of document IDs, each wrapped in double quotes
+        # example: if doc_ids = ["doc1", "doc2"],
+        # ids_str becomes '"doc1", "doc2"'
+        # This format is required for querying the "id" PK field in Milvus which is a VARCHAR
+        ids_str = ",".join(f'"{d}"' for d in doc_ids)
+        expr = f"id in [{ids_str}]"
+
+        logger.info(f"Querying Milvus by expr: {expr}")
+
+        results = self.client.query(collection_name, expr, ["id", "text"])
+
+        # If the query returned no results, log a warning
+        if not results:
+            logger.warning(f"Warning: No documents found for the given IDs: {doc_ids}")
+
+        # Convert the returned rows into Document objects
+        # Each document contains the text and metadata
+        return [
+            Document(
+                page_content=row["text"],
+                metadata={"id": row["id"]}
+            ) for row in results
+        ]

@@ -63,11 +63,12 @@ def index(config_file, documents_path, collection_name):
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')
 @click.option('--input-file', '-f', type=str, required=True, help='Path to the input file.')
+@click.option('--document-ids', '-d', type=str, required=False, help='Comma-seperated list of document IDs.')
 @click.option('--output-file', '-o', type=str, required=True, help='Path to the output file.')
-def retrieve(config_file, input_file, output_file):
+def retrieve(config_file, input_file, output_file, document_ids):
     """Retrieve documents for specified queries."""
     from .run_retriever import retrieve as run_retrieve
-    run_retrieve(config_file, input_file, output_file)
+    run_retrieve(config_file, input_file, output_file, document_ids)
 
 @main.command()
 @click.option('--config-file', type=str, required=True, help='Dispatcher configuration file path.')
