@@ -88,7 +88,7 @@ mkdir -p ~/mongodb
 
 Creates a directory in root folder to store MongoDB data files. 
 
-> **Important**: This directory and all data will be deleted when the job terminates as the home directory is not persistent storage. 
+> 🚨 **Important**: This directory and all data will be deleted when the job terminates as the home directory is not persistent storage. 
 
 6. **Start the MongoDB Server**
 
@@ -177,7 +177,7 @@ export MONGODB_URL="mongodb://localhost:27017"
 
 Sets the environment variable to tell the backend how to connect to MongoDB instance
 
-> **Important**: Your MongoDB server should be active before starting the backend.
+> 🚨 **Important**: Your MongoDB server should be active before starting the backend.
 
 4. **Start the Backend Server**
 
@@ -194,7 +194,7 @@ This command:
 - Binds it to all network interfaces (0.0.0.0)
 - Makes it listen on port 8000
 
-> **Important**: Keep this terminal window open. The backend runs in the foreground and closing the terminal will shut down the server.
+> 🚨 **Important**: Keep this terminal window open. The backend runs in the foreground and closing the terminal will shut down the server.
 
 5. **Verify the Backend is Running**
 
@@ -296,3 +296,9 @@ Return to your browser where the frontend is running to see the visualization�
 </details>
 
 ###
+## ✅ Success!
+You’ve now set up the **m(m)ore Dashboard**! 🚀
+
+👉 Next steps:  
+- Start using the dashboard  
+- Check the logs for any errors  
