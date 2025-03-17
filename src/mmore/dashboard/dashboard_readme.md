@@ -18,8 +18,8 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
 
 Each element shown above is created in a different terminal. This means that you will need to have 4 terminals running to launch the dashboard successfully.
 
-## Terminal 1: MongoDB  Setup
-
+<details>
+  <summary><h2>Terminal 1: MongoDB Setup</h2></summary>
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
 ![image.png](doc_images/image%205.png)
@@ -136,7 +136,7 @@ To use this script:
 3. Run it each time you need MongoDB: `./start_mongodb.sh`
 
 This script automatically checks if MongoDB is installed, installs it if needed, and starts the server.
-
+</details>
 ## Terminal 2: **Backend Setup**
 
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
