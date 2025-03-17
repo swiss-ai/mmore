@@ -6,8 +6,6 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
 
 ![image.png](doc_images/image.png)
 
-|  |   |
-|------------|---|
 | **Frontend:** the actual dashboard user interface (UI), and what will be displayed on your screen. | ![Frontend](doc_images/image%201.png) |
 | **Database:** the database which stores information about the file processing. | ![Database](doc_images/image%202.png) |
 | **Processing Pipeline:** the pipeline processing your documents for which you want to be able to visualize on the dashboard. | ![Pipeline](doc_images/image%203.png) |
