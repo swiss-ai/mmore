@@ -31,12 +31,14 @@ Each element shown above is created in a different terminal. This means that you
 
 <details>
   <summary><h3>Terminal 1: MongoDB Setup</h3></summary>
+  
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
 <p align="center">
   <img src="doc_images/image%205.png" width="500">
 </p>
-> **Note:** These steps must be repeated each time you submit a new runai job. 
+
+> ✏️**Note:** These steps must be repeated each time you submit a new runai job. 
 
 ### Manual Setup Instructions
 
@@ -79,7 +81,7 @@ sudo apt-get install -y mongodb-org
 sudo apt-get install -y mongodb-org=8.0.5 mongodb-org-database=8.0.5 mongodb-org-server=8.0.5 mongodb-mongosh mongodb-org-mongos=8.0.5 mongodb-org-tools=8.0.5
 ```
 
-> **Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
+> ✏️**Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
 
 5. **Create Data Directory**
 
@@ -104,7 +106,8 @@ This starts MongoDB with the following configuration:
 
 In your current terminal you should see MongoDB logs and messages appearing. This means that your terminal is successfully running the MongoDB server in your terminal. 
 
-> **Important**: : Keep this terminal window open. MongoDB runs in the foreground and closing the terminal will shut down the server. The server listens on port 27017 by default.
+> 🚨 **Important**: Keep this terminal window open. MongoDB runs in the foreground and closing the terminal will shut down the server. 
+> ✏️ **Note**: The server listens on port 27017 by default.
 
 7. **Shutting down MongoDB**
 
@@ -156,6 +159,7 @@ This backend serves as the bridge between the **database,** the **frontend** and
 <p align="center">
   <img src="doc_images/image%206.png" width="500">
 </p>
+
 ### Setup Instructions
 
 1. **Activate Virtual Environment** 
@@ -216,6 +220,7 @@ This frontend serves as the user-facing component of the system, providing an  
 <p align="center">
   <img src="doc_images/image%207.png" width="500">
 </p>
+
 1. **Load Node Version Manager**
 
 ```bash
@@ -269,7 +274,9 @@ Executes the development script defined in package.json, and starts a local dev
 
 To complete the dashboard setup, you need to run a process module that will generate data for visualization in the UI. 
 
-![image.png](doc_images/image%208.png)
+<p align="center">
+  <img src="doc_images/image%208.png" width="500">
+</p>
 
 1. **Modify Configuration File**
 
