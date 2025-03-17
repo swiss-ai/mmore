@@ -19,7 +19,7 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
 
 <div style="display: flex; align-items: center; gap: 20px;">
     <img src="doc_images/image%201.png" alt="Frontend" width="100">
-        <strong>Frontend:</strong> the actual dashboard user interface (UI), and what will be displayed on your screen.
+        :the actual dashboard user interface (UI), and what will be displayed on your screen.
 </div>
 
 <div style="display: flex; align-items: center; gap: 20px;">
