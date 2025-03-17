@@ -5,6 +5,9 @@ Works in conjunction with the Indexer class for document retrieval.
 
 from typing import List, Dict, Any, Tuple, Literal, get_args
 from dataclasses import dataclass, field
+
+from mmore.rag.model.dense.base import DenseModel
+from mmore.rag.model.sparse.base import SparseModel
 from ..utils import load_config
 
 from mmore.index.indexer import get_model_from_index
@@ -225,6 +228,13 @@ class Retriever(BaseRetriever):
         # If the query returned no results, log a warning
         if not results:
             logger.warning(f"Warning: No documents found for the given IDs: {doc_ids}")
+        else:
+            # Extract IDs of retrieved documents.
+            found_ids = {row["id"] for row in results}
+            # Determine which requested IDs were not found (if any)
+            missing_ids = [doc_id for doc_id in doc_ids if doc_id not in found_ids]
+            if missing_ids:
+                logger.warning(f"Warning: The following IDs were not found: {missing_ids}")
 
         # Convert the returned rows into Document objects
         # Each document contains the text and metadata
