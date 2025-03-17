@@ -276,7 +276,7 @@ Executes the development script defined in package.json, and starts a local dev
 To complete the dashboard setup, you need to run a process module that will generate data for visualization in the UI. 
 
 <p align="center">
-  <img src="doc_images/image%208.png" width="500">
+  <img src="doc_images/image%208.png" width="1000">
 </p>
 
 1. **Modify Configuration File**
