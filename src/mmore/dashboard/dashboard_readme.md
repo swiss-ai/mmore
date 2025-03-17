@@ -137,7 +137,7 @@ To use this script:
 
 This script automatically checks if MongoDB is installed, installs it if needed, and starts the server.
 </details>
-## Terminal 2: **Backend Setup**
+<details> <summary><h2>Terminal 2: Backend Setup</h2></summary>
 
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
@@ -194,8 +194,9 @@ For API documentation, visit [http://localhost:8000/docs](http://localhost:8000/
 ---
 
 The next step is to set up the frontend that will communicate with this backend to provide a user interface for monitoring and control.
+</details>
 
-## **Terminal 3: Frontend Setup**
+<details> <summary><h2>Terminal 3: Frontend Setup</h2></summary>
 
 This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
@@ -248,8 +249,9 @@ npm run dev
 ```
 
 Executes the development script defined in package.json, and starts a local development server for the frontend application. The terminal will show the URL where the frontend is available (typically [http://localhost:5173](http://localhost:5173/))
+</details>
 
-## Terminal 4: Run Process Pipeline
+<details> <summary><h2>Terminal 4: Run Process Pipeline</h2></summary>
 
 To complete the dashboard setup, you need to run a process module that will generate data for visualization in the UI. 
 
@@ -280,5 +282,6 @@ Once the process module is running, it will:
 3. Update the dashboard UI in real-time
 
 Return to your browser where the frontend is running to see the visualization of the processing progress.
+</details>
 
 ###
