@@ -37,7 +37,7 @@ sudo apt-get install gnupg curl
 - `gnupg`: Encryption tool for secure communication and data storage
 - `curl`: Command-line tool for transferring data with URLs
 
-1. **Add MongoDB's GPG Key**
+2. **Add MongoDB's GPG Key**
 
 ```bash
 curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
@@ -51,7 +51,7 @@ This command:
 - Converts it to binary format
 - Stores it in the system's keyring for package verification
 
-1. **Add MongoDB Repository**
+3. **Add MongoDB Repository**
 
 ```bash
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
@@ -59,7 +59,7 @@ echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gp
 
 This adds the official MongoDB repository to your package sources, specifically for Ubuntu 22.04 (Jammy).
 
-1. **Install MongoDB**
+4. **Install MongoDB**
 
 ```bash
 sudo apt-get update
@@ -69,7 +69,7 @@ sudo apt-get install -y mongodb-org=8.0.5 mongodb-org-database=8.0.5 mongo
 
 > **Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
 
-1. **Create Data Directory**
+5. **Create Data Directory**
 
 ```bash
 mkdir -p ~/mongodb
@@ -79,7 +79,7 @@ Creates a directory in root folder to store MongoDB data files.
 
 > **Important**: This directory and all data will be deleted when the job terminates as the home directory is not persistent storage. 
 
-1. **Start the MongoDB Server**
+6. **Start the MongoDB Server**
 
 ```bash
 mongod --bind_ip_all --dbpath ~/mongodb
@@ -94,7 +94,7 @@ In your current terminal you should see MongoDB logs and messages appearing. Thi
 
 > **Important**: : Keep this terminal window open. MongoDB runs in the foreground and closing the terminal will shut down the server. The server listens on port 27017 by default.
 
-1. **Shutting down MongoDB**
+7. **Shutting down MongoDB**
 
 To stop the MongoDB server, press `Ctrl + C` in the terminal where it's running. This initiates a clean shutdown.
 
@@ -152,13 +152,13 @@ This backend serves as the bridge between the **database,** the **frontend** and
 source .venv/bin/activate
 ```
 
-1. **Install Dependencies**
+2. **Install Dependencies**
 
 ```bash
 pip install -r src/mmore/dashboard/backend/backend_requirements.txt
 ```
 
-1. **Configure MongoDB Connection**
+3. **Configure MongoDB Connection**
 
 ```bash
 export MONGODB_URL="mongodb://localhost:27017"
@@ -168,7 +168,7 @@ Sets the environment variable to tell the backend how to connect to MongoDB inst
 
 > **Important**: Your MongoDB server should be active before starting the backend.
 
-1. **Start the Backend Server**
+4. **Start the Backend Server**
 
 Run the backend on port 8000
 
@@ -185,7 +185,7 @@ This command:
 
 > **Important**: Keep this terminal window open. The backend runs in the foreground and closing the terminal will shut down the server.
 
-1. **Verify the Backend is Running**
+5. **Verify the Backend is Running**
 
 You can check if the backend is running correctly by accessing [http://localhost:8000](http://localhost:8000). You should see a response like: `{"message": "Hello World"}`
 
@@ -210,7 +210,7 @@ source /usr/local/nvm/nvm.sh
 
 This loads Node Version Manager (NVM) into your current shell session. NVM is necessary because the frontend requires a specific version of Node.js that differs from the default version installed on the system.
 
-1. **Install and Activate Node.js Version 23** 
+2. **Install and Activate Node.js Version 23** 
 
 ```bash
 sudo -i # give root privileges 
@@ -225,7 +225,7 @@ This sequence:
 - Uses NVM to install Node.js version 23
 - Exits the root shell
 - Sets version 23 as the active Node.js version for your current session
-1. **Install Dependencies**
+3. **Install Dependencies**
 
 ```bash
 cd src/mmore/dashboard/frontend # navigte to frontend directory
@@ -234,7 +234,7 @@ npm install
 
 This command uses NPM (Node Package Manager) to install all JavaScript dependencies defined in the package.json file. These are libraries and frameworks needed by the frontend.
 
-1. **Configure Backend URL** 
+4. **Configure Backend URL** 
 
 ```bash
 export VITE_BACKEND_API_URL="http://localhost:8000"
@@ -242,7 +242,7 @@ export VITE_BACKEND_API_URL="http://localhost:8000"
 
 Sets an environment variable that tells the frontend where to find the backend API. Vite (the build tool) will use this variable during development.
 
-1. **Start Frontend Server**
+5. **Start Frontend Server**
 
 ```bash
 npm run dev
@@ -261,20 +261,20 @@ To complete the dashboard setup, you need to run a process module that will gene
 
 Update `config.yaml` to match the backend url:`dashboard_backend_url: http://localhost:8000` 
 
-1. **Activate Virtual Environment** 
+2. **Activate Virtual Environment** 
 
 ```bash
 # If using venv (standard Python virtual environment)
 source .venv/bin/activate
 ```
 
-1. **Run the Process Module**
+3. **Run the Process Module**
 
 ```bash
 python -m src.mmore.processing.run_processor --config examples/process/config.yaml
 ```
 
-1. **Monitor the Dashboard**
+4. **Monitor the Dashboard**
 
 Once the process module is running, it will:
 1. Process files from the input directory specified in the config
