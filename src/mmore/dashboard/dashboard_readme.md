@@ -38,7 +38,7 @@ Official documentation for MongoDB setup can be found [here](https://www.mongodb
   <img src="doc_images/image%205.png" width="500">
 </p>
 
-> ✏️**Note:** These steps must be repeated each time you submit a new runai job. 
+> ✏️ **Note:** These steps must be repeated each time you submit a new runai job. 
 
 ### Manual Setup Instructions
 
@@ -81,7 +81,7 @@ sudo apt-get install -y mongodb-org
 sudo apt-get install -y mongodb-org=8.0.5 mongodb-org-database=8.0.5 mongodb-org-server=8.0.5 mongodb-mongosh mongodb-org-mongos=8.0.5 mongodb-org-tools=8.0.5
 ```
 
-> ✏️**Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
+> ✏️ **Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
 
 5. **Create Data Directory**
 
@@ -107,6 +107,7 @@ This starts MongoDB with the following configuration:
 In your current terminal you should see MongoDB logs and messages appearing. This means that your terminal is successfully running the MongoDB server in your terminal. 
 
 > 🚨 **Important**: Keep this terminal window open. MongoDB runs in the foreground and closing the terminal will shut down the server. 
+
 > ✏️ **Note**: The server listens on port 27017 by default.
 
 7. **Shutting down MongoDB**
@@ -157,7 +158,7 @@ This script automatically checks if MongoDB is installed, installs it if needed
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
 <p align="center">
-  <img src="doc_images/image%206.png" width="500">
+  <img src="doc_images/image%206.png" width="800">
 </p>
 
 ### Setup Instructions
@@ -218,7 +219,7 @@ The next step is to set up the frontend that will communicate with this backend 
 This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
 <p align="center">
-  <img src="doc_images/image%207.png" width="500">
+  <img src="doc_images/image%207.png" width="1000">
 </p>
 
 1. **Load Node Version Manager**
