@@ -1,10 +1,21 @@
 # m(m)ore Dashboard Documentation
 
-# 1. Overall Structure
+## Table of Contents
+1. [Overall Structure](#1-overall-structure)  
+2. [Setup](#2-setup)  
+   - [Terminal 1: MongoDB Setup](#terminal-1-mongodb-setup)  
+   - [Terminal 2: Backend Setup](#terminal-2-backend-setup)  
+   - [Terminal 3: Frontend Setup](#terminal-3-frontend-setup)  
+   - [Terminal 4: Run Process Pipeline](#terminal-4-run-process-pipeline)  
+
+
+## 1. Overall Structure
 
 Before setting up the dashboard, it is useful to understand how it works. You can think of the dashboard as being made up of 4 separate parts:
 
-![image.png](doc_images/image.png)
+<p align="center">
+  <img src="doc_images/image.png" width="500">
+</p>
 
 |  |   |
 |------------|---|
@@ -14,12 +25,12 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
 | **Backend Server:** *backend* is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard. | ![Backend](doc_images/image%204.png) |
 
 
-# 2. Setup
+## 2. Setup
 
 Each element shown above is created in a different terminal. This means that you will need to have 4 terminals running to launch the dashboard successfully.
 
 <details>
-  <summary><h2>Terminal 1: MongoDB Setup</h2></summary>
+  <summary><h3>Terminal 1: MongoDB Setup</h3></summary>
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
 ![image.png](doc_images/image%205.png)
@@ -137,7 +148,7 @@ To use this script:
 
 This script automatically checks if MongoDB is installed, installs it if needed, and starts the server.
 </details>
-<details> <summary><h2>Terminal 2: Backend Setup</h2></summary>
+<details> <summary><h3>Terminal 2: Backend Setup</h3></summary>
 
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
@@ -196,7 +207,7 @@ For API documentation, visit [http://localhost:8000/docs](http://localhost:8000/
 The next step is to set up the frontend that will communicate with this backend to provide a user interface for monitoring and control.
 </details>
 
-<details> <summary><h2>Terminal 3: Frontend Setup</h2></summary>
+<details> <summary><h3>Terminal 3: Frontend Setup</h3></summary>
 
 This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
@@ -251,7 +262,7 @@ npm run dev
 Executes the development script defined in package.json, and starts a local development server for the frontend application. The terminal will show the URL where the frontend is available (typically [http://localhost:5173](http://localhost:5173/))
 </details>
 
-<details> <summary><h2>Terminal 4: Run Process Pipeline</h2></summary>
+<details> <summary><h3>Terminal 4: Run Process Pipeline</h3></summary>
 
 To complete the dashboard setup, you need to run a process module that will generate data for visualization in the UI. 
 
