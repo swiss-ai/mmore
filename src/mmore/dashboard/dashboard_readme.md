@@ -17,13 +17,33 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
   <img src="doc_images/image.png" width="1000">
 </p>
 
-|  |   |
-|------------|---|
-| **Frontend:** the actual dashboard user interface (UI), and what will be displayed on your screen. | ![Frontend](doc_images/image%201.png) |
-| **Database:** the database which stores information about the file processing. | ![Database](doc_images/image%202.png) |
-| **Processing Pipeline:** the pipeline processing your documents for which you want to be able to visualize on the dashboard. | ![Pipeline](doc_images/image%203.png) |
-| **Backend Server:** *backend* is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard. | ![Backend](doc_images/image%204.png) |
+<div style="display: flex; align-items: center; gap: 20px;">
+    <div>
+        <strong>Frontend:</strong> the actual dashboard user interface (UI), and what will be displayed on your screen.
+    </div>
+    <img src="doc_images/image%201.png" alt="Frontend" width="150">
+</div>
 
+<div style="display: flex; align-items: center; gap: 20px;">
+    <div>
+        <strong>Database:</strong> the database which stores information about the file processing.
+    </div>
+    <img src="doc_images/image%202.png" alt="Database" width="150">
+</div>
+
+<div style="display: flex; align-items: center; gap: 20px;">
+    <div>
+        <strong>Processing Pipeline:</strong> the pipeline processing your documents for which you want to be able to visualize on the dashboard.
+    </div>
+    <img src="doc_images/image%203.png" alt="Processing Pipeline" width="150">
+</div>
+
+<div style="display: flex; align-items: center; gap: 20px;">
+    <div>
+        <strong>Backend Server:</strong> <em>backend</em> is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard.
+    </div>
+    <img src="doc_images/image%204.png" alt="Backend" width="150">
+</div>
 
 ## 2. Setup
 
