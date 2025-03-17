@@ -17,33 +17,12 @@ Before setting up the dashboard, it is useful to understand how it works. You ca
   <img src="doc_images/image.png" width="1000">
 </p>
 
-<div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9; margin-bottom: 10px;">
-    <img src="doc_images/image%201.png" alt="Frontend" width="100">
-    <div>
-        <strong>Frontend:</strong> the actual dashboard user interface (UI), and what will be displayed on your screen.
-    </div>
-</div>
-
-<div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9; margin-bottom: 10px;">
-    <img src="doc_images/image%202.png" alt="Database" width="100">
-    <div>
-        <strong>Database:</strong> the database which stores information about the file processing.
-    </div>
-</div>
-
-<div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9; margin-bottom: 10px;">
-    <img src="doc_images/image%203.png" alt="Processing Pipeline" width="100">
-    <div>
-        <strong>Processing Pipeline:</strong> the pipeline processing your documents for which you want to be able to visualize on the dashboard.
-    </div>
-</div>
-
-<div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9; margin-bottom: 10px;">
-    <img src="doc_images/image%204.png" alt="Backend" width="100">
-    <div>
-        <strong>Backend Server:</strong> <em>backend</em> is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard.
-    </div>
-</div>
+|  |   |
+|------------|---|
+| **Frontend:** the actual dashboard user interface (UI), and what will be displayed on your screen. | ![Frontend](doc_images/image%201.png) |
+| **Database:** the database which stores information about the file processing. | ![Database](doc_images/image%202.png) |
+| **Processing Pipeline:** the pipeline processing your documents for which you want to be able to visualize on the dashboard. | ![Pipeline](doc_images/image%203.png) |
+| **Backend Server:** *backend* is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard. | ![Backend](doc_images/image%204.png) |
 
 
 ## 2. Setup
@@ -54,8 +33,9 @@ Each element shown above is created in a different terminal. This means that you
   <summary><h3>Terminal 1: MongoDB Setup</h3></summary>
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
-![image.png](doc_images/image%205.png)
-
+<p align="center">
+  <img src="doc_images/image%205.png" width="1000">
+</p>
 > **Note:** These steps must be repeated each time you submit a new runai job. 
 
 ### Manual Setup Instructions
@@ -173,8 +153,9 @@ This script automatically checks if MongoDB is installed, installs it if needed
 
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
-![image.png](doc_images/image%206.png)
-
+<p align="center">
+  <img src="doc_images/image%206.png" width="1000">
+</p>
 ### Setup Instructions
 
 1. **Activate Virtual Environment** 
@@ -232,8 +213,9 @@ The next step is to set up the frontend that will communicate with this backend 
 
 This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
-![image.png](doc_images/image%207.png)
-
+<p align="center">
+  <img src="doc_images/image%207.png" width="1000">
+</p>
 1. **Load Node Version Manager**
 
 ```bash
