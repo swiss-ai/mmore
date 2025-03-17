@@ -14,7 +14,7 @@
 Before setting up the dashboard, it is useful to understand how it works. You can think of the dashboard as being made up of 4 separate parts:
 
 <p align="center">
-  <img src="doc_images/image.png" width="500">
+  <img src="doc_images/image.png" width="1000">
 </p>
 
 |  |   |
