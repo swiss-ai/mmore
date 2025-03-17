@@ -96,6 +96,56 @@ rag = [
   "nltk>=3.9",
 ]
 
+<<<<<<< HEAD
+=======
+all = [
+  "accelerate",
+  "Pillow",
+  "PyMuPDF",
+  "Unidecode",
+  "bokeh",
+  "chonkie==0.2.1.post1",
+  "clean-text",
+  "datatrove[processing]",
+  "docx2pdf",
+  "fastapi==0.115.5",
+  "fastapi[standard]",
+  "langchain-anthropic==0.3.4",
+  "langchain-aws",
+  "langchain-cohere==0.4.2",
+  "langchain-huggingface==0.1.2",
+  "langchain-milvus==0.1.8",
+  "langchain-mistralai==0.2.7",
+  "langchain-nvidia-ai-endpoints",
+  "langchain-openai==0.3.7",
+  "langchain==0.3.20",
+  "langdetect>=1.0.9",
+  "langserve[all]==0.3.1",
+  "lxml_html_clean",
+  "markdown==3.7",
+  "markdownify==0.13.1",
+  "marker-pdf==1.6.0",
+  "motor==3.6.0",
+  "moviepy==2.1.1",
+  "nltk>=3.9",
+  "openpyxl==3.1.5",
+  "py7zr==0.22.0",
+  "pydantic== 2.10.4",
+  "pymilvus[model]==2.5.0",
+  "pymongo==4.9.2",
+  "python-docx",
+  "python-pptx",
+  "ragas==0.2.6",
+  "rarfile==4.2",
+  "requests==2.28.1",
+  "selenium==4.27.1",
+  "surya-ocr>=0.8.3",
+  "trafilatura==1.4.0",
+  "validators==0.34.0",
+  "xlrd==2.0.1",
+]
+
+>>>>>>> a2e51ca (had to copy paste the dependency modifications made by Fabrice to get my environment to work for some reason I don't understand...)
 [tool.uv]
 conflicts = [
   [
@@ -122,4 +172,12 @@ url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [project.scripts]
+<<<<<<< HEAD
 mmore = "mmore:__main__"
+=======
+mmore = "mmore:__main__"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+>>>>>>> a2e51ca (had to copy paste the dependency modifications made by Fabrice to get my environment to work for some reason I don't understand...)
