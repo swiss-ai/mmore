@@ -34,7 +34,7 @@ Each element shown above is created in a different terminal. This means that you
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
 <p align="center">
-  <img src="doc_images/image%205.png" width="1000">
+  <img src="doc_images/image%205.png" width="500">
 </p>
 > **Note:** These steps must be repeated each time you submit a new runai job. 
 
@@ -154,7 +154,7 @@ This script automatically checks if MongoDB is installed, installs it if needed
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
 <p align="center">
-  <img src="doc_images/image%206.png" width="1000">
+  <img src="doc_images/image%206.png" width="500">
 </p>
 ### Setup Instructions
 
@@ -214,7 +214,7 @@ The next step is to set up the frontend that will communicate with this backend 
 This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
 <p align="center">
-  <img src="doc_images/image%207.png" width="1000">
+  <img src="doc_images/image%207.png" width="500">
 </p>
 1. **Load Node Version Manager**
 
