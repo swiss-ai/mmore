@@ -38,8 +38,6 @@ Official documentation for MongoDB setup can be found [here](https://www.mongodb
   <img src="doc_images/image%205.png" width="500">
 </p>
 
-> ✏️ **Note:** These steps must be repeated each time you submit a new runai job. 
-
 ### Manual Setup Instructions
 
 1. **Install required tools**
@@ -81,7 +79,7 @@ sudo apt-get install -y mongodb-org
 sudo apt-get install -y mongodb-org=8.0.5 mongodb-org-database=8.0.5 mongodb-org-server=8.0.5 mongodb-mongosh mongodb-org-mongos=8.0.5 mongodb-org-tools=8.0.5
 ```
 
-> ✏️ **Note**: You will be prompted to select your time zone during installation. If you are in Lausanne, enter '8' for Europe and then '63' for the timezone.
+> ✏️ **Note**: You will be prompted to select your timezone during installation. For instance for Switzerland, enter '8' for Europe and then '63' for the timezone.
 
 5. **Create Data Directory**
 
@@ -90,8 +88,6 @@ mkdir -p ~/mongodb
 ```
 
 Creates a directory in root folder to store MongoDB data files. 
-
-> 🚨 **Important**: This directory and all data will be deleted when the job terminates as the home directory is not persistent storage. 
 
 6. **Start the MongoDB Server**
 
@@ -207,7 +203,7 @@ This command:
 
 You can check if the backend is running correctly by accessing [http://localhost:8000](http://localhost:8000). You should see a response like: `{"message": "Hello World"}`
 
-For API documentation, visit [http://localhost:8000/docs](http://localhost:8000/docs). This will show the automatically all available endpoints.
+For API documentation, visit [http://localhost:8000/docs](http://localhost:8000/docs). This will show automatically all the available endpoints.
 
 ---
 
@@ -216,7 +212,7 @@ The next step is to set up the frontend that will communicate with this backend 
 
 <details> <summary><h3>Terminal 3: Frontend Setup</h3></summary>
 
-This frontend serves as the user-facing component of the system, providing an  interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
+This frontend serves as the user-facing component of the system, providing an interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
 <p align="center">
   <img src="doc_images/image%207.png" width="1000">
@@ -268,7 +264,7 @@ Sets an environment variable that tells the frontend where to find the backend 
 npm run dev
 ```
 
-Executes the development script defined in package.json, and starts a local development server for the frontend application. The terminal will show the URL where the frontend is available (typically [http://localhost:5173](http://localhost:5173/))
+Executes the development script defined in package.json, and starts a local development server for the frontend application. The terminal will show the URL where the frontend is available (typically [http://localhost:5173](http://localhost:5173/)).
 </details>
 
 <details> <summary><h3>Terminal 4: Run Process Pipeline</h3></summary>
