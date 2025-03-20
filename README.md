@@ -17,32 +17,53 @@ A scalable multimodal pipeline for processing, indexing, and querying multimodal
 Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
 Well, MMORE is here to help you!
 
-## MMORE Installation Guide
+## :bulb: Quickstart
 
-### Installation Option 1: pip (recommended)
+### Installation
 
-To install all dependencies, run:
+#### (Step 0 – Install system dependencies)
 
-```bash
-pip install -e '.[all]'
-```
-
-To install only processor-related dependencies, run:
+Our package requires system dependencies. This snippet will take care of installing them!
 
 ```bash
-pip install -e '.[processor]'
+sudo apt update
+sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
+  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 ```
 
-To install only RAG-related dependencies, run:
+#### Step 1 – Install MMORE
+
+To install the package simply run:
+
+```bash
+pip install -e .
+```
+
+To install additional RAG-related dependencies, run:
 
 ```bash
 pip install -e '.[rag]'
 ```
 
----
-
+> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
 
 ### Minimal Example
+
+You can use our predefined CLI commands to execute parts of the pipeline. Note that you might need to prepend `python -m` to the command if the package does not properly create bash aliases.
+
+```bash
+# Run processing
+mmore process --config-file examples/process/config.yaml
+
+# Run indexer
+mmore index --config-file examples/index/config.yaml
+
+# Run RAG
+mmore rag --config-file examples/rag/api/rag_api.yaml
+```
+
+You can also use our package in python code as shown here:
 
 ```python
 from mmore.process.processors.pdf_processor import PDFProcessor 
@@ -57,108 +78,6 @@ pdf_processor = PDFProcessor(config=pdf_processor_config)
 result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
 
 MultimodalSample.to_jsonl(out_file, result_pdf)
-```
-
-### Installation Option 2: uv
-
-#### Step 1: Install system dependencies
-
-```bash
-sudo apt update
-sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
-  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
-  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
-```
-
-#### Step 2: Install `uv`
-
-Refer to the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/) for detailed instructions.
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-#### Step 3: Clone this repository
-
-```bash
-git clone https://github.com/swiss-ai/mmore
-cd mmore
-```
-
-#### Step 4: Install project and dependencies
-
-```bash
-uv sync
-```
-
-For CPU-only installation, use:
-
-```bash
-uv sync --extra cpu
-```
-
-#### Step 5: Run a test command
-
-Activate the virtual environment before running commands:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Alternatively, prepend each command with `uv run`:
-
-```bash
-# Run processing
-python -m mmore process --config-file examples/process/config.yaml
-
-# Run indexer
-python -m mmore index --config-file examples/index/config.yaml
-
-# Run RAG
-python -m mmore rag --config-file examples/rag/api/rag_api.yaml
-```
-
----
-
-### Installation Option 3: Docker
-
-**Note:** For manual installation without Docker, refer to the section below.
-
-#### Step 1: Install Docker
-
-Follow the official [Docker installation guide](https://docs.docker.com/get-started/get-docker/).
-
-#### Step 2: Build the Docker image
-
-```bash
-docker build . --tag mmore
-```
-
-To build for CPU-only platforms (results in a smaller image size):
-
-```bash
-docker build --build-arg PLATFORM=cpu -t mmore .
-```
-
-#### Step 3: Start an interactive session
-
-```bash
-docker run -it -v ./test_data:/app/test_data mmore
-```
-
-*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process_config.yaml`.
-
-#### Step 4: Run the application inside the container
-
-```bash
-# Run processing
-mmore process --config-file examples/process/config.yaml
-
-# Run indexer
-mmore index --config-file examples/index/config.yaml
-
-# Run RAG
-mmore rag --config-file examples/rag/api/rag_api.yaml
 ```
 
 ---
