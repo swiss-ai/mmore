@@ -8,8 +8,18 @@ version = "1.0.0"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
+    { name = "Alexandre Sallinen", email = "alexandre.sallinen@epfl.ch" },
     { name = "Paul Teiletche", email = "paul.teiletche@epfl.ch" },
-    { name = "Marc-Antoine Dilmi JR Allard", email = "marc-antoine.allard@epfl.ch" }
+    { name = "Marc-Antoine Allard", email = "marc-antoine.allard@epfl.ch" },
+    { name = "Stefan Krsteski", email = "stefan.krsteski@epfl.ch" },
+    { name = "David Kalajdzic", email = "david.kalajdzic@epfl.ch" },
+    { name = "Michael Zhang", email = "michael.zhang@epfl.ch" },
+    { name = "Matthias Meyer", email = "matthias.meyer@sdsc.ethz.ch" },
+    { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
+    { name = "Charlotte Meyer", email = "Charlotte.meyer@epfl.ch" },
+    { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+
 ]
 requires-python = ">=3.10"
 dependencies = [
