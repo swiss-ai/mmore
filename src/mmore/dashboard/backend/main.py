@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
+client = motor.motor_asyncio.AsyncIOMotorClient(os.environ.get("MONGODB_URL"))
 db = client.fastdbyeah
 reports_collection = db.get_collection("reports")
 dashboardmetadata_collection = db.get_collection("dashboardmetadata")

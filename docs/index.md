@@ -2,7 +2,7 @@
 ## :bulb: TL;DR
 > The `Index` module handles the indexing and post-processing of the extracted data from the multimodal documents. It creates an indexed Vector Store DB based on [Milvus](https://milvus.io/). We enable the use of *hybrid* retrieval, combining both *dense* and *sparse* retrieval.
 >
-> You can customize various parts of the pipeline by defining [an inference indexing config file](../examples/index/indexer_config.yaml).
+> You can customize various parts of the pipeline by defining [an inference indexing config file](../examples/index/config.yaml).
 
 ## :computer: Minimal Example:
 Here is a minimal example to index [processed documents](process.md).

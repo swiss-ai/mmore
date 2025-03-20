@@ -53,12 +53,12 @@ def postprocess(config_file, input_data):
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Path to the configuration file.')
-@click.option('--input-data', '-f', type=str, required=True, help='Path to the JSONL data.')
-@click.option('--collection-name', '-n', type=str, required=True, help='Name of the collection to index.')
-def index(config_file, input_data, collection_name):
+@click.option('--documents-path', '-f', type=str, required=False, help='Path to the JSONL data.')
+@click.option('--collection-name', '-n', type=str, required=False, help='Name of the collection to index.')
+def index(config_file, documents_path, collection_name):
     """Run the indexer."""
     from .run_index import index as run_index
-    run_index(config_file, input_data, collection_name)
+    run_index(config_file, documents_path, collection_name)
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')

@@ -4,7 +4,7 @@
 > 1. **API**: Creates a server hosting the pipeline
 > 2. **Local**: Runs the inference locally (:warning: might be long when running local models :warning:) 
 > 
-> You can customize various parts of the pipeline by defining [an inference RAG configuration file](../examples/rag/rag_config_local.yaml).
+> You can customize various parts of the pipeline by defining [an inference RAG configuration file](../examples/rag/api/rag_api.yaml).
 
 ## :computer: Minimal Example:
 Here is a minimal example to create a RAG pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
@@ -12,25 +12,26 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
     ```yaml
     # RAG Config
     rag: 
-        # LLM Config
-        llm: 
-            llm_name: "gpt-4o-mini" # Anything supported
-            max_new_tokens: 100
-            temperature: 0.8
-        # Retriever Config
-        retriever:
-            db:
-            uri: ./proc_demo.db
-            hybrid_search_weight: 0.5
-            k: 5
-        # Prompt Args
-        system_prompt: "Answer the question using the context.\n\nContext: {context}"
+    # LLM Config
+    llm: 
+        llm_name: "OpenMeditron/meditron3-8b" # "gpt-4o-mini" # Anything supported
+        max_new_tokens: 100
+        temperature: 0.8
+    # Retriever Config
+    retriever:
+        db:
+        uri: ./proc_demo.db
+        name: my_db
+        hybrid_search_weight: 0.5
+        k: 5
+    # Prompt Args
+    system_prompt: "Answer the question using the context.\n\nContext: {context}"
     # Mode Config
     mode: api
     mode_args:
-        endpoint: '/rag'
-        port: '8000'
-        host: 'localhost'
+    endpoint: '/rag'
+    port: 8000
+    host: 'localhost'
     ```
 
 2. Start your RAG pipeline using the `run_rag.py` script and your config file
