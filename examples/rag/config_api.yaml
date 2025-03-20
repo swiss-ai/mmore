@@ -4,12 +4,11 @@ rag:
     max_new_tokens: 100
   retriever:
     db:
-      uri: ./examples/rag/proc_demo.db
+      uri: ./examples/rag/ner.db
     hybrid_search_weight: 0.5
     k: 5
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
-mode: "api"
-mode_args:    
+api:    
     endpoint: '/rag'
     port: 8000
     host: 'localhost'

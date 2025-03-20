@@ -1,0 +1,6 @@
+dense_model:
+  model_name: BAAI/bge-small-en
+sparse_model:
+  model_name: splade
+db:
+  uri: ./examples/index/sample.db

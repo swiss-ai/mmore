@@ -1,0 +1,10 @@
+indexer:
+  dense_model:
+    model_name: BAAI/bge-large-en-v1.5
+  sparse_model:
+    model_name: splade
+  db:
+    uri: /mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/chunked_bge_ivf.db
+collection_name: who
+documents_path: "/mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/pp/1___🧩 Chunker.jsonl"
+batch_size: 64
