@@ -32,4 +32,9 @@ def postprocess(config_file, input_data):
     samples = pipeline(samples)
 
 if __name__ == "__main__":
-    postprocess()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file", required=True, help="Path to the postprocess configuration file.")
+    parser.add_argument("--input_data", required=True, help="Path to the jsonl of the documents.")
+
+    args = parser.parse_args()
+    postprocess(args.config_file, args.input_data)

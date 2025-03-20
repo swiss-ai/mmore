@@ -1,0 +1,31 @@
+data_path: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/merged/merged_results.jsonl
+pipeline:
+  pp_modules:
+    - type: datatrove_filter
+      args:
+        datatrove_name: language
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/language.jsonl
+        datatrove_args:
+          languages: ["en"]
+    - type: chunker 
+      args:
+        chunking_strategy: sentence
+    - type: datatrove_filter
+      args:
+        datatrove_name: gopher-repetition
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/fineweb.jsonl
+    - type: datatrove_filter
+      args:
+        datatrove_name: gopher-quality
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/fineweb.jsonl
+    - type: datatrove_filter
+      args:
+        datatrove_name: c4
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/fineweb.jsonl
+    - type: datatrove_filter
+      args:
+        datatrove_name: fineweb
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/fineweb.jsonl
+  output:
+    output_path: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/pp
+    save_each_step: True

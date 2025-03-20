@@ -1,9 +1,14 @@
-rag:
+# RAG Config
+rag: 
+  # LLM Config
   llm: 
-    llm_name: "gpt-4o-mini"
+    llm_name: "OpenMeditron/meditron3-8b" # "gpt-4o-mini" # Anything supported
     max_new_tokens: 100
+    temperature: 0.8
+  # Retriever Config
   retriever:
     db:
+<<<<<<< HEAD:examples/rag/config_api.yaml
       uri: ./examples/rag/ner.db
     hybrid_search_weight: 0.5
     k: 5
@@ -12,3 +17,17 @@ api:
     endpoint: '/rag'
     port: 8000
     host: 'localhost'
+=======
+      uri: ./proc_demo.db
+      name: my_db
+    hybrid_search_weight: 0.5
+    k: 5
+  # Prompt Args
+  system_prompt: "Answer the question using the context.\n\nContext: {context}"
+# Mode Config
+mode: api
+mode_args:
+  endpoint: '/rag'
+  port: 8000
+  host: 'localhost'
+>>>>>>> 21388c46a4f8f731769264e8ef0d85d055f7a6d8:examples/rag/api/rag_api.yaml
