@@ -1,6 +1,6 @@
 # Use `uv` to install `mmore`
 
-`uv` is an extremely fast Python package and project manager, written in Rust. It acts as a wrapper around `pip` to speedup the installations.
+`uv` is an extremely fast Python package and project manager, written in Rust. It can act as a wrapper around `pip` to speedup the installations.
 
 <p align="center">
   <picture align="center">
