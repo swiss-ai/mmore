@@ -4,4 +4,4 @@
 
 # Test with remote images
 
-![Image](https://www.epfl.ch/wp/6/wp-content/themes/wp-theme-2018/assets/svg/epfl-logo.svg?refresh=now)
+![Image](https://www.epfl.ch/about/overview/wp-content/uploads/2020/07/logo-epfl-1152x648.png)

@@ -106,8 +106,11 @@ class MarkdownProcessor(Processor):
                 # Check if the URL is valid
                 src_path = os.path.join(os.path.dirname(file_path), src)
                 if src.startswith(('http://', 'https://')):
-                    # Download remote image
-                    response = requests.get(src, timeout=10)
+                    # Download remote image with custom headers to mimic a real browser (helps bypass servers that block non-browser requests)
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+                    }
+                    response = requests.get(src, headers=headers, timeout=10)
                     if response.status_code == 200:
                         # Save to temp directory or process as needed
                         image_data = response.content
