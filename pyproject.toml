@@ -96,8 +96,6 @@ rag = [
   "nltk>=3.9",
 ]
 
-<<<<<<< HEAD
-=======
 all = [
   "accelerate",
   "Pillow",
@@ -145,7 +143,6 @@ all = [
   "xlrd==2.0.1",
 ]
 
->>>>>>> a2e51ca (had to copy paste the dependency modifications made by Fabrice to get my environment to work for some reason I don't understand...)
 [tool.uv]
 conflicts = [
   [
@@ -172,12 +169,8 @@ url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 [project.scripts]
-<<<<<<< HEAD
-mmore = "mmore:__main__"
-=======
 mmore = "mmore:__main__"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
->>>>>>> a2e51ca (had to copy paste the dependency modifications made by Fabrice to get my environment to work for some reason I don't understand...)
