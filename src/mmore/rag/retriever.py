@@ -5,6 +5,9 @@ Works in conjunction with the Indexer class for document retrieval.
 
 from typing import List, Dict, Any, Tuple, Literal, get_args
 from dataclasses import dataclass, field
+
+from mmore.rag.model.dense.base import DenseModel
+from mmore.rag.model.sparse.base import SparseModel
 from ..utils import load_config
 
 from mmore.index.indexer import get_model_from_index
@@ -200,4 +203,44 @@ class Retriever(BaseRetriever):
                 metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
             )
             for i, result in enumerate(results[0])
+        ]
+    
+    def get_documents_by_ids(self, doc_ids: list[str], collection_name: str = 'my_docs') -> list[Document]:
+        """
+        Fetch documents with the specified IDs from Milvus (if they exist).
+        """
+
+        # If no document IDs are provided, return empty list
+        if not doc_ids:
+            return []
+        
+        # Build a comma-seperated string of document IDs, each wrapped in double quotes
+        # example: if doc_ids = ["doc1", "doc2"],
+        # ids_str becomes '"doc1", "doc2"'
+        # This format is required for querying the "id" PK field in Milvus which is a VARCHAR
+        ids_str = ",".join(f'"{d}"' for d in doc_ids)
+        expr = f"id in [{ids_str}]"
+
+        logger.info(f"Querying Milvus by expr: {expr}")
+
+        results = self.client.query(collection_name, expr, ["id", "text"])
+
+        # If the query returned no results, log a warning
+        if not results:
+            logger.warning(f"Warning: No documents found for the given IDs: {doc_ids}")
+        else:
+            # Extract IDs of retrieved documents.
+            found_ids = {row["id"] for row in results}
+            # Determine which requested IDs were not found (if any)
+            missing_ids = [doc_id for doc_id in doc_ids if doc_id not in found_ids]
+            if missing_ids:
+                logger.warning(f"Warning: The following IDs were not found: {missing_ids}")
+
+        # Convert the returned rows into Document objects
+        # Each document contains the text and metadata
+        return [
+            Document(
+                page_content=row["text"],
+                metadata={"id": row["id"]}
+            ) for row in results
         ]
