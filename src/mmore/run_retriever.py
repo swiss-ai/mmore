@@ -41,15 +41,15 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
         json.dump(formatted_results, f, indent=2)
 
 def retrieve(config_file, input_file, output_file, document_ids=None):
-    """Retrieve documents for specified queries.
+    """Retrieve documents for specified queries via a vector based similarity search.
     
-    If 'document_ids' is provided, function bypasses the vectore-based similarity search and instead retrieved only the documents with the given IDs"""
+    If 'document_ids' is provided, this function will still perform the vector based similarity search for each query. afterward if any specified doc IDs did not appear among the retrieved results, those documents are explicitly added for each query result"""
 
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
 
     logger.info('Running retriever...')
-    retriever = Retriever.from_config(config.retriever)
+    retriever = Retriever.from_config(config)
     logger.info('Retriever loaded!')
     
     queries = read_queries(Path(input_file))  # Added missing argument
@@ -60,30 +60,42 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     else:
         doc_ids_list = []
 
-    if doc_ids_list:
-        logger.info(f"Manual document IDs specified: {doc_ids_list}")
+    # Measure time for the retrieval process
+    logger.info("Starting document retrieval...")
+    start_time = time.time()  # Start timer
 
-        # Retrieve specified documents once from Milvus
-        # Since these documents are to be used for all queries, we replicate the same list of retrieved documents for each query
-        retrieved_docs_all = [retriever.get_documents_by_ids(doc_ids_list)] * len(queries)
+    retrieved_docs_for_all_queries = []
 
-        # Save the results along with the queries to the output file
-        save_results(retrieved_docs_all, queries, Path(output_file))
-        logger.info(f"Done! Results saved to {output_file}")
+    # Perform the vector based similarity search for each query
+    for query in tqdm(queries, desc="Retrieving documents", unit="query"):
+        docs_for_query = retriever.invoke(query)
 
-    else:
-        # Measure time for the retrieval process
-        logger.info("Starting document retrieval...")
-        start_time = time.time()  # Start timer
-        retrieved_docs = [retriever.invoke(query) for query in tqdm(queries, desc="Retrieving documents", unit="query")] 
-        end_time = time.time()  # End timer
-        
-        time_taken = end_time - start_time
-        logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
-        logger.info(f'Retrieved documents!')
+        # Convert retrieved docs to a set of IDs for easy checking
+        retrieved_ids = {doc.metadata["id"] for doc in docs_for_query}
 
-        save_results(retrieved_docs, queries, Path(output_file))  # Added missing argument
-        logger.info(f"Done! Results saved to {output_file}")
+        # If user provided doc IDs, ensure they are included
+        if doc_ids_list:
+            # Find which specified doc IDs were not retrieved
+            missing_ids = [d_id for d_id in doc_ids_list if d_id not in retrieved_ids]
+
+            if missing_ids:
+                logger.info(f"Query missing specified doc IDs {missing_ids}; fetching them.")
+                # Retrieve missing documents explicitly
+                missing_docs = retriever.get_documents_by_ids(missing_ids)
+                # Prepend the missing docs
+                docs_for_query = missing_docs + docs_for_query
+
+        # Store the results for this query
+        retrieved_docs_for_all_queries.append(docs_for_query)
+
+    end_time = time.time()  # End timer
+    
+    time_taken = end_time - start_time
+    logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
+    logger.info(f'Retrieved documents!')
+
+    save_results(retrieved_docs_for_all_queries, queries, Path(output_file))  # Added missing argument
+    logger.info(f"Done! Results saved to {output_file}")
 
 
 if __name__ == "__main__":
