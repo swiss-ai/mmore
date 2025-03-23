@@ -87,7 +87,8 @@ class Retriever(BaseRetriever):
             collection_name: str = 'my_docs',
             partition_names: List[str] = None,
             k: int = 1,
-            search_type: str = "hybrid"  # Options: "dense", "sparse", "hybrid"
+            search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
+            doc_ids: List[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Retrieve top-k similar documents for a given query.
@@ -110,6 +111,12 @@ class Retriever(BaseRetriever):
 
         dense_embedding, sparse_embedding = self.compute_query_embeddings(query)
 
+        if doc_ids:
+            ids_str = ",".join(f'"{d}"' for d in doc_ids)
+            expr = f"id in [{ids_str}]"
+        else:
+            expr = None
+
         search_param_1 = {
             "data": dense_embedding,  # Query vector
             "anns_field": "dense_embedding",  # Field to search in
@@ -119,6 +126,9 @@ class Retriever(BaseRetriever):
             },
             "limit": k,
         }
+
+        if expr is not None:
+            search_param_1["expr"] = expr
 
         search_param_2 = {
             "data": sparse_embedding,  # Query vector
@@ -130,6 +140,9 @@ class Retriever(BaseRetriever):
             "limit": k,
         }
 
+        if expr is not None:
+            search_param_2["expr"] = expr
+
         request_1 = AnnSearchRequest(**search_param_1)
         request_2 = AnnSearchRequest(**search_param_2)
 
@@ -139,7 +152,7 @@ class Retriever(BaseRetriever):
             limit=k,
             output_fields=["text"],
             collection_name=collection_name,
-            partition_names=partition_names
+            partition_names=partition_names,
         )
 
     def batch_retrieve(

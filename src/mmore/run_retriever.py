@@ -68,25 +68,22 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
 
     # Perform the vector based similarity search for each query
     for query in tqdm(queries, desc="Retrieving documents", unit="query"):
-        docs_for_query = retriever.invoke(query)
-
-        # Convert retrieved docs to a set of IDs for easy checking
-        retrieved_ids = {doc.metadata["id"] for doc in docs_for_query}
-
-        # If user provided doc IDs, ensure they are included
+        query_text = query.get("input", "")
         if doc_ids_list:
-            # Find which specified doc IDs were not retrieved
-            missing_ids = [d_id for d_id in doc_ids_list if d_id not in retrieved_ids]
-
-            if missing_ids:
-                logger.info(f"Query missing specified doc IDs {missing_ids}; fetching them.")
-                # Retrieve missing documents explicitly
-                missing_docs = retriever.get_documents_by_ids(missing_ids)
-                # Prepend the missing docs
-                docs_for_query = missing_docs + docs_for_query
-
-        # Store the results for this query
+            raw_results = retriever.retrieve(query_text, doc_ids=doc_ids_list, k=config.k)
+            # Convert raw hybrid_search output (a nested list) to Document objects.
+            docs_for_query = [
+                Document(
+                    page_content=result['entity']['text'],
+                    metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
+                )
+                for i, result in enumerate(raw_results[0])
+            ]
+        else:
+            docs_for_query = retriever.invoke(query)
+        
         retrieved_docs_for_all_queries.append(docs_for_query)
+
 
     end_time = time.time()  # End timer
     
