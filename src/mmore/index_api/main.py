@@ -7,7 +7,7 @@ from mmore.index.indexer import Indexer, IndexerConfig, DBConfig, get_model_from
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.type import MultimodalSample
 from pymilvus import MilvusClient
-from models import CreateIndexRequest, IndexerResponse, AddDocumentRequest
+from models import CreateIndexRequest, IndexerResponse #, AddDocumentRequest
 
 app = FastAPI(title = "Indexer API")
 
@@ -76,7 +76,7 @@ def create_indexer(request: CreateIndexRequest):
     except Exception as e:
         raise HTTPException(status_code = 500, detail=str(e))
 
-@app.post("/indexers/{collection_name}/documents", response_model = IndexerResponse)
+@app.post("/indexers/{collection_name}", response_model = IndexerResponse)
 def add_documents(collection_name: str, document_paths: str):
     """ Add documents to an existing collection """
     try: 
