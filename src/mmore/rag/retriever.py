@@ -5,10 +5,14 @@ Works in conjunction with the Indexer class for document retrieval.
 
 from typing import List, Dict, Any, Tuple, Literal, get_args
 from dataclasses import dataclass, field
+
+from mmore.rag.model.dense.base import DenseModel
+from mmore.rag.model.sparse.base import SparseModel
 from ..utils import load_config
 
 from mmore.index.indexer import get_model_from_index
 from mmore.index.indexer import DBConfig
+from mmore.rag.model import DenseModel, SparseModel
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
@@ -83,29 +87,51 @@ class Retriever(BaseRetriever):
             collection_name: str = 'my_docs',
             partition_names: List[str] = None,
             k: int = 1,
-            search_type: str = "hybrid"  # Options: "dense", "sparse", "hybrid"
+            search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
+            doc_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
         """
         Retrieve top-k similar documents for a given query.
+
+        This method computes dense and sparse query embeddings and builds two seperate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
         
         Args:
             query: Search query string
+            collection_name: the Milvus collection to search in
+            partition_names: Specific partitions within the collection
             k: Number of documents to retrieve
             output_fields: Fields to return in results
             search_type: Type of search to perform ("dense", "sparse", or "hybrid")
+            doc_ids: Candidate document Ids to filter the search
             
         Returns:
-            List of matching documents with specified output fields
+            The raw search results (a nested list of dictionaries) returned by Milvus
         """
         if k == 0: 
             return []
     
+        # Validate that the specified search type is allowed
         assert search_type in get_args(
             self._search_types), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+        
+        # Determine the weight used to combine dense and sparse search scores
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)
 
+        # Combute both dense and sparse embeddings for the query
         dense_embedding, sparse_embedding = self.compute_query_embeddings(query)
 
+        # Build a filter expression if candidate document IDs are provided.
+        # The expression will restrict the search to documents with Ids in the given list
+        if doc_ids:
+            # Create a comme-seperated string of quoted document IDs
+            ids_str = ",".join(f'"{d}"' for d in doc_ids)
+            expr = f"id in [{ids_str}]"
+        else:
+            # No filtering if doc_ids is not provided
+            expr = None
+
+        # Prepare the search request for the dense embeddings
+        # This request searches within the "dense_embedding" field using cosine similarity
         search_param_1 = {
             "data": dense_embedding,  # Query vector
             "anns_field": "dense_embedding",  # Field to search in
@@ -116,6 +142,12 @@ class Retriever(BaseRetriever):
             "limit": k,
         }
 
+        # Attach the filtering expression if available
+        if expr is not None:
+            search_param_1["expr"] = expr
+
+        # Prepare the search request for the sparse embeddings.
+        # This request searches within the "sparse_embedding" field using the inner product (IP)
         search_param_2 = {
             "data": sparse_embedding,  # Query vector
             "anns_field": "sparse_embedding",  # Field to search in
@@ -126,16 +158,23 @@ class Retriever(BaseRetriever):
             "limit": k,
         }
 
+         # Attach the filtering expression if available
+        if expr is not None:
+            search_param_2["expr"] = expr
+
+        # Create AnnSearchRequest objects from the parameter dictionaries
         request_1 = AnnSearchRequest(**search_param_1)
         request_2 = AnnSearchRequest(**search_param_2)
 
+        # Call the Milvus hybrid_search to perform both searches and then rerank results.
+        # The WeightedRanker combined the scores from the dense and sparse searches
         return self.client.hybrid_search(
             reqs=[request_1, request_2],  # List of AnnSearchRequests
             ranker=WeightedRanker(search_weight, 1 - search_weight),  # Reranking strategy
             limit=k,
             output_fields=["text"],
             collection_name=collection_name,
-            partition_names=partition_names
+            partition_names=partition_names,
         )
 
     def batch_retrieve(
@@ -179,6 +218,9 @@ class Retriever(BaseRetriever):
             run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
+        if self.k == 0:
+            return []
+
         # For compatibility
         if isinstance(query.get('partition_name', None), str):
             query['partition_name'] = [query['partition_name']]
@@ -196,4 +238,44 @@ class Retriever(BaseRetriever):
                 metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
             )
             for i, result in enumerate(results[0])
+        ]
+    
+    def get_documents_by_ids(self, doc_ids: list[str], collection_name: str = 'my_docs') -> list[Document]:
+        """
+        Fetch documents with the specified IDs from Milvus (if they exist).
+        """
+
+        # If no document IDs are provided, return empty list
+        if not doc_ids:
+            return []
+        
+        # Build a comma-seperated string of document IDs, each wrapped in double quotes
+        # example: if doc_ids = ["doc1", "doc2"],
+        # ids_str becomes '"doc1", "doc2"'
+        # This format is required for querying the "id" PK field in Milvus which is a VARCHAR
+        ids_str = ",".join(f'"{d}"' for d in doc_ids)
+        expr = f"id in [{ids_str}]"
+
+        logger.info(f"Querying Milvus by expr: {expr}")
+
+        results = self.client.query(collection_name, expr, ["id", "text"])
+
+        # If the query returned no results, log a warning
+        if not results:
+            logger.warning(f"Warning: No documents found for the given IDs: {doc_ids}")
+        else:
+            # Extract IDs of retrieved documents.
+            found_ids = {row["id"] for row in results}
+            # Determine which requested IDs were not found (if any)
+            missing_ids = [doc_id for doc_id in doc_ids if doc_id not in found_ids]
+            if missing_ids:
+                logger.warning(f"Warning: The following IDs were not found: {missing_ids}")
+
+        # Convert the returned rows into Document objects
+        # Each document contains the text and metadata
+        return [
+            Document(
+                page_content=row["text"],
+                metadata={"id": row["id"]}
+            ) for row in results
         ]
