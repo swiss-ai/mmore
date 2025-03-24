@@ -1,13 +1,28 @@
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from typing import List, Dict, Optional
+from pydantic import BaseModel 
+
 
 class IndexerConfigSchema(BaseModel):
     dense_model_name: str
     sparse_model_name: str
-    is_mutlimodal: bool
+    is_multimodal: bool
+    db_uri: str = "./proc_demo.db"
+    db_name: str = "my_db"
     
-
-
 class CreateIndexRequest(BaseModel):
-    """Request body for creating an index"""
+    """ Request body for creating a new index """
     config: IndexerConfigSchema
+    collection_name: str = "my_docs"
+    partition_name: str = None
+    batch_size: int = 64
+    document_paths: str 
+
+class IndexerResponse(BaseModel):
+    status: str
+    message: str
+    documents_indexed: int
+    collection_name: str
+
+class AddDocumentRequest(BaseModel):
+    document_paths: str
+    partition_name: Optional[str] = None
