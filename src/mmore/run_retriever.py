@@ -70,19 +70,16 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     # For each query, perform search with candidate ID filtering if provided
     for query in tqdm(queries, desc="Retrieving documents", unit="query"):
         query_text = query.get("input", "")
-        if doc_ids_list:
-            # Directly call the retrieve() method that supports document ID filtering
-            raw_results = retriever.retrieve(query_text, doc_ids=doc_ids_list, k=config.k)
-            # Convert raw hybrid_search output (a nested list) to Document objects.
-            docs_for_query = [
-                Document(
-                    page_content=result['entity']['text'],
-                    metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
-                )
-                for i, result in enumerate(raw_results[0])
-            ]
-        else:
-            docs_for_query = retriever.invoke(query)
+        # Directly call the retrieve() method that supports document ID filtering
+        raw_results = retriever.retrieve(query_text, doc_ids=doc_ids_list, k=config.k)
+        # Convert raw hybrid_search output (a nested list) to Document objects.
+        docs_for_query = [
+            Document(
+                page_content=result['entity']['text'],
+                metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
+            )
+            for i, result in enumerate(raw_results[0])
+        ]
         
         retrieved_docs_for_all_queries.append(docs_for_query)
 
