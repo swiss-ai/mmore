@@ -43,7 +43,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
 def retrieve(config_file, input_file, output_file, document_ids=None):
     """Retrieve documents for specified queries via a vector based similarity search.
     
-    If 'document_ids' is provided, this function will still perform the vector based similarity search for each query. afterward if any specified doc IDs did not appear among the retrieved results, those documents are explicitly added for each query result"""
+    If candidate document IDs are provided, the search is restricted to those documents attaching a filter expression to both dense and sparse search requests. Otherwise, a fullcollection search is performed"""
 
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
@@ -52,9 +52,10 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     retriever = Retriever.from_config(config)
     logger.info('Retriever loaded!')
     
+    # Read queries from the JSONL file
     queries = read_queries(Path(input_file))  # Added missing argument
 
-    # Process the document_ids provided, split into individual IDs, strip any extra whitespace, and filter out any empty strings
+    # Process document_ids into a list
     if document_ids:
         doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()]
     else:
@@ -66,10 +67,11 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
 
     retrieved_docs_for_all_queries = []
 
-    # Perform the vector based similarity search for each query
+    # For each query, perform search with candidate ID filtering if provided
     for query in tqdm(queries, desc="Retrieving documents", unit="query"):
         query_text = query.get("input", "")
         if doc_ids_list:
+            # Directly call the retrieve() method that supports document ID filtering
             raw_results = retriever.retrieve(query_text, doc_ids=doc_ids_list, k=config.k)
             # Convert raw hybrid_search output (a nested list) to Document objects.
             docs_for_query = [
@@ -91,7 +93,8 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
     logger.info(f'Retrieved documents!')
 
-    save_results(retrieved_docs_for_all_queries, queries, Path(output_file))  # Added missing argument
+    # Save results to output file
+    save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
     logger.info(f"Done! Results saved to {output_file}")
 
 

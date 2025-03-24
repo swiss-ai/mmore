@@ -88,35 +88,50 @@ class Retriever(BaseRetriever):
             partition_names: List[str] = None,
             k: int = 1,
             search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
-            doc_ids: List[str] = None
+            doc_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
         """
         Retrieve top-k similar documents for a given query.
+
+        This method computes dense and sparse query embeddings and builds two seperate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
         
         Args:
             query: Search query string
+            collection_name: the Milvus collection to search in
+            partition_names: Specific partitions within the collection
             k: Number of documents to retrieve
             output_fields: Fields to return in results
             search_type: Type of search to perform ("dense", "sparse", or "hybrid")
+            doc_ids: Candidate document Ids to filter the search
             
         Returns:
-            List of matching documents with specified output fields
+            The raw search results (a nested list of dictionaries) returned by Milvus
         """
         if k == 0: 
             return []
     
+        # Validate that the specified search type is allowed
         assert search_type in get_args(
             self._search_types), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+        
+        # Determine the weight used to combine dense and sparse search scores
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)
 
+        # Combute both dense and sparse embeddings for the query
         dense_embedding, sparse_embedding = self.compute_query_embeddings(query)
 
+        # Build a filter expression if candidate document IDs are provided.
+        # The expression will restrict the search to documents with Ids in the given list
         if doc_ids:
+            # Create a comme-seperated string of quoted document IDs
             ids_str = ",".join(f'"{d}"' for d in doc_ids)
             expr = f"id in [{ids_str}]"
         else:
+            # No filtering if doc_ids is not provided
             expr = None
 
+        # Prepare the search request for the dense embeddings
+        # This request searches within the "dense_embedding" field using cosine similarity
         search_param_1 = {
             "data": dense_embedding,  # Query vector
             "anns_field": "dense_embedding",  # Field to search in
@@ -127,9 +142,12 @@ class Retriever(BaseRetriever):
             "limit": k,
         }
 
+        # Attach the filtering expression if available
         if expr is not None:
             search_param_1["expr"] = expr
 
+        # Prepare the search request for the sparse embeddings.
+        # This request searches within the "sparse_embedding" field using the inner product (IP)
         search_param_2 = {
             "data": sparse_embedding,  # Query vector
             "anns_field": "sparse_embedding",  # Field to search in
@@ -140,12 +158,16 @@ class Retriever(BaseRetriever):
             "limit": k,
         }
 
+         # Attach the filtering expression if available
         if expr is not None:
             search_param_2["expr"] = expr
 
+        # Create AnnSearchRequest objects from the parameter dictionaries
         request_1 = AnnSearchRequest(**search_param_1)
         request_2 = AnnSearchRequest(**search_param_2)
 
+        # Call the Milvus hybrid_search to perform both searches and then rerank results.
+        # The WeightedRanker combined the scores from the dense and sparse searches
         return self.client.hybrid_search(
             reqs=[request_1, request_2],  # List of AnnSearchRequests
             ranker=WeightedRanker(search_weight, 1 - search_weight),  # Reranking strategy
