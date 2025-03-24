@@ -1,3 +1,4 @@
+import argparse
 from dotenv import load_dotenv
 load_dotenv() 
 
@@ -43,7 +44,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
 def retrieve(config_file, input_file, output_file, document_ids=None):
     """Retrieve documents for specified queries via a vector based similarity search.
     
-    If candidate document IDs are provided, the search is restricted to those documents attaching a filter expression to both dense and sparse search requests. Otherwise, a fullcollection search is performed"""
+    If candidate document IDs are provided, the search is restricted to those documents attaching a filter expression to both dense and sparse search requests. Otherwise, a full collection search is performed"""
 
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
@@ -56,10 +57,7 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     queries = read_queries(Path(input_file))  # Added missing argument
 
     # Process document_ids into a list
-    if document_ids:
-        doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()]
-    else:
-        doc_ids_list = []
+    doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()] if document_ids else None
 
     # Measure time for the retrieval process
     logger.info("Starting document retrieval...")
@@ -67,23 +65,9 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
 
     retrieved_docs_for_all_queries = []
 
-    # For each query, perform search with candidate ID filtering if provided
+    # Call invoke with doc_ids so that the callback manager is used
     for query in tqdm(queries, desc="Retrieving documents", unit="query"):
-        query_text = query.get("input", "")
-        if doc_ids_list:
-            # Directly call the retrieve() method that supports document ID filtering
-            raw_results = retriever.retrieve(query_text, doc_ids=doc_ids_list, k=config.k)
-            # Convert raw hybrid_search output (a nested list) to Document objects.
-            docs_for_query = [
-                Document(
-                    page_content=result['entity']['text'],
-                    metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
-                )
-                for i, result in enumerate(raw_results[0])
-            ]
-        else:
-            docs_for_query = retriever.invoke(query)
-        
+        docs_for_query = retriever.invoke(query, document_ids=doc_ids_list)
         retrieved_docs_for_all_queries.append(docs_for_query)
 
 
