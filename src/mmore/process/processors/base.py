@@ -261,4 +261,4 @@ class Processor(ABC):
             worker_id = os.environ.get("RANK")
         else:
             worker_id = os.getpid()
-        return DashboardClient(self.config.dashboard_backend_url).report(worker_id, finished_file_paths)
+        return DashboardClient(self.config.dashboard_backend_url).report(str(worker_id), finished_file_paths)

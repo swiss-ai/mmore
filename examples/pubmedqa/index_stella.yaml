@@ -1,0 +1,10 @@
+indexer:
+  dense_model:
+    model_name: dunzhang/stella_en_400M_v5
+  sparse_model:
+    model_name: splade
+  db:
+    uri: /mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/chunked_stella_ivf.db
+collection_name: who
+documents_path: "/mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/pp/1___🧩 Chunker.jsonl"
+batch_size: 64

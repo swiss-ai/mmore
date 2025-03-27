@@ -1,0 +1,13 @@
+rag:
+  llm: 
+    llm_name: OpenMeditron/Meditron3-8B
+    max_new_tokens: 8000
+  retriever:
+    db:
+      uri: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_770/who_guidelines_bge_sample_2.db
+    k: 0
+  system_prompt: "You will have to answer a question.{context}"
+mode: local
+mode_args:
+  input_file: examples/who/scott_ds_queries.jsonl
+  output_file: examples/who/scott_ds/norag/scott_ds_meditron8b_norag.jsonl
