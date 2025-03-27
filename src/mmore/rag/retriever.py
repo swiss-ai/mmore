@@ -3,7 +3,7 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
-from typing import List, Dict, Any, Tuple, Literal, get_args
+from typing import List, Dict, Any, Optional, Tuple, Literal, Union, get_args
 from dataclasses import dataclass, field
 
 from mmore.rag.model.dense.base import DenseModel
@@ -88,7 +88,7 @@ class Retriever(BaseRetriever):
             partition_names: List[str] = None,
             k: int = 1,
             search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
-            doc_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
+            document_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
         """
         Retrieve top-k similar documents for a given query.
@@ -102,7 +102,7 @@ class Retriever(BaseRetriever):
             k: Number of documents to retrieve
             output_fields: Fields to return in results
             search_type: Type of search to perform ("dense", "sparse", or "hybrid")
-            doc_ids: Candidate document Ids to filter the search
+            document_ids: Candidate document Ids to filter the search
             
         Returns:
             The raw search results (a nested list of dictionaries) returned by Milvus
@@ -122,9 +122,9 @@ class Retriever(BaseRetriever):
 
         # Build a filter expression if candidate document IDs are provided.
         # The expression will restrict the search to documents with Ids in the given list
-        if doc_ids:
+        if document_ids:
             # Create a comme-seperated string of quoted document IDs
-            ids_str = ",".join(f'"{d}"' for d in doc_ids)
+            ids_str = ",".join(f'"{d}"' for d in document_ids)
             expr = f"id in [{ids_str}]"
         else:
             # No filtering if doc_ids is not provided
@@ -212,24 +212,29 @@ class Retriever(BaseRetriever):
         return all_results
 
     def _get_relevant_documents(
-            self,
-            query: Dict[str, Any],
-            *,
-            run_manager: CallbackManagerForRetrieverRun
+            self, query: Union[str, Dict[str, Any]], *, 
+                            run_manager: CallbackManagerForRetrieverRun,
+                            document_ids: Optional[List[str]] = None, **kwargs: Any
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
         if self.k == 0:
             return []
 
-        # For compatibility
-        if isinstance(query.get('partition_name', None), str):
-            query['partition_name'] = [query['partition_name']]
+        # Handle both dict and str types for query
+        if isinstance(query, dict):
+            query_input = query.get("input", "")
+            collection_name = query.get("collection_name", "my_docs")
+            partition_names = query.get("partition_name", None)
+        else:
+            query_input = query
+            collection_name = "my_docs"
+            partition_names = None
 
         results = self.retrieve(
-            query=query['input'],
-            collection_name=query.get('collection_name', 'my_docs'),
-            partition_names=query.get('partition_name', None),
-            k=self.k
+            query=query_input,
+            collection_name=collection_name,
+            partition_names=partition_names,
+            k=self.k, document_ids=document_ids
         )
 
         return [
