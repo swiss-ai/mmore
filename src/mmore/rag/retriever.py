@@ -214,7 +214,7 @@ class Retriever(BaseRetriever):
     def _get_relevant_documents(
             self, query: Union[str, Dict[str, Any]], *, 
                             run_manager: CallbackManagerForRetrieverRun,
-                            document_ids: Optional[List[str]] = None, **kwargs: Any
+                            **kwargs: Any
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
         if self.k == 0:
@@ -222,13 +222,15 @@ class Retriever(BaseRetriever):
 
         # Handle both dict and str types for query
         if isinstance(query, dict):
-            query_input = query.get("input", "")
-            collection_name = query.get("collection_name", "my_docs")
-            partition_names = query.get("partition_name", None)
+            query_input: str = query.get("input", "")
+            collection_name: str = query.get("collection_name", "my_docs")
+            partition_names: Optional[str] = query.get("partition_name", None)
+            document_ids: List[str] = query.get("document_ids", [])
         else:
-            query_input = query
-            collection_name = "my_docs"
-            partition_names = None
+            query_input: str = query
+            collection_name: str = "my_docs"
+            partition_names: Optional[str] = None
+            document_ids: List[str] = []
 
         results = self.retrieve(
             query=query_input,
