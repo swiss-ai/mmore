@@ -22,6 +22,7 @@ class IndexerResponse(BaseModel):
     message: str
     documents_indexed: int
     collection_name: str
+    id_list : List[str]
 
 # class AddDocumentRequest(BaseModel):
 #     document_paths: str
