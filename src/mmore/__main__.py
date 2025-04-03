@@ -62,12 +62,15 @@ def index(config_file, input_data, collection_name):
 
 @main.command()
 @click.option('--config-file', '-c', type=str, required=True, help='Dispatcher configuration file path.')
-@click.option('--input-file', '-f', type=str, required=True, help='Path to the input file.')
+@click.option('--input-file', '-f', type=str, required=False, help='Path to the input file. If not provided, the retriever is run in API mode.')
+@click.option('--output-file', '-o', type=str, required=False, help='Path to the output file. Must be provided together with input-file')
 @click.option('--document-ids', '-d', type=str, required=False, help='Comma-seperated list of document IDs.')
-@click.option('--output-file', '-o', type=str, required=True, help='Path to the output file.')
 def retrieve(config_file, input_file, output_file, document_ids):
     """Retrieve documents for specified queries."""
     from .run_retriever import retrieve as run_retrieve
+
+    if (input_file is None) != (output_file is None):
+        raise click.UsageError("Both --input-file and --output-file must be provided together or not at all.")
     run_retrieve(config_file, input_file, output_file, document_ids)
 
 @main.command()
