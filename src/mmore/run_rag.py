@@ -47,7 +47,7 @@ class RAGInferenceConfig:
         if self.mode_args is None and self.mode == 'api':
             self.mode_args = APIConfig()
 
-def read_queries(input_file: Path) -> List[str]:
+def read_queries(input_file: Path) -> List[Union[str, dict]]:
     with open(input_file, 'r') as f:
         return [json.loads(line) for line in f]
 
@@ -90,9 +90,15 @@ def rag(config_file):
     logger.info('RAG pipeline initialized!')
 
     if config.mode == 'local':
-        queries = read_queries(config.mode_args.input_file)
+        # Read Queries
+        queries = read_queries(Path(config.mode_args.input_file))
+
+        # Pass them to the pipeline
         results = rag(queries, return_dict=True)
+
+        # Write results out
         save_results(results, config.mode_args.output_file)
+        
     elif config.mode == 'api':
         app = create_api(rag, config.mode_args.endpoint)
         uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
