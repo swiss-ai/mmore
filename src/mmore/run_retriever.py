@@ -1,3 +1,4 @@
+import argparse
 from dotenv import load_dotenv
 load_dotenv() 
 
@@ -40,27 +41,44 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
     with open(output_file, 'w') as f:
         json.dump(formatted_results, f, indent=2)
 
-def retrieve(config_file, input_file, output_file):
-    """Retrieve documents for specified queries."""
+def retrieve(config_file, input_file, output_file, document_ids=None):
+    """Retrieve documents for specified queries via a vector based similarity search.
+    
+    If candidate document IDs are provided, the search is restricted to those documents attaching a filter expression to both dense and sparse search requests. Otherwise, a full collection search is performed"""
+
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
 
     logger.info('Running retriever...')
-    retriever = Retriever.from_config(config.retriever)
+    retriever = Retriever.from_config(config)
     logger.info('Retriever loaded!')
     
+    # Read queries from the JSONL file
     queries = read_queries(Path(input_file))  # Added missing argument
+
+    # Process document_ids into a list
+    doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()] if document_ids else None
+
     # Measure time for the retrieval process
     logger.info("Starting document retrieval...")
     start_time = time.time()  # Start timer
-    retrieved_docs = [retriever.invoke(query) for query in tqdm(queries, desc="Retrieving documents", unit="query")] 
+
+    retrieved_docs_for_all_queries = []
+
+    # Call invoke with doc_ids so that the callback manager is used
+    for query in tqdm(queries, desc="Retrieving documents", unit="query"):
+        docs_for_query = retriever.invoke(query, document_ids=doc_ids_list)
+        retrieved_docs_for_all_queries.append(docs_for_query)
+
+
     end_time = time.time()  # End timer
     
     time_taken = end_time - start_time
     logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
     logger.info(f'Retrieved documents!')
 
-    save_results(retrieved_docs, queries, Path(output_file))  # Added missing argument
+    # Save results to output file
+    save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
     logger.info(f"Done! Results saved to {output_file}")
 
 
