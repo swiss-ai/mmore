@@ -12,6 +12,13 @@ from langchain_core.documents import Document
 from pathlib import Path
 import json
 
+import uvicorn
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from pydantic import BaseModel, Field
+
 import logging
 from src.mmore.utils import load_config
 
@@ -41,7 +48,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
     with open(output_file, 'w') as f:
         json.dump(formatted_results, f, indent=2)
 
-def retrieve(config_file, input_file, output_file, document_ids=None):
+def retrieve(config_file: str, input_file: str, output_file: str, document_ids: list[str] = []):
     """Retrieve documents for specified queries via a vector based similarity search.
     
     If candidate document IDs are provided, the search is restricted to those documents attaching a filter expression to both dense and sparse search requests. Otherwise, a full collection search is performed"""
@@ -81,12 +88,58 @@ def retrieve(config_file, input_file, output_file, document_ids=None):
     save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
     logger.info(f"Done! Results saved to {output_file}")
 
+class Msg(BaseModel):
+    role: str
+    content: str
+
+class RetrieverQuery(BaseModel):
+    fileIds: list[str]
+    maxMatches: int
+    minSimilarity: Optional[float] = Field(-1.0, ge=-1.0, le=1.0, description="Minimum similarity for documents, float from -1 to 1")
+    query: str
+
+def create_api(config_file: str):
+    app = FastAPI(
+        title="Retriever Pipeline API",
+        description="API for retrieving documents corresponding to a query",
+        version="1.0",
+    )
+
+    # Load the config file
+    config = load_config(config_file, RetrieverConfig)
+
+    logger.info('Running retriever...')
+    retriever = Retriever.from_config(config)
+    logger.info('Retriever loaded!')
+
+    @app.get("/v1/retriever")
+    def retriver(query: RetrieverQuery):
+        """Query the retriever"""
+
+        msg_input = "\n\n".join(f"**{msg.role}**: {msg.content}" for msg in query.message_history)
+        docs_for_query = retriever.invoke(msg_input, document_ids=query.document_ids)
+        
+        docs_info = []
+        for doc in sorted(docs_for_query, key=lambda x: x.metadata["rank"]):
+            meta = doc.metadata
+            docs_info.append({"fileId": meta["id"], "content": doc.page_content, "similarity": meta["similarity"]})
+
+        return docs_info
+
+    return app
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_file", required=True, help="Path to the index configuration file.")
-    parser.add_argument("--input_file", required=True, help="Path to the input file of queries.")
-    parser.add_argument("--output_file", required=True, help="Path to the output file of selected documents.")
-
+    parser.add_argument("--config-file", required=True, help="Path to the index configuration file.")
+    parser.add_argument("--input-file", required=False, help="Path to the input file of queries. If not provided, the retriever is run in API mode.")
+    parser.add_argument("--output-file", required=False, help="Path to the output file of selected documents. Must be provided together with --input_file.")
     args = parser.parse_args()
-    retrieve()
+
+    if (args.input_file is None) != (args.output_file is None):
+        parser.error("Both --input-file and --output-file must be provided together or not at all.")
+
+    if args.input_file: #an input file is provided 
+        retrieve(args.config_file, args.input_file, args.output_file)
+    else:
+        api = create_api(args.config_file)
+        uvicorn.run(api, "0.0.0.0", 8000)
