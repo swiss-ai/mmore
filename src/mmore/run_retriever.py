@@ -93,16 +93,23 @@ class Msg(BaseModel):
     content: str
 
 class RetrieverQuery(BaseModel):
-    fileIds: list[str]
-    maxMatches: int
-    minSimilarity: Optional[float] = Field(-1.0, ge=-1.0, le=1.0, description="Minimum similarity for documents, float from -1 to 1")
-    query: str
+    fileIds: list[str] = Field(..., description="List of file IDs to search within")
+    maxMatches: int = Field(..., ge=1, description="Maximum number of matches to return")
+    minSimilarity: Optional[float] = Field(-1.0, ge=-1.0, le=1.0, description="Minimum similarity score for results (-1.0 to 1.0)")
+    query: str = Field(..., description="Search query")
 
 def create_api(config_file: str):
     app = FastAPI(
-        title="Retriever Pipeline API",
-        description="API for retrieving documents corresponding to a query",
-        version="1.0",
+        title="mmore Retriever API",
+        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+
+## Overview
+
+This API defines the retriever API of mmore, handling:
+
+1. **File Operations** - Direct file management within mmore.
+2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.""",
+        version="1.0.0",
     )
 
     # Load the config file
