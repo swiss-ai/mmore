@@ -17,32 +17,53 @@ A scalable multimodal pipeline for processing, indexing, and querying multimodal
 Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
 Well, MMORE is here to help you!
 
-## MMORE Installation Guide
+## :bulb: Quickstart
 
-### Installation Option 1: pip (recommended)
+### Installation
 
-To install all dependencies, run:
+#### (Step 0 – Install system dependencies)
 
-```bash
-pip install -e '.[all]'
-```
-
-To install only processor-related dependencies, run:
+Our package requires system dependencies. This snippet will take care of installing them!
 
 ```bash
-pip install -e '.[processor]'
+sudo apt update
+sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
+  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
 ```
 
-To install only RAG-related dependencies, run:
+#### Step 1 – Install MMORE
+
+To install the package simply run:
+
+```bash
+pip install -e .
+```
+
+To install additional RAG-related dependencies, run:
 
 ```bash
 pip install -e '.[rag]'
 ```
 
----
-
+> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
 
 ### Minimal Example
+
+You can use our predefined CLI commands to execute parts of the pipeline. Note that you might need to prepend `python -m` to the command if the package does not properly create bash aliases.
+
+```bash
+# Run processing
+mmore process --config-file examples/process/config.yaml
+
+# Run indexer
+mmore index --config-file examples/index/config.yaml
+
+# Run RAG
+mmore rag --config-file examples/rag/api/rag_api.yaml
+```
+
+You can also use our package in python code as shown here:
 
 ```python
 from mmore.process.processors.pdf_processor import PDFProcessor 
@@ -59,107 +80,6 @@ result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_p
 MultimodalSample.to_jsonl(out_file, result_pdf)
 ```
 
-### Installation Option 2: uv
-
-#### Step 1: Install system dependencies
-
-```bash
-sudo apt update
-sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
-  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
-  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
-```
-
-#### Step 2: Install `uv`
-
-Refer to the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/) for detailed instructions.
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-#### Step 3: Clone this repository
-
-```bash
-git clone https://github.com/swiss-ai/mmore
-cd mmore
-```
-
-#### Step 4: Install project and dependencies
-
-```bash
-uv sync
-```
-
-For CPU-only installation, use:
-
-```bash
-uv sync --extra cpu
-```
-
-#### Step 5: Run a test command
-
-Activate the virtual environment before running commands:
-
-```bash
-source .venv/bin/activate
-```
-
-Alternatively, prepend each command with `uv run`:
-
-```bash
-# Run processing
-python -m mmore process --config_file examples/process_config.yaml
-
-# Run indexer
-python -m mmore index --config-file ./examples/index/indexer_config.yaml
-
-# Run RAG
-python -m mmore rag --config-file ./examples/rag/rag_config_local.yaml
-```
-
----
-
-### Installation Option 3: Docker
-
-**Note:** For manual installation without Docker, refer to the section below.
-
-#### Step 1: Install Docker
-
-Follow the official [Docker installation guide](https://docs.docker.com/get-started/get-docker/).
-
-#### Step 2: Build the Docker image
-
-```bash
-docker build . --tag mmore
-```
-
-To build for CPU-only platforms (results in a smaller image size):
-
-```bash
-docker build --build-arg PLATFORM=cpu -t mmore .
-```
-
-#### Step 3: Start an interactive session
-
-```bash
-docker run -it -v ./test_data:/app/test_data mmore
-```
-
-*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process_config.yaml`.
-
-#### Step 4: Run the application inside the container
-
-```bash
-# Run processing
-mmore process --config-file examples/process/config.yaml
-
-# Run indexer
-mmore index --config-file ./examples/index/indexer_config.yaml
-
-# Run RAG
-mmore rag --config-file ./examples/rag/rag_config_local.yaml
-```
-
 ---
 
 
@@ -174,11 +94,11 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
 
 2. [**:mag: Process**](./docs/process.md) 
-   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible ! Add your own processors to handle new file types.  
+   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.  
    *Supports fast processing for specific types.*
 
 3. [**:file_folder: Index**](./docs/index.md) 
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and only need to provide a standard API. 
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. 
 
 4. [**:robot: RAG**](./docs/rag.md) 
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
@@ -186,7 +106,7 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
 
 5. **:tada: Evaluation**  
    *Coming soon*
-   An easy way to evaluate the performance of your RAG system using Ragas
+   An easy way to evaluate the performance of your RAG system using Ragas.
 
 See [the `/docs` directory](/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
 
@@ -195,7 +115,7 @@ See [the `/docs` directory](/docs) for additional details on each modules and ha
 
 | **Category**      | **File Types**                           | **Supported Device**      |  **Fast Mode**      |
 |--------------------|------------------------------------------|--------------------------| --------------------------|
-| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML              | CPU                      | :x:
+| **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML           | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
 | **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
@@ -209,9 +129,10 @@ We welcome contributions to improve the current state of the pipeline, feel free
 - Open a pull request to fix a bug or add a new feature
 - You can find ongoing new features and bugs in the [Issues]
    
-Don't hesitate to star the project :star: if you find it interesting! (you would be our star)
+Don't hesitate to star the project :star: if you find it interesting! (you would be our star).
 
 ## License
+
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
 
 ## Acknowledgements

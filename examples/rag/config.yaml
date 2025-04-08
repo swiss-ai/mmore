@@ -1,0 +1,10 @@
+rag:
+  llm: 
+    llm_name: HuggingFaceTB/SmolLM2-1.7B-Instruct
+    max_new_tokens: 250
+  retriever:
+    db:
+      uri: ./examples/rag/ner.db
+    hybrid_search_weight: 0.5
+    k: 5
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"

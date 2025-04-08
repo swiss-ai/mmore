@@ -184,7 +184,7 @@ class Dispatcher:
             logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
-            processor_config = ProcessorConfig(dashboard_url=self.config.dashboard_backend_url, custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config)
             proc = processor(processor_config)
             res = proc(files, self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)

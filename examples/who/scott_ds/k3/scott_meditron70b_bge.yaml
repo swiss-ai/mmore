@@ -1,0 +1,14 @@
+rag:
+  llm: 
+    llm_name: OpenMeditron/Meditron3-70B
+    max_new_tokens: 8000
+  retriever:
+    db:
+      uri: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/chunk_guidelines_bge_ivf2.db
+    hybrid_search_weight: 0.5
+    k: 3
+  system_prompt: "You will have to answer a question. You can use or not the following context to answer the question.\n\nContext:\n{context}"
+mode: local
+mode_args:
+  input_file: examples/who/scott_ds_queries.jsonl
+  output_file: examples/who/scott_ds/k3/scott_ds_meditron70b_bge.jsonl

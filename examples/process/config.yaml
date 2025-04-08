@@ -1,10 +1,11 @@
+data_path: examples/sample_data/ #put absolute path!
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
-  dashboard_backend_url: http://172.16.2.121:8000
+  dashboard_backend_url: http://0.0.0.0:8000
   extract_images: true
-  scheduler_file: scheduler-file.json #put absolute path!
+  #scheduler_file: scheduler-file.json #put absolute path!
   process_batch_sizes:
     - URLProcessor: 40
     - DOCXProcessor: 100
@@ -34,4 +35,3 @@ dispatcher_config:
       - LAYOUT_BATCH_SIZE: 1
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
-data_path: examples/sample_data/ #put absolute path!
