@@ -33,6 +33,8 @@ class IndexerConfig:
 
     dense_model: DenseModelConfig
     sparse_model: SparseModelConfig
+    input_data: str
+    collection_name: str
     db: DBConfig = field(default_factory=DBConfig)
 
     def __post_init__(self):

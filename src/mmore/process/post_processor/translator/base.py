@@ -32,6 +32,10 @@ class TranslatorPostProcessor(BasePostProcessor):
         self, sample: MultimodalSample, **kwargs
     ) -> MultimodalSample | List[MultimodalSample]:
         from_code, confidence = classify(sample.text)
+        
+        # If the sample is already in the right language, do nothing
+        if from_code == self.target_language:
+            return sample
 
         # Install package if needed
         self._update_package(from_code)
@@ -57,6 +61,7 @@ class TranslatorPostProcessor(BasePostProcessor):
 
         argostranslate.package.update_package_index()
         available_packages = argostranslate.package.get_available_packages()
+
         package_to_install = next(
             filter(
                 lambda x: x.from_code == from_code

@@ -26,7 +26,7 @@ load_dotenv()
 
 @dataclass
 class LocalConfig:
-    input_file: str
+    input: str
     output_file: str
 
 
@@ -64,10 +64,10 @@ def save_results(results: List[Dict], output_file: Union[Path, str]):
 
 def create_api(rag: RAGPipeline, endpoint: str):
     app = FastAPI(
-        title="RAG Pipeline API",
-        description="API for question answering using RAG",
-        version="1.0",
-    )
+            title="RAG Pipeline API",
+            description="API for question answering using RAG",
+            version="1.0",
+            )
 
     # Add routes for the RAG chain
     add_routes(app, rag.rag_chain, path=endpoint, playground_type="chat")
@@ -77,7 +77,6 @@ def create_api(rag: RAGPipeline, endpoint: str):
         return {"status": "healthy"}
 
     return app
-
 
 def rag(config_file):
     """Run RAG."""

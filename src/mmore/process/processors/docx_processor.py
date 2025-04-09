@@ -1,34 +1,18 @@
 import io
-<<<<<<< HEAD
-import logging
-from typing import List
-
-from docx import Document
-from docx.document import Document as DocumentType
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
-from PIL import Image
-
-from ...type import FileDescriptor, MultimodalSample
-from ..utils import clean_text
-from .base import Processor, ProcessorConfig
-=======
 import uuid
 import os
 from pathlib import Path
 
 import mammoth
 import tempfile
+import logging
 from markdownify import markdownify
-from typing import List, Dict, Any
-from mmore.process.utils import clean_text
-from mmore.process.processors.md_processor import MarkdownProcessor
-from mmore.type import FileDescriptor, MultimodalSample
+from typing import Dict, Any
+from ...type import FileDescriptor, MultimodalRawInput, MultimodalSample
 
 from .base import Processor, ProcessorConfig
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from PIL import Image
 import mimetypes
->>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
 logger = logging.getLogger(__name__)
 
@@ -71,20 +55,15 @@ class DOCXProcessor(Processor):
         defined in the processor configuration (e.g., "<attachment>").
         """
 
-<<<<<<< HEAD
-        # First, we define a helper functions
-        def _extract_images(doc: DocumentType) -> List[Image.Image]:
-            """
-            Extract embedded images from the DOCX document.
-=======
+        all_images = []
+
         def _convert_image(image: mammoth.documents.Image) -> Dict[str, Any]:
-            if self.config.custom_config.get("extract_images", False):
+            if not self.config.custom_config.get("extract_images", False):
                 return {"src" : ""}
 
             with image.open() as image_bytes:
                 try:
                     pil_image = Image.open(io.BytesIO(image_bytes.read()))
->>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
                     # Generate unique image path and save the image there
                     image_path = Path(os.path.join(image_output_dir, str(uuid.uuid4())))
@@ -93,14 +72,18 @@ class DOCXProcessor(Processor):
                     )
 
                     pil_image.save(image_path)
+                    logger.info(f"Saving image {image_path}")
+                    all_images.append(MultimodalRawInput(type="image", value=str(image_path)))
 
-                    return {"src": image_path.absolute().as_posix()}
+                    print("Saving image to {image_path}")
+
+                    return {"src" : "", "alt": self.config.attachment_tag}
 
                 except Exception as e:
-                    logger.warn(
+                    logger.warning(
                         f"Failed to load image with MIME type {image.content_type}: {e}"
                     )
-                    return {"src": ""}
+                    return {"src": "", "alt": ""}
 
         image_output_dir = self.config.custom_config.get("image_output_dir", None)
 
@@ -117,25 +100,15 @@ class DOCXProcessor(Processor):
                 )
 
         except Exception as e:
-            logger.warn(f"Failed to convert {file_path}: {e}")
+            logger.warning(f"Failed to convert {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
         markdown = markdownify(result.value)
 
-<<<<<<< HEAD
-        all_text = []
-        for para in doc.paragraphs:
-            cleaned = clean_text(para.text)
-
-            if cleaned.strip():
-                all_text.append(cleaned)
-=======
-        all_text, embedded_images = MarkdownProcessor.process_md(
-            content=markdown,
-            assets_path=image_output_dir,
-            attachment_tag=self.config.attachment_tag,
-            extract_images=self.config.custom_config.get("extract_images", True),
+        sample = MultimodalSample(
+            text=markdown,
+            modalities=all_images,
+            metadata={"file_path" : file_path}
         )
->>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
-        return self.create_sample([all_text], embedded_images, file_path)
+        return sample
