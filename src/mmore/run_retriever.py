@@ -123,11 +123,15 @@ This API defines the retriever API of mmore, handling:
     def retriver(query: RetrieverQuery):
         """Query the retriever"""
 
-        msg_input = "\n\n".join(f"**{msg.role}**: {msg.content}" for msg in query.message_history)
-        docs_for_query = retriever.invoke(msg_input, document_ids=query.document_ids)
-        
+        docs_for_query = retriever.invoke(
+            query.query, 
+            document_ids=query.document_ids, 
+            k=query.maxMatches, 
+            min_score=query.minSimilarity
+        )
+
         docs_info = []
-        for doc in sorted(docs_for_query, key=lambda x: x.metadata["rank"]):
+        for doc in docs_for_query:
             meta = doc.metadata
             docs_info.append({"fileId": meta["id"], "content": doc.page_content, "similarity": meta["similarity"]})
 

@@ -80,12 +80,12 @@ class Retriever(BaseRetriever):
 
         return dense_embedding, sparse_embedding
 
-    # TODO: [FEATURE] minimal score for retrieval
     def retrieve(
             self,
             query: str,
             collection_name: str = 'my_docs',
             partition_names: List[str] = None,
+            min_score: float = -1.0, #-1.0 is the minimum possible score anyway
             k: int = 1,
             search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
             document_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
@@ -99,6 +99,7 @@ class Retriever(BaseRetriever):
             query: Search query string
             collection_name: the Milvus collection to search in
             partition_names: Specific partitions within the collection
+            min_score: Minimal similarity score
             k: Number of documents to retrieve
             output_fields: Fields to return in results
             search_type: Type of search to perform ("dense", "sparse", or "hybrid")
@@ -168,7 +169,7 @@ class Retriever(BaseRetriever):
 
         # Call the Milvus hybrid_search to perform both searches and then rerank results.
         # The WeightedRanker combined the scores from the dense and sparse searches
-        return self.client.hybrid_search(
+        res = self.client.hybrid_search(
             reqs=[request_1, request_2],  # List of AnnSearchRequests
             ranker=WeightedRanker(search_weight, 1 - search_weight),  # Reranking strategy
             limit=k,
@@ -177,11 +178,15 @@ class Retriever(BaseRetriever):
             partition_names=partition_names,
         )
 
+        # Apply the threshold of min_score
+        return list(filter(lambda x: x["distance"] >= min_score, res))
+
     def batch_retrieve(
             self,
             queries: List[str],
             collection_name: str = 'my_docs',
             partition_names: List[str] = None,
+            min_score: float = -1.0, #-1.0 is the minimum possible score anyway
             k: int = 1,
             output_fields: List[str] = ["text"],
             search_type: str = "hybrid"
@@ -191,6 +196,9 @@ class Retriever(BaseRetriever):
         
         Args:
             queries: List of search query strings
+            collection_name: Name of the collection in which the research has to be done
+            partition_names: Names of the partitions in which the research has to be done
+            min_score: Minimal score of the documents to retrieve
             k: Number of documents to retrieve per query
             output_fields: Fields to return in results
             search_type: Type of search to perform
@@ -204,6 +212,7 @@ class Retriever(BaseRetriever):
                 query=query,
                 collection_name=collection_name,
                 partition_names=partition_names,
+                min_score=min_score,
                 k=k,
                 output_fields=output_fields,
                 search_type=search_type
@@ -226,17 +235,22 @@ class Retriever(BaseRetriever):
             collection_name: str = query.get("collection_name", "my_docs")
             partition_names: Optional[str] = query.get("partition_name", None)
             document_ids: List[str] = query.get("document_ids", [])
+            min_score: float = query.get("min_score", -1.0)
+            k: int = query.get("k", self.k)
         else:
             query_input: str = query
             collection_name: str = "my_docs"
             partition_names: Optional[str] = None
             document_ids: List[str] = []
+            min_score: float = -1.0
+            k: int = self.k
 
         results = self.retrieve(
             query=query_input,
             collection_name=collection_name,
             partition_names=partition_names,
-            k=self.k, document_ids=document_ids
+            min_score=min_score,
+            k=k, document_ids=document_ids
         )
 
         return [
