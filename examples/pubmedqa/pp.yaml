@@ -1,0 +1,21 @@
+data_path: /mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/merged/merged_results_corrected.jsonl
+pipeline:
+  pp_modules:
+    - type: chunker 
+      args:
+        chunking_strategy: sentence
+    - type: filter_gopher-repetition
+      args:
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/gopher-rep.jsonl
+    - type: filter_gopher-quality
+      args:
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/gopher-quality.jsonl
+    - type: filter_c4
+      args:
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/c4.jsonl
+    - type: filter_fineweb
+      args:
+        exclusion_writer: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/logs/fineweb.jsonl
+  output:
+    output_path: /mnt/mlo/scratch/homes/mmore/datasets/pubmedqa/processed/pp
+    save_each_step: True

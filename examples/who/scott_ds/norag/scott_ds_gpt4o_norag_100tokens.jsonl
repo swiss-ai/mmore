@@ -1,0 +1,17 @@
+[
+  {
+    "answer": "In a patient with severe malaria and acute kidney injury, the dosing of quinine needs to be carefully adjusted to prevent accumulation and toxicity, while still ensuring effective treatment of the malaria. Quinine has renal clearance, and in the context of renal impairment, its elimination is reduced, necessitating dosage adjustment.\n\nHere is a general guideline for dosing quinine in patients with renal impairment:\n\n1. **Loading Dose**: Start with a standard loading dose of quinine, which is typically 20 mg/kg given",
+    "input": "I am treating a patient with severe malaria who has an acute kidney injury due to their disease severity. We do not have artesunate in stock and we cant do dialysis here, we only have quinine in a parenteral solution. How should I adjust the dosage for Quinine in this patient?",
+    "context": ""
+  },
+  {
+    "answer": "In the case of co-infection with tuberculosis (TB) and HIV in children, it's important to manage both conditions carefully to optimize outcomes and minimize complications. For an 8-year-old patient with TB and newly diagnosed HIV, the timing of initiating antiretroviral therapy (ART) should be considered carefully.\n\nCurrent guidelines generally recommend starting ART as soon as possible in all children with HIV, regardless of TB co-infection. However, in the specific scenario of TB meningitis, there is a need",
+    "input": "My 8yr old female patient was recently diagnosed with TB and TB meningitis. She has improved since starting her TB treatment 3 weeks ago, but she was also diagnosed with HIV, can I start her ART now?",
+    "context": ""
+  },
+  {
+    "answer": "In the scenario you described, where a neonate is not breathing within one minute after birth and has a heart rate of 30-40 beats per minute, both positive pressure ventilation (PPV) and chest compressions are indicated. According to neonatal resuscitation guidelines, if a neonate's heart rate is below 60 beats per minute after 30 seconds of effective positive pressure ventilation, chest compressions should be started in addition to continuing ventilation. In this situation, the heart rate is significantly",
+    "input": "When two providers are resuscitating a neonate who isn't breathing within one minute after birth and the heartrate is 30-40 beats per minute should we assist ventilation and do chest compressions or just ventilate?",
+    "context": ""
+  }
+]

@@ -1,0 +1,10 @@
+indexer:
+  dense_model:
+    model_name: BAAI/bge-large-en-v1.5
+  sparse_model:
+    model_name: splade
+  db:
+    uri: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/chunk_guidelines_bge_ivf2.db
+collection_name: who
+documents_path: "/mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/pp/2___🧩 Chunker.jsonl"
+batch_size: 64

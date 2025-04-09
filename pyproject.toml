@@ -1,11 +1,25 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mmore"
 version = "1.0.0"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
+    { name = "Alexandre Sallinen", email = "alexandre.sallinen@epfl.ch" },
     { name = "Paul Teiletche", email = "paul.teiletche@epfl.ch" },
-    { name = "Marc-Antoine Dilmi JR Allard", email = "marc-antoine.allard@epfl.ch" }
+    { name = "Marc-Antoine Allard", email = "marc-antoine.allard@epfl.ch" },
+    { name = "Stefan Krsteski", email = "stefan.krsteski@epfl.ch" },
+    { name = "David Kalajdzic", email = "david.kalajdzic@epfl.ch" },
+    { name = "Michael Zhang", email = "michael.zhang@epfl.ch" },
+    { name = "Matthias Meyer", email = "matthias.meyer@sdsc.ethz.ch" },
+    { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
+    { name = "Charlotte Meyer", email = "Charlotte.meyer@epfl.ch" },
+    { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -19,23 +33,10 @@ dependencies = [
     "python-dotenv==1.0.1",
     "dacite==1.8.1",
     "click>=8.1.7",
-    "dask-cuda>=24.10.0",
-    "cuda-python>=12.6.2",
-    "ucx-py-cu12>=0.40.0",
+    "dask[distributed]>=2025.2.0",
     "pytest>=8.3.4",
     "validators==0.34.0",
     "httpx==0.27.2",
-]
-
-[project.optional-dependencies]
-cpu = [
-    "torch>=2.5.1",
-]
-cu124 = [
-    "torch>=2.5.1",
-]
-
-process = [
     "Pillow",
     "PyMuPDF",
     "Unidecode",
@@ -52,8 +53,8 @@ process = [
     "py7zr==0.22.0",
     "rarfile==4.2",
     "markdown==3.7",
-    "markdownify>=0.13.1",
-    "marker-pdf==1.2.7",
+    "markdownify==0.13.1",
+    "marker-pdf==1.6.0",
     "moviepy==2.1.1",
     "openpyxl==3.1.5",
     "chonkie==0.2.1.post1",
@@ -63,66 +64,36 @@ process = [
     "validators==0.34.0",
     "bokeh",
     "motor==3.6.0",
-    "fastapi[standard]==0.115.6",
+    "fastapi[standard]",
+    "fastapi==0.115.5",
     "pydantic== 2.10.4",
     "pymongo==4.9.2"
 ]
 
+[project.optional-dependencies]
+cpu = [
+    "torch>=2.5.1",
+]
+cu124 = [
+    "torch>=2.5.1",
+]
+
 rag = [
-  "langchain==0.2.17",
-  "langchain-milvus==0.1.7",
-  "langchain-huggingface==0.0.3",
-  "langchain-openai==0.1.20",
-  "langchain-anthropic==0.1.23",
-  "langchain-mistralai==0.1.13",
-  "langchain-cohere==0.2.4",
-  "langchain-nvidia-ai-endpoints",
+  "accelerate",
+  "langchain-anthropic==0.3.4",
   "langchain-aws",
-  "langserve[all]==0.2.3",
+  "langchain-cohere==0.4.2",
+  "langchain-huggingface==0.1.2",
+  "langchain-milvus==0.1.8",
+  "langchain-mistralai==0.2.7",
+  "langchain-nvidia-ai-endpoints",
+  "langchain-openai==0.3.7",
+  "langchain==0.3.20",
+  "langdetect>=1.0.9",
+  "langserve[all]==0.3.1",
   "pymilvus[model]==2.5.0",
   "ragas==0.2.6",
   "nltk>=3.9",
-]
-
-all = [
-    "Pillow",
-    "PyMuPDF",
-    "Unidecode",
-    "clean-text",
-    "docx2pdf",
-    "lxml_html_clean",
-    "python-docx",
-    "python-pptx",
-    "clean-text",
-    "requests==2.28.1",
-    "selenium==4.27.1",
-    "surya-ocr==0.6.13",
-    "xlrd==2.0.1",
-    "py7zr==0.22.0",
-    "rarfile==4.2",
-    "markdown==3.7",
-    "markdownify==0.14.1",
-    "marker-pdf==0.3.10",
-    "moviepy==2.1.1",
-    "openpyxl==3.1.5",
-    "chonkie==0.2.1.post1",
-    "langdetect>=1.0.9",
-    "trafilatura==1.4.0",
-    "langchain==0.2.17",
-    "langchain-milvus==0.1.7",
-    "langchain-huggingface==0.0.3",
-    "langchain-openai==0.1.20",
-    "langchain-anthropic==0.1.23",
-    "langchain-mistralai==0.1.13",
-    "langchain-cohere==0.2.4",
-    "langchain-nvidia-ai-endpoints",
-    "langchain-aws",
-    "langserve[all]==0.2.3",
-    "pymilvus[model]==2.5.0",
-    "ragas==0.2.6",
-    "nltk>=3.9",
-    "validators==0.34.0",
-    "datatrove[processing]"
 ]
 
 [tool.uv]
@@ -152,7 +123,3 @@ explicit = true
 
 [project.scripts]
 mmore = "mmore:__main__"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
