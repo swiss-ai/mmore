@@ -8,3 +8,4 @@ rag:
     hybrid_search_weight: 0.5
     k: 5
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+mode: api

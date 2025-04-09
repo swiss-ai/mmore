@@ -6,7 +6,7 @@ Integrates Milvus retrieval with HuggingFace text generation.
 
 from typing import Union, List, Dict, Optional, Any
 
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 
 from langchain.chains.base import Chain
 from langchain_core.documents import Document
@@ -30,12 +30,11 @@ Context:
 """
 
 
-@dataclass
-class RAGConfig:
+class RAGConfig(BaseModel):
     """Configuration for RAG pipeline."""
     retriever: RetrieverConfig
-    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
-    system_prompt: str = DEFAULT_PROMPT
+    llm: LLMConfig = Field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
+    system_prompt: str = Field(default=DEFAULT_PROMPT)
 
 
 class RAGPipeline:
