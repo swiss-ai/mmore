@@ -1,7 +1,7 @@
 import argparse
 
 from typing import Literal, List, Dict, Union
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from pathlib import Path
 import json
@@ -26,26 +26,26 @@ from dotenv import load_dotenv
 load_dotenv() 
 
 
-@dataclass
-class LocalConfig:
+class LocalConfig(BaseModel):
     input_file: str
     output_file: str
 
-@dataclass
-class APIConfig:
-    endpoint: str = '/rag'
-    port: int = 8000
-    host: str = '0.0.0.0'
-    
-@dataclass
-class RAGInferenceConfig:
-    rag: RAGConfig
-    mode: str
-    mode_args: Union[LocalConfig, APIConfig] = None
+class APIConfig(BaseModel):
+    endpoint: str = Field(default='/rag')
+    port: int = Field(default=8000)
+    host: str = Field(default='0.0.0.0')
 
-    def __post_init__(self):
-        if self.mode_args is None and self.mode == 'api':
-            self.mode_args = APIConfig()
+class LocalRAGInferenceConfig(BaseModel):
+    rag: RAGConfig
+    mode: Literal["local"]
+    mode_args: LocalConfig
+
+class APIRAGInferenceConfig(BaseModel):
+    rag: RAGConfig
+    mode: Literal["api"]
+    mode_args: APIConfig = Field(default_factory=lambda: APIConfig())
+
+RAGInferenceConfig = Union[LocalRAGInferenceConfig, APIRAGInferenceConfig]
 
 def read_queries(input_file: Path) -> List[str]:
     with open(input_file, 'r') as f:
