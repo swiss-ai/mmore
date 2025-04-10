@@ -1,3 +1,4 @@
+data_path: examples/sample_data/ #put absolute path!
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: false
@@ -34,4 +35,3 @@ dispatcher_config:
       - LAYOUT_BATCH_SIZE: 1
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
-data_path: examples/sample_data/ #put absolute path!
