@@ -1,0 +1,183 @@
+openapi: 3.1.1
+info:
+  title: mmore Retriever API
+  description: |
+    This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+
+    ## Overview
+
+    This API defines the retriever API of mmore, handling:
+
+    1. **File Operations** - Direct file management within mmore.
+    2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.
+
+    ## API Versioning
+
+    All requests must be prefixed with `/v1` for this current version of the API.
+
+    ## Roadmap & Considerations
+    - Authorization layer for mmore operations
+    - Permission control on some operation such as file deletion
+    - Advanced query for retrieval (send more sophisticated object, for instance representing a whole conversation, rather than one string)
+
+  version: 1.0.0
+servers:
+  - url: /v1
+    description: API server
+
+paths:
+  /files:
+    post:
+      tags:
+        - File Operations
+      summary: Upload a file
+      description: |
+        Upload a new file
+
+         **Requirements**:
+        - Unique fileId
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fileId:
+                  type: string
+                  description: Unique identifier for the file
+                file:
+                  type: string
+                  format: binary
+                  description: The file content
+              required:
+                - fileId
+                - file
+      responses:
+        '201':
+          description: File successfully uploaded
+
+  /files/{id}:
+    put:
+      tags:
+        - File Operations
+      summary: Update a file
+      description: Replace an existing file with a new version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The new file content
+              required:
+                - file
+      responses:
+        '200':
+          description: File successfully updated
+
+    delete:
+      tags:
+        - File Operations
+      summary: Remove a file
+      description: |
+        Delete a file from the system.
+
+        **Warning**: Not limited operation.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File successfully deleted
+
+    get:
+      tags:
+        - File Operations
+      summary: Download a file
+      description: Download a file from the system
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /retrieve:
+    post:
+      tags:
+        - Context Retrieval
+      summary: Retrieve on MMORE
+      description: |
+        Search for files based on content similarity.
+      
+        This request is meant to be called by the Gateway to MMORE service upon chat completions request from Moove.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fileIds:
+                  type: array
+                  items:
+                    type: string
+                  description: List of file IDs to search within
+                maxMatches:
+                  type: integer
+                  minimum: 1
+                  description: Maximum number of matches to return
+                minSimilarity:
+                  type: number
+                  format: float
+                  minimum: -1.0
+                  maximum: 1.0
+                  default: 0.0
+                  description: Minimum similarity score for results (-1.0 to 1.0)
+                query:
+                  type: string
+                  description: Search query
+              required:
+                - fileIds
+                - query
+                - maxMatches
+      responses:
+        '200':
+          description: List of matching files with related content, sorted by highest similarity first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    fileId:
+                      type: string
+                    content:
+                      type: string
+                    similarity:
+                      type: number
+                      format: float
+                      minimum: -1.0
+                      maximum: 1.0
+                description: Results sorted by similarity (highest first)
