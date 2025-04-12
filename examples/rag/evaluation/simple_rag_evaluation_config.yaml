@@ -1,0 +1,51 @@
+# 🔍 Simple RAGAS Evaluation Configuration
+# A minimal configuration for quick RAG evaluation
+
+# ===== Dataset Configuration =====
+dataset:
+  hf_dataset_name: "squad_v2"                # Simple question-answering dataset
+  split: "validation"                         # Using validation split
+  feature_map:
+    user_input: "question"                    # Question column
+    reference: "answers.text"                 # Answer column
+    corpus: "context"                         # Context column
+    query_id: "id"                            # ID column
+
+# ===== Evaluation Metrics =====
+metrics:
+  - Faithfulness                              # Only using essential metrics
+  - AnswerRelevancy                           # for faster evaluation
+
+# ===== Embedding Models =====
+embeddings:
+  name: "all-MiniLM-L6-v2"                    # Lightweight embedding model
+
+# ===== Evaluator LLM Configuration =====
+evaluator_llm:
+  llm_name: "gpt-3.5-turbo"                   # Using a faster, cheaper model
+  max_new_tokens: 1024                        # Shorter responses
+
+# ===== Indexer Configuration =====
+indexer:
+  dense_model:
+    model_name: "sentence-transformers/all-MiniLM-L6-v2"
+    is_multimodal: false
+  sparse_model:
+    model_name: "splade"
+    is_multimodal: false
+  db:
+    uri: "./examples/rag/simple_eval.db"      # Separate DB for this evaluation
+    name: "simple_eval"
+  chunker:
+    chunking_strategy: "sentence"
+
+# ===== RAG Pipeline Configuration =====
+rag_pipeline:
+  llm:
+    llm_name: "gpt-3.5-turbo"                 # Using a faster model
+    max_new_tokens: 1024
+  retriever:
+    db:
+      uri: "./examples/rag/simple_eval.db"
+    hybrid_search_weight: 0.7                 # Favoring sparse retrieval
+    k: 2                                      # Retrieving fewer documents

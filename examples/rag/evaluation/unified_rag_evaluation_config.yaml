@@ -1,0 +1,54 @@
+# 🤖 Unified RAGAS Evaluation Configuration
+# This single configuration file combines evaluator, indexer, and RAG pipeline settings
+
+# ===== Dataset Configuration =====
+dataset:
+  hf_dataset_name: "Mallard74/eval_medical_benchmark"  # Hugging Face dataset name
+  split: "train"  # Dataset split to use
+  # Map dataset columns to expected format
+  feature_map:
+    user_input: "user_input"    # Query/question column
+    reference: "reference"      # Ground truth answer column
+    corpus: "corpus"            # Document corpus column
+    query_id: "query_ids"       # Unique identifier column
+
+# ===== Evaluation Metrics =====
+metrics:
+  - LLMContextRecall       # Measures if retrieved context contains info needed to answer
+  - Faithfulness           # Measures if generated answer is supported by context
+  - FactualCorrectness     # Measures factual accuracy of generated answer
+  - SemanticSimilarity     # Measures semantic similarity between generated and reference answers
+
+# ===== Embedding Models =====
+embeddings:
+  name: "all-MiniLM-L6-v2"  # Embedding model for evaluation
+
+# ===== Evaluator LLM Configuration =====
+evaluator_llm:
+  llm_name: "gpt-4o"        # LLM used for evaluation
+  max_new_tokens: 10000     # Maximum tokens for evaluation responses
+
+# ===== Indexer Configuration =====
+indexer:
+  dense_model:
+    model_name: "sentence-transformers/all-MiniLM-L6-v2"  # Dense retrieval model
+    is_multimodal: false                                 # Whether the model handles multimodal data
+  sparse_model:
+    model_name: "splade"                                # Sparse retrieval model
+    is_multimodal: false                               # Whether the model handles multimodal data
+  db:
+    uri: "./examples/rag/unified_eval_benchmark.db"     # Vector database location
+    name: "unified_eval_benchmark"                      # Database name
+  chunker:
+    chunking_strategy: "sentence"                       # Text chunking strategy
+
+# ===== RAG Pipeline Configuration =====
+rag_pipeline:
+  llm:
+    llm_name: "gpt-4o-mini"  # LLM to evaluate in the RAG pipeline
+    max_new_tokens: 10000    # Maximum tokens for RAG responses
+  retriever:
+    db:
+      uri: "./examples/rag/unified_eval_benchmark.db"  # Same DB as indexer
+    hybrid_search_weight: 0.5  # Weight between dense and sparse retrieval (0=dense only, 1=sparse only)
+    k: 3                       # Number of documents to retrieve
