@@ -1,9 +1,9 @@
-data_path: examples/sample_data/ #put absolute path!
+data_path: /mloscratch/homes/clmeyer/mmore/examples/sample_data/ #put absolute path!
 dispatcher_config:
-  output_path: examples/process/outputs/ #put absolute path!
+  output_path: /mloscratch/homes/clmeyer/mmore/examples/process/outputs #put absolute path!
   use_fast_processors: false
   distributed: false
-  dashboard_backend_url: http://0.0.0.0:8000
+  dashboard_backend_url: http://localhost:8000
   extract_images: true
   #scheduler_file: scheduler-file.json #put absolute path!
   process_batch_sizes:

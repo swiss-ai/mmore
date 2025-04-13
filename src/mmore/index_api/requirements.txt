@@ -1,3 +1,0 @@
-pydantic~=2.10.4
-fastapi[standard]==0.115.5
-uvicorn[standard]==0.32.1

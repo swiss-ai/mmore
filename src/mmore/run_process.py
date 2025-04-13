@@ -71,6 +71,7 @@ def process(config_file: str):
     
     logger.info(f"Using dispatcher configuration: {dispatcher_config}")
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
+    
 
     dispatch_start_time = time.time()
     results = list(dispatcher())

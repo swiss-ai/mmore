@@ -185,6 +185,10 @@ class Indexer:
                 collection_name=collection_name,
                 partition_name=partition_name,
             )
+            # This returns the list of values
+            # import pdb
+            # pdb.set_trace()
+
             inserted += list(batch_inserted.values())[0]
 
         return inserted
@@ -207,6 +211,8 @@ class Indexer:
         if not self.client.has_collection(collection_name):
             logger.info(f"Creating collection {collection_name}")
             self._create_collection_with_schema(collection_name)
+        else:
+            logger.info(f"{collection_name} already exists, adding documents to it")
 
         self._log_collection_stats(collection_name)
 
