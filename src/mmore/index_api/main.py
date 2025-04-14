@@ -88,6 +88,7 @@ async def upload_file(
                 documents=documents,
                 collection_name=COLLECTION_NAME
             )
+            indexer.client.flush(COLLECTION_NAME)
             
             return {
                 "status": "success",
@@ -153,6 +154,8 @@ async def upload_files(
                 documents=modified_documents,
                 collection_name=COLLECTION_NAME
             )
+            indexer.client.flush(COLLECTION_NAME)
+
             return {
                 "status": "success",
                 "message": f"Successfully processed and indexed {len(modified_documents)} documents",
@@ -219,6 +222,7 @@ async def update_file(
                 documents=documents,
                 collection_name=COLLECTION_NAME
             )
+            indexer.client.flush(COLLECTION_NAME)
             
             return {
                 "status": "success",
