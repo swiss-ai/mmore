@@ -1,7 +1,9 @@
+import argparse
 import logging
 import os
 import shutil
 import tempfile
+import uvicorn
 from pathlib import Path as FilePath
 from typing import List 
 
@@ -404,3 +406,11 @@ def process_files(temp_dir: str, collection_name: str, extensions: List[str]=[".
     # pdb.set_trace()
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
     return list(dispatcher())
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default="0.0.0.0", help="Host on which the API should be run.")
+    parser.add_argument("--port", default=8000, help="Port on which the API should be run.")
+    args = parser.parse_args()
+
+    uvicorn.run(app, args.host, args.port)
