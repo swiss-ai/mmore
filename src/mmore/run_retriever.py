@@ -6,7 +6,7 @@ from src.mmore.rag.retriever import Retriever, RetrieverConfig
 from tqdm import tqdm
 import time
 
-from typing import Literal, List, Dict, Union
+from typing import Literal, List, Dict, Union, Optional
 from langchain_core.documents import Document
 
 from pathlib import Path
@@ -153,4 +153,4 @@ if __name__ == "__main__":
         retrieve(args.config_file, args.input_file, args.output_file)
     else:
         api = create_api(args.config_file)
-        uvicorn.run(api, "0.0.0.0", 8000)
+        uvicorn.run(api, host="0.0.0.0", port=8000)

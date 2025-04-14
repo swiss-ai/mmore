@@ -21,7 +21,7 @@ from src.mmore.process.crawler import Crawler, CrawlerConfig
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from src.mmore.rag.model import DenseModelConfig, SparseModelConfig
 from src.mmore.rag.retriever import Retriever, RetrieverConfig
-from src.mmore.run_rag import RetrieverQuery
+from src.mmore.run_retriever import RetrieverQuery
 from src.mmore.type import MultimodalSample
 from src.mmore.utils import load_config
 
@@ -308,7 +308,7 @@ async def download_file(
         logger.error(f"Error downloading file: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/v1/retriever")
+@app.get("/v1/retriever", status_code=201, tags=["Context Retrieval"])
 def retriever(query: RetrieverQuery) -> list[dict]:
     """Query the retriever"""
 
@@ -461,4 +461,4 @@ if __name__ == "__main__":
     parser.add_argument("--port", default=8000, help="Port on which the API should be run.")
     args = parser.parse_args()
 
-    uvicorn.run(app, args.host, args.port)
+    uvicorn.run(app, host=args.host, port=args.port)
