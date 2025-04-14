@@ -20,7 +20,10 @@ from src.mmore.index.indexer import (
 from src.mmore.process.crawler import Crawler, CrawlerConfig
 from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from src.mmore.rag.model import DenseModelConfig, SparseModelConfig
+from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from src.mmore.run_rag import RetrieverQuery
 from src.mmore.type import MultimodalSample
+from src.mmore.utils import load_config
 
 MILVUS_URI: str = os.getenv("MILVUS_URI", "demo.db")
 MILVUS_DB: str = os.getenv("MILVUS_DB", "my_db")
@@ -38,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 # Cache indexers in memory
 indexers = {}
+retrievers = {}
 
 @app.get("/")
 async def root():
@@ -304,6 +308,29 @@ async def download_file(
         logger.error(f"Error downloading file: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/v1/retriever")
+def retriever(query: RetrieverQuery) -> list[dict]:
+    """Query the retriever"""
+
+    retriever = get_retriever(MILVUS_URI, MILVUS_DB)
+
+    try:
+        docs_for_query = retriever.invoke(
+            query.query, 
+            document_ids=query.document_ids, 
+            k=query.maxMatches, 
+            min_score=query.minSimilarity
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    docs_info = []
+    for doc in docs_for_query:
+        meta = doc.metadata
+        docs_info.append({"fileId": meta["id"], "content": doc.page_content, "similarity": meta["similarity"]})
+
+    return docs_info
+
 # Helper functions
 
 def create_new_indexer(collection_name: str, uri: str, db_name: str) -> Indexer:
@@ -390,6 +417,23 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> Indexer:
             status_code=404, 
             detail=f"Collection {collection_name} not found or could not be loaded: {str(e)}"
         )
+
+def get_retriever(uri: str, db_name: str) -> Retriever:
+    """
+    Get an existing retriever in cached Dict or load from the DB uri.
+
+    Args:
+      uri, the uri of the database file
+      db_name, the name of the database (ignored if the uri is already associated with the retriever)
+    
+    Returns the corresponding Retriever object.
+    """
+    
+    if uri not in retrievers:
+        config = load_config({"db": {"uri": uri, "name": db_name}}, RetrieverConfig)
+        retrievers[uri] = Retriever.from_config(config)
+    
+    return retrievers[uri]
 
 def process_files(temp_dir: str, collection_name: str, extensions: List[str]=[".pdf", ".docx", ".pptx", ".md", ".txt", ".xlsx", ".xls", ".csv", ".mp4", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".aac",".eml"]) -> List[MultimodalSample]:
     output_path = f"./tmp/{collection_name}"    
