@@ -1,28 +1,23 @@
-import argparse
-
-from typing import Literal, List, Dict, Union
-from pydantic import BaseModel, Field
-
-from pathlib import Path
-import json
-
-import uvicorn
-
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from langserve import add_routes
-
-from .rag.pipeline import RAGPipeline, RAGConfig
-from .rag.types import MMOREOutput, MMOREInput
-from .utils import load_config
-
+from pathlib import Path
+from pydantic import BaseModel, Field
+from typing import Literal, List, Dict, Union
+import argparse
+import json
 import logging
+import uvicorn
+
 RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[RAG {RAG_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from dotenv import load_dotenv
+from mmore.rag.pipeline import RAGPipeline, RAGConfig
+from mmore.rag.types import MMOREOutput, MMOREInput
+from mmore.utils import load_config
+
 load_dotenv() 
 
 

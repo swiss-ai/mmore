@@ -1,30 +1,24 @@
-import argparse
 from dotenv import load_dotenv
-load_dotenv() 
-
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
-from tqdm import tqdm
-import time
-
-from typing import Literal, List, Dict, Union, Optional
-from langchain_core.documents import Document
-
-from pathlib import Path
-import json
-
-import uvicorn
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from pathlib import Path
 from pydantic import BaseModel, Field
-
+from tqdm import tqdm
+from typing import Literal, List, Dict, Union, Optional
+import argparse
 import logging
-from src.mmore.utils import load_config
+import json
+import time
+import uvicorn
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
 logging.basicConfig(format=f'[RETRIEVER {RETRIVER_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+
+from mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.utils import load_config
+
+load_dotenv() 
 
 def read_queries(input_file: Path) -> List[str]:
     with open(input_file, 'r') as f:

@@ -1,32 +1,30 @@
-import time
+from dataclasses import dataclass
 from typing import List
-
-from src.mmore.dashboard.backend.client import DashboardClient
-from .type import MultimodalSample
-from .utils import load_config
-
-from src.mmore.process.crawler import Crawler, CrawlerConfig
-from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
+import argparse
+import click
+import logging
+import os
+import time
+import torch
 import yaml
 
+PROCESS_EMOJI = "🚀"
+logger = logging.getLogger(__name__)
+logging.basicConfig(format=f'[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+
+from mmore.dashboard.backend.client import DashboardClient
+from mmore.process.crawler import Crawler, CrawlerConfig
+from mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
+
 overall_start_time = time.time()
-import os
-import argparse
-import torch
-import click
 
 torch.backends.cuda.enable_mem_efficient_sdp(False)
 torch.backends.cuda.enable_flash_sdp(False)
 torch.backends.cuda.enable_math_sdp(True)
 
-import logging
-PROCESS_EMOJI = "🚀"
-logger = logging.getLogger(__name__)
-logging.basicConfig(format=f'[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-
 # python src/mmore/process/run_process.py ./test_data --output_result_path=/mloscratch/homes/sallinen/End2End/tmp/all.pkl
-
-from dataclasses import dataclass
 
 @dataclass
 class ProcessInference:

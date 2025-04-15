@@ -1,14 +1,13 @@
 from typing import List, Union
-
-from mmore.process.post_processor.pipeline import PPPipelineConfig, PPPipeline
-
-from mmore.type import MultimodalSample
-from mmore.utils import load_config
-
 import logging
+
 PP_EMOJI = "🧹"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[PP {PP_EMOJI}-- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+
+from mmore.process.post_processor.pipeline import PPPipelineConfig, PPPipeline
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
 
 # TODO: We should find a way to load the dataset in a more generic way
 def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:

@@ -1,18 +1,18 @@
-from .utils import load_config
-from .type import MultimodalSample
-from .index.indexer import IndexerConfig, Indexer
-
 from dataclasses import dataclass, field
+from dotenv import load_dotenv
 import argparse
+import logging
 import json
 
-import logging
 logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"
 logging.basicConfig(format=f'[INDEX {INDEX_EMOJI}  -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from dotenv import load_dotenv
-load_dotenv() 
+from mmore.index.indexer import IndexerConfig, Indexer
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
+
+load_dotenv()
 
 @dataclass
 class IndexConfig:
