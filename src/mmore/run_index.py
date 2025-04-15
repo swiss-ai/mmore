@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"
 logging.basicConfig(format=f'[INDEX {INDEX_EMOJI}  -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from mmore.index.indexer import IndexerConfig, Indexer
-from mmore.type import MultimodalSample
-from mmore.utils import load_config
+from .index.indexer import IndexerConfig, Indexer
+from .type import MultimodalSample
+from .utils import load_config
 
 load_dotenv()
 

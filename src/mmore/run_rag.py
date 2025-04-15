@@ -14,9 +14,9 @@ RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[RAG {RAG_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from mmore.rag.pipeline import RAGPipeline, RAGConfig
-from mmore.rag.types import MMOREOutput, MMOREInput
-from mmore.utils import load_config
+from .rag.pipeline import RAGPipeline, RAGConfig
+from .rag.types import MMOREOutput, MMOREInput
+from .utils import load_config
 
 load_dotenv() 
 
