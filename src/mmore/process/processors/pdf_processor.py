@@ -3,8 +3,10 @@ import logging
 import fitz  # PyMuPDF
 import io
 import logging
+import os
+import requests
 from PIL import Image, UnidentifiedImageError
-from typing import List
+from typing import List, Dict, Any, Optional, Union
 from src.mmore.type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 from src.mmore.process.utils import clean_text, clean_image
@@ -17,6 +19,9 @@ import re
 from multiprocessing import Process, Queue, set_start_method, Manager
 import torch
 import time
+import base64
+from transformers import AutoProcessor, AutoModelForVision2Seq
+from concurrent.futures import ThreadPoolExecutor
 
 
 IMG_REGEX = "!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
@@ -24,6 +29,25 @@ IMG_REGEX = "!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 class PDFProcessor(Processor):
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
+        self.image_analyzer = None
+        self.analyze_images = self.config.custom_config.get("analyze_images", False)
+        self.image_analyzer_type = self.config.custom_config.get("image_analyzer_type", "smoldocling")
+        
+        # Initialize image analyzer if needed
+        if self.analyze_images:
+            self._init_image_analyzer()
+    
+    def _init_image_analyzer(self):
+        """Initialize the appropriate image analyzer based on configuration"""
+        if self.image_analyzer_type == "smoldocling" and self.analyze_images:
+            self.image_analyzer = SmolDoclingImageAnalyzer()
+        elif self.image_analyzer_type == "mistral" and self.analyze_images:
+            api_key = os.environ.get("MISTRAL_API_KEY")
+            if not api_key:
+                logging.warning("MISTRAL_API_KEY environment variable not set. MistralOCR will not work.")
+            self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
+        else:
+            self.image_analyzer = None
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -106,8 +130,23 @@ class PDFProcessor(Processor):
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
-        images = images.values()
-        return self.create_sample([text], images, file_path)
+        
+        # If image analysis is enabled, analyze the images
+        if self.analyze_images and self.image_analyzer and images:
+            image_texts = self._analyze_images(images.values())
+            # Combine original text with image analysis results
+            for img_text in image_texts:
+                if img_text and img_text.strip():
+                    text += f"\n\nImage content: {img_text}"
+        
+        return self.create_sample([text], images.values(), file_path)
+    
+    def _analyze_images(self, images):
+        """Analyze images using the configured image analyzer"""
+        if not self.image_analyzer:
+            return []
+            
+        return self.image_analyzer.analyze_batch(images)
 
     def process_fast(self, file_path) -> MultimodalSample:
         pdf_doc = fitz.open(file_path)
@@ -142,11 +181,21 @@ class PDFProcessor(Processor):
                 all_text.append(text)
 
             if self.config.custom_config.get("extract_images", True):
+                page_images = []
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
                     if clean_image(image):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
+                        page_images.append(image)
                         all_text.append(self.config.attachment_tag)
+                
+                # If image analysis is enabled, analyze the images
+                if self.analyze_images and self.image_analyzer and page_images:
+                    image_texts = self._analyze_images(page_images)
+                    # Add image analysis results to the text
+                    for img_text in image_texts:
+                        if img_text and img_text.strip():
+                            all_text.append(f"Image content: {img_text}")
             else:
                 embedded_images = []
 
@@ -172,6 +221,10 @@ class PDFProcessor(Processor):
         try:
             torch.cuda.set_device(gpu_id)
 
+            # Pass along the image analysis configuration
+            analyze_images = config_custom.get("analyze_images", False)
+            image_analyzer_type = config_custom.get("image_analyzer_type", "smoldocling")
+            
             marker_config = {
                 "disable_image_extraction": not config_custom.get("extract_images", True),
                 "languages": None,
@@ -185,6 +238,18 @@ class PDFProcessor(Processor):
                 artifact_dict=create_model_dict(),
                 config=config_parser.generate_config_dict()
             )
+            
+            # Initialize image analyzer if needed
+            if analyze_images:
+                if image_analyzer_type == "smoldocling":
+                    self.image_analyzer = SmolDoclingImageAnalyzer(device=f"cuda:{gpu_id}")
+                elif image_analyzer_type == "mistral":
+                    api_key = os.environ.get("MISTRAL_API_KEY")
+                    self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
+                else:
+                    self.image_analyzer = None
+            else:
+                self.image_analyzer = None
 
             batch_results = []
             for file in files:
@@ -204,3 +269,122 @@ class PDFProcessor(Processor):
             torch.cuda.empty_cache()
             if hasattr(self, 'converter'):
                 del self.converter
+            if hasattr(self, 'image_analyzer'):
+                del self.image_analyzer
+
+
+class SmolDoclingImageAnalyzer:
+    """Image analyzer using SmolDocling for OCR and image understanding"""
+    
+    def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
+        self.device = device
+        self.model = None
+        self.processor = None
+        self._load_model()
+    
+    def _load_model(self):
+        """Load the SmolDocling model"""
+        try:
+            self.processor = AutoProcessor.from_pretrained("google/smoldocling")
+            self.model = AutoModelForVision2Seq.from_pretrained("google/smoldocling").to(self.device)
+            logging.info("SmolDocling model loaded successfully")
+        except Exception as e:
+            logging.error(f"Failed to load SmolDocling model: {str(e)}")
+            self.model = None
+            self.processor = None
+    
+    def analyze(self, image) -> str:
+        """Analyze a single image and return the extracted text"""
+        if self.model is None or self.processor is None:
+            logging.error("SmolDocling model not loaded")
+            return ""
+        
+        try:
+            # Prepare the image for the model
+            inputs = self.processor(images=image, return_tensors="pt").to(self.device)
+            
+            # Generate text from the image
+            generated_ids = self.model.generate(
+                **inputs,
+                max_length=512,
+                num_beams=4,
+                early_stopping=True
+            )
+            
+            # Decode the generated text
+            generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            return generated_text
+        except Exception as e:
+            logging.error(f"Error analyzing image with SmolDocling: {str(e)}")
+            return ""
+    
+    def analyze_batch(self, images) -> List[str]:
+        """Analyze a batch of images and return the extracted text for each"""
+        results = []
+        
+        # Process images in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(len(images), 4)) as executor:
+            results = list(executor.map(self.analyze, images))
+            
+        return results
+
+
+class MistralOCRImageAnalyzer:
+    """Image analyzer using MistralOCR API"""
+    
+    def __init__(self, api_key=None):
+        self.api_key = api_key
+        self.api_url = "https://api.mistral.ai/v1/ocr"
+        
+        if not api_key:
+            logging.warning("MistralOCR API key not provided. API calls will fail.")
+    
+    def analyze(self, image) -> str:
+        """Analyze a single image using MistralOCR API"""
+        if not self.api_key:
+            logging.error("MistralOCR API key not provided")
+            return ""
+        
+        try:
+            # Convert PIL image to bytes
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_byte_arr = img_byte_arr.getvalue()
+            
+            # Encode image to base64
+            encoded_image = base64.b64encode(img_byte_arr).decode('utf-8')
+            
+            # Prepare the request
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "image": encoded_image,
+                "model": "mistral-ocr"
+            }
+            
+            # Make the API request
+            response = requests.post(self.api_url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get("text", "")
+            else:
+                logging.error(f"MistralOCR API error: {response.status_code} - {response.text}")
+                return ""
+                
+        except Exception as e:
+            logging.error(f"Error analyzing image with MistralOCR: {str(e)}")
+            return ""
+    
+    def analyze_batch(self, images) -> List[str]:
+        """Analyze a batch of images using MistralOCR API"""
+        results = []
+        
+        # Process images sequentially to avoid API rate limits
+        for image in images:
+            results.append(self.analyze(image))
+            
+        return results
