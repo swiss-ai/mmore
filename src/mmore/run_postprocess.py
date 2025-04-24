@@ -26,7 +26,7 @@ def postprocess(config_file, input_data):
     pipeline = PPPipeline.from_config(config)
 
     # Load samples
-    samples = _load_dataset(config.data_path)
+    samples = _load_dataset(input_data)
 
     # Run pipeline
     samples = pipeline(samples)
