@@ -13,7 +13,7 @@ Classes:
 from dataclasses import dataclass, field
 from datetime import datetime
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import logging
 import validators
 
@@ -47,10 +47,10 @@ class MultimodalSample:
     text: str
     modalities: List[MultimodalRawInput]
     metadata: Dict[str, str] = field(default_factory=dict)
-    id: str = None
+    id: str = ""
 
     def __post_init__(self):
-        if self.id is None:
+        if self.id == "":
             self.id = str(hash(self.text))
         if self.metadata is None:
             self.metadata = {}
@@ -60,7 +60,7 @@ class MultimodalSample:
             return {
                 "conversations": self.text,
                 "modalities": [m.__dict__ for m in self.modalities],
-                "metadata": self.metadata.to_dict() if self.metadata else None,
+                "metadata": self.metadata if self.metadata else None,
             }
         return {
             "text": self.text,
@@ -146,7 +146,7 @@ class FileDescriptor:
         return {
             "file_path": self.file_path,
             "file_name": self.file_name,
-            "file_size": self.file_size,
+            "file_size": str(self.file_size),
             "created_at": self.created_at,
             "modified_at": self.modified_at,
             "file_extension": self.file_extension,
@@ -157,7 +157,7 @@ class FileDescriptor:
         return cls(
             file_path=data["file_path"],
             file_name=data["file_name"],
-            file_size=data["file_size"],
+            file_size=int(data["file_size"]),
             created_at=data["created_at"],
             modified_at=data["modified_at"],
             file_extension=data["file_extension"],
@@ -180,11 +180,11 @@ class URLDescriptor:
     def __init__(
         self,
         url: str,
-        file_path: str = None,
-        file_name: str = None,
+        file_path: Optional[str] = None,
+        file_name: Optional[str] = None,
         file_size: int = 0,
-        created_at: str = None,
-        modified_at: str = None,
+        created_at: Optional[str] = None,
+        modified_at: Optional[str] = None,
         file_extension: str = ".html",
     ):
         if not validators.url(url):
@@ -206,7 +206,7 @@ class URLDescriptor:
         return {
             "file_path": self.file_path,
             "file_name": self.file_name,
-            "file_size": self.file_size,
+            "file_size": str(self.file_size),
             "created_at": self.created_at,
             "modified_at": self.modified_at,
             "file_extension": self.file_extension,
@@ -218,7 +218,7 @@ class URLDescriptor:
             url=data["file_path"],  # URL stored in `file_path` for compatibility
             file_path=data["file_path"],
             file_name=data["file_name"],
-            file_size=data["file_size"],
+            file_size=int(data["file_size"]),
             created_at=data["created_at"],
             modified_at=data["modified_at"],
             file_extension=data["file_extension"],

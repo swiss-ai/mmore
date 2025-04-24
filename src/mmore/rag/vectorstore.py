@@ -18,13 +18,13 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores.base import VectorStore, VectorStoreRetriever
 # from .models import get_model_wrapper, MultimodalModelWrapper
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from .model.dense.multimodal import MultimodalEmbeddings
-from .model.sparse.splade import SpladeSparseEmbedding
+from mmore.rag.model.dense.multimodal import MultimodalEmbeddings
+from mmore.rag.model.sparse.splade import SpladeSparseEmbedding
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 
 from langchain_milvus import Milvus
 
-from type import MultimodalSample
+from mmore.type import MultimodalSample
 import collections
 import sys
 import nltk
@@ -50,7 +50,7 @@ class End2EndVectorStore(ABC):
     @abstractmethod
     @classmethod
     @abstractmethod
-    def add_documents(self, documents: list[MultimodalSample], **kwargs: Any) -> list[str]:
+    def add_documents(cls, documents: list[MultimodalSample], **kwargs: Any) -> list[str]:
         pass
 
 
@@ -63,8 +63,8 @@ class End2EndVectorStoreMilvus:
     @classmethod
     def from_config(cls, config: VectorStoreConfig):
         # Get models       
-        dense_model = End2EndVectorStore._init_dense_model(config.dense_model_name)
-        sparse_model = End2EndVectorStore._init_sparse_model(config.sparse_model_name)
+        dense_model = cls._init_dense_model(config.dense_model_name)
+        sparse_model = cls._init_sparse_model(config.sparse_model_name)
 
         # Instatiate the VectorStore
         milvus = Milvus(

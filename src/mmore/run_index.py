@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
+from typing import Optional
 import argparse
 import logging
 import json
@@ -8,9 +9,9 @@ logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"
 logging.basicConfig(format=f'[INDEX {INDEX_EMOJI}  -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from .index.indexer import IndexerConfig, Indexer
-from .type import MultimodalSample
-from .utils import load_config
+from mmore.index.indexer import IndexerConfig, Indexer
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
 
 load_dotenv()
 
@@ -20,7 +21,7 @@ class IndexConfig:
     collection_name: str
     documents_path: str
 
-def load_results(path: str, file_type: str = None):
+def load_results(path: str, file_type: Optional[str] = None):
     # Load the results computed and saved by 'run_process.py'
     results = []
     logger.info(f"Loading results from {path}")
@@ -30,10 +31,10 @@ def load_results(path: str, file_type: str = None):
     logger.info(f"Loaded {len(results)} results")
     return results
 
-def index(config_file, collection_name: str = None, documents_path: str = None):
+def index(config_file: str, collection_name: Optional[str] = None, documents_path: Optional[str] = None):
     """Index files for specified documents."""
     # Load the config file
-    config = load_config(config_file, IndexConfig)
+    config: IndexConfig = load_config(config_file, IndexConfig)
     if collection_name is None:
         collection_name = config.collection_name
     if documents_path is None:

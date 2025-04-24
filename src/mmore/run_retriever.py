@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_core.documents import Document
 from pathlib import Path
 from pydantic import BaseModel, Field
 from tqdm import tqdm
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
 logging.basicConfig(format=f'[RETRIEVER {RETRIVER_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.rag.retriever import Retriever, RetrieverConfig
 from mmore.utils import load_config
 
 load_dotenv() 
@@ -58,7 +59,7 @@ def retrieve(config_file: str, input_file: str, output_file: str, document_ids: 
     queries = read_queries(Path(input_file))  # Added missing argument
 
     # Process document_ids into a list
-    doc_ids_list = [doc_id.strip() for doc_id in document_ids.split(",") if doc_id.strip()] if document_ids else None
+    doc_ids_list = [doc_id.strip() for doc_id in document_ids if doc_id.strip()] if document_ids else None
 
     # Measure time for the retrieval process
     logger.info("Starting document retrieval...")

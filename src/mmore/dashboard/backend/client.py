@@ -1,25 +1,25 @@
+from typing import Optional
 import requests
-
 
 class DashboardClient:
     """
     Client to interact with the dashboard backend from the workers side
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: Optional[str]):
         """
         url: the url of the dashboard backend
         """
         self.url = url
 
-    def init_db(self, total_files):
+    def init_db(self, total_files: int):
         """
         initialize the dashboard
         :param total_files: the total number of files to process
         """
         if self.url is None:
             print("Init db skipped, no url provided")
-        assert isinstance(total_files, int)
+            
         try:
             metadata = {"total_files": total_files}
             response = requests.post(f"{self.url}/init-db", json=metadata)

@@ -32,8 +32,8 @@ class RetrieverConfig:
 
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
-    dense_model: Embeddings
-    sparse_model: BaseSparseEmbedding
+    dense_model: DenseModel
+    sparse_model: SparseModel
     client: MilvusClient
     hybrid_search_weight: float
     k: int
@@ -48,7 +48,7 @@ class Retriever(BaseRetriever):
     @classmethod
     def from_config(cls, config: str | RetrieverConfig):
         if isinstance(config, str):
-            config = load_config(config, RetrieverConfig)
+            config: RetrieverConfig = load_config(config, RetrieverConfig)
 
         # Init the client
         client = MilvusClient(uri=config.db.uri, db_name=config.db.name)

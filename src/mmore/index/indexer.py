@@ -2,7 +2,7 @@
 Simple vector database indexer using Milvus for document storage.
 Supports multimodal documents with chunking capabilities.
 """
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 from dataclasses import dataclass, field
 from ..utils import load_config
 from ..type import MultimodalSample
@@ -41,7 +41,7 @@ class IndexerConfig:
 class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
-    sparse_model: BaseSparseEmbedding
+    sparse_model: SparseModel
     client: MilvusClient
 
     _DEFAULT_FIELDS = ['id', 'text', 'dense_embedding', 'sparse_embedding']
@@ -64,7 +64,7 @@ class Indexer:
     def from_config(cls, config: str | IndexerConfig):
         # Load the config if it's a string
         if isinstance(config, str):
-            config = load_config(config, IndexerConfig)
+            config: IndexerConfig = load_config(config, IndexerConfig)
 
         # Create the milvus client
         milvus_client = MilvusClient(
@@ -85,7 +85,7 @@ class Indexer:
         config: str | IndexerConfig,
         documents: List[MultimodalSample],
         collection_name: str = 'my_docs',
-        partition_name: str = None,
+        partition_name: Optional[str] = None,
         batch_size: int = 64,
     ):
         indexer = Indexer.from_config(config)
@@ -158,9 +158,9 @@ class Indexer:
     def _index_documents(self, 
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
-            partition_name: str = None,
+            partition_name: Optional[str] = None,
             batch_size: int = 64
-        ) -> List[int]:
+        ) -> int:
         # Process new documents in batches
         inserted = 0
         for i in tqdm(range(0, len(documents), batch_size), desc="Indexing documents..."):
@@ -204,9 +204,9 @@ class Indexer:
             self, 
             documents: List[MultimodalSample],
             collection_name: str = 'my_docs',
-            partition_name: str = None,
+            partition_name: Optional[str] = None,
             batch_size: int = 64
-        ) -> List[int]:   
+        ) -> int:   
         # Create collection
         if not self.client.has_collection(collection_name):
             logger.info(f"Creating collection {collection_name}")
@@ -229,7 +229,7 @@ class Indexer:
         return inserted
 
 
-def get_model_from_index(client: MilvusClient, index_name: Literal['dense_embedding', 'sparse_embedding'], collection_name: str = None) -> DenseModelConfig | SparseModelConfig:
+def get_model_from_index(client: MilvusClient, index_name: Literal['dense_embedding', 'sparse_embedding'], collection_name: Optional[str] = None) -> DenseModelConfig | SparseModelConfig:
     collection_name = collection_name or client.list_collections()[0]
     if index_name == 'dense_embedding':
         index_config = client.describe_index(collection_name, index_name)

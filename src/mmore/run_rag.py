@@ -14,9 +14,9 @@ RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[RAG {RAG_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from .rag.pipeline import RAGPipeline, RAGConfig
-from .rag.types import MMOREOutput, MMOREInput
-from .utils import load_config
+from mmore.rag.pipeline import RAGPipeline, RAGConfig
+from mmore.rag.types import MMOREOutput, MMOREInput
+from mmore.utils import load_config
 
 load_dotenv() 
 
@@ -81,15 +81,15 @@ def rag(config_file):
     config = load_config(config_file, RAGInferenceConfig)
     
     logger.info('Creating the RAG Pipeline...')
-    rag = RAGPipeline.from_config(config.rag)
+    rag_pp = RAGPipeline.from_config(config.rag)
     logger.info('RAG pipeline initialized!')
 
     if config.mode == 'local':
         queries = read_queries(config.mode_args.input_file)
-        results = rag(queries, return_dict=True)
+        results = rag_pp(queries, return_dict=True)
         save_results(results, config.mode_args.output_file)
     elif config.mode == 'api':
-        app = create_api(rag, config.mode_args.endpoint)
+        app = create_api(rag_pp, config.mode_args.endpoint)
         uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
     else:
         raise ValueError(f"Unknown inference mode: {config.mode}. Should be in [api, local]")
