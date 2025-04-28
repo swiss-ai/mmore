@@ -6,7 +6,7 @@ Integrates Milvus retrieval with HuggingFace text generation.
 
 from typing import Union, List, Dict, Optional, Any
 
-from pydantic import BaseModel, Field
+from dataclasses import dataclass, field
 
 from langchain.chains.base import Chain
 from langchain_core.documents import Document
