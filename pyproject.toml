@@ -67,7 +67,9 @@ dependencies = [
     "fastapi[standard]",
     "fastapi==0.115.5",
     "pydantic== 2.10.4",
-    "pymongo==4.9.2"
+    "pymongo==4.9.2",
+    "pymilvus==2.5.0",
+    "milvus-model==0.2.12"
 ]
 
 [project.optional-dependencies]
@@ -91,7 +93,8 @@ rag = [
   "langchain==0.3.20",
   "langdetect>=1.0.9",
   "langserve[all]==0.3.1",
-  "pymilvus[model]==2.5.0",
+  "pymilvus==2.5.0",
+  "milvus-model==0.2.12",
   "ragas==0.2.6",
   "nltk>=3.9",
 ]
