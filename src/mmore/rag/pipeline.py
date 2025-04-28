@@ -29,13 +29,12 @@ Context:
 {context}
 """
 
-
-class RAGConfig(BaseModel):
+@dataclass
+class RAGConfig:
     """Configuration for RAG pipeline."""
     retriever: RetrieverConfig
-    llm: LLMConfig = Field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
-    system_prompt: str = Field(default=DEFAULT_PROMPT)
-
+    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
+    system_prompt: str = DEFAULT_PROMPT
 
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""

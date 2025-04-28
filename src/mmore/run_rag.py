@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,33 +15,32 @@ RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[RAG {RAG_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from mmore.rag.pipeline import RAGPipeline, RAGConfig
-from mmore.rag.types import MMOREOutput, MMOREInput
-from mmore.utils import load_config
+from .rag.pipeline import RAGPipeline, RAGConfig
+from .rag.types import MMOREOutput, MMOREInput
+from .utils import load_config
 
 load_dotenv() 
 
-
-class LocalConfig(BaseModel):
+@dataclass
+class LocalConfig:
     input_file: str
     output_file: str
 
-class APIConfig(BaseModel):
-    endpoint: str = Field(default='/rag')
-    port: int = Field(default=8000)
-    host: str = Field(default='0.0.0.0')
-
-class LocalRAGInferenceConfig(BaseModel):
+@dataclass
+class APIConfig:
+    endpoint: str = '/rag'
+    port: int = 8000
+    host: str = '0.0.0.0'
+    
+@dataclass
+class RAGInferenceConfig:
     rag: RAGConfig
-    mode: Literal["local"]
-    mode_args: LocalConfig
+    mode: str
+    mode_args: Union[LocalConfig, APIConfig] = None
 
-class APIRAGInferenceConfig(BaseModel):
-    rag: RAGConfig
-    mode: Literal["api"]
-    mode_args: APIConfig = Field(default_factory=lambda: APIConfig())
-
-RAGInferenceConfig = Union[LocalRAGInferenceConfig, APIRAGInferenceConfig]
+    def __post_init__(self):
+        if self.mode_args is None and self.mode == 'api':
+            self.mode_args = APIConfig()
 
 def read_queries(input_file: Path) -> List[str]:
     with open(input_file, 'r') as f:

@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
 logging.basicConfig(format=f'[RETRIEVER {RETRIVER_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from mmore.rag.retriever import Retriever, RetrieverConfig
-from mmore.utils import load_config
+from src.mmore.rag.retriever import Retriever, RetrieverConfig
+from src.mmore.utils import load_config
 
 load_dotenv() 
 

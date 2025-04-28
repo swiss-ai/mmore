@@ -32,8 +32,8 @@ class RetrieverConfig:
 
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
-    dense_model: DenseModel
-    sparse_model: SparseModel
+    dense_model: Embeddings
+    sparse_model: BaseSparseEmbedding
     client: MilvusClient
     hybrid_search_weight: float
     k: int
