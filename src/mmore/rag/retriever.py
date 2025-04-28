@@ -48,7 +48,7 @@ class Retriever(BaseRetriever):
     @classmethod
     def from_config(cls, config: str | RetrieverConfig):
         if isinstance(config, str):
-            config = load_config(config, RetrieverConfig)
+            config: RetrieverConfig = load_config(config, RetrieverConfig)
 
         # Init the client
         client = MilvusClient(uri=config.db.uri, db_name=config.db.name)

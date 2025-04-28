@@ -1,7 +1,7 @@
 import torch
 import re
 import numpy as np
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 from PIL import Image
 from transformers import AutoProcessor, AutoModelForImageTextToText
 
@@ -116,7 +116,7 @@ class MultimodalEmbeddings(Embeddings):
         )
 
     @staticmethod
-    def _extract_multimodal_inputs(text, proc_token: str, pattern: str = None) -> tuple[str, list[str]]:
+    def _extract_multimodal_inputs(text, proc_token: str, pattern: Optional[str] = None) -> tuple[str, list[str]]:
         pattern = pattern or rf'{re.escape(proc_token)}(.*?){re.escape(proc_token)}'
 
         # Find all matches in the input string
