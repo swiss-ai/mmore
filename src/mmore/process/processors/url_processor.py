@@ -57,7 +57,7 @@ class URLProcessor(Processor):
                     embedded_images.append(img)
                     
                 except Exception as e:
-                    print(f"Failed to process image {image}: {e}")
+                    logger.error(f"Failed to process image {image}: {e}")
             
             all_text = [clean_text(all_text)]
             return self.create_sample(all_text, embedded_images, file_path)
