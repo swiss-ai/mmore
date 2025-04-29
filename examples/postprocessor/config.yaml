@@ -3,5 +3,5 @@ pp_modules:
     args:
       chunking_strategy: sentence
 output:
-  output_path: examples/outputs/merged/merged_results_pp.jsonl
+  output_path: examples/process/outputs/merged/
   save_each_step: True

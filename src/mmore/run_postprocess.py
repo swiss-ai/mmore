@@ -18,7 +18,7 @@ def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:
 def postprocess(config_file, input_data):
     """Run post-processors pipeline."""
     if isinstance(input_data, str):
-            input_data = [input_data]
+        input_data = [input_data]
     # Load config
     config = load_config(config_file, PPPipelineConfig)
 
@@ -26,7 +26,7 @@ def postprocess(config_file, input_data):
     pipeline = PPPipeline.from_config(config)
 
     # Load samples
-    samples = _load_dataset(config.data_path)
+    samples = _load_dataset(input_data)
 
     # Run pipeline
     samples = pipeline(samples)
