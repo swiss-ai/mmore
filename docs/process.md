@@ -10,7 +10,7 @@ pip install -e '.[all]'
 ```
 
 #### :computer: Running locally
-You need to specify the input folder by modifying the [config file](examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+You need to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
 ```bash
 python -m mmore process --config-file examples/process/config.yaml
 ```
@@ -31,7 +31,7 @@ output_path
 ```
 #### :rocket: Running on distributed nodes
 
-We provide [a simple bash script](./entrypoint_distributed.sh) to run the process on distributed mode. Please call it with your arguments.
+We provide [a simple bash script](/scripts/process_distributed.sh) to run the process on distributed mode. Please call it with your arguments.
 ```bash
 bash scripts/process_distributed.sh -f /path/to/my/input/folder 
 ```
@@ -46,7 +46,7 @@ You will be able to visualize results :chart_with_upwards_trend:. The dashboard 
 4.  Specify the backend URL in the `process_config.yaml` file and finally execute `run_process.py` as usual.
 
 #### :scroll: Examples
-You can find more examples scripts in [the `/examples` directory](examples/).
+You can find more examples scripts in [the `/examples` directory](/examples).
 
 ## :zap: Optimization
 ### :racing_car: Fast mode
@@ -57,13 +57,13 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [](README.md) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [](/README.md) section.
 
 ### :wrench: File type parameters tuning
 
 Many parameters are hardware-dependent and can be customized to suit your needs. For example, you can adjust the processor batch size, dispatcher batch size, and the number of threads per worker to optimize performance.
 
-You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](examples/process/config.yaml).
+You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/process/config.yaml).
 
 :rotating_light: Not all parameters are configurable yet :wink:
 
@@ -103,9 +103,9 @@ See `TextProcessor` in `src/process/processors/text_processor.py` for a minimal 
 
 ## :broom: Post-processing
 
-Post-processing refines the extracted text data to improve quality for downstream tasks. The infrastructure is modular and extensible: mmore natively supports the following post-processors: [**Chunker**](src/mmore/process/post_processor/chunker), [**Filter**](src/mmore/process/post_processor/filter), [**Named Entity Recognition**](src/mmore/process/post_processor/ner), and [**Tagger**](src/mmore/process/post_processor/tagger). Applying the **Chunker** is heavily recommended, as it cuts documents into reasonably sized chunks that are more specific to feed to an LLM.
+Post-processing refines the extracted text data to improve quality for downstream tasks. The infrastructure is modular and extensible: mmore natively supports the following post-processors: [**Chunker**](/src/mmore/process/post_processor/chunker), [**Filter**](/src/mmore/process/post_processor/filter), [**Named Entity Recognition**](/src/mmore/process/post_processor/ner), and [**Tagger**](/src/mmore/process/post_processor/tagger). Applying the **Chunker** is heavily recommended, as it cuts documents into reasonably sized chunks that are more specific to feed to an LLM.
 
-You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](examples/postprocessor/config.yaml).
+You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/postprocessor/config.yaml).
 
 Once ready, you can run the process using the following command:
 ```bash

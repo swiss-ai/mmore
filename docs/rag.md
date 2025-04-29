@@ -4,7 +4,7 @@
 > 1. **API**: Creates a server hosting the pipeline
 > 2. **Local**: Runs the inference locally (:warning: might be long when running local models :warning:) 
 > 
-> You can customize various parts of the pipeline by defining [an inference RAG configuration file](../examples/rag/api/rag_api.yaml).
+> You can customize various parts of the pipeline by defining [an inference RAG configuration file](/examples/rag/api/rag_api.yaml).
 
 ## :computer: Minimal Example:
 Here is a minimal example to create a RAG pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
