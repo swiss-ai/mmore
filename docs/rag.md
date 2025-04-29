@@ -8,35 +8,11 @@
 
 ## :computer: Minimal Example:
 Here is a minimal example to create a RAG pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
-1. Create your RAG Inference config file
-    ```yaml
-    # RAG Config
-    rag: 
-    # LLM Config
-    llm: 
-        llm_name: "OpenMeditron/meditron3-8b" # "gpt-4o-mini" # Anything supported
-        max_new_tokens: 100
-        temperature: 0.8
-    # Retriever Config
-    retriever:
-        db:
-        uri: ./proc_demo.db
-        name: my_db
-        hybrid_search_weight: 0.5
-        k: 5
-    # Prompt Args
-    system_prompt: "Answer the question using the context.\n\nContext: {context}"
-    # Mode Config
-    mode: api
-    mode_args:
-    endpoint: '/rag'
-    port: 8000
-    host: 'localhost'
-    ```
+1. Create your RAG Inference config file based on the [local example](/examples/rag/config.yaml) or the [API example](/examples/rag/config_api.yaml).
 
 2. Start your RAG pipeline using the `run_rag.py` script and your config file
     ```bash
-    python src/mmore/rag/run_rag.py --config_file /path/to/config.yaml
+    python -m mmore rag --config_file /path/to/config.yaml
     ```
 
 3. Query the server like any other LangServe server
@@ -56,7 +32,7 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
     -H 'Content-Type: application/json' 
     ```
 
-See [`examples/rag`](../examples/rag/) for other use cases.
+See [`examples/rag`](/examples/rag/) for other use cases.
 
 ## :mag: Modules
 The RAG decomposes into two main modules:
@@ -66,14 +42,7 @@ The RAG decomposes into two main modules:
 #### Retriever
 Here is an example on how to use the retriever module alone. Note that it assumes that you already created a DB using [the indexer module](index.md).
 
-1. Create a config:
-    ```yaml
-    db:
-      uri: ./demo.db
-      name: db_name
-    hybrid_search_weight: 0.5
-    k: 5
-    ```
+1. Create a config based on the [example config file](/examples/index/config.yaml)
 
 2. Retrieve on the vector store using the `Retriever` class:
     ```python
