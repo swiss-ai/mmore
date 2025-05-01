@@ -46,7 +46,7 @@ class MultimodalSample:
     """
     text: str
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: Dict[str, Union[str, Dict]] = field(default_factory=dict)
     id: str = ""
 
     def __post_init__(self):
