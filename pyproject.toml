@@ -29,6 +29,7 @@ dependencies = [
     "transformers==4.47.0",
     "fastapi[standard]",
     "fastapi==0.115.5",
+    "fasteners==0.19",
     "uvicorn==0.32.1",
     "python-dotenv==1.0.1",
     "dacite==1.8.1",
@@ -60,14 +61,16 @@ dependencies = [
     "chonkie==0.2.1.post1",
     "langdetect>=1.0.9",
     "trafilatura==1.4.0",
-    "datatrove[processing]",
+    "datatrove==0.3.0",
     "validators==0.34.0",
     "bokeh",
     "motor==3.6.0",
     "fastapi[standard]",
     "fastapi==0.115.5",
     "pydantic== 2.10.4",
-    "pymongo==4.9.2"
+    "pymongo==4.9.2",
+    "pymilvus==2.5.0",
+    "milvus-model==0.2.12"
 ]
 
 [project.optional-dependencies]
@@ -91,7 +94,8 @@ rag = [
   "langchain==0.3.20",
   "langdetect>=1.0.9",
   "langserve[all]==0.3.1",
-  "pymilvus[model]==2.5.0",
+  "pymilvus==2.5.0",
+  "milvus-model==0.2.12",
   "ragas==0.2.6",
   "nltk>=3.9",
 ]

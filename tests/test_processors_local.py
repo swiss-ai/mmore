@@ -9,6 +9,7 @@ from mmore.process.processors.base import ProcessorConfig
 from mmore.process.processors.pdf_processor import PDFProcessor
 from mmore.process.processors.txt_processor import TextProcessor
 from mmore.process.processors.url_processor import URLProcessor
+from mmore.process.processors.html_processor import HTMLProcessor
 from mmore.type import FileDescriptor
 
 from marker.output import MarkdownOutput

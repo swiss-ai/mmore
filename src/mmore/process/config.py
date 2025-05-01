@@ -32,6 +32,7 @@ default_config = {
             {"PPTXProcessor": 100},
             {"MarkdownProcessor": 100},
             {"EMLProcessor": 100},
+            {"HTMLProcessor": 100}
         ]
     },
 }
@@ -49,6 +50,7 @@ def get_config_path():
     except PermissionError as e:
         click.echo(f"Error creating config directory: {e}", err=True)
         raise
+    print(app_dir)
     return app_dir / "config.yaml"
 
 

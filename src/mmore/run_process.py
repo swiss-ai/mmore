@@ -51,7 +51,8 @@ def process(config_file: str):
             ".xlsx", ".xls", ".csv",  # Spreadsheet files
             ".mp4", ".avi", ".mov", ".mkv",  # Video files
             ".mp3", ".wav", ".aac",  # Audio files
-            ".eml", # Emails 
+            ".eml",  # Emails 
+            ".html", ".htm" #Web
         ],
         output_path=config.dispatcher_config.output_path
     )
