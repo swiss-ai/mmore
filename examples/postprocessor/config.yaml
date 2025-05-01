@@ -1,0 +1,7 @@
+pp_modules:
+  - type: chunker 
+    args:
+      chunking_strategy: sentence
+output:
+  output_path: examples/process/outputs/merged/
+  save_each_step: True

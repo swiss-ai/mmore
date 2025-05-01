@@ -44,8 +44,8 @@ def process(config_file):
     run_process(config_file)
 
 @main.command()
-@click.option('--config-file', type=str, required=True, help='Path to the configuration file.')
-@click.option('--input-data', type=str, required=True, help='Path to the input data.')
+@click.option('--config-file', type=str, required=True, help='Path to the postprocess configuration file.')
+@click.option('--input-data', type=str, required=True, help='Path to the jsonl of the documents.')
 def postprocess(config_file, input_data):
     """Run the post-processors pipeline."""
     from .run_postprocess import postprocess as run_postprocess
