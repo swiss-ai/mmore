@@ -100,6 +100,8 @@ rag = [
   "nltk>=3.9",
 ]
 
+dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
+
 [tool.uv]
 conflicts = [
   [
@@ -127,3 +129,13 @@ explicit = true
 
 [project.scripts]
 mmore = "mmore:__main__"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+
+# Avoid enforcing line-length violations (`E501`)
+ignore = ["E501"]
+
+# Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
