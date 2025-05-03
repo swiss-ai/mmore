@@ -130,6 +130,10 @@ explicit = true
 [project.scripts]
 mmore = "mmore:__main__"
 
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::Warning"]
+testpaths = ["tests"]
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 
