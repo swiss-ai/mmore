@@ -20,6 +20,8 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
+from duckduckgo_search import DDGS
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ class RetrieverConfig:
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
+    use_web: bool = False
 
 
 class Retriever(BaseRetriever):
@@ -37,6 +40,7 @@ class Retriever(BaseRetriever):
     client: MilvusClient
     hybrid_search_weight: float
     k: int
+    use_web: bool
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -68,6 +72,7 @@ class Retriever(BaseRetriever):
             client=client,
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
+            use_web=config.use_web
         )
 
     def compute_query_embeddings(self, query: str) -> Tuple[List[float], List[float]]:
@@ -194,10 +199,38 @@ class Retriever(BaseRetriever):
             k=self.k
         )
 
-        return [
+        milvus_docs = [
             Document(
                 page_content=result['entity']['text'],
                 metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
             )
             for i, result in enumerate(results[0])
         ]
+
+        web_docs = self._get_web_documents(query['input'], max_results = self.k)
+
+        if self.use_web:
+            return milvus_docs + web_docs
+        else:
+            return milvus_docs
+
+    def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
+        """Fetch additional context from the web via DuckDuckGo."""
+        logger.info("Performing web search...")
+        try:
+            results = DDGS().text(query, max_results=max_results)
+            return [
+                Document(
+                    page_content=result["body"],
+                    metadata={
+                        "source": "duckduckgo",
+                        "url": result["href"],
+                        "title": result["title"],
+                        "rank": i + 1
+                    }
+                )
+                for i, result in enumerate(results)
+            ]
+        except Exception as e:
+            logger.warning(f"DuckDuckGo search failed: {e}")
+            return []

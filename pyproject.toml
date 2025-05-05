@@ -98,6 +98,7 @@ rag = [
   "milvus-model==0.2.12",
   "ragas==0.2.6",
   "nltk>=3.9",
+  "duckduckgo_search==8.0.1"
 ]
 
 [tool.uv]
