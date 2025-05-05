@@ -1,9 +1,9 @@
-data_path: examples/sample_data/ #put absolute path!
+data_path: examples/matthew-examples/ #put absolute path!
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
-  dashboard_backend_url: http://0.0.0.0:8000
+  dashboard_backend_url: null
   extract_images: true
   #scheduler_file: scheduler-file.json #put absolute path!
   process_batch_sizes:
@@ -16,7 +16,7 @@ dispatcher_config:
     - PPTXProcessor: 100
     - MarkdownProcessor: 100
     - EMLProcessor: 100
-
+    - HTMLProcessor: 100
   processor_config:
     MediaProcessor:
       - normal_model: "openai/whisper-large-v3-turbo"

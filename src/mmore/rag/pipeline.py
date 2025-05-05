@@ -42,17 +42,20 @@ class RAGPipeline:
     retriever: Retriever
     llm: BaseChatModel
     prompt_template: str
+    
 
     def __init__(
             self,
             retriever: Retriever,
             prompt_template: str,
-            llm: BaseChatModel,
+            llm: BaseChatModel
+            
     ):
         # Get modules
         self.retriever = retriever
         self.prompt = prompt_template
         self.llm = llm
+        
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(self.retriever, RAGPipeline.format_docs, self.prompt, self.llm)
