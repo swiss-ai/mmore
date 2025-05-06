@@ -1,5 +1,5 @@
 from dask.distributed import Variable
-
+from typing import Optional, cast
 
 class ExecutionState:
     """
@@ -12,8 +12,8 @@ class ExecutionState:
     and this variable will be shared across the custer
     """
     # static variables
-    _use_dask: bool = None
-    _dask_var: Variable = None
+    _use_dask: Optional[bool] = None
+    _dask_var: Optional[Variable] = None
     _local_state: bool = False
 
     @staticmethod
@@ -44,7 +44,7 @@ class ExecutionState:
             raise Exception("Execution state not initialized")
         if ExecutionState._use_dask:
             try:
-                return ExecutionState._dask_var.get()
+                return cast(bool, cast(Variable, ExecutionState._dask_var).get(sync=True))
             except Exception as e:
                 print(f"Error getting dask variable: {e}")
                 return True
@@ -58,7 +58,7 @@ class ExecutionState:
         if ExecutionState._use_dask is None:
             raise Exception("Execution state not initialized")
         if ExecutionState._use_dask:
-            ExecutionState._dask_var.set(value)
+            cast(Variable, ExecutionState._dask_var).set(value)
         else:
             ExecutionState._local_state = value
         print(f"Execution state set to {value}")

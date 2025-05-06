@@ -1,22 +1,26 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Tuple, Literal
+from typing import List, Any, Tuple, Literal, Optional, cast
 
 from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
-from mmore.process.post_processor import BasePostProcessor
-from mmore.type import MultimodalSample
+from ....process.post_processor import BasePostProcessor
+from ....type import MultimodalSample
 
 @dataclass
 class BaseFilterConfig:
     type: str
-    name: str = None
-    args: Any = field(default_factory=lambda: {})
+    _name: Optional[str] = None
+    args: Any = field(default_factory=dict)
 
     def __post_init__(self):
-        if self.name is None:
-            self.name = self.type
+        if self._name is None:
+            self._name = self.type
+        
+    @property
+    def name(self) -> str:
+        return cast(str, self._name)
 
 class BaseFilter(BasePostProcessor):
     name: str

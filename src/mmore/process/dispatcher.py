@@ -1,9 +1,9 @@
 import logging
-from typing import Any, Dict, List, Type, Tuple, Optional
+from typing import Any, Dict, List, Type, Tuple, Iterator, Union, Optional, cast
 
 from .execution_state import ExecutionState
 from .processors.url_processor import URLProcessor
-from .crawler import DispatcherReadyResult, FileDescriptor
+from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
 from .processors.base import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
 import torch
 import logging
@@ -12,14 +12,17 @@ from operator import itemgetter
 from tqdm import tqdm
 from dask.distributed import as_completed, Client
 import dask.config
-from src.mmore.type import MultimodalSample
+from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
 
 class ComputeDescriptor:
     @staticmethod
-    def get_desc() -> None:
+    def get_desc():
+        num_gpus = 0
+        gpu_size = None
+
         if torch.cuda.is_available():
             num_gpus = torch.cuda.device_count()
             if num_gpus > 0:
@@ -28,9 +31,6 @@ class ComputeDescriptor:
                 logging.info(
                     f"Detected {num_gpus} GPUs with {gpu_size} bytes of memory."
                 )
-        else:
-            num_gpus = 0
-            gpu_size = None
 
         return {
             "num_gpus": num_gpus,
@@ -167,7 +167,7 @@ class Dispatcher:
 
     def _dispatch_local(
             self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
-    ) -> Any:
+    ) -> Iterator[List[MultimodalSample]]:
         """
         Dispatches the tasks locally.
         """
@@ -186,7 +186,7 @@ class Dispatcher:
             )
             processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config)
             proc = processor(processor_config)
-            res = proc(files, self.config.use_fast_processors)
+            res = proc(cast(List[Union[FileDescriptor, URLDescriptor]], files), self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
             yield res
 
@@ -216,7 +216,7 @@ class Dispatcher:
                 f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
 
-            processor_config = ProcessorConfig(dashboard_url=self.dashboard_url, custom_config=processor_config)
+            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config)
 
             def process_files(files, processor_config, processor_name) -> Tuple[List[MultimodalSample], str]:
                 return processor(processor_config)(files, self.config.use_fast_processors), processor_name
@@ -305,7 +305,7 @@ class Dispatcher:
         if self.config.distributed:
             results = self._dispatch_distributed(task_lists)
         else:
-            results = self._dispatch_local(task_lists)
+            results = list(self._dispatch_local(task_lists))
 
         return results
 

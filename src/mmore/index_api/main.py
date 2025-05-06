@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import uvicorn
 from pathlib import Path as FilePath
-from typing import List 
+from typing import List, cast
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Path
 from fastapi.responses import FileResponse
@@ -17,13 +17,13 @@ from src.mmore.index.indexer import (
     DBConfig,
     get_model_from_index,
 )
-from src.mmore.process.crawler import Crawler, CrawlerConfig
-from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
-from src.mmore.rag.model import DenseModelConfig, SparseModelConfig
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
-from src.mmore.run_retriever import RetrieverQuery
-from src.mmore.type import MultimodalSample
-from src.mmore.utils import load_config
+from ..process.crawler import Crawler, CrawlerConfig
+from ..process.dispatcher import Dispatcher, DispatcherConfig
+from ..rag.model import DenseModelConfig, SparseModelConfig
+from ..rag.retriever import Retriever, RetrieverConfig
+from ..run_retriever import RetrieverQuery
+from ..type import MultimodalSample
+from ..utils import load_config
 
 MILVUS_URI: str = os.getenv("MILVUS_URI", "demo.db")
 MILVUS_DB: str = os.getenv("MILVUS_DB", "my_db")
@@ -66,6 +66,9 @@ async def upload_file(
         if file_storage_path.exists():
             raise HTTPException(status_code=400, detail=f"File with ID {fileId} already exists")
         
+        if file.filename is None:
+            raise HTTPException(status_code=422, detail=f"Provided file should have a filename")
+
         # Use a temporary directory for processing so that we only process the incoming docs 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_file_path = FilePath(temp_dir) / file.filename
@@ -80,7 +83,7 @@ async def upload_file(
             
             # Process and index the file
             file_extension = FilePath(file.filename).suffix.lower()
-            documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])[0]
+            documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])
             
             # Set the custom ID
             for doc in documents:
@@ -123,6 +126,9 @@ async def upload_files(
             logging.info(f"Starting to process {len(files)} files with custom IDs")
 
             for i, (file, file_id) in enumerate(zip(files, listIds)):
+                if file.filename is None:
+                    raise HTTPException(status_code=422, detail=f"File {file_id} does not have a filename")
+
                 # Check if file with this ID already exists
                 file_storage_path = FilePath(UPLOAD_DIR) / file_id
                 if file_storage_path.exists():
@@ -142,8 +148,8 @@ async def upload_files(
             logging.info(f"Files saved to temporary directory: {temp_dir}")
 
             # Process the documents
-            file_extensions = [FilePath(file.filename).suffix.lower() for file in files]
-            documents = process_files(temp_dir, COLLECTION_NAME, file_extensions)[0]
+            file_extensions = [FilePath(cast(str, file.filename)).suffix.lower() for file in files]
+            documents = process_files(temp_dir, COLLECTION_NAME, file_extensions)
             
             # Change the IDs to match the ones from the client
             modified_documents = []
@@ -183,6 +189,9 @@ async def update_file(
         if not file_storage_path.exists():
             raise HTTPException(status_code=404, detail=f"File with ID {id} not found")
         
+        if file.filename is None:
+            raise HTTPException(status_code=422, detail=f"Provided file should have a filename")
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Save the file temporarily for processing
             temp_file_path = FilePath(temp_dir) / file.filename
@@ -197,7 +206,7 @@ async def update_file(
             
             # Process and index the file
             file_extension = FilePath(file.filename).suffix.lower()
-            documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])[0]
+            documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])
             
             # Set the custom ID
             for doc in documents:
@@ -317,7 +326,7 @@ def retriever(query: RetrieverQuery) -> list[dict]:
     try:
         docs_for_query = retriever.invoke(
             query.query, 
-            document_ids=query.document_ids, 
+            document_ids=query.fileIds, 
             k=query.maxMatches, 
             min_score=query.minSimilarity
         )
@@ -399,8 +408,8 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> Indexer:
             return create_new_indexer(collection_name, uri, db_name)
 
         # Get model configs from the collection
-        dense_config = get_model_from_index(client, "dense_embedding", collection_name)
-        sparse_config = get_model_from_index(client, "sparse_embedding", collection_name)
+        dense_config = cast(DenseModelConfig, get_model_from_index(client, "dense_embedding", collection_name))
+        sparse_config = cast(SparseModelConfig, get_model_from_index(client, "sparse_embedding", collection_name))
         
         # Create and store the indexer
         indexer = Indexer(
@@ -453,7 +462,7 @@ def process_files(temp_dir: str, collection_name: str, extensions: List[str]=[".
     )
     # pdb.set_trace()
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
-    return list(dispatcher())
+    return sum(list(dispatcher()), [])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

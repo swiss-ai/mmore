@@ -10,6 +10,7 @@ from langchain_mistralai import ChatMistralAI
 from langchain_cohere import ChatCohere
 
 from dataclasses import dataclass, field
+from typing import Optional, cast
 
 import os
 from getpass import getpass
@@ -33,9 +34,9 @@ loaders = {
 @dataclass
 class LLMConfig:
     llm_name: str
-    base_url: str = None
-    organization: str = None
-    max_new_tokens: int = None
+    base_url: Optional[str] = None
+    organization: Optional[str] = None
+    max_new_tokens: Optional[int] = None
     temperature: float = 0.7
 
     def __post_init__(self):
@@ -48,7 +49,7 @@ class LLMConfig:
             None
         )
 
-        if not self.organization is None:
+        if self.organization is not None:
             self.organization = self.organization.upper()
 
     @property
@@ -89,7 +90,7 @@ class LLM(BaseChatModel):
                 pipeline_kwargs=config.generation_kwargs
             ))
         else:
-            loader = loaders.get(config.organization, ChatOpenAI)
+            loader = loaders.get(cast(str, config.organization), ChatOpenAI)
             return loader(
                 model=config.llm_name, 
                 base_url=config.base_url,

@@ -1,17 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Literal
+from typing import Dict, List, Any, Literal, Optional, cast
 
 from tqdm import tqdm
-
 from dataclasses import dataclass, field
 
-from mmore.type import MultimodalSample
+from ...type import MultimodalSample
 
 @dataclass
 class BasePostProcessorConfig:
     type: str
-    name: str = None
-    args: Any = field(default_factory=lambda: {})
+    name: Optional[str] = None
+    args: Dict = field(default_factory=dict)
 
     def __post_init__(self):
         if self.name is None:

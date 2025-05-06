@@ -7,7 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, Query
 import motor.motor_asyncio
 from starlette.middleware.cors import CORSMiddleware
 
-from src.mmore.dashboard.backend.model import Report, WorkerLatest, DashboardMetadata, Progress, BatchedReports
+from .model import Report, WorkerLatest, DashboardMetadata, Progress, BatchedReports
 
 app = FastAPI()
 # allow all origins

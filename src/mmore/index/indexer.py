@@ -8,19 +8,17 @@ from ..utils import load_config
 from ..type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 
-from mmore.type import MultimodalSample
-from mmore.utils import load_config
-
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from mmore.rag.model.dense.multimodal import MultimodalEmbeddings
-from mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
+from ..rag.model.dense.multimodal import MultimodalEmbeddings
+from ..rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
 
 from tqdm import tqdm
 
 import logging
 logger = logging.getLogger(__name__)
+import numpy as np
 
 @dataclass
 class DBConfig:
@@ -41,7 +39,7 @@ class IndexerConfig:
 class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
-    sparse_model: SparseModel
+    sparse_model: BaseSparseEmbedding
     client: MilvusClient
 
     _DEFAULT_FIELDS = ['id', 'text', 'dense_embedding', 'sparse_embedding']
@@ -61,10 +59,12 @@ class Indexer:
         self.client = client
 
     @classmethod
-    def from_config(cls, config: str | IndexerConfig):
+    def from_config(cls, config_in: str | IndexerConfig):
         # Load the config if it's a string
-        if isinstance(config, str):
-            config: IndexerConfig = load_config(config, IndexerConfig)
+        if isinstance(config_in, str):
+            config = load_config(config_in, IndexerConfig)
+        else:
+            config = config_in
 
         # Create the milvus client
         milvus_client = MilvusClient(
@@ -176,7 +176,7 @@ class Indexer:
                     "id": sample.id,
                     "text": sample.text,
                     "dense_embedding": d,
-                    "sparse_embedding": s.reshape(1, -1),
+                    "sparse_embedding": np.array(s).reshape(1, -1),
                     **sample.metadata
                 } for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)]
             

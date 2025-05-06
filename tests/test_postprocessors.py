@@ -1,17 +1,16 @@
 import pytest
-from mmore.type import MultimodalSample
-from mmore.process.post_processor import load_postprocessor, BasePostProcessorConfig
-from mmore.process.post_processor.chunker.multimodal import MultimodalChunker, MultimodalChunkerConfig
-from mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
-from mmore.process.post_processor.filter import FILTERS_LOADERS_MAP, FILTER_TYPES
-from mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
-from mmore.rag.llm import LLM
-from mmore.type import MultimodalSample
-from mmore.process.post_processor.tagger import load_tagger, TAGGER_TYPES
-from mmore.process.post_processor.tagger.base import BaseTaggerConfig
-from mmore.process.post_processor.tagger.words import WordsCounter
-from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
-from mmore.process.post_processor.tagger.lang_detector import LangDetector
+from ..src.mmore.rag.llm import LLM
+from ..src.mmore.type import MultimodalSample
+from ..src.mmore.process.post_processor import load_postprocessor, BasePostProcessorConfig
+from ..src.mmore.process.post_processor.chunker.multimodal import MultimodalChunker, MultimodalChunkerConfig
+from ..src.mmore.process.post_processor.filter import FILTERS_LOADERS_MAP, FILTER_TYPES
+from ..src.mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
+from ..src.mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
+from ..src.mmore.process.post_processor.tagger import load_tagger, TAGGER_TYPES
+from ..src.mmore.process.post_processor.tagger.base import BaseTaggerConfig
+from ..src.mmore.process.post_processor.tagger.lang_detector import LangDetector
+from ..src.mmore.process.post_processor.tagger.modalities import ModalitiesCounter
+from ..src.mmore.process.post_processor.tagger.words import WordsCounter
 
 # ------------------ Chunker Tests ------------------
 def test_chunker_from_load_postprocessor():

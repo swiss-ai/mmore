@@ -18,13 +18,13 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores.base import VectorStore, VectorStoreRetriever
 # from .models import get_model_wrapper, MultimodalModelWrapper
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from mmore.rag.model.dense.multimodal import MultimodalEmbeddings
-from mmore.rag.model.sparse.splade import SpladeSparseEmbedding
+from .model.dense.multimodal import MultimodalEmbeddings
+from .model.sparse.splade import SpladeSparseEmbedding
 from langchain_milvus.utils.sparse import BaseSparseEmbedding, BM25SparseEmbedding
 
 from langchain_milvus import Milvus
 
-from mmore.type import MultimodalSample
+from ..type import MultimodalSample
 import collections
 import sys
 import nltk
@@ -40,21 +40,7 @@ class VectorStoreConfig:
     collection_name: str = 'rag'
     milvus_uri: str = 'milvus_demo.db'  # "http://localhost:19530" Milvus standalone docker service
 
-
-class End2EndVectorStore(ABC):
-    vector_store: VectorStore
-
-    def __init__(self, vector_store):
-        self.vector_store = vector_store
-
-    @abstractmethod
-    @classmethod
-    @abstractmethod
-    def add_documents(cls, documents: list[MultimodalSample], **kwargs: Any) -> list[str]:
-        pass
-
-
-class End2EndVectorStoreMilvus:
+class VectorStoreMilvus:
     milvus: Milvus
 
     def __init__(self, milvus) -> None:
@@ -80,8 +66,8 @@ class End2EndVectorStoreMilvus:
     @classmethod
     def from_documents(cls, documents: List[MultimodalSample], config: VectorStoreConfig = VectorStoreConfig()):
         # Get models       
-        dense_model = End2EndVectorStore._init_dense_model(config.dense_model_name)
-        sparse_model = End2EndVectorStore._init_sparse_model(config.sparse_model_name)
+        dense_model = VectorStoreMilvus._init_dense_model(config.dense_model_name)
+        sparse_model = VectorStoreMilvus._init_sparse_model(config.sparse_model_name)
 
         # Translate to multimodal embedder input
         texts = [MultimodalEmbeddings._multimodal_to_text(doc) for doc in documents]
@@ -115,9 +101,9 @@ class End2EndVectorStoreMilvus:
             return HuggingFaceEmbeddings(model_name=dense_model_name)
 
     @staticmethod
-    def _init_sparse_model(sparse_model_name: str, corpus: List[str] = None) -> BaseSparseEmbedding:
+    def _init_sparse_model(sparse_model_name: str, corpus: List[str] = []) -> BaseSparseEmbedding:
         if sparse_model_name.lower() == 'bm25':
-            return NotImplementedError()
+            raise NotImplementedError()
             # return BM25SparseEmbedding(corpus)
         else:
             sparse_model_name = "naver/splade-cocondenser-selfdistil" if sparse_model_name == 'splade' else sparse_model_name

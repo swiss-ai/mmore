@@ -54,34 +54,31 @@ class RAGASMetrics:
     
     @staticmethod
     def _parse_metrics(metrics: List[str]):
-        if not isinstance(metrics, list):
+        if not (isinstance(metrics, list) and all(isinstance(x, str) for x in metrics)):
             raise TypeError("The 'metrics' parameter must be a list of metric names (strings).")
         
         parsed_metrics = []
         for metric_name in metrics:
-            if isinstance(metric_name, str):
-                try:
-                    parsed_metrics.append(RAGASMetrics.get_metric_class(metric_name))
-                except ValueError:
-                    raise ValueError(f"Invalid metric provided: {metric_name}. Metric not found.")
-            else:
-                raise ValueError(f"Invalid metric provided: {metric_name}. Each metric must be a string.")
-        
+            try:
+                parsed_metrics.append(RAGASMetrics.get_metric_class(metric_name))
+            except ValueError:
+                raise ValueError(f"Invalid metric provided: {metric_name}. Metric not found.")
+
         return parsed_metrics
+
 @dataclass
 class EvalConfig:
     """RAG Eval Configuration"""
     hf_dataset_name: str
     split: str
     hf_feature_map: dict
-    metrics: Union[str, List[str]]
+    metrics: List[str]
     embeddings_name: str
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))    
-   
 
 class RAGEvaluator:
     dataset: Dataset
-    metrics: Metric | List[Metric]
+    metrics: List[Metric]
     evaluator_llm: BaseRagasLLM
     embeddings: BaseRagasEmbeddings
 
@@ -94,21 +91,23 @@ class RAGEvaluator:
     @classmethod
     def from_config(cls, config: str | EvalConfig):
         if isinstance(config, str):
-            config = load_config(config, EvalConfig)
+            config_obj = load_config(config, EvalConfig)
+        else:
+            config_obj = config
         # Load and prepare the dataset
-        hf_dataset = load_dataset(config.hf_dataset_name, split=config.split)
+        hf_dataset = load_dataset(config_obj.hf_dataset_name, split=config_obj.split)
 
-        dataset = hf_dataset.rename_columns(config.hf_feature_map)
+        dataset = hf_dataset.rename_columns(config_obj.hf_feature_map)
 
         # Add 'retrieved_contexts' and 'response' as empty fields
         dataset = dataset.map(lambda x: {"retrieved_contexts": [], "response": []})
 
         # Parse and store metrics
-        metrics = RAGASMetrics._parse_metrics(config.metrics)
+        metrics = RAGASMetrics._parse_metrics(config_obj.metrics)
 
         # Define evaluator LLM and embeddings
-        evaluator_llm = LLM.from_config(config.llm)
-        embeddings = HuggingFaceEmbeddings(model_name=config.embeddings_name)
+        evaluator_llm = LLM.from_config(config_obj.llm)
+        embeddings = HuggingFaceEmbeddings(model_name=config_obj.embeddings_name)
 
         return cls(dataset, metrics, evaluator_llm, embeddings)
 
@@ -138,7 +137,7 @@ class RAGEvaluator:
         # Indexing logic
         indexer = Indexer.from_config(indexer_config)
 
-        collection_name = indexer.dense_model_name.replace("-", "_") 
+        collection_name = indexer.dense_model_config.model_name.replace("-", "_") 
         if not indexer.client.has_collection(collection_name):
             for i, documents in enumerate(self.dataset["corpus"]):
                 print('Creating the indexer...')

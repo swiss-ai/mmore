@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
-from typing import Optional
+from typing import Optional, Union
 import argparse
 import logging
 import json
@@ -31,7 +31,7 @@ def load_results(path: str, file_type: Optional[str] = None):
     logger.info(f"Loaded {len(results)} results")
     return results
 
-def index(config_file: str, collection_name: Optional[str] = None, documents_path: Optional[str] = None):
+def index(config_file: Union[IndexConfig, str], collection_name: Optional[str] = None, documents_path: Optional[str] = None):
     """Index files for specified documents."""
     # Load the config file
     config: IndexConfig = load_config(config_file, IndexConfig)

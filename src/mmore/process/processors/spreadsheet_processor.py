@@ -6,8 +6,8 @@ from typing import List
 from PIL import Image as PILImage
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
+from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -141,10 +141,8 @@ class SpreadsheetProcessor(Processor):
                     if hasattr(sheet, "_images"):
                         for image in getattr(sheet, "_images", []):
                             if isinstance(image, OpenPyXLImage):
-                                img_bytes = image._data()
-                                img = PILImage.open(io.BytesIO(img_bytes)).convert(
-                                    "RGB"
-                                )
+                                img_bytes = image._data() # pyright: ignore[reportAttributeAccessIssue]
+                                img = PILImage.open(io.BytesIO(img_bytes)).convert("RGB")
                                 embedded_images.append(img)
                 logger.info(f"Extracted {len(embedded_images)} images from {file_path}.")
                 return embedded_images

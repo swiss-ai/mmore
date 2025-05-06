@@ -4,10 +4,10 @@ import fitz  # PyMuPDF
 import io
 import logging
 from PIL import Image, UnidentifiedImageError
-from typing import List
-from src.mmore.type import FileDescriptor, MultimodalSample
+from typing import List, Optional
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text, clean_image
 from .base import Processor, ProcessorConfig
-from src.mmore.process.utils import clean_text, clean_image
 
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
@@ -19,7 +19,7 @@ import torch
 import time
 
 
-IMG_REGEX = "!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
+IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 class PDFProcessor(Processor):
     def __init__(self, config=None):
@@ -30,16 +30,16 @@ class PDFProcessor(Processor):
         return file.file_extension.lower() == ".pdf"
 
     # overwriting the process_batch
-    def process_batch(self, files, fast_mode, num_workers):
+    def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
         if fast_mode: # No GPU available - fallback to default
-            return super().process_batch(files, fast_mode, num_workers)
+            return super().process_batch(files_paths, fast_mode, num_workers)
         else:
             if not torch.cuda.is_available():
                 num_gpus = 1
             else:
                 num_gpus = torch.cuda.device_count()
 
-            if num_gpus == 1 or len(files) < 10: # 1 GPU available or length of files is less than 10 we just do single-GPU
+            if num_gpus == 1 or len(files_paths) < 10: # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
                 marker_config = {
                     "disable_image_extraction": not self.config.custom_config.get("extract_images", True),
                     "languages": None,
@@ -52,7 +52,7 @@ class PDFProcessor(Processor):
                     config=config_parser.generate_config_dict()
                 )
                 results = []
-                for file_path in files:
+                for file_path in files_paths:
                     try:
                         res = self.process(file_path)
                         results.append(res)
@@ -61,7 +61,7 @@ class PDFProcessor(Processor):
 
                 return results
             else: # Multiple GPUs available
-                batches = self._split_files(files, num_gpus)
+                batches = self._split_files(files_paths, num_gpus)
 
                 try:
                     set_start_method('spawn', force=True)
@@ -102,19 +102,19 @@ class PDFProcessor(Processor):
 
                 return results
 
-    def process(self, file_path: str) -> List[MultimodalSample]:
+    def process(self, file_path: str) -> MultimodalSample:
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
-        images = images.values()
+        images = list(images.values())
         return self.create_sample([text], images, file_path)
 
-    def process_fast(self, file_path) -> MultimodalSample:
+    def process_fast(self, file_path: str) -> MultimodalSample:
         pdf_doc = fitz.open(file_path)
         all_text = []
         embedded_images = []
 
-        def _extract_images(pdf_doc, xref) -> Image.Image:
+        def _extract_images(pdf_doc, xref) -> Optional[Image.Image]:
             try:
                 base_image = pdf_doc.extract_image(xref)
                 image_bytes = base_image.get("image")
@@ -137,14 +137,14 @@ class PDFProcessor(Processor):
                 return None
 
         for page in pdf_doc:
-            text = clean_text(page.get_text())
+            text = clean_text(page.get_text()) # type: ignore[attr-defined]
             if text.strip():
                 all_text.append(text)
 
             if self.config.custom_config.get("extract_images", True):
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
-                    if clean_image(image):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
+                    if image and clean_image(image):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
                         all_text.append(self.config.attachment_tag)
             else:
@@ -153,8 +153,8 @@ class PDFProcessor(Processor):
         return self.create_sample(all_text, embedded_images, file_path)
 
     ### Functions for parallelizing across GPUs
-    def _split_files(self, files, num_batches):
-        file_sizes = [(file, self.get_file_size(file)) for file in files]
+    def _split_files(self, files_paths, num_batches):
+        file_sizes = [(file, self.get_file_size(file)) for file in files_paths]
         sorted_files = sorted(file_sizes, key=lambda x: x[1], reverse=True)
 
         batches = [[] for _ in range(num_batches)]
@@ -168,7 +168,7 @@ class PDFProcessor(Processor):
         batches = [batch for batch in batches if batch]
         return batches
 
-    def _process_parallel(self, files, gpu_id, config_custom, output_queue, error_queue):
+    def _process_parallel(self, files_paths, gpu_id, config_custom, output_queue, error_queue):
         try:
             torch.cuda.set_device(gpu_id)
 
@@ -187,7 +187,7 @@ class PDFProcessor(Processor):
             )
 
             batch_results = []
-            for file in files:
+            for file in files_paths:
                 try:
                     result = self.process(file)
                     batch_results.append(result)

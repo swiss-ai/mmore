@@ -1,10 +1,11 @@
 import logging
 import io
 from docx import Document
+from docx.document import Document as DocumentType
 from typing import List
 from PIL import Image
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
@@ -50,7 +51,7 @@ class DOCXProcessor(Processor):
         """
 
         # First, we define a helper functions
-        def _extract_images(doc: Document) -> List[Image.Image]:
+        def _extract_images(doc: DocumentType) -> List[Image.Image]:
             """
             Extract embedded images from the DOCX document.
 

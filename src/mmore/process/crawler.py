@@ -3,7 +3,7 @@ import os
 import logging
 from typing import List, Dict, Optional
 import validators
-from src.mmore.type import FileDescriptor, URLDescriptor
+from ..type import FileDescriptor, URLDescriptor
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,10 @@ class DispatcherReadyResult:
         if len(urls) > 1:
             keys_to_change = list(self.file_paths.keys())
             for key in keys_to_change:
-                self.file_paths[key.replace(self.common_root, "")] = self.file_paths[
-                    key
-                ]
+                if self.common_root:
+                    key = key.replace(self.common_root, "")
+
+                self.file_paths[key] = self.file_paths[key]
                 del self.file_paths[key]
 
     def __call__(self):
@@ -249,8 +250,8 @@ class Crawler:
     def __init__(
             self,
             config: Optional[CrawlerConfig] = None,
-            root_dirs: List[str] = None,
-            output_path: str = None,
+            root_dirs: List[str] = [],
+            output_path: str = "",
             lax_mode: bool = False,
     ):
         """

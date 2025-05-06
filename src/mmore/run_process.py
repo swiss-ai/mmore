@@ -12,12 +12,12 @@ PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
 logging.basicConfig(format=f'[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from src.mmore.dashboard.backend.client import DashboardClient
+from .dashboard.backend.client import DashboardClient
 from .type import MultimodalSample
 from .utils import load_config
 
-from src.mmore.process.crawler import Crawler, CrawlerConfig
-from src.mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from .process.crawler import Crawler, CrawlerConfig
+from .process.dispatcher import Dispatcher, DispatcherConfig
 
 overall_start_time = time.time()
 
@@ -54,6 +54,9 @@ def process(config_file: str):
         ],
         output_path=config.dispatcher_config.output_path
     )
+    else:
+        raise ValueError("Data path not provided in the configuration")
+
     logger.info(f"Using crawler configuration: {crawler_config}")
     crawler = Crawler(config=crawler_config)
 
