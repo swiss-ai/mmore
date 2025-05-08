@@ -13,8 +13,8 @@ from .utils import load_chonkie
 import logging
 logger = logging.getLogger(__name__)
 
-@dataclass(init=False)
-class MultimodalChunkerConfig(BasePostProcessorConfig):
+@dataclass
+class MultimodalChunkerConfig:
     chunking_strategy: str
     text_chunker_config: Dict[str, Any] = field(default_factory=dict)
 
