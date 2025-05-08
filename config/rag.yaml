@@ -1,0 +1,15 @@
+rag:
+  llm: 
+    llm_name: "meta-llama/Llama-3.1-8B-Instruct"
+    base_url: "http://localhost:8000/v1"
+    max_new_tokens: 256
+  retriever:
+    db:
+      uri: index/samplepoc.db
+    hybrid_search_weight: 0.5
+    k: 1
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+mode: local
+mode_args:    
+  input_file: input.jsonl
+  output_file: output.jsonl

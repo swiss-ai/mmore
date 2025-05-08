@@ -20,9 +20,9 @@ import mammoth
 import tempfile
 from markdownify import markdownify
 from typing import List, Dict, Any
-from src.mmore.process.utils import clean_text
-from src.mmore.process.processors.md_processor import MarkdownProcessor
-from src.mmore.type import FileDescriptor, MultimodalSample
+from mmore.process.utils import clean_text
+from mmore.process.processors.md_processor import MarkdownProcessor
+from mmore.type import FileDescriptor, MultimodalSample
 
 from .base import Processor, ProcessorConfig
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -78,6 +78,9 @@ class DOCXProcessor(Processor):
             Extract embedded images from the DOCX document.
 =======
         def _convert_image(image: mammoth.documents.Image) -> Dict[str, Any]:
+            if self.config.custom_config.get("extract_images", False):
+                return {"src" : ""}
+
             with image.open() as image_bytes:
                 try:
                     pil_image = Image.open(io.BytesIO(image_bytes.read()))

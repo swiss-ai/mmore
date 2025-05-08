@@ -1,0 +1,8 @@
+dense_model:
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+sparse_model:
+  model_name: splade
+db:
+  uri: /scratch/mzhang7/CTE/data/sample/index/samplepoc.db
+collection_name: sample_poc
+input_data: /scratch/mzhang7/CTE/data/sample/jsonl/post_processed/final_pp.jsonl

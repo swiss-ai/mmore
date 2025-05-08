@@ -1,0 +1,28 @@
+dispatcher_config:
+  output_path: /scratch/mzhang7/CTE/data/sample/jsonl #put absolute path!
+  use_fast_processors: false
+  distributed: false
+  extract_images: true
+  scheduler_file: scheduler-file.json #put absolute path!
+  process_batch_sizes:
+    - DOCXProcessor: 20
+    
+  processor_config:
+    MediaProcessor:
+      - normal_model: "openai/whisper-large-v3-turbo"
+      - fast_model: "openai/whisper-tiny"
+      - type: "automatic-speech-recognition"
+      - sample_rate: 10
+      - batch_size: 4
+
+    PDFProcessor:
+      - PDFTEXT_CPU_WORKERS: 0
+      - DETECTOR_BATCH_SIZE: 1
+      - DETECTOR_POSTPROCESSING_CPU_WORKERS: 0
+      - RECOGNITION_BATCH_SIZE: 1
+      - OCR_PARALLEL_WORKERS: 0
+      - TEXIFY_BATCH_SIZE: 1
+      - LAYOUT_BATCH_SIZE: 1
+      - ORDER_BATCH_SIZE: 1
+      - TABLE_REC_BATCH_SIZE: 1
+data_path: /scratch/mzhang7/CTE/data/sample/docx #put absolute path!

@@ -34,6 +34,7 @@ class ProcessInference:
 
     data_path: str
     dispatcher_config: DispatcherConfig
+    skip_already_processed: bool
 
 
 def process(config_file: str):
@@ -75,7 +76,7 @@ def process(config_file: str):
     crawler = Crawler(config=crawler_config)
 
     crawl_start_time = time.time()
-    crawl_result = crawler.crawl()
+    crawl_result = crawler.crawl(skip_already_processed=config.skip_already_processed)
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")

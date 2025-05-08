@@ -1,6 +1,8 @@
 from typing import cast
 
 from ...utils import load_config
+from .translator import TranslatorConfig, TranslatorPostProcessor
+
 from .base import BasePostProcessor, BasePostProcessorConfig
 from .chunker import MultimodalChunker, MultimodalChunkerConfig
 from .filter import FILTER_TYPES, load_filter

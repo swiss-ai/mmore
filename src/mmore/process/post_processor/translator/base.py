@@ -1,7 +1,6 @@
-from __future__ import annotations
 from typing import List
 from mmore.type import MultimodalSample
-from src.mmore.process.post_processor import BasePostProcessor
+from mmore.process.post_processor.base import BasePostProcessor
 from langid import classify
 import argostranslate.package
 import argostranslate.translate
@@ -23,7 +22,7 @@ class TranslatorPostProcessor(BasePostProcessor):
         self.updated_packages = set()
 
     @classmethod
-    def from_config(cls, config: TranslatorConfig) -> TranslatorPostProcessor:
+    def from_config(cls, config: TranslatorConfig):
         translator = TranslatorPostProcessor(
             target_language=config.target_language, attachment_tag=config.attachment_tag
         )
