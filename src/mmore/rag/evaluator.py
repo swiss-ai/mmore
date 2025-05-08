@@ -32,7 +32,6 @@ class RAGASMetrics:
         # Natural Language Comparison Metrics
         "FactualCorrectness": FactualCorrectness,
         "SemanticSimilarity": SemanticSimilarity,
- 
     }
 
     @classmethod
@@ -110,7 +109,6 @@ class RAGEvaluator:
         embeddings = HuggingFaceEmbeddings(model_name=config_obj.embeddings_name)
 
         return cls(dataset, metrics, evaluator_llm, embeddings)
-
 
     def _get_eval_dataset(self, outputs: List[dict]) -> Dataset:
         """

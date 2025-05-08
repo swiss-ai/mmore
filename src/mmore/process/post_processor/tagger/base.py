@@ -11,23 +11,15 @@ from ....type import MultimodalSample
 @dataclass
 class BaseTaggerConfig:
     type: str
-    _name: Optional[str] = None
-    _metadata_key: Optional[str] = None
+    name: Optional[str] = None
+    metadata_key: Optional[str] = None
     args: Any = field(default_factory=lambda: {})
 
     def __post_init__(self):
-        if self._name is None:
-            self._name = self.type
-        if self._metadata_key is None:
-            self._metadata_key = self.type
-    
-    @property
-    def name(self) -> str:
-        return cast(str, self._name)
-    
-    @property
-    def metadata_key(self) -> str:
-        return cast(str, self._metadata_key)
+        if self.name is None:
+            self.name = self.type
+        if self.metadata_key is None:
+            self.metadata_key = self.type
 
 class BaseTagger(BasePostProcessor):
     name: str

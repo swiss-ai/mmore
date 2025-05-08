@@ -85,16 +85,12 @@ class RAGPipeline:
     @staticmethod
     # TODO: Add non RAG Pipeline (i.e. retriever is None)
     def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
-        structured_llm = llm
-        # structured_llm = llm.with_structured_output(CitedAnswer)
-        # structured_llm = llm.with_structured_output(QuotedAnswer)
-
         validate_input = RunnableLambda(MMOREInput.model_validate)
         validate_output = RunnableLambda(MMOREOutput.model_validate)
 
         rag_chain_from_docs = (
                 prompt
-                | structured_llm
+                | llm
                 | StrOutputParser()
         )
 

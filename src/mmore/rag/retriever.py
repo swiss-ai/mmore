@@ -28,7 +28,6 @@ class RetrieverConfig:
     hybrid_search_weight: float = 0.5
     k: int = 1
 
-
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
     dense_model: Embeddings
@@ -78,7 +77,6 @@ class Retriever(BaseRetriever):
 
         return dense_embedding, sparse_embedding
 
-    # TODO: [FEATURE] minimal score for retrieval
     def retrieve(
             self,
             query: str,

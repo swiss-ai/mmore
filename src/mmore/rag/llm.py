@@ -30,7 +30,6 @@ loaders = {
     "HF": ChatHuggingFace
 }
 
-# TODO (@paultltc): Add generation kwargs
 @dataclass
 class LLMConfig:
     llm_name: str

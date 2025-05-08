@@ -24,7 +24,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-
 def clean_text(text: str) -> str:
     """
     Clean a given text using `cleantext` library. https://pypi.org/project/clean-text/

@@ -16,7 +16,6 @@ import uuid
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores.base import VectorStore, VectorStoreRetriever
-# from .models import get_model_wrapper, MultimodalModelWrapper
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from .model.dense.multimodal import MultimodalEmbeddings
 from .model.sparse.splade import SpladeSparseEmbedding
@@ -31,7 +30,6 @@ import nltk
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema, Collection, AnnSearchRequest, model
 import torch
 from tqdm import tqdm
-
 
 @dataclass
 class VectorStoreConfig:

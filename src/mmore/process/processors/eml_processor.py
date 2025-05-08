@@ -10,7 +10,6 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
-
 class EMLProcessor(Processor):
     """
     A processor for handling email files (.eml). Extracts email headers, text content, and embedded images.

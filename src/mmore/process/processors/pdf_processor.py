@@ -18,7 +18,6 @@ from multiprocessing import Process, Queue, set_start_method, Manager
 import torch
 import time
 
-
 IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 class PDFProcessor(Processor):

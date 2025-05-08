@@ -12,6 +12,9 @@ def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -
     if isinstance(yaml_dict_or_path, str):
         with open(yaml_dict_or_path, 'r') as file:
             data = yaml.safe_load(file)
+        
+            print(data)
+            input()
     else:
         data = yaml_dict_or_path
 

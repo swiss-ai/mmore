@@ -12,7 +12,6 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
-
 class SpreadsheetProcessor(Processor):
     """
     A processor for handling spreadsheet files, including Excel and CSV/TSV files.

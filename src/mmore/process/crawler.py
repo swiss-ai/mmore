@@ -7,7 +7,6 @@ from ..type import FileDescriptor, URLDescriptor
 
 logger = logging.getLogger(__name__)
 
-
 class DispatcherReadyResult:
     def __init__(
             self, urls: List[URLDescriptor], file_paths: Dict[str, List[FileDescriptor]]

@@ -6,7 +6,7 @@ class ExecutionState:
     The global state of the execution, this class is static and stores the global state whenever the execution should stop or not.
     Every processor can check this state to see if it should stop execution.
     Supports both local and distributed execution
-    IN local execution, the state is stored in a static variable
+    In local execution, the state is stored in a static variable
     In distributed execution, the state is stored in a dask 'Variable',
     you need to connect to a dask cluster to use this feature (use client = Client(...) before calling .initialize())
     and this variable will be shared across the custer

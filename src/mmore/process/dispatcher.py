@@ -8,6 +8,7 @@ from .processors.base import AutoProcessor, Processor, ProcessorRegistry, Proces
 import torch
 import logging
 import os
+from dataclasses import dataclass
 from operator import itemgetter
 from tqdm import tqdm
 from dask.distributed import as_completed, Client
@@ -15,7 +16,6 @@ import dask.config
 from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
-
 
 class ComputeDescriptor:
     @staticmethod
@@ -37,8 +37,6 @@ class ComputeDescriptor:
             "gpu_size": gpu_size,
         }
 
-
-from dataclasses import dataclass
 @dataclass
 class DispatcherConfig:
     """
@@ -127,7 +125,6 @@ class DispatcherConfig:
             f"dashboard_backend_url={self.dashboard_backend_url}"
             f")"
         )
-
 
 class Dispatcher:
     """

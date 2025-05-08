@@ -12,7 +12,6 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-
 class MarkdownProcessor(Processor):
     """
     A processor for handling Markdown files (.md). Extracts text content and embedded images.
@@ -122,7 +121,7 @@ class MarkdownProcessor(Processor):
                                 image.save(tmp.name)
                             return tmp.name
                         path = save_temp_image(image, base_path=os.path.join(os.getcwd(), 'tmp'))
-                        embedded_images.append(path)
+                        embedded_images.append(image)
                     else:
                         logger.error(f"Failed to download image from {src}. Status code: {response.status_code}")
                         html = html.replace(tag, "")

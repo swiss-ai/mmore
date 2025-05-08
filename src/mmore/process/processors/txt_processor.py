@@ -5,7 +5,6 @@ from .base import Processor
 
 logger = logging.getLogger(__name__)
 
-
 class TextProcessor(Processor):
     """
     A processor for handling plain text files (.txt). Reads and cleans the text content.

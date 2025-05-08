@@ -9,7 +9,6 @@ Classes:
     URLDescriptor: Represents a URL with validation and computational weight.
 """
 
-
 from dataclasses import dataclass, field
 from datetime import datetime
 import os
@@ -20,7 +19,6 @@ import validators
 import json
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class MultimodalRawInput:

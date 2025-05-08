@@ -14,7 +14,6 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
-
 class PPTXProcessor(Processor):
     """
     A processor for handling PPTX files. Extracts text, images, and notes from PowerPoint presentations.

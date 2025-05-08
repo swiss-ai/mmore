@@ -11,16 +11,12 @@ from ....type import MultimodalSample
 @dataclass
 class BaseFilterConfig:
     type: str
-    _name: Optional[str] = None
+    name: Optional[str] = None
     args: Any = field(default_factory=dict)
 
     def __post_init__(self):
-        if self._name is None:
-            self._name = self.type
-        
-    @property
-    def name(self) -> str:
-        return cast(str, self._name)
+        if self.name is None:
+            self.name = self.type
 
 class BaseFilter(BasePostProcessor):
     name: str
