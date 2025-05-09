@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker
 
 from ....type import MultimodalSample
-from ....process.post_processor import BasePostProcessor
+from .. import BasePostProcessor
 from .utils import load_chonkie
 
 import logging

@@ -23,7 +23,6 @@ from .output_parser import EntityExtractionOutputParser
 
 from ....type import MultimodalSample
 from ....rag.llm import LLM, LLMConfig
-from ..base import BasePostProcessorConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,8 +32,8 @@ _DEFAULT_RECORD_DELIMITER = "##"
 _DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
 _DEFAULT_ENTITY_TYPES = ["ORGANIZATION", "PERSON", "LOCATION", "EVENT", "DATE"]
 
-@dataclass(init=False)
-class NERExtractorConfig(BasePostProcessorConfig):
+@dataclass
+class NERExtractorConfig:
     llm: LLMConfig
     prompt: str | Path = DEFAULT_ER_EXTRACTION_PROMPT
     entity_types: List[str] = field(default_factory=lambda: _DEFAULT_ENTITY_TYPES)
