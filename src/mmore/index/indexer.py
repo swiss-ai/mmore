@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 import logging
 logger = logging.getLogger(__name__)
-import numpy as np
+import scipy
 
 @dataclass
 class DBConfig:
@@ -169,14 +169,14 @@ class Indexer:
 
             # Compute embeddings
             dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(batch, self.dense_model_config.is_multimodal))
-            sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
-
+            sparse_embeddings: scipy.sparse._coo.coo_array = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
+            
             # Insert the batch
             data = [{
                     "id": sample.id,
                     "text": sample.text,
                     "dense_embedding": d,
-                    "sparse_embedding": np.array(s).reshape(1, -1),
+                    "sparse_embedding": s.reshape(1, -1),
                     **sample.metadata
                 } for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)]
             
@@ -185,9 +185,6 @@ class Indexer:
                 collection_name=collection_name,
                 partition_name=partition_name,
             )
-            # This returns the list of values
-            # import pdb
-            # pdb.set_trace()
 
             inserted += list(batch_inserted.values())[0]
 
