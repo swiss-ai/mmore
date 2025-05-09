@@ -9,4 +9,4 @@ indexer:
     uri: ./proc_demo.db
     name: my_db
 collection_name: my_docs
-documents_path: 'examples/process/outputs/merged/merged_results.jsonl'
+documents_path: 'examples/process/outputs/merged/final_pp.jsonl'
