@@ -59,23 +59,23 @@ class Indexer:
         self.client = client
 
     @classmethod
-    def from_config(cls, config_in: str | IndexerConfig):
+    def from_config(cls, config: str | IndexerConfig):
         # Load the config if it's a string
-        if isinstance(config_in, str):
-            config = load_config(config_in, IndexerConfig)
+        if isinstance(config, str):
+            config_obj = load_config(config, IndexerConfig)
         else:
-            config = config_in
+            config_obj = config
 
         # Create the milvus client
         milvus_client = MilvusClient(
-            config.db.uri,
-            db_name=config.db.name,
+            config_obj.db.uri,
+            db_name=config_obj.db.name,
             enable_sparse=True,
         )
 
         return cls(
-            dense_model_config=config.dense_model,
-            sparse_model_config=config.sparse_model,
+            dense_model_config=config_obj.dense_model,
+            sparse_model_config=config_obj.sparse_model,
             client=milvus_client,
         )
 
