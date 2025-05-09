@@ -19,10 +19,10 @@ def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
     elif config.type in TAGGER_TYPES:
         return load_tagger(cast(BaseTaggerConfig, config))
     elif config.type == 'chunker':
-        config = load_config(config.args, MultimodalChunkerConfig)
-        return MultimodalChunker.from_config(config)
+        config_chunk = load_config(config.args, MultimodalChunkerConfig)
+        return MultimodalChunker.from_config(config_chunk)
     elif config.type == 'ner':
-        config = load_config(config.args, NERExtractorConfig)
-        return NERecognizer.from_config(config)
+        config_ner = load_config(config.args, NERExtractorConfig)
+        return NERecognizer.from_config(config_ner)
     else:
         raise ValueError(f"Unrecognized postprocessor type: {config.type}")
