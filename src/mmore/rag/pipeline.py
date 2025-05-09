@@ -85,8 +85,8 @@ class RAGPipeline:
     @staticmethod
     # TODO: Add non RAG Pipeline (i.e. retriever is None)
     def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
-        validate_input = RunnableLambda(MMOREInput.model_validate)
-        validate_output = RunnableLambda(MMOREOutput.model_validate)
+        validate_input = RunnableLambda(lambda x: MMOREInput.model_validate(x).model_dump())
+        validate_output = RunnableLambda(lambda x: MMOREOutput.model_validate(x).model_dump())
 
         rag_chain_from_docs = (
                 prompt
@@ -107,9 +107,11 @@ class RAGPipeline:
     # TODO: Streaming (low priority)
     def __call__(self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False) -> List[Dict[str, str | List[str]]]:
         if isinstance(queries, Dict):
-            queries = [queries]
+            queries_list = [queries]
+        else:
+            queries_list = queries
 
-        results = self.rag_chain.batch(queries)
+        results = self.rag_chain.batch(queries_list)
 
         if return_dict:
             return results
