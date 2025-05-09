@@ -2,12 +2,11 @@ import re
 from typing import Dict, List, Any, Optional, Literal
 from dataclasses import dataclass, field
 
-from mmore.type import MultimodalSample
-
 from multiprocessing import Pool, cpu_count
 from chonkie import Chunk, BaseChunker
 
-from mmore.process.post_processor import BasePostProcessor
+from ....type import MultimodalSample
+from .. import BasePostProcessor
 from .utils import load_chonkie
 
 import logging
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MultimodalChunkerConfig:
     chunking_strategy: str
-    text_chunker_config: Dict[str, Any] = field(default_factory=lambda: {})
+    text_chunker_config: Dict[str, Any] = field(default_factory=dict)
 
 class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
@@ -45,6 +44,7 @@ class MultimodalChunker(BasePostProcessor):
             if m >= len(sample.modalities) - 1:
                 break
             chunk_index = _text_index_to_chunk_index(idx, text_chunks)
+            assert chunk_index is not None
             chunked_modalities[chunk_index].append(sample.modalities[m])
             m += 1
 
@@ -102,7 +102,7 @@ class MultimodalChunker(BasePostProcessor):
     #     return [s for sample in self.chunk_batch(samples) for s in sample]
         
 
-def _text_index_to_chunk_index(index: int, chunks: List[Chunk]):
+def _text_index_to_chunk_index(index: int, chunks: List[Chunk]) -> Optional[int]:
     for i, chunk in enumerate(chunks):
         if chunk.start_index <= index < chunk.end_index:
             return i

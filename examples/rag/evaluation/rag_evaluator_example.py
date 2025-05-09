@@ -1,14 +1,7 @@
-import os
-import sys
-
-from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness, SemanticSimilarity
-from langchain_huggingface import HuggingFacePipeline
 import argparse
-import pandas as pd
-from datasets import load_dataset  # Load datasets from the HF Hub
-from src.mmore.rag.evaluator import EvalConfig, RAGEvaluator
-from src.mmore.rag.llm import LLMConfig, LLM
-from src.mmore.index.indexer import DBConfig
+from ....src.mmore.rag.evaluator import EvalConfig, RAGEvaluator
+from ....src.mmore.rag.llm import LLMConfig, LLM
+from ....src.mmore.index.indexer import DBConfig
 
 from dotenv import load_dotenv
 load_dotenv()

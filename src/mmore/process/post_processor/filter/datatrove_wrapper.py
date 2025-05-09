@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Dict, Tuple, Literal, Union
+from typing import List, Any, Dict, Tuple, Literal, Union, cast
 
 from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
-from mmore.type import MultimodalSample
-
+from ....type import MultimodalSample
 from .base import BaseFilter, BaseFilterConfig
 
 import nltk
@@ -65,11 +64,13 @@ class DatatroveFilter(BaseFilter):
     
     @staticmethod
     def sample_to_doc(sample: MultimodalSample) -> Document:
+        type_as_int = lambda x: {"image": 0, "video": 1, "audio": 2}[x]
+
         return Document(
             text=sample.text,
             id=sample.id,
-            media=[Media(type=modality.type, url=modality.value) for modality in sample.modalities],
-            metadata=sample.metadata,
+            media=[Media(type=type_as_int(modality.type), url=modality.value) for modality in sample.modalities],
+            metadata=cast(Dict[str, Union[str, int, float, bool]], sample.metadata),
         )
 
 
@@ -102,4 +103,4 @@ class DatatroveFilter(BaseFilter):
         """
         batch = tqdm([DatatroveFilter.sample_to_doc(sample) for sample in batch], 
                      desc=f'{self.name}')
-        return self.datatrove_filter.filter_batch(batch)
+        return self.datatrove_filter.filter_batch(cast(List[Document], batch))

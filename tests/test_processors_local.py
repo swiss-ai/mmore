@@ -1,17 +1,19 @@
-import os
-from mmore.process.processors.docx_processor import DOCXProcessor
-from mmore.process.processors.eml_processor import EMLProcessor
-from mmore.process.processors.md_processor import MarkdownProcessor
-from mmore.process.processors.media_processor import MediaProcessor
-from mmore.process.processors.pptx_processor import PPTXProcessor
-from mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
-from mmore.process.processors.base import ProcessorConfig
-from mmore.process.processors.pdf_processor import PDFProcessor
-from mmore.process.processors.txt_processor import TextProcessor
-from mmore.process.processors.url_processor import URLProcessor
-from mmore.type import FileDescriptor
-
 from marker.output import MarkdownOutput
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from src.mmore.process.processors.docx_processor import DOCXProcessor
+from src.mmore.process.processors.eml_processor import EMLProcessor
+from src.mmore.process.processors.md_processor import MarkdownProcessor
+from src.mmore.process.processors.media_processor import MediaProcessor
+from src.mmore.process.processors.pptx_processor import PPTXProcessor
+from src.mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
+from src.mmore.process.processors.base import ProcessorConfig
+from src.mmore.process.processors.pdf_processor import PDFProcessor
+from src.mmore.process.processors.txt_processor import TextProcessor
+from src.mmore.process.processors.url_processor import URLProcessor
+from src.mmore.type import FileDescriptor
 
 """
 If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.  

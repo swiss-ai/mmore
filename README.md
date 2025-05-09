@@ -37,7 +37,7 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 To install the package simply run:
 
 ```bash
-pip install -e .
+pip install -e '.[all]'
 ```
 
 To install additional RAG-related dependencies, run:
@@ -54,13 +54,14 @@ You can use our predefined CLI commands to execute parts of the pipeline. Note t
 
 ```bash
 # Run processing
-mmore process --config-file examples/process/config.yaml
+python -m mmore process --config-file examples/process/config.yaml
+python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-mmore index --config-file examples/index/config.yaml
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/process/outputs/merged/final_pp.jsonl
 
 # Run RAG
-mmore rag --config-file examples/rag/api/rag_api.yaml
+python -m mmore rag --config-file examples/rag/config.yaml
 ```
 
 You can also use our package in python code as shown here:

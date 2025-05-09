@@ -2,7 +2,6 @@ from langchain_core.embeddings import Embeddings
 
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
-#from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_cohere import CohereEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
@@ -82,7 +81,7 @@ class DenseModelConfig:
 
 class DenseModel(Embeddings):
     @classmethod
-    def from_config(cls, config: DenseModelConfig) -> 'DenseModel':
+    def from_config(cls, config: DenseModelConfig) -> Embeddings:
         if config.organization == 'HF' and config.is_multimodal:
             return MultimodalEmbeddings(model_name=config.model_name)
         else:

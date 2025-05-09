@@ -1,13 +1,13 @@
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from pymongo import DESCENDING
 from fastapi import FastAPI, BackgroundTasks, Query
 import motor.motor_asyncio
 from starlette.middleware.cors import CORSMiddleware
 
-from src.mmore.dashboard.backend.model import Report, WorkerLatest, DashboardMetadata, Progress, BatchedReports
+from .model import Report, WorkerLatest, DashboardMetadata, Progress, BatchedReports
 
 app = FastAPI()
 # allow all origins
@@ -33,7 +33,12 @@ async def root():
 @app.get("/hello/{name}")
 async def say_hello(name: str) -> Report:
     report = await reports_collection.find_one({"name": name})
-    print(report)
+    if not report:
+        raise ValueError("Report not found")
+
+    if "worker_id" not in report or "finished_file_paths" not in report:
+        raise ValueError("Incomplete report data")
+
     return Report(**report)
 
 
@@ -151,7 +156,7 @@ async def init_db(metadata: DashboardMetadata) -> dict:
     try:
         await reset_reports_collection()
         await reset_dashboardmetadata_collection()
-        dashboardmetadata_collection.insert_one(metadata.dict())
+        await dashboardmetadata_collection.insert_one(metadata.dict())
         return {"message": "Database reset and initialized."}
     except Exception as e:
         return {"error": str(e)}
@@ -191,7 +196,10 @@ async def count_nbr_finished_files():
 
 @app.get("/progress")
 async def get_progress() -> Progress:
-    m = await dashboardmetadata_collection.find_one()
+    m: Optional[dict[str, Any]] = await dashboardmetadata_collection.find_one()
+    if m is None:
+        raise ValueError("No dashboard metadata found")
+
     metadata: DashboardMetadata = DashboardMetadata(**m)
 
     nbr_finished_files = await count_nbr_finished_files()
@@ -215,4 +223,7 @@ async def stop_processing():
 
 async def get_stop_status():
     m = await dashboardmetadata_collection.find_one()
+    if m is None:
+        return False
+        
     return m.get("ask_to_stop", False)

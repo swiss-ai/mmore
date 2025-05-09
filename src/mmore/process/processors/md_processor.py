@@ -1,16 +1,16 @@
 import logging
 import markdown
 import markdownify
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 import tempfile
 from PIL import Image
+from typing import Optional, Tuple
 import os
 import io
 import requests
 
 logger = logging.getLogger(__name__)
-
 
 class MarkdownProcessor(Processor):
     """
@@ -67,16 +67,15 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
         try:
-            all_text, embedded_images = self.process_md(content, file_path, self.config.attachment_tag, self.config.custom_config.get("extract_images", True))
+            all_text, embedded_images = MarkdownProcessor._process_md(content, file_path, self.config.attachment_tag, self.config.custom_config.get("extract_images", True))
             return self.create_sample([all_text], embedded_images, file_path)
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")
             return self.create_sample([], [], file_path)
 
 
-
     @staticmethod
-    def process_md(content: str, file_path: str, attachment_tag: str = None, extract_images: bool = True) -> (str, list[Image.Image]):
+    def _process_md(content: str, file_path: str, attachment_tag: Optional[str] = None, extract_images: bool = True) -> Tuple[str, list[Image.Image]]:
         """
         The actual proccessing logic for Markdown files. 
 
@@ -122,7 +121,7 @@ class MarkdownProcessor(Processor):
                                 image.save(tmp.name)
                             return tmp.name
                         path = save_temp_image(image, base_path=os.path.join(os.getcwd(), 'tmp'))
-                        embedded_images.append(path)
+                        embedded_images.append(image)
                     else:
                         logger.error(f"Failed to download image from {src}. Status code: {response.status_code}")
                         html = html.replace(tag, "")

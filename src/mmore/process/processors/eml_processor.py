@@ -4,12 +4,11 @@ import email
 from email import policy
 from PIL import Image
 from typing import Dict, Any, List
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
+from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
-
 
 class EMLProcessor(Processor):
     """
@@ -88,7 +87,10 @@ class EMLProcessor(Processor):
                 if self.config.custom_config.get("extract_images", True):
                     try:
                         image_data = part.get_payload(decode=True)
-                        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                        if isinstance(image_data, bytes):
+                            image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                        else:
+                            raise ValueError("Image data extracted is not made of bytes")
                         embedded_images.append(image)
                         all_text.append(self.config.attachment_tag) # default token is "<attachment>"
                     except Exception as e:

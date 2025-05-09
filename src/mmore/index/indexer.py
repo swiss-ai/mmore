@@ -8,19 +8,17 @@ from ..utils import load_config
 from ..type import MultimodalSample
 from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 
-from mmore.type import MultimodalSample
-from mmore.utils import load_config
-
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from mmore.rag.model.dense.multimodal import MultimodalEmbeddings
-from mmore.rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
+from ..rag.model.dense.multimodal import MultimodalEmbeddings
+from ..rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
 
 from tqdm import tqdm
 
 import logging
 logger = logging.getLogger(__name__)
+import scipy
 
 @dataclass
 class DBConfig:
@@ -41,7 +39,7 @@ class IndexerConfig:
 class Indexer:
     """Handles document chunking, embedding computation, and Milvus storage."""
     dense_model: Embeddings
-    sparse_model: SparseModel
+    sparse_model: BaseSparseEmbedding
     client: MilvusClient
 
     _DEFAULT_FIELDS = ['id', 'text', 'dense_embedding', 'sparse_embedding']
@@ -64,18 +62,20 @@ class Indexer:
     def from_config(cls, config: str | IndexerConfig):
         # Load the config if it's a string
         if isinstance(config, str):
-            config: IndexerConfig = load_config(config, IndexerConfig)
+            config_obj = load_config(config, IndexerConfig)
+        else:
+            config_obj = config
 
         # Create the milvus client
         milvus_client = MilvusClient(
-            config.db.uri,
-            db_name=config.db.name,
+            config_obj.db.uri,
+            db_name=config_obj.db.name,
             enable_sparse=True,
         )
 
         return cls(
-            dense_model_config=config.dense_model,
-            sparse_model_config=config.sparse_model,
+            dense_model_config=config_obj.dense_model,
+            sparse_model_config=config_obj.sparse_model,
             client=milvus_client,
         )
 
@@ -169,8 +169,8 @@ class Indexer:
 
             # Compute embeddings
             dense_embeddings = self.dense_model.embed_documents(Indexer._get_texts(batch, self.dense_model_config.is_multimodal))
-            sparse_embeddings = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
-
+            sparse_embeddings: scipy.sparse._coo.coo_array = self.sparse_model.embed_documents(Indexer._get_texts(batch, self.sparse_model_config.is_multimodal))
+            
             # Insert the batch
             data = [{
                     "id": sample.id,
@@ -185,9 +185,6 @@ class Indexer:
                 collection_name=collection_name,
                 partition_name=partition_name,
             )
-            # This returns the list of values
-            # import pdb
-            # pdb.set_trace()
 
             inserted += list(batch_inserted.values())[0]
 

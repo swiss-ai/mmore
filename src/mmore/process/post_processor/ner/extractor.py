@@ -21,8 +21,8 @@ from langchain_core.output_parsers.base import BaseOutputParser
 
 from .output_parser import EntityExtractionOutputParser
 
-from mmore.type import MultimodalSample
-from mmore.rag.llm import LLM, LLMConfig
+from ....type import MultimodalSample
+from ....rag.llm import LLM, LLMConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,9 +37,9 @@ class NERExtractorConfig:
     llm: LLMConfig
     prompt: str | Path = DEFAULT_ER_EXTRACTION_PROMPT
     entity_types: List[str] = field(default_factory=lambda: _DEFAULT_ENTITY_TYPES)
-    tuple_delimiter: Optional[str] = _DEFAULT_TUPLE_DELIMITER
-    record_delimiter: Optional[str] = _DEFAULT_RECORD_DELIMITER
-    completion_delimiter: Optional[str] = _DEFAULT_COMPLETION_DELIMITER
+    tuple_delimiter: str = _DEFAULT_TUPLE_DELIMITER
+    record_delimiter: str = _DEFAULT_RECORD_DELIMITER
+    completion_delimiter: str = _DEFAULT_COMPLETION_DELIMITER
 
 class NERExtractor:
     def __init__(
@@ -71,11 +71,12 @@ class NERExtractor:
         Returns:
             EntityRelationshipExtractor: An instance of EntityRelationshipExtractor built from the configuration object.
         """
-        if os.path.exists(config.prompt):
-            prompt_template = PromptTemplate.from_file(config.prompt)
-            
+        prompt = config.prompt
+        if os.path.exists(prompt):
+            prompt_template = PromptTemplate.from_file(prompt)
         else:
-            prompt_template = PromptTemplate.from_template(config.prompt)
+            assert isinstance(prompt, str)
+            prompt_template = PromptTemplate.from_template(prompt)
         
         output_parser = EntityExtractionOutputParser(
             tuple_delimiter=config.tuple_delimiter,

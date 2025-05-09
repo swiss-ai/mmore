@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
 logging.basicConfig(format=f'[RETRIEVER {RETRIVER_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-from src.mmore.rag.retriever import Retriever, RetrieverConfig
-from src.mmore.utils import load_config
+from .rag.retriever import Retriever, RetrieverConfig
+from .utils import load_config
 
 load_dotenv() 
 
@@ -111,16 +111,16 @@ This API defines the retriever API of mmore, handling:
     config = load_config(config_file, RetrieverConfig)
 
     logger.info('Running retriever...')
-    retriever = Retriever.from_config(config)
+    retriever_obj = Retriever.from_config(config)
     logger.info('Retriever loaded!')
 
     @app.get("/v1/retriever")
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
 
-        docs_for_query = retriever.invoke(
+        docs_for_query = retriever_obj.invoke(
             query.query, 
-            document_ids=query.document_ids, 
+            document_ids=query.fileIds, 
             k=query.maxMatches, 
             min_score=query.minSimilarity
         )

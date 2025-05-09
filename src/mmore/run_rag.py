@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langserve import add_routes
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import Literal, List, Dict, Union
+from typing import Literal, List, Dict, Union, Optional, cast
 import argparse
 import json
 import logging
@@ -36,17 +36,17 @@ class APIConfig:
 class RAGInferenceConfig:
     rag: RAGConfig
     mode: str
-    mode_args: Union[LocalConfig, APIConfig] = None
+    mode_args: Optional[Union[LocalConfig, APIConfig]] = None
 
     def __post_init__(self):
         if self.mode_args is None and self.mode == 'api':
             self.mode_args = APIConfig()
 
-def read_queries(input_file: Path) -> List[str]:
+def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
     with open(input_file, 'r') as f:
         return [json.loads(line) for line in f]
 
-def save_results(results: List[Dict], output_file: Path):
+def save_results(results: List[Dict], output_file: Union[Path, str]):
     results = [
         {key: d[key] for key in {'input', 'context', 'answer'} if key in d} 
         for d in results
@@ -64,7 +64,7 @@ def create_api(rag: RAGPipeline, endpoint: str):
     # Add routes for the RAG chain
     add_routes(
         app,
-        rag.rag_chain.with_types(input_type=MMOREInput, output_type=MMOREOutput),
+        rag.rag_chain,
         path=endpoint,
         playground_type="chat"
     )
@@ -85,12 +85,16 @@ def rag(config_file):
     logger.info('RAG pipeline initialized!')
 
     if config.mode == 'local':
-        queries = read_queries(config.mode_args.input_file)
+        config_args = cast(LocalConfig, config.mode_args)
+
+        queries = read_queries(config_args.input_file)
         results = rag_pp(queries, return_dict=True)
-        save_results(results, config.mode_args.output_file)
+        save_results(results, config_args.output_file)
     elif config.mode == 'api':
-        app = create_api(rag_pp, config.mode_args.endpoint)
-        uvicorn.run(app, host=config.mode_args.host, port=config.mode_args.port)
+        config_args = cast(APIConfig, config.mode_args)
+
+        app = create_api(rag_pp, config_args.endpoint)
+        uvicorn.run(app, host=config_args.host, port=config_args.port)
     else:
         raise ValueError(f"Unknown inference mode: {config.mode}. Should be in [api, local]")
     

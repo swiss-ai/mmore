@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass, field
 from typing import List
 
-from mmore.type import MultimodalSample
+from ...type import MultimodalSample
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 import logging
@@ -32,7 +32,7 @@ class PPPipeline:
         self._log_plan()
 
     def __add__(self, other):
-        return PPPipeline(self, other)
+        return PPPipeline(*self.post_processors, *other.post_processors, output_config=self.output_config)
 
     def _log_plan(self):
         logger.info("-"*50)

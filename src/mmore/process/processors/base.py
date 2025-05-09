@@ -5,10 +5,10 @@ import logging
 import tempfile
 from typing import Any, Dict, List, Union, Optional
 
-from src.mmore.dashboard.backend.client import DashboardClient
-from src.mmore.process.crawler import FileDescriptor, URLDescriptor
-from src.mmore.process.execution_state import ExecutionState
-from src.mmore.type import MultimodalSample, MultimodalRawInput
+from ...dashboard.backend.client import DashboardClient
+from ...process.crawler import FileDescriptor, URLDescriptor
+from ...process.execution_state import ExecutionState
+from ...type import MultimodalSample, MultimodalRawInput
 from PIL import Image
 import torch.multiprocessing as mp
 import os
@@ -85,11 +85,11 @@ class Processor(ABC):
         files (List[Union[FileDescriptor, URLDescriptor]]): The files to process.
         config (ProcessorConfig): Configuration for the processor.
     """
-    IMAGES_DIR = "images"
+    IMAGES_DIR: str = "images"
 
     def __init__(
             self,
-            config: ProcessorConfig = None,
+            config: ProcessorConfig,
     ):
         """
         Args:
@@ -121,7 +121,7 @@ class Processor(ABC):
         """
         pass 
     
-    def process_fast(self, file_path) -> List[MultimodalSample]:
+    def process_fast(self, file_path: str) -> MultimodalSample:
         """
         Process a single file in fast mode and return the result.
         This method should be overwritten if a processor supports fast mode.
@@ -130,7 +130,7 @@ class Processor(ABC):
             file_path (str): The path to the file to process.
 
         Returns:
-            List[MultimodalSample]: The result of the processing operation.
+            MultimodalSample: The result of the processing operation.
         """
         return self.process(file_path)
 
@@ -149,7 +149,7 @@ class Processor(ABC):
             logger.warning("ExecutionState says to stop, Processor execution aborted")
             return []
         files_paths = [file.file_path for file in files]
-        res = self.process_batch(files_paths, fast, num_workers=os.cpu_count())
+        res = self.process_batch(files_paths, fast, num_workers=os.cpu_count() or 1)
         new_state = self.ping_dashboard(files_paths)
         ExecutionState.set_should_stop_execution(new_state)
         return res
@@ -204,7 +204,7 @@ class Processor(ABC):
             dict: Sample dictionary with text, image modalities, and metadata.
         """
 
-        def _save_temp_image(image: Image.Image, base_path) -> str:
+        def _save_temp_image(image: Image.Image, base_path) -> Optional[str]:
             """
             Save an image as a temporary file.
 
@@ -231,7 +231,7 @@ class Processor(ABC):
                 logger.error(f"Failed to save temporary image: {e}")
 
         image_base_path = os.path.join(
-            self.config.custom_config.get("output_path", None),
+            self.config.custom_config.get("output_path", ""),
             self.IMAGES_DIR
         )
 
@@ -240,8 +240,8 @@ class Processor(ABC):
 
         sample = MultimodalSample(
             "\n".join(texts), 
-            [MultimodalRawInput("image", _save_temp_image(img, base_path=image_base_path)) for img in images], \
-            {"file_path": file_path} if file_path is not None else None
+            [MultimodalRawInput("image", tmp_path) for img in images if (tmp_path := _save_temp_image(img, base_path=image_base_path))], \
+            {"file_path": file_path} if file_path is not None else dict()
         )
         return sample
     
