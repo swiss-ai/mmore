@@ -31,7 +31,7 @@ def load_results(path: str, file_type: Optional[str] = None):
     logger.info(f"Loaded {len(results)} results")
     return results
 
-def index(config_file: Union[IndexConfig, str], collection_name: Optional[str] = None, documents_path: Optional[str] = None):
+def index(config_file: Union[IndexConfig, str], documents_path: Optional[str] = None, collection_name: Optional[str] = None):
     """Index files for specified documents."""
     # Load the config file
     config: IndexConfig = load_config(config_file, IndexConfig)
@@ -58,4 +58,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     index_config = load_config(args.config_file, IndexConfig)
-    index(index_config.indexer, index_config.collection_name, index_config.documents_path)
+    index(index_config.indexer, index_config.documents_path, index_config.collection_name)
