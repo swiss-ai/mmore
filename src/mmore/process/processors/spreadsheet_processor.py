@@ -12,6 +12,7 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
+
 class SpreadsheetProcessor(Processor):
     """
     A processor for handling spreadsheet files, including Excel and CSV/TSV files.
@@ -21,6 +22,7 @@ class SpreadsheetProcessor(Processor):
         files (List[FileDescriptor]): List of files to be processed.
         config (ProcessorConfig): Configuration for the processor.
     """
+
     def __init__(self, config=None):
         """
         Args:
@@ -29,9 +31,8 @@ class SpreadsheetProcessor(Processor):
         """
         super().__init__(config=config or ProcessorConfig())
 
-
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -64,10 +65,11 @@ class SpreadsheetProcessor(Processor):
             Returns:
                 str: Extracted text content.
             """
+
             # Helper function to extract text from an Excel or CSV file
             def _extract_text_excel(file_path: str, ext: str) -> str:
                 """
-                Textception 
+                Textception
 
                 Args:
                     file_path (str): Path to the Excel file.
@@ -140,10 +142,16 @@ class SpreadsheetProcessor(Processor):
                     if hasattr(sheet, "_images"):
                         for image in getattr(sheet, "_images", []):
                             if isinstance(image, OpenPyXLImage):
-                                img_bytes = image._data() # pyright: ignore[reportAttributeAccessIssue]
-                                img = PILImage.open(io.BytesIO(img_bytes)).convert("RGB")
+                                img_bytes = (
+                                    image._data()  # pyright: ignore[reportAttributeAccessIssue]
+                                )
+                                img = PILImage.open(io.BytesIO(img_bytes)).convert(
+                                    "RGB"
+                                )
                                 embedded_images.append(img)
-                logger.info(f"Extracted {len(embedded_images)} images from {file_path}.")
+                logger.info(
+                    f"Extracted {len(embedded_images)} images from {file_path}."
+                )
                 return embedded_images
             except Exception as e:
                 logger.error(f"Failed to extract images from {file_path}: {e}")
@@ -152,7 +160,7 @@ class SpreadsheetProcessor(Processor):
         all_text = clean_text(_extract_text(file_path))
         if self.config.custom_config.get("extract_images", True):
             embedded_images = _extract_images(file_path)
-        else: 
+        else:
             embedded_images = []
-        
+
         return self.create_sample([all_text], embedded_images, file_path)

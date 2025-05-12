@@ -11,9 +11,9 @@ def register_all_processors():
         for attr in dir(module):
             cls = getattr(module, attr)
             if (
-                    isinstance(cls, type)
-                    and issubclass(cls, Processor)
-                    and cls is not Processor
+                isinstance(cls, type)
+                and issubclass(cls, Processor)
+                and cls is not Processor
             ):
                 ProcessorRegistry.register(cls)
 

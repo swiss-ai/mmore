@@ -1,20 +1,21 @@
-from typing import Dict, List, Any, Optional, Literal
+from typing import Dict, Any
 from chonkie import (
-    BaseChunker, 
-    SentenceChunker, 
+    BaseChunker,
+    SentenceChunker,
     SemanticChunker,
     WordChunker,
-    TokenChunker
+    TokenChunker,
 )
 
+
 def load_chonkie(chunking_strategy: str, chunking_args: Dict[str, Any]) -> BaseChunker:
-    if chunking_strategy == 'sentence':
+    if chunking_strategy == "sentence":
         return SentenceChunker(**chunking_args)
-    elif chunking_strategy == 'semantic':
+    elif chunking_strategy == "semantic":
         return SemanticChunker(**chunking_args)
-    elif chunking_strategy == 'word':
+    elif chunking_strategy == "word":
         return WordChunker(**chunking_args)
-    elif chunking_strategy == 'token':
+    elif chunking_strategy == "token":
         return TokenChunker(**chunking_args)
     else:
-        raise ValueError(f'Unsupported chunker: {chunking_strategy}')
+        raise ValueError(f"Unsupported chunker: {chunking_strategy}")

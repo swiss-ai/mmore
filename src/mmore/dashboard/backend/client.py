@@ -1,6 +1,7 @@
 from typing import Optional
 import requests
 
+
 class DashboardClient:
     """
     Client to interact with the dashboard backend from the workers side
@@ -19,7 +20,7 @@ class DashboardClient:
         """
         if self.url is None:
             print("Init db skipped, no url provided")
-            
+
         try:
             metadata = {"total_files": total_files}
             response = requests.post(f"{self.url}/init-db", json=metadata)
@@ -40,12 +41,16 @@ class DashboardClient:
         assert isinstance(finished_file_paths, list)
         assert isinstance(worker_id, str)
         try:
-            metadata = {"worker_id": worker_id, "finished_file_paths": finished_file_paths}
+            metadata = {
+                "worker_id": worker_id,
+                "finished_file_paths": finished_file_paths,
+            }
             response = requests.post(f"{self.url}/reports", json=metadata)
             return response.json()
         except Exception as e:
             print(e)
             return False
+
 
 if __name__ == "__main__":
     # Test the client locally

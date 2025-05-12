@@ -11,6 +11,7 @@ from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
 logger = logging.getLogger(__name__)
 
+
 class DOCXProcessor(Processor):
     def __init__(self, config=None):
         """
@@ -85,7 +86,7 @@ class DOCXProcessor(Processor):
         all_text = []
         for para in doc.paragraphs:
             cleaned = clean_text(para.text)
-            
+
             if cleaned.strip():
                 all_text.append(cleaned)
 

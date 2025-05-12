@@ -12,32 +12,43 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
+
 class MediaProcessor(Processor):
     def __init__(self, config=None):
-        super().__init__(config=config or ProcessorConfig())    
+        super().__init__(config=config or ProcessorConfig())
         self.devices = self._get_available_devices()
         self.pipelines = []
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         return file.file_extension.lower() in [
-            ".mp4", ".avi", ".mov", ".mkv", ".mp3", ".flac", ".wav",
+            ".mp4",
+            ".avi",
+            ".mov",
+            ".mkv",
+            ".mp3",
+            ".flac",
+            ".wav",
         ]
-    
+
     def _get_available_devices(self):
         if torch.cuda.is_available():
             return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
         return [torch.device("cpu")]
 
     def load_models(self, fast_mode=False):
-        model_name = self.config.custom_config.get(
-            "fast_model", "openai/whisper-tiny"
-        ) if fast_mode else self.config.custom_config.get("normal_model", "openai/whisper-large-v3")
+        model_name = (
+            self.config.custom_config.get("fast_model", "openai/whisper-tiny")
+            if fast_mode
+            else self.config.custom_config.get(
+                "normal_model", "openai/whisper-large-v3"
+            )
+        )
 
         try:
             self.pipelines = []
             for device in self.devices:
-                pipe = pipeline( 
+                pipe = pipeline(
                     "automatic-speech-recognition",
                     model=model_name,
                     device=device,
@@ -48,12 +59,14 @@ class MediaProcessor(Processor):
             logger.error(f"Error loading models: {e}")
             self.pipelines = []
 
-    def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
+    def process_batch(
+        self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
+    ) -> List[MultimodalSample]:
         if not self.pipelines:
             self.load_models(fast_mode=fast_mode)
 
         file_chunks = self.evenly_split_across_gpus(files_paths, len(self.devices))
-        
+
         results = []
         for pipeline, chunk in zip(self.pipelines, file_chunks):
             for file in chunk:
@@ -63,7 +76,7 @@ class MediaProcessor(Processor):
                 except Exception as e:
                     logger.error(f"Error processing {file}: {e}")
         return results
-    
+
     def _process_file(self, file_path, pipeline, fast_mode):
         all_text = self._extract_text(file_path, pipeline, fast_mode)
         if self.config.custom_config.get("extract_images", True):
@@ -78,10 +91,14 @@ class MediaProcessor(Processor):
             self.load_models(fast_mode=fast)
         if not self.pipelines:
             raise RuntimeError("Failed to load any processing pipelines.")
-        
+
         pipeline = self.pipelines[0]
         all_text = self._extract_text(file_path, pipeline, fast_mode=fast)
-        images = self._extract_images(file_path) if self.config.custom_config.get("extract_images", True) else []
+        images = (
+            self._extract_images(file_path)
+            if self.config.custom_config.get("extract_images", True)
+            else []
+        )
         return self.create_sample([all_text], images, file_path)
 
     def _extract_text(self, file_path: str, pipeline, fast_mode=False) -> str:
@@ -104,7 +121,7 @@ class MediaProcessor(Processor):
         try:
             with tempfile.NamedTemporaryFile(suffix=".wav") as temp_audio:
                 _prepare_audio_file(file_path, ext, temp_audio)
-                result = pipeline(temp_audio.name) 
+                result = pipeline(temp_audio.name)
                 return result.get("text", "")
         except Exception as e:
             logger.error(f"Error transcribing {file_path}: {e}")
@@ -135,7 +152,7 @@ class MediaProcessor(Processor):
             logger.info(f"No images to extract from {file_path}.")
             return []
         return _extract_video_frames(file_path)
-    
+
     @staticmethod
     def evenly_split_across_gpus(x_list, num_gpus):
         x_per_gpu = len(x_list) // num_gpus

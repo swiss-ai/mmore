@@ -1,5 +1,3 @@
-import pypdfium2
-import logging
 import fitz  # PyMuPDF
 import io
 import logging
@@ -14,11 +12,11 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from marker.config.parser import ConfigParser
 import re
-from multiprocessing import Process, Queue, set_start_method, Manager
+from multiprocessing import Process, set_start_method, Manager
 import torch
-import time
 
 IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
+
 
 class PDFProcessor(Processor):
     def __init__(self, config=None):
@@ -29,8 +27,10 @@ class PDFProcessor(Processor):
         return file.file_extension.lower() == ".pdf"
 
     # overwriting the process_batch
-    def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
-        if fast_mode: # No GPU available - fallback to default
+    def process_batch(
+        self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
+    ) -> List[MultimodalSample]:
+        if fast_mode:  # No GPU available - fallback to default
             return super().process_batch(files_paths, fast_mode, num_workers)
         else:
             if not torch.cuda.is_available():
@@ -38,9 +38,13 @@ class PDFProcessor(Processor):
             else:
                 num_gpus = torch.cuda.device_count()
 
-            if num_gpus == 1 or len(files_paths) < 10: # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
+            if (
+                num_gpus == 1 or len(files_paths) < 10
+            ):  # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
                 marker_config = {
-                    "disable_image_extraction": not self.config.custom_config.get("extract_images", True),
+                    "disable_image_extraction": not self.config.custom_config.get(
+                        "extract_images", True
+                    ),
                     "languages": None,
                     "use_llm": False,
                     "disable_multiprocessing": False,
@@ -48,7 +52,7 @@ class PDFProcessor(Processor):
                 config_parser = ConfigParser(marker_config)
                 self.converter = PdfConverter(
                     artifact_dict=create_model_dict(),
-                    config=config_parser.generate_config_dict()
+                    config=config_parser.generate_config_dict(),
                 )
                 results = []
                 for file_path in files_paths:
@@ -59,11 +63,11 @@ class PDFProcessor(Processor):
                         logging.error(f"Failed to process {file_path}: {str(e)}")
 
                 return results
-            else: # Multiple GPUs available
+            else:  # Multiple GPUs available
                 batches = self._split_files(files_paths, num_gpus)
 
                 try:
-                    set_start_method('spawn', force=True)
+                    set_start_method("spawn", force=True)
                 except RuntimeError:
                     pass
 
@@ -78,7 +82,13 @@ class PDFProcessor(Processor):
                     gpu_id = i % num_gpus
                     p = Process(
                         target=self._process_parallel,
-                        args=(batch, gpu_id, self.config.custom_config, output_queue, error_queue)
+                        args=(
+                            batch,
+                            gpu_id,
+                            self.config.custom_config,
+                            output_queue,
+                            error_queue,
+                        ),
                     )
                     processes.append(p)
                     p.start()
@@ -128,22 +138,28 @@ class PDFProcessor(Processor):
                 return None
 
             except UnidentifiedImageError as e:
-                logging.error(f"UnidentifiedImageError: Could not identify image file for xref {xref}: {e}")
+                logging.error(
+                    f"UnidentifiedImageError: Could not identify image file for xref {xref}: {e}"
+                )
                 return None
 
             except Exception as e:
-                logging.error(f"Unexpected error while extracting image for xref {xref}: {e}")
+                logging.error(
+                    f"Unexpected error while extracting image for xref {xref}: {e}"
+                )
                 return None
 
         for page in pdf_doc:
-            text = clean_text(page.get_text()) # type: ignore[attr-defined]
+            text = clean_text(page.get_text())  # type: ignore[attr-defined]
             if text.strip():
                 all_text.append(text)
 
             if self.config.custom_config.get("extract_images", True):
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
-                    if image and clean_image(image):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
+                    if image and clean_image(
+                        image
+                    ):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
                         all_text.append(self.config.attachment_tag)
             else:
@@ -167,22 +183,26 @@ class PDFProcessor(Processor):
         batches = [batch for batch in batches if batch]
         return batches
 
-    def _process_parallel(self, files_paths, gpu_id, config_custom, output_queue, error_queue):
+    def _process_parallel(
+        self, files_paths, gpu_id, config_custom, output_queue, error_queue
+    ):
         try:
             torch.cuda.set_device(gpu_id)
 
             marker_config = {
-                "disable_image_extraction": not config_custom.get("extract_images", True),
+                "disable_image_extraction": not config_custom.get(
+                    "extract_images", True
+                ),
                 "languages": None,
                 "use_llm": False,
                 "disable_multiprocessing": False,
-                "device": f"cuda:{gpu_id}"
+                "device": f"cuda:{gpu_id}",
             }
 
             config_parser = ConfigParser(marker_config)
             self.converter = PdfConverter(
                 artifact_dict=create_model_dict(),
-                config=config_parser.generate_config_dict()
+                config=config_parser.generate_config_dict(),
             )
 
             batch_results = []
@@ -201,5 +221,5 @@ class PDFProcessor(Processor):
             raise
         finally:
             torch.cuda.empty_cache()
-            if hasattr(self, 'converter'):
+            if hasattr(self, "converter"):
                 del self.converter

@@ -14,6 +14,7 @@ from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
+
 class PPTXProcessor(Processor):
     """
     A processor for handling PPTX files. Extracts text, images, and notes from PowerPoint presentations.
@@ -32,7 +33,7 @@ class PPTXProcessor(Processor):
         super().__init__(config=config or ProcessorConfig())
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -86,7 +87,9 @@ class PPTXProcessor(Processor):
                     if self.config.custom_config.get("extract_images", True):
                         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                             try:
-                                pil_image = Image.open(io.BytesIO(cast(Picture, shape).image.blob)).convert("RGBA")
+                                pil_image = Image.open(
+                                    io.BytesIO(cast(Picture, shape).image.blob)
+                                ).convert("RGBA")
                                 if clean_image(pil_image):
                                     embedded_images.append(pil_image)
                                     all_text.append(self.config.attachment_tag)

@@ -1,12 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import List, Any, Tuple, Literal, Optional, cast
-
+from abc import abstractmethod
+from typing import List, Any, Optional
 from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
 from .. import BasePostProcessor
 from ....type import MultimodalSample
+
 
 @dataclass
 class BaseTaggerConfig:
@@ -21,6 +21,7 @@ class BaseTaggerConfig:
         if self.metadata_key is None:
             self.metadata_key = self.type
 
+
 class BaseTagger(BasePostProcessor):
     name: str
     metadata_key: str
@@ -30,7 +31,7 @@ class BaseTagger(BasePostProcessor):
         self.metadata_key = metadata_key
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.name})'
+        return f"{self.__class__.__name__}({self.name})"
 
     @abstractmethod
     def tag(self, sample: MultimodalSample) -> Any:
@@ -54,9 +55,11 @@ class BaseTagger(BasePostProcessor):
         Returns: a list, the same size as `batch`, containing the filter result for each document
 
         """
-        return list(map(self.tag, tqdm(batch, desc=f'{self.name}')))
-    
-    def process(self, sample: MultimodalSample, **kwargs) -> MultimodalSample | List[MultimodalSample]:
+        return list(map(self.tag, tqdm(batch, desc=f"{self.name}")))
+
+    def process(
+        self, sample: MultimodalSample, **kwargs
+    ) -> MultimodalSample | List[MultimodalSample]:
         tag = self.tag(sample)
         sample.metadata[self.metadata_key] = tag
         return [sample]

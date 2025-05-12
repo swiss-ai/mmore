@@ -1,4 +1,5 @@
 """Entity Relationship Extractor module."""
+
 import os
 
 import random
@@ -24,13 +25,13 @@ from .output_parser import EntityExtractionOutputParser
 from ....type import MultimodalSample
 from ....rag.llm import LLM, LLMConfig
 
-_LOGGER = logging.getLogger(__name__)
+from ._prompts import DEFAULT_ER_EXTRACTION_PROMPT
 
-from ._prompts import MED_ER_EXTRACTION_PROMPT, DEFAULT_ER_EXTRACTION_PROMPT
 _DEFAULT_TUPLE_DELIMITER = "<|>"
 _DEFAULT_RECORD_DELIMITER = "##"
 _DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
 _DEFAULT_ENTITY_TYPES = ["ORGANIZATION", "PERSON", "LOCATION", "EVENT", "DATE"]
+
 
 @dataclass
 class NERExtractorConfig:
@@ -40,6 +41,7 @@ class NERExtractorConfig:
     tuple_delimiter: str = _DEFAULT_TUPLE_DELIMITER
     record_delimiter: str = _DEFAULT_RECORD_DELIMITER
     completion_delimiter: str = _DEFAULT_COMPLETION_DELIMITER
+
 
 class NERExtractor:
     def __init__(
@@ -77,7 +79,7 @@ class NERExtractor:
         else:
             assert isinstance(prompt, str)
             prompt_template = PromptTemplate.from_template(prompt)
-        
+
         output_parser = EntityExtractionOutputParser(
             tuple_delimiter=config.tuple_delimiter,
             record_delimiter=config.record_delimiter,
@@ -85,18 +87,18 @@ class NERExtractor:
         llm = LLM.from_config(config.llm)
 
         prompt_template = prompt_template.partial(
-                completion_delimiter=config.completion_delimiter,
-                tuple_delimiter=config.tuple_delimiter,
-                record_delimiter=config.record_delimiter,
-                entity_types=",".join(config.entity_types),
-            )
+            completion_delimiter=config.completion_delimiter,
+            tuple_delimiter=config.tuple_delimiter,
+            record_delimiter=config.record_delimiter,
+            entity_types=",".join(config.entity_types),
+        )
 
         return cls(
             prompt=prompt_template,
             output_parser=output_parser,
             llm=llm,
         )
-    
+
     def invoke(self, sample: MultimodalSample) -> nx.Graph:
         """Invoke the entity relationship extraction process on the text.
 
@@ -107,7 +109,7 @@ class NERExtractor:
             nx.Graph: A networkx Graph object representing the extracted entities and relationships.
         """
         chunk_graph = self._extraction_chain.invoke(
-            input={'input_text': sample.text},
+            input={"input_text": sample.text},
             config=self._chain_config,
         )
 
@@ -127,7 +129,7 @@ class NERExtractor:
         #     _LOGGER.debug(chunk_graph)
 
         return chunk_graph
-    
+
     def invoke_batch(self, samples: List[MultimodalSample]) -> List[nx.Graph]:
         """Invoke the entity relationship extraction process on a batch of samples.
 
@@ -137,4 +139,7 @@ class NERExtractor:
         Returns:
             List[nx.Graph]: A list of networkx Graph objects representing the extracted entities and relationships.
         """
-        return [self.invoke(sample) for sample in tqdm(samples, desc="Extracting entities and relationships")]
+        return [
+            self.invoke(sample)
+            for sample in tqdm(samples, desc="Extracting entities and relationships")
+        ]

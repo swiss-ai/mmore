@@ -1,4 +1,4 @@
-from typing import get_args, cast
+from typing import cast
 
 from .base import BasePostProcessor, BasePostProcessorConfig
 
@@ -11,17 +11,18 @@ from .filter.base import BaseFilterConfig
 
 from ...utils import load_config
 
-__all__ = ['BasePostProcessor', 'BasePostProcessorConfig', 'load_postprocessor']
+__all__ = ["BasePostProcessor", "BasePostProcessorConfig", "load_postprocessor"]
+
 
 def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
     if config.type in FILTER_TYPES:
         return load_filter(cast(BaseFilterConfig, config))
     elif config.type in TAGGER_TYPES:
         return load_tagger(cast(BaseTaggerConfig, config))
-    elif config.type == 'chunker':
+    elif config.type == "chunker":
         config_chunk = load_config(config.args, MultimodalChunkerConfig)
         return MultimodalChunker.from_config(config_chunk)
-    elif config.type == 'ner':
+    elif config.type == "ner":
         config_ner = load_config(config.args, NERExtractorConfig)
         return NERecognizer.from_config(config_ner)
     else:

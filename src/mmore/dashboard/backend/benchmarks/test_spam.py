@@ -1,14 +1,12 @@
 import time
 import requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..model import Report
+
 
 def post_report(report: Report):
     url = "http://127.0.0.1:8000/reports"
     payload = report.model_dump_json()
-    headers = {
-        'Content-Type': 'application/json'
-    }
+    headers = {"Content-Type": "application/json"}
     response = requests.post(url, headers=headers, data=payload)
     return response.status_code, response.text
 
