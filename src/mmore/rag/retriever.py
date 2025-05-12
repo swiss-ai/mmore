@@ -144,7 +144,6 @@ class Retriever(BaseRetriever):
             collection_name: str = 'my_docs',
             partition_names: List[str] = [],
             k: int = 1,
-            output_fields: List[str] = ["text"],
             search_type: str = "hybrid"
     ) -> List[List[Dict[str, Any]]]:
         """
@@ -153,7 +152,6 @@ class Retriever(BaseRetriever):
         Args:
             queries: List of search query strings
             k: Number of documents to retrieve per query
-            output_fields: Fields to return in results
             search_type: Type of search to perform
             
         Returns:
