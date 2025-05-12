@@ -34,19 +34,7 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 
 #### Step 1 – Install MMORE
 
-To install the package simply run:
-
-```bash
-pip install -e .
-```
-
-To install additional RAG-related dependencies, run:
-
-```bash
-pip install -e '.[rag]'
-```
-
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
+Check the installation instructions in the [documentation](docs/installation.md).
 
 ### Minimal Example
 
@@ -54,13 +42,14 @@ You can use our predefined CLI commands to execute parts of the pipeline. Note t
 
 ```bash
 # Run processing
-mmore process --config-file examples/process/config.yaml
+python -m mmore process --config-file examples/process/config.yaml
+python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-mmore index --config-file examples/index/config.yaml
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/process/outputs/merged/final_pp.jsonl
 
 # Run RAG
-mmore rag --config-file examples/rag/api/rag_api.yaml
+python -m mmore rag --config-file examples/rag/config.yaml
 ```
 
 You can also use our package in python code as shown here:
@@ -137,4 +126,4 @@ This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_
 
 ## Acknowledgements
 
-This project is part of the [**OpenMeditron**](https://huggingface.co/OpenMeditron) initiative developed in [LiGHT](www.yale-light.org) lab at EPFL/Yale/CMU Africa in collaboration with the [**SwissAI**](https://www.swiss-ai.org/) initiative. Thank you Scott Mahoney, Mary-Anne Hartley
+This project is part of the [**OpenMeditron**](https://huggingface.co/OpenMeditron) initiative developed in [LiGHT](https://www.light-laboratory.org/) lab at EPFL/Yale/CMU Africa in collaboration with the [**SwissAI**](https://www.swiss-ai.org/) initiative. Thank you Scott Mahoney, Mary-Anne Hartley

@@ -7,12 +7,13 @@ To install `mmore`, run the following:
    git clone https://github.com/swiss-ai/mmore
    ```
 
-2. Install the package
+2. Install the package within a Python virtual environment.
    ```bash
-   pip install -e .
+   pip install -e '.[all]'
+   pip install -e '.[rag]'
    ```
 
-Note that you can specify to install certain parts of the pipeline. In example, to install only the processor-related dependencies, put `'.[processor]'`. We support `processor, rag, all`.
+Once the Python packages are installed, you also have to install system dependencies (check the step 1 of Alternative #1).
 
 ### Alternative #1: `uv`
 
@@ -22,7 +23,8 @@ Note that you can specify to install certain parts of the pipeline. In example, 
 sudo apt update
 sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
   libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
-  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice \
+  libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
 
 ##### Step 2: Install `uv`
@@ -84,4 +86,4 @@ docker build --build-arg PLATFORM=cpu -t mmore .
 docker run -it -v ./test_data:/app/test_data mmore
 ```
 
-*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process_config.yaml`.
+*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process/config.yaml`.
