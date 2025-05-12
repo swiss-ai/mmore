@@ -199,19 +199,24 @@ class Retriever(BaseRetriever):
             k=self.k
         )
 
-        milvus_docs = [
+        if self.use_web:
+            web_docs = self._get_web_documents(query['input'], max_results = self.k)
+            milvus_docs = [
+            Document(
+                page_content=result['entity']['text'],
+                metadata={'id': result['id'], 'rank': self.k + i + 1, 'similarity': result['distance']}
+            )
+            for i, result in enumerate(results[0])
+            ]
+            return milvus_docs + web_docs
+        else:
+            milvus_docs = [
             Document(
                 page_content=result['entity']['text'],
                 metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
             )
             for i, result in enumerate(results[0])
-        ]
-
-        web_docs = self._get_web_documents(query['input'], max_results = self.k)
-
-        if self.use_web:
-            return milvus_docs + web_docs
-        else:
+            ]
             return milvus_docs
 
     def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
