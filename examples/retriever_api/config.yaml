@@ -1,0 +1,6 @@
+retriever:
+  db:
+    uri: ./demo.db
+    name: my_db
+  hybrid_search_weight: 0.5
+  k: 5
