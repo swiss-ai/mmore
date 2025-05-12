@@ -1,8 +1,6 @@
 from typing import Any, Dict, List, Tuple, Union, cast
 
 import nltk
-from tqdm import tqdm
-
 from datatrove.data import Document, Media
 from datatrove.pipeline.filters import (
     C4QualityFilter,
@@ -19,6 +17,7 @@ from datatrove.pipeline.filters import (
 )
 from datatrove.pipeline.filters.base_filter import BaseFilter as DatatroveBaseFilter
 from datatrove.pipeline.writers.jsonl import JsonlWriter
+from tqdm import tqdm
 
 from ....type import MultimodalSample
 from .base import BaseFilter, BaseFilterConfig

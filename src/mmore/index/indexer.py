@@ -4,10 +4,10 @@ Supports multimodal documents with chunking capabilities.
 """
 
 import logging
-import scipy
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
+import scipy
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import CollectionSchema, DataType, FieldSchema, MilvusClient
