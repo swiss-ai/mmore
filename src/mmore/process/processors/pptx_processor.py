@@ -2,7 +2,6 @@ import io
 import logging
 from typing import cast
 
-from PIL import Image
 from PIL.Image import Image
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE

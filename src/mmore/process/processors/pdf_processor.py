@@ -168,7 +168,7 @@ class PDFProcessor(Processor):
 
         return self.create_sample(all_text, embedded_images, file_path)
 
-    ### Functions for parallelizing across GPUs
+    # Functions for parallelizing across GPUs
     def _split_files(self, files_paths, num_batches):
         file_sizes = [(file, self.get_file_size(file)) for file in files_paths]
         sorted_files = sorted(file_sizes, key=lambda x: x[1], reverse=True)

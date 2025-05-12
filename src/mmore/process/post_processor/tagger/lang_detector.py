@@ -12,7 +12,7 @@ class LangDetector(BaseTagger):
 
         try:
             lang = detect(text)
-        except:
+        except Exception:
             lang = "unknown"
 
         return lang

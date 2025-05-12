@@ -34,7 +34,7 @@ _AWS_MODELS = ["amazon-titan-embedding-xlarge", "amazon-titan-embedding-light"]
 
 loaders = {
     "OPENAI": OpenAIEmbeddings,
-    #'GOOGLE': VertexAIEmbeddings,
+    # 'GOOGLE': VertexAIEmbeddings,
     "COHERE": CohereEmbeddings,
     "MISTRAL": MistralAIEmbeddings,
     "NVIDIA": NVIDIAEmbeddings,

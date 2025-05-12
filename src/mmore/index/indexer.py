@@ -4,6 +4,7 @@ Supports multimodal documents with chunking capabilities.
 """
 
 import logging
+import scipy
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
@@ -18,7 +19,6 @@ from ..type import MultimodalSample
 from ..utils import load_config
 
 logger = logging.getLogger(__name__)
-import scipy
 
 
 @dataclass
@@ -212,7 +212,7 @@ class Indexer:
 
     def _log_collection_stats(self, collection_name: str):
         logger.info("-" * 50)
-        logger.info(f"Collection stats (before inserting):")
+        logger.info("Collection stats (before inserting):")
         for k, v in self.client.get_collection_stats(collection_name).items():
             logger.info(f"  - {k}: {v}")
         logger.info("-" * 50)

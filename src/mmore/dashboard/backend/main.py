@@ -116,7 +116,8 @@ async def get_workers_latest() -> list[WorkerLatest]:
     @return: List of WorkerLatest objects.
     """
 
-    # group by worker_id, sort descending by timestamp, keep the latest timestamp, and slice the last 1000
+    # group by worker_id, sort descending by timestamp, keep the latest timestamp,
+    # and slice the last 1000
     max_nbr_reports_by_worker = (
         500  # max nbr of reports per worker -> to avoid retrieving too much data
     )
@@ -141,7 +142,8 @@ async def get_workers_latest() -> list[WorkerLatest]:
 
     docs = await reports_collection.aggregate(pipeline).to_list(None)
 
-    # post-processing: add last_active (human-readable time) and latest_reports (count of finished_file_paths)
+    # post-processing: add last_active (human-readable time)
+    # and latest_reports (count of finished_file_paths)
     for doc in docs:
         doc["last_active"] = human_readable_time_ago(doc["latest_timestamp"])
         doc["latest_reports"] = [

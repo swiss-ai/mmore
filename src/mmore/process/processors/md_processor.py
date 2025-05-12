@@ -136,9 +136,6 @@ class MarkdownProcessor(Processor):
                                 image.save(tmp.name)
                             return tmp.name
 
-                        path = save_temp_image(
-                            image, base_path=os.path.join(os.getcwd(), "tmp")
-                        )
                         embedded_images.append(image)
                     else:
                         logger.error(

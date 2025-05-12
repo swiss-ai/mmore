@@ -69,7 +69,7 @@ async def upload_file(
 
         if file.filename is None:
             raise HTTPException(
-                status_code=422, detail=f"Provided file should have a filename"
+                status_code=422, detail="Provided file should have a filename"
             )
 
         # Use a temporary directory for processing so that we only process the incoming docs
@@ -170,7 +170,7 @@ async def upload_files(
                 doc.id = docId
                 modified_documents.append(doc)
 
-            logging.info(f"Indexing the files")
+            logging.info("Indexing the files")
 
             indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
             indexer.index_documents(
@@ -207,7 +207,7 @@ async def update_file(
 
         if file.filename is None:
             raise HTTPException(
-                status_code=422, detail=f"Provided file should have a filename"
+                status_code=422, detail="Provided file should have a filename"
             )
 
         with tempfile.TemporaryDirectory() as temp_dir:

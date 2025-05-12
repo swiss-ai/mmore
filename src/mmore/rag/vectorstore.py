@@ -39,7 +39,7 @@ class VectorStoreMilvus:
     def from_config(cls, config: VectorStoreConfig):
         # Get models
         dense_model = cls._init_dense_model(config.dense_model_name)
-        sparse_model = cls._init_sparse_model(config.sparse_model_name)
+        # sparse_model = cls._init_sparse_model(config.sparse_model_name)
 
         # Instatiate the VectorStore
         milvus = Milvus(
@@ -60,7 +60,7 @@ class VectorStoreMilvus:
     ):
         # Get models
         dense_model = VectorStoreMilvus._init_dense_model(config.dense_model_name)
-        sparse_model = VectorStoreMilvus._init_sparse_model(config.sparse_model_name)
+        # sparse_model = VectorStoreMilvus._init_sparse_model(config.sparse_model_name)
 
         # Translate to multimodal embedder input
         texts = [MultimodalEmbeddings._multimodal_to_text(doc) for doc in documents]

@@ -4,7 +4,8 @@ from typing import List, Optional
 from pydantic import BaseModel, BeforeValidator, Field
 from typing_extensions import Annotated
 
-PyObjectId = Annotated[  # ObjectID will be converted into a string (by casting) before being validated at being a str
+# ObjectID will be casted into a string before being validated at being a str
+PyObjectId = Annotated[
     str, BeforeValidator(str)
 ]
 

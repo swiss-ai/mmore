@@ -7,7 +7,7 @@ import torch
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from PIL import Image
-from transformers import pipeline
+from transformers import pipeline as pipeline_t
 
 from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
@@ -50,7 +50,7 @@ class MediaProcessor(Processor):
         try:
             self.pipelines = []
             for device in self.devices:
-                pipe = pipeline(
+                pipe = pipeline_t(
                     "automatic-speech-recognition",
                     model=model_name,
                     device=device,

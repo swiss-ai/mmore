@@ -3,11 +3,6 @@ from typing import Any, Dict, List, Tuple, Union, cast
 import nltk
 from tqdm import tqdm
 
-from ....type import MultimodalSample
-from .base import BaseFilter, BaseFilterConfig
-
-nltk.download("punkt_tab", quiet=True)
-
 from datatrove.data import Document, Media
 from datatrove.pipeline.filters import (
     C4QualityFilter,
@@ -24,6 +19,11 @@ from datatrove.pipeline.filters import (
 )
 from datatrove.pipeline.filters.base_filter import BaseFilter as DatatroveBaseFilter
 from datatrove.pipeline.writers.jsonl import JsonlWriter
+
+from ....type import MultimodalSample
+from .base import BaseFilter, BaseFilterConfig
+
+nltk.download("punkt_tab", quiet=True)
 
 FILTERS_MAP = {
     "filter_language": LanguageFilter,
@@ -67,7 +67,8 @@ class DatatroveFilter(BaseFilter):
 
     @staticmethod
     def sample_to_doc(sample: MultimodalSample) -> Document:
-        type_as_int = lambda x: {"image": 0, "video": 1, "audio": 2}[x]
+        def type_as_int(x):
+            return {"image": 0, "video": 1, "audio": 2}[x]
 
         return Document(
             text=sample.text,

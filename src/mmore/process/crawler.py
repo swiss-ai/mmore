@@ -158,8 +158,8 @@ class FindAlreadyComputedFiles:
         samples = self._get_all_samples_jsonl_paths(self.output_path)
         files_already_processed = set()
         for f in samples:
-            l = self._get_metadata_jsonl_path(f)
-            files_already_processed.update(l)
+            line = self._get_metadata_jsonl_path(f)
+            files_already_processed.update(line)
         return files_already_processed
 
 
@@ -370,7 +370,7 @@ class Crawler:
 
         if self.config.output_path and skip_already_processed:
             logger.info(
-                f"Checking if some of those files to process have already been processed."
+                "Checking if some of those files to process have already been processed."
             )
             file_paths = self._filter_out_already_processed_files(
                 files=file_paths, output_path=self.config.output_path

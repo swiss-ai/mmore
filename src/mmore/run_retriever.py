@@ -88,7 +88,7 @@ def retrieve(
 
     time_taken = end_time - start_time
     logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
-    logger.info(f"Retrieved documents!")
+    logger.info("Retrieved documents!")
 
     # Save results to output file
     save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
