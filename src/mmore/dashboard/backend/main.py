@@ -118,9 +118,10 @@ async def get_workers_latest() -> list[WorkerLatest]:
 
     # group by worker_id, sort descending by timestamp, keep the latest timestamp,
     # and slice the last 1000
-    max_nbr_reports_by_worker = (
-        500  # max nbr of reports per worker -> to avoid retrieving too much data
-    )
+
+    # max nbr of reports per worker -> to avoid retrieving too much data
+    max_nbr_reports_by_worker = 500
+    
     pipeline = [
         {"$sort": {"timestamp": -1}},
         {
