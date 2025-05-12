@@ -105,18 +105,13 @@ class EntityExtractionOutputParser(BaseOutputParser[nx.Graph]):
                 type="",
                 description=[""],
             )
+        
+        edge_descriptions = [edge_description]
         if graph.has_edge(source, target):
             edge_data = graph.get_edge_data(source, target)
             if edge_data is not None:
                 weight += edge_data["weight"]
-                edge_descriptions = list(
-                    {
-                        *_unpack_descriptions(edge_data),
-                        edge_description,
-                    }
-                )
-        else:
-            edge_descriptions = [edge_description]
+                edge_descriptions = [{*_unpack_descriptions(edge_data), edge_description}]
 
         graph.add_edge(source, target, weight=weight, description=edge_descriptions)
 

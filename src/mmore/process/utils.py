@@ -14,7 +14,7 @@ from cleantext import clean
 from PIL import Image
 from typing import List
 import fitz
-from src.mmore.type import FileDescriptor
+from ..type import FileDescriptor
 from datetime import datetime
 from typing import Tuple, Dict
 from pathlib import Path
@@ -23,7 +23,6 @@ import json
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
 
 def clean_text(text: str) -> str:
     """

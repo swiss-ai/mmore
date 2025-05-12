@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Tuple, Literal
+from typing import List, Any, Tuple, Literal, Optional, cast
 
 from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
-from mmore.process.post_processor import BasePostProcessor
-from mmore.type import MultimodalSample
+from .. import BasePostProcessor
+from ....type import MultimodalSample
 
 @dataclass
 class BaseTaggerConfig:
     type: str
-    name: str = None
-    metadata_key: str = None
+    name: Optional[str] = None
+    metadata_key: Optional[str] = None
     args: Any = field(default_factory=lambda: {})
 
     def __post_init__(self):

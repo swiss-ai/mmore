@@ -33,7 +33,7 @@ class SparseModelConfig:
         else:
             raise NotImplementedError()
 
-class SparseModel(Embeddings):
+class SparseModel(BaseSparseEmbedding):
     @classmethod
-    def from_config(cls, config: SparseModelConfig) -> 'SparseModel':
+    def from_config(cls, config: SparseModelConfig) -> BaseSparseEmbedding:
         return loaders.get(config.model_type, SpladeSparseEmbedding)(model_name=config.model_name)
