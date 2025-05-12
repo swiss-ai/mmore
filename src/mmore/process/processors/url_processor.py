@@ -1,12 +1,14 @@
+import io
 import logging
+import re
+
+import requests
 import trafilatura
-from ...type import URLDescriptor, MultimodalSample
+from PIL import Image
+
+from ...type import MultimodalSample, URLDescriptor
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
-import re
-import requests
-from PIL import Image
-import io
 
 logger = logging.getLogger(__name__)
 

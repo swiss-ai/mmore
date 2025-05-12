@@ -1,6 +1,7 @@
-from dask.distributed import Variable
-from typing import Optional, cast
 import logging
+from typing import Optional, cast
+
+from dask.distributed import Variable
 
 logger = logging.getLogger(__name__)
 

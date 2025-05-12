@@ -1,7 +1,8 @@
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
-from .splade import SpladeSparseEmbedding
-
 from dataclasses import dataclass
+
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
+
+from .splade import SpladeSparseEmbedding
 
 _SPLADE_MODELS = ["naver/splade-cocondenser-selfdistil"]
 _names = {"splade": "naver/splade-cocondenser-selfdistil"}

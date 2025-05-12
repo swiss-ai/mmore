@@ -1,13 +1,11 @@
 import json
+import logging
 import os
-
 from dataclasses import dataclass
 from typing import List
 
 from ...type import MultimodalSample
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
-
-import logging
 
 logger = logging.getLogger(__name__)
 

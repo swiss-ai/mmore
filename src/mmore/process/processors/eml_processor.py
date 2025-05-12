@@ -1,10 +1,12 @@
-import logging
-import io
 import email
+import io
+import logging
 from email import policy
+
 from PIL import Image
-from ..utils import clean_text
+
 from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

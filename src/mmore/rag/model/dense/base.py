@@ -1,16 +1,15 @@
-from langchain_core.embeddings import Embeddings
+from dataclasses import dataclass
 
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from langchain_openai import OpenAIEmbeddings
+from langchain_aws import BedrockEmbeddings
 from langchain_cohere import CohereEmbeddings
+from langchain_community.embeddings import FakeEmbeddings
+from langchain_core.embeddings import Embeddings
+from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
-from langchain_aws import BedrockEmbeddings
-from langchain_community.embeddings import FakeEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 from .multimodal import MultimodalEmbeddings
-
-from dataclasses import dataclass
 
 _OPENAI_MODELS = [
     "text-embedding-3-small",

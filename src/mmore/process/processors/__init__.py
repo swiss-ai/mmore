@@ -1,8 +1,9 @@
 # Register all processors here
 
-from .base import ProcessorRegistry, Processor
-import pkgutil
 import importlib
+import pkgutil
+
+from .base import Processor, ProcessorRegistry
 
 
 def register_all_processors():

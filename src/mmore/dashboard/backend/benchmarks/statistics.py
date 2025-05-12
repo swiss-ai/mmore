@@ -1,5 +1,6 @@
-from scipy.stats import ttest_ind
 from typing import Tuple, cast
+
+from scipy.stats import ttest_ind
 
 group1 = [
     0.29056620597839355,

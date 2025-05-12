@@ -1,12 +1,12 @@
-import torch
 import re
-import numpy as np
 from typing import Optional
-from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
 
+import numpy as np
+import torch
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from PIL import Image
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
 from ....type import MultimodalSample
 

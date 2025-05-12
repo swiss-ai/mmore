@@ -1,6 +1,7 @@
 from typing import List
-from pydantic import BaseModel, Field
+
 from langchain_core.documents import Document
+from pydantic import BaseModel, Field
 
 # ------------------------------- Simple Input ------------------------------- #
 

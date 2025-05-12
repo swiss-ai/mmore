@@ -5,9 +5,10 @@ cleaning, splitting, and aggregation.
 """
 
 import logging
+
+import numpy as np
 from cleantext import clean
 from PIL import Image
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

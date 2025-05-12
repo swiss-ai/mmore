@@ -4,22 +4,19 @@ RAG pipeline.
 Integrates Milvus retrieval with HuggingFace text generation.
 """
 
-from typing import Union, List, Dict, Any
-
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Union
 
 from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda, Runnable
-from langchain_core.output_parsers import StrOutputParser
-
 from langchain_core.language_models.chat_models import BaseChatModel
-
-from .retriever import Retriever, RetrieverConfig
-from .llm import LLM, LLMConfig
-from .types import MMOREInput, MMOREOutput
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
+from .llm import LLM, LLMConfig
+from .retriever import Retriever, RetrieverConfig
+from .types import MMOREInput, MMOREOutput
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.

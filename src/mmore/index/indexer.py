@@ -3,21 +3,19 @@ Simple vector database indexer using Milvus for document storage.
 Supports multimodal documents with chunking capabilities.
 """
 
-from typing import List, Literal, Optional
+import logging
 from dataclasses import dataclass, field
-from ..utils import load_config
-from ..type import MultimodalSample
-from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
+from typing import List, Literal, Optional
 
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
-
-from ..rag.model.dense.multimodal import MultimodalEmbeddings
-from ..rag.model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
-
+from pymilvus import CollectionSchema, DataType, FieldSchema, MilvusClient
 from tqdm import tqdm
 
-import logging
+from ..rag.model import DenseModel, DenseModelConfig, SparseModel, SparseModelConfig
+from ..rag.model.dense.multimodal import MultimodalEmbeddings
+from ..type import MultimodalSample
+from ..utils import load_config
 
 logger = logging.getLogger(__name__)
 import scipy

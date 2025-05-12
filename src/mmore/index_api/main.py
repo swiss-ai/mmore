@@ -3,20 +3,15 @@ import logging
 import os
 import shutil
 import tempfile
-import uvicorn
 from pathlib import Path as FilePath
 from typing import List, cast
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Path
+import uvicorn
+from fastapi import FastAPI, File, Form, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 from pymilvus import MilvusClient
 
-from src.mmore.index.indexer import (
-    Indexer,
-    IndexerConfig,
-    DBConfig,
-    get_model_from_index,
-)
+from ..index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
 from ..process.crawler import Crawler, CrawlerConfig
 from ..process.dispatcher import Dispatcher, DispatcherConfig
 from ..rag.model import DenseModelConfig, SparseModelConfig

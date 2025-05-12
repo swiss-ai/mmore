@@ -1,9 +1,8 @@
 from abc import abstractmethod
-from typing import List, Any, Tuple, Optional
+from dataclasses import dataclass, field
+from typing import Any, List, Optional, Tuple
 
 from tqdm import tqdm
-
-from dataclasses import dataclass, field
 
 from ....process.post_processor import BasePostProcessor
 from ....type import MultimodalSample

@@ -1,13 +1,15 @@
-import logging
 import io
+import logging
+from typing import List
+
 from docx import Document
 from docx.document import Document as DocumentType
-from typing import List
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from PIL import Image
+
 from ...type import FileDescriptor, MultimodalSample
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
 logger = logging.getLogger(__name__)
 

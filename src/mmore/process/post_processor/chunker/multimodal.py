@@ -1,14 +1,13 @@
+import logging
 import re
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
-from chonkie import Chunk, BaseChunker
+from chonkie import BaseChunker, Chunk
 
 from ....type import MultimodalSample
 from .. import BasePostProcessor
 from .utils import load_chonkie
-
-import logging
 
 logger = logging.getLogger(__name__)
 

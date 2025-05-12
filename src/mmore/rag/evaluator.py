@@ -1,28 +1,30 @@
+from dataclasses import dataclass, field
+from typing import List
+
 from datasets import Dataset, load_dataset
-from ragas import evaluate, EvaluationDataset
+from langchain_huggingface import HuggingFaceEmbeddings
+from ragas import EvaluationDataset, evaluate
 from ragas.embeddings import BaseRagasEmbeddings
 from ragas.llms import BaseRagasLLM
-from ragas.metrics.base import Metric
 
 # Metrics
 from ragas.metrics import (
+    ContextEntityRecall,
+    FactualCorrectness,
+    Faithfulness,
     LLMContextPrecisionWithReference,
     LLMContextRecall,
-    ContextEntityRecall,
     NoiseSensitivity,
     ResponseRelevancy,
-    Faithfulness,
+    SemanticSimilarity,
 )
-from ragas.metrics import FactualCorrectness, SemanticSimilarity
+from ragas.metrics.base import Metric
 
-from langchain_huggingface import HuggingFaceEmbeddings
-from ..rag.pipeline import RAGPipeline, RAGConfig
-from ..index.indexer import IndexerConfig, Indexer
+from ..index.indexer import Indexer, IndexerConfig
 from ..rag.llm import LLM, LLMConfig
+from ..rag.pipeline import RAGConfig, RAGPipeline
 from ..type import MultimodalSample
 from ..utils import load_config
-from typing import List
-from dataclasses import dataclass, field
 
 
 class RAGASMetrics:

@@ -1,5 +1,6 @@
-from .base import BaseTagger
 import hashlib
+
+from .base import BaseTagger
 
 
 class TextHash(BaseTagger):

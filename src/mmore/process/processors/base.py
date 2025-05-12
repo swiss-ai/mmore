@@ -1,17 +1,17 @@
-from abc import ABC, abstractmethod
-
 import datetime
 import logging
+import os
 import tempfile
-from typing import Any, Dict, List, Union, Optional
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Union
+
+import torch.multiprocessing as mp
+from PIL import Image
 
 from ...dashboard.backend.client import DashboardClient
 from ...process.crawler import FileDescriptor, URLDescriptor
 from ...process.execution_state import ExecutionState
-from ...type import MultimodalSample, MultimodalRawInput
-from PIL import Image
-import torch.multiprocessing as mp
-import os
+from ...type import MultimodalRawInput, MultimodalSample
 
 logger = logging.getLogger(__name__)
 

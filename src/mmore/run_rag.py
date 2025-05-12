@@ -1,13 +1,14 @@
-from dataclasses import dataclass
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from langserve import add_routes
-from pathlib import Path
-from typing import List, Dict, Union, Optional, cast
 import argparse
 import json
 import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Union, cast
+
 import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from langserve import add_routes
 
 RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-from .rag.pipeline import RAGPipeline, RAGConfig
+from .rag.pipeline import RAGConfig, RAGPipeline
 from .utils import load_config
 
 load_dotenv()

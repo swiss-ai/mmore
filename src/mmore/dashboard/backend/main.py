@@ -2,12 +2,12 @@ import os
 from datetime import datetime
 from typing import Any, Optional
 
-from pymongo import DESCENDING
-from fastapi import FastAPI, BackgroundTasks, Query
 import motor.motor_asyncio
+from fastapi import BackgroundTasks, FastAPI, Query
+from pymongo import DESCENDING
 from starlette.middleware.cors import CORSMiddleware
 
-from .model import Report, WorkerLatest, DashboardMetadata, Progress, BatchedReports
+from .model import BatchedReports, DashboardMetadata, Progress, Report, WorkerLatest
 
 app = FastAPI()
 # allow all origins

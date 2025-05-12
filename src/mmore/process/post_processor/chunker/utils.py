@@ -1,10 +1,11 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from chonkie import (
     BaseChunker,
-    SentenceChunker,
     SemanticChunker,
-    WordChunker,
+    SentenceChunker,
     TokenChunker,
+    WordChunker,
 )
 
 

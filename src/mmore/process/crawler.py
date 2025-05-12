@@ -1,8 +1,10 @@
 import json
-import os
 import logging
-from typing import List, Dict, Optional
+import os
+from typing import Dict, List, Optional
+
 import validators
+
 from ..type import FileDescriptor, URLDescriptor
 
 logger = logging.getLogger(__name__)

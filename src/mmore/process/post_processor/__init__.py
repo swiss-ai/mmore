@@ -1,15 +1,13 @@
 from typing import cast
 
+from ...utils import load_config
 from .base import BasePostProcessor, BasePostProcessorConfig
-
 from .chunker import MultimodalChunker, MultimodalChunkerConfig
+from .filter import FILTER_TYPES, load_filter
+from .filter.base import BaseFilterConfig
 from .ner import NERecognizer, NERExtractorConfig
 from .tagger import TAGGER_TYPES, load_tagger
 from .tagger.base import BaseTaggerConfig
-from .filter import FILTER_TYPES, load_filter
-from .filter.base import BaseFilterConfig
-
-from ...utils import load_config
 
 __all__ = ["BasePostProcessor", "BasePostProcessorConfig", "load_postprocessor"]
 

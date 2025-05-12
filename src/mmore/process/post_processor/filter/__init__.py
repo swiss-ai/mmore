@@ -1,5 +1,5 @@
 from .base import BaseFilter, BaseFilterConfig
-from .datatrove_wrapper import DatatroveFilter, DATATROVE_FILTERS
+from .datatrove_wrapper import DATATROVE_FILTERS, DatatroveFilter
 
 __all__ = ["BaseFilter", "DatatroveFilter"]
 

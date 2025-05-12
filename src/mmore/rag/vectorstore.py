@@ -5,18 +5,18 @@ Simple vector database indexer using Milvus for document storage.
 Supports multimodal documents with chunking capabilities.
 """
 
-from typing import List, Any
 from dataclasses import dataclass
+from typing import Any, List
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores.base import VectorStoreRetriever
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from .model.dense.multimodal import MultimodalEmbeddings
-from .model.sparse.splade import SpladeSparseEmbedding
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from langchain_milvus import Milvus
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
 from ..type import MultimodalSample
+from .model.dense.multimodal import MultimodalEmbeddings
+from .model.sparse.splade import SpladeSparseEmbedding
 
 
 @dataclass

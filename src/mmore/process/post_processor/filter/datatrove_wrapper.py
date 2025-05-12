@@ -1,28 +1,28 @@
-from typing import List, Any, Dict, Tuple, Union, cast
+from typing import Any, Dict, List, Tuple, Union, cast
+
+import nltk
 from tqdm import tqdm
 
 from ....type import MultimodalSample
 from .base import BaseFilter, BaseFilterConfig
 
-import nltk
-
 nltk.download("punkt_tab", quiet=True)
 
-from datatrove.pipeline.filters.base_filter import BaseFilter as DatatroveBaseFilter
+from datatrove.data import Document, Media
 from datatrove.pipeline.filters import (
-    SamplerFilter,
-    GopherRepetitionFilter,
-    GopherQualityFilter,
-    FineWebQualityFilter,
     C4QualityFilter,
+    FastTextClassifierFilter,
+    FineWebQualityFilter,
+    GopherQualityFilter,
+    GopherRepetitionFilter,
+    LambdaFilter,
     LanguageFilter,
     RegexFilter,
-    FastTextClassifierFilter,
-    LambdaFilter,
+    SamplerFilter,
     UnigramLogProbFilter,
     URLFilter,
 )
-from datatrove.data import Media, Document
+from datatrove.pipeline.filters.base_filter import BaseFilter as DatatroveBaseFilter
 from datatrove.pipeline.writers.jsonl import JsonlWriter
 
 FILTERS_MAP = {

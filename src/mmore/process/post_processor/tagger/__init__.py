@@ -1,8 +1,7 @@
 from .base import BaseTaggerConfig
-
+from .lang_detector import LangDetector
 from .modalities import ModalitiesCounter
 from .words import WordsCounter
-from .lang_detector import LangDetector
 
 __all__ = ["ModalitiesCounter", "WordsCounter", "LangDetector"]
 

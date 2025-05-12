@@ -1,5 +1,7 @@
 import time
+
 import requests
+
 from ..model import Report
 
 

@@ -2,7 +2,6 @@ from typing import List
 
 from ....process.post_processor import BasePostProcessor
 from ....type import MultimodalSample
-
 from .extractor import NERExtractor, NERExtractorConfig
 
 

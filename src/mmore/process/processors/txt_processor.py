@@ -1,6 +1,7 @@
 import logging
-from ..utils import clean_text
+
 from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor
 
 logger = logging.getLogger(__name__)

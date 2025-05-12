@@ -1,13 +1,15 @@
-import os
 import io
 import logging
-import pandas as pd
+import os
 from typing import List
-from PIL import Image as PILImage
+
+import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
-from ..utils import clean_text
+from PIL import Image as PILImage
+
 from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

@@ -1,23 +1,23 @@
 import logging
-from typing import Dict, List, Type, Tuple, Iterator, Union, Optional, cast
-
-from .execution_state import ExecutionState
-from .processors.url_processor import URLProcessor
-from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
-from .processors.base import (
-    AutoProcessor,
-    Processor,
-    ProcessorRegistry,
-    ProcessorConfig,
-)
-import torch
-import logging
 import os
 from dataclasses import dataclass
 from operator import itemgetter
+from typing import Dict, Iterator, List, Optional, Tuple, Type, Union, cast
+
+import torch
+from dask.distributed import Client, as_completed
 from tqdm import tqdm
-from dask.distributed import as_completed, Client
+
 from ..type import MultimodalSample
+from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
+from .execution_state import ExecutionState
+from .processors.base import (
+    AutoProcessor,
+    Processor,
+    ProcessorConfig,
+    ProcessorRegistry,
+)
+from .processors.url_processor import URLProcessor
 
 logger = logging.getLogger(__name__)
 

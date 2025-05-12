@@ -1,15 +1,16 @@
-import logging
 import io
+import logging
+from typing import cast
 
+from PIL import Image
 from PIL.Image import Image
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 from pptx.shapes.picture import Picture
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image
-from typing import cast
+
 from ...type import FileDescriptor, MultimodalSample
-from ..utils import clean_text, clean_image
+from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

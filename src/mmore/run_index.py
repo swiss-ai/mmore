@@ -1,9 +1,10 @@
-from dataclasses import dataclass
-from dotenv import load_dotenv
-from typing import Optional, Union
 import argparse
-import logging
 import json
+import logging
+from dataclasses import dataclass
+from typing import Optional, Union
+
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"
@@ -13,9 +14,9 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-from .utils import load_config
+from .index.indexer import Indexer, IndexerConfig
 from .type import MultimodalSample
-from .index.indexer import IndexerConfig, Indexer
+from .utils import load_config
 
 load_dotenv()
 

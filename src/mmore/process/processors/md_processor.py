@@ -1,14 +1,16 @@
+import io
 import logging
+import os
+import tempfile
+from typing import Optional, Tuple
+
 import markdown
 import markdownify
+import requests
+from PIL import Image
+
 from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
-import tempfile
-from PIL import Image
-from typing import Optional, Tuple
-import os
-import io
-import requests
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
-from dataclasses import dataclass
 import argparse
-import click
 import logging
 import os
 import time
+from dataclasses import dataclass
+
+import click
 import torch
 
 PROCESS_EMOJI = "🚀"
@@ -15,11 +16,10 @@ logging.basicConfig(
 )
 
 from .dashboard.backend.client import DashboardClient
-from .type import MultimodalSample
-from .utils import load_config
-
 from .process.crawler import Crawler, CrawlerConfig
 from .process.dispatcher import Dispatcher, DispatcherConfig
+from .type import MultimodalSample
+from .utils import load_config
 
 overall_start_time = time.time()
 

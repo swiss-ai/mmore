@@ -1,12 +1,14 @@
-import os
 import logging
+import os
 import tempfile
-import torch
 from typing import List
-from PIL import Image
-from transformers import pipeline
+
+import torch
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from PIL import Image
+from transformers import pipeline
+
 from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 

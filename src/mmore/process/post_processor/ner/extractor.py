@@ -1,31 +1,21 @@
 """Entity Relationship Extractor module."""
 
 import os
-
-import random
-
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, List, Optional
-
-import logging
+from typing import List
 
 import networkx as nx
-import pandas as pd
 from langchain_core.language_models import LanguageModelLike
+from langchain_core.output_parsers.base import BaseOutputParser
+from langchain_core.prompts import BasePromptTemplate, PromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from tqdm import tqdm
 
-from dataclasses import dataclass, field
-
-from langchain_core.prompts import BasePromptTemplate, PromptTemplate
-from langchain_core.output_parsers.base import BaseOutputParser
-
-from .output_parser import EntityExtractionOutputParser
-
-from ....type import MultimodalSample
 from ....rag.llm import LLM, LLMConfig
-
+from ....type import MultimodalSample
 from ._prompts import DEFAULT_ER_EXTRACTION_PROMPT
+from .output_parser import EntityExtractionOutputParser
 
 _DEFAULT_TUPLE_DELIMITER = "<|>"
 _DEFAULT_RECORD_DELIMITER = "##"

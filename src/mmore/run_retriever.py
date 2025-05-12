@@ -1,15 +1,16 @@
+import argparse
+import json
+import logging
+import time
+from pathlib import Path
+from typing import List, Optional
+
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from langchain_core.documents import Document
-from pathlib import Path
 from pydantic import BaseModel, Field
 from tqdm import tqdm
-from typing import List, Optional
-import argparse
-import logging
-import json
-import time
-import uvicorn
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"

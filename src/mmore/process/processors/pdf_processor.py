@@ -1,19 +1,20 @@
-import fitz  # PyMuPDF
 import io
 import logging
-from PIL import Image, UnidentifiedImageError
+import re
+from multiprocessing import Manager, Process, set_start_method
 from typing import List, Optional
-from ...type import FileDescriptor, MultimodalSample
-from ..utils import clean_text, clean_image
-from .base import Processor, ProcessorConfig
 
+import fitz  # PyMuPDF
+import torch
+from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
-from marker.config.parser import ConfigParser
-import re
-from multiprocessing import Process, set_start_method, Manager
-import torch
+from PIL import Image, UnidentifiedImageError
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_image, clean_text
+from .base import Processor, ProcessorConfig
 
 IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 

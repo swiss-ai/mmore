@@ -1,6 +1,6 @@
-from typing import Dict, Union, TypeVar, Type, cast
-import yaml
+from typing import Dict, Type, TypeVar, Union, cast
 
+import yaml
 from dacite import from_dict
 
 T = TypeVar("T")

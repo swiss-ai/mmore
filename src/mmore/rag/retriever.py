@@ -3,23 +3,20 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
-from typing import List, Dict, Any, Tuple, Literal, get_args, cast
+import logging
 from dataclasses import dataclass, field
-from ..utils import load_config
+from typing import Any, Dict, List, Literal, Tuple, cast, get_args
+
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
+from langchain_core.retrievers import BaseRetriever
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
+from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
 
 from ..index.indexer import DBConfig, get_model_from_index
-from .model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
-
-from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
-
-from langchain_core.embeddings import Embeddings
-
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
-from langchain_core.retrievers import BaseRetriever
-from langchain_core.documents import Document
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
-
-import logging
+from ..utils import load_config
+from .model import DenseModel, DenseModelConfig, SparseModel, SparseModelConfig
 
 logger = logging.getLogger(__name__)
 

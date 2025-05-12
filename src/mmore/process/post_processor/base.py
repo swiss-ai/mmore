@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from tqdm import tqdm
-from dataclasses import dataclass, field
 
 from ...type import MultimodalSample
 

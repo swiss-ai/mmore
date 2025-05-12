@@ -1,5 +1,6 @@
-from .base import BaseTagger
 from langdetect import detect
+
+from .base import BaseTagger
 
 
 class LangDetector(BaseTagger):
