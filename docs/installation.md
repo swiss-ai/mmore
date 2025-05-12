@@ -2,10 +2,7 @@
 
 To install `mmore`, run the following:
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/swiss-ai/mmore
-   ```
+1. Clone this repository with Git
 
 2. Install the package within a Python virtual environment.
    ```bash
