@@ -208,7 +208,7 @@ class Retriever(BaseRetriever):
             )
             for i, result in enumerate(results[0])
             ]
-            return milvus_docs + web_docs
+            return web_docs + milvus_docs
         else:
             milvus_docs = [
             Document(
