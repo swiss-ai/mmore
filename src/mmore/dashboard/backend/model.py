@@ -46,7 +46,7 @@ class WorkerLatest(BaseModel):
 
 class Progress(BaseModel):
     total_files: int
-    start_time: datetime
+    start_time: Optional[datetime]
     finished_files: int
     progress: float
     last_activity: str

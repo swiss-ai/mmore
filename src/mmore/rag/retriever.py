@@ -3,13 +3,12 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
-from typing import List, Dict, Any, Tuple, Literal, get_args
+from typing import List, Dict, Any, Tuple, Literal, get_args, cast
 from dataclasses import dataclass, field
 from ..utils import load_config
 
-from mmore.index.indexer import get_model_from_index
-from mmore.index.indexer import DBConfig
-from mmore.rag.model import DenseModel, SparseModel
+from ..index.indexer import DBConfig, get_model_from_index
+from .model import DenseModel, SparseModel, DenseModelConfig, SparseModelConfig
 
 from pymilvus import MilvusClient, WeightedRanker, AnnSearchRequest
 
@@ -32,7 +31,6 @@ class RetrieverConfig:
     k: int = 1
     use_web: bool = False
 
-
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
     dense_model: Embeddings
@@ -52,17 +50,19 @@ class Retriever(BaseRetriever):
     @classmethod
     def from_config(cls, config: str | RetrieverConfig):
         if isinstance(config, str):
-            config: RetrieverConfig = load_config(config, RetrieverConfig)
+            config_obj: RetrieverConfig = load_config(config, RetrieverConfig)
+        else:
+            config_obj = config
 
         # Init the client
-        client = MilvusClient(uri=config.db.uri, db_name=config.db.name)
+        client = MilvusClient(uri=config_obj.db.uri, db_name=config_obj.db.name)
 
         # Init models
-        dense_model_config = get_model_from_index(client, "dense_embedding")
+        dense_model_config: DenseModelConfig = cast(DenseModelConfig, get_model_from_index(client, "dense_embedding"))
         dense_model = DenseModel.from_config(dense_model_config)
         logger.info(f"Loaded dense model: {dense_model_config}")
 
-        sparse_model_config = get_model_from_index(client, "sparse_embedding")
+        sparse_model_config: SparseModelConfig = cast(SparseModelConfig, get_model_from_index(client, "sparse_embedding"))
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
@@ -70,27 +70,26 @@ class Retriever(BaseRetriever):
             dense_model=dense_model,
             sparse_model=sparse_model,
             client=client,
-            hybrid_search_weight=config.hybrid_search_weight,
+            hybrid_search_weight=config_obj.hybrid_search_weight,
             k=config.k,
             use_web=config.use_web
         )
 
-    def compute_query_embeddings(self, query: str) -> Tuple[List[float], List[float]]:
+    def compute_query_embeddings(self, query: str) -> Tuple[List[List[float]], List[Dict[int, float]]]:
         """Compute both dense and sparse embeddings for the query."""
         dense_embedding = [self.dense_model.embed_query(query)]
         sparse_embedding = [self.sparse_model.embed_query(query)]
 
         return dense_embedding, sparse_embedding
 
-    # TODO: [FEATURE] minimal score for retrieval
     def retrieve(
             self,
             query: str,
             collection_name: str = 'my_docs',
-            partition_names: List[str] = None,
+            partition_names: List[str] = [],
             k: int = 1,
             search_type: str = "hybrid"  # Options: "dense", "sparse", "hybrid"
-    ) -> List[Dict[str, Any]]:
+    ) -> List[List[Dict[str, Any]]]:
         """
         Retrieve top-k similar documents for a given query.
         
@@ -148,9 +147,8 @@ class Retriever(BaseRetriever):
             self,
             queries: List[str],
             collection_name: str = 'my_docs',
-            partition_names: List[str] = None,
+            partition_names: List[str] = [],
             k: int = 1,
-            output_fields: List[str] = ["text"],
             search_type: str = "hybrid"
     ) -> List[List[Dict[str, Any]]]:
         """
@@ -159,7 +157,6 @@ class Retriever(BaseRetriever):
         Args:
             queries: List of search query strings
             k: Number of documents to retrieve per query
-            output_fields: Fields to return in results
             search_type: Type of search to perform
             
         Returns:
@@ -172,13 +169,13 @@ class Retriever(BaseRetriever):
                 collection_name=collection_name,
                 partition_names=partition_names,
                 k=k,
-                output_fields=output_fields,
+                #output_fields=output_fields,
                 search_type=search_type
             )
             all_results.append(results)
         return all_results
 
-    def _get_relevant_documents(
+    def _get_relevant_documents( # type: ignore
             self,
             query: Dict[str, Any],
             *,
@@ -195,28 +192,25 @@ class Retriever(BaseRetriever):
         results = self.retrieve(
             query=query['input'],
             collection_name=query.get('collection_name', 'my_docs'),
-            partition_names=query.get('partition_name', None),
+            partition_names=query.get('partition_name', []),
             k=self.k
         )
 
+        def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
+            return Document(
+                page_content=result['entity']['text'],
+                metadata={'id': result['id'], 'rank': offset + i + 1, 'similarity': result['distance']}
+            )
+        def parse_results(results: List[List[Dict[str, Any]]], offset: int = 0) -> List[Document]:
+            #0 because there is only one query
+            return [parse_result(result, i, offset) for i, result in enumerate(results[0])]
+
         if self.use_web:
             web_docs = self._get_web_documents(query['input'], max_results = self.k)
-            milvus_docs = [
-            Document(
-                page_content=result['entity']['text'],
-                metadata={'id': result['id'], 'rank': self.k + i + 1, 'similarity': result['distance']}
-            )
-            for i, result in enumerate(results[0])
-            ]
+            milvus_docs = parse_results(results, len(web_docs))
             return web_docs + milvus_docs
         else:
-            milvus_docs = [
-            Document(
-                page_content=result['entity']['text'],
-                metadata={'id': result['id'], 'rank': i + 1, 'similarity': result['distance']}
-            )
-            for i, result in enumerate(results[0])
-            ]
+            milvus_docs = parse_results(results)
             return milvus_docs
 
     def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:

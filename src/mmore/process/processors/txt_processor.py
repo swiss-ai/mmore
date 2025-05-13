@@ -1,10 +1,9 @@
 import logging
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
+from ...type import FileDescriptor, MultimodalSample
 from .base import Processor
 
 logger = logging.getLogger(__name__)
-
 
 class TextProcessor(Processor):
     """

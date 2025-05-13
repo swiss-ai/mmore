@@ -1,14 +1,13 @@
 import logging
 from typing import List
 import trafilatura
-from src.mmore.process.utils import clean_text
-from src.mmore.type import URLDescriptor
+from ...type import URLDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 import re 
 import requests
 from PIL import Image
 import io
-from src.mmore.type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +23,8 @@ class URLProcessor(Processor):
         self.driver = None  # WebDriver will be initialized per process
 
     @classmethod
-    def accepts(cls, input_obj) -> bool:
-        return isinstance(input_obj, URLDescriptor)
+    def accepts(cls, file) -> bool:
+        return isinstance(file, URLDescriptor)
 
     def process_fast(self, file_path: str) -> MultimodalSample:
         try: # wrap in try because urls can be buggy
@@ -47,7 +46,11 @@ class URLProcessor(Processor):
 
             for image in images:
                 try:
-                    image_url = re.search(r'\(.*\)', image).group(0)[1:-1]
+                    image_url_search = re.search(r'\(.*\)', image)
+                    if image_url_search is None:
+                        raise Exception("Unable to find a valid URL of the image")
+                        
+                    image_url = image_url_search.group(0)[1:-1]
                     headers = {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     }
@@ -66,5 +69,5 @@ class URLProcessor(Processor):
             return self.create_sample([], [], file_path)
 
     # TODO: Not implemented
-    def process(self, file_path: str, fast: bool = False) -> dict:
+    def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         return self.process_fast(file_path)

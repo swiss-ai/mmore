@@ -1,9 +1,6 @@
 from typing import List
-
 from pydantic import BaseModel, Field
-
 from langchain_core.documents import Document
-
 
 # ------------------------------- Simple Input ------------------------------- #
 
@@ -19,7 +16,6 @@ class MMOREInput(BaseModel):
         description="The collection",
     )
 
-
 # ------------------------------- Simple Output ------------------------------ #
 
 class MMOREOutput(BaseModel):
@@ -27,7 +23,6 @@ class MMOREOutput(BaseModel):
     input: str
     docs: List[Document]
     answer: str
-
 
 # -------------------------------- CitedAnswer ------------------------------- #
 
@@ -43,7 +38,6 @@ class CitedAnswer(BaseModel):
         description="The integer IDs of the SPECIFIC sources which justify the answer.",
     )
 
-
 # ------------------------------- QuotedAnswer ------------------------------- #
 
 class Citation(BaseModel):
@@ -55,7 +49,6 @@ class Citation(BaseModel):
         ...,
         description="The VERBATIM quote from the specified source that justifies the answer.",
     )
-
 
 class QuotedAnswer(BaseModel):
     """Answer the user question based only on the given sources, and cite the sources used."""

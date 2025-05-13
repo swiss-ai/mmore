@@ -7,7 +7,7 @@ from PIL import Image
 from transformers import pipeline
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from src.mmore.type import FileDescriptor, MultimodalSample
+from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -48,11 +48,11 @@ class MediaProcessor(Processor):
             logger.error(f"Error loading models: {e}")
             self.pipelines = []
 
-    def process_batch(self, files, fast_mode, num_workers):
+    def process_batch(self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1) -> List[MultimodalSample]:
         if not self.pipelines:
             self.load_models(fast_mode=fast_mode)
 
-        file_chunks = self.evenly_split_across_gpus(files, len(self.devices))
+        file_chunks = self.evenly_split_across_gpus(files_paths, len(self.devices))
         
         results = []
         for pipeline, chunk in zip(self.pipelines, file_chunks):
@@ -72,11 +72,6 @@ class MediaProcessor(Processor):
             images = []
 
         return self.create_sample([all_text], images, file_path)
-
-    def tensor_to_sample(self, tensor_data):
-        text = tensor_data["text"].item()
-        images = [self.tensor_to_image(img_tensor) for img_tensor in tensor_data["images"]]
-        return MultimodalSample(text, images)
 
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         if not self.pipelines:

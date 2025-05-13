@@ -9,18 +9,16 @@ Classes:
     URLDescriptor: Represents a URL with validation and computational weight.
 """
 
-
 from dataclasses import dataclass, field
 from datetime import datetime
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import logging
 import validators
 
 import json
 
 logger = logging.getLogger(__name__)
-
 
 @dataclass
 class MultimodalRawInput:
@@ -46,7 +44,7 @@ class MultimodalSample:
     """
     text: str
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: Dict[str, Union[str, Dict, List]] = field(default_factory=dict)
     id: str = ""
 
     def __post_init__(self):

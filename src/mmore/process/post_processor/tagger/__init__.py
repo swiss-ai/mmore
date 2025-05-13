@@ -4,7 +4,7 @@ from .modalities import ModalitiesCounter
 from .words import WordsCounter
 from .lang_detector import LangDetector
 
-from mmore.utils import load_config
+from ....utils import load_config
 
 __all__ = ['ModalitiesCounter', 'WordsCounter', 'LangDetector']
 

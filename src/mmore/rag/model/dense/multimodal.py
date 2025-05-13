@@ -8,7 +8,7 @@ from transformers import AutoProcessor, AutoModelForImageTextToText
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from mmore.type import MultimodalSample
+from ....type import MultimodalSample
 
 import sys
 
