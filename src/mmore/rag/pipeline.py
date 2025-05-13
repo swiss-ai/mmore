@@ -53,6 +53,7 @@ class RAGPipeline:
         self.retriever = retriever
         self.prompt = prompt_template
         self.llm = llm
+        
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(self.retriever, RAGPipeline.format_docs, self.prompt, self.llm)
