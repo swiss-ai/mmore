@@ -1,7 +1,8 @@
+import os
+from pathlib import Path
+
 import click
 import yaml
-from pathlib import Path
-import os
 
 default_config = {
     "processor": {

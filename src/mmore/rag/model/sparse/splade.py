@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import torch
 from langchain_milvus.utils.sparse import BaseSparseEmbedding

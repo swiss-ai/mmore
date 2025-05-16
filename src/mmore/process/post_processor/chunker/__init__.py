@@ -1,3 +1,3 @@
 from .multimodal import MultimodalChunker, MultimodalChunkerConfig
 
-__all__ = ['MultimodalChunker']
+__all__ = ["MultimodalChunker", "MultimodalChunkerConfig"]
