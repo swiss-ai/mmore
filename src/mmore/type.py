@@ -9,15 +9,14 @@ Classes:
     URLDescriptor: Represents a URL with validation and computational weight.
 """
 
-
+import json
+import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
-import os
-from typing import Any, Dict, List, Optional
-import logging
-import validators
+from typing import Any, Dict, List, Optional, Union
 
-import json
+import validators
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +30,10 @@ class MultimodalRawInput:
         type (str): The type of the modality (e.g., "image").
         value (str): The value of the modality, such as a file path or text content.
     """
+
     type: str
     value: str
+
 
 @dataclass
 class MultimodalSample:
@@ -44,9 +45,10 @@ class MultimodalSample:
         modalities (List[MultimodalRawInput]): List of modalities (e.g., images, audio).
         metadata (Dict[str, str] | None): Additional metadata associated with the sample.
     """
+
     text: str
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: Dict[str, Union[str, Dict, List]] = field(default_factory=dict)
     id: str = ""
 
     def __post_init__(self):
@@ -83,7 +85,7 @@ class MultimodalSample:
             modalities=[MultimodalRawInput(**m) for m in data.get("modalities", [])],
             metadata=data.get("metadata", {}),
         )
-    
+
     @classmethod
     def from_jsonl(cls, file_path: str) -> List["MultimodalSample"]:
         samples = []
@@ -91,12 +93,13 @@ class MultimodalSample:
             for line in f:
                 samples.append(cls.from_dict(json.loads(line)))
         return samples
-    
+
     @staticmethod
     def to_jsonl(file_path: str, samples: List["MultimodalSample"]) -> None:
         with open(file_path, "a") as f:
             for sample in samples:
                 f.write(json.dumps(sample.to_dict()) + "\n")
+
 
 class FileDescriptor:
     """
@@ -110,14 +113,15 @@ class FileDescriptor:
         modified_at (str): ISO format timestamp of when the file was last modified.
         file_extension (str): The file's extension (e.g., ".txt").
     """
+
     def __init__(
-            self,
-            file_path: str,
-            file_name: str,
-            file_size: int,
-            created_at: str,
-            modified_at: str,
-            file_extension: str,
+        self,
+        file_path: str,
+        file_name: str,
+        file_size: int,
+        created_at: str,
+        modified_at: str,
+        file_extension: str,
     ):
         self.file_path = file_path
         self.file_name = file_name
@@ -163,6 +167,7 @@ class FileDescriptor:
             file_extension=data["file_extension"],
         )
 
+
 class URLDescriptor:
     """
     Represents a URL with optional metadata attributes for processing, including file-like properties.
@@ -177,6 +182,7 @@ class URLDescriptor:
         modified_at (str): defaults to `created_at`.
         file_extension (str): defaults to ".html".
     """
+
     def __init__(
         self,
         url: str,
@@ -192,7 +198,7 @@ class URLDescriptor:
 
         self.url = url
         self.file_path = file_path or url
-        self.file_name = file_name or os.path.basename(url.rstrip('/'))
+        self.file_name = file_name or os.path.basename(url.rstrip("/"))
         self.file_size = file_size
         self.created_at = created_at or datetime.now().isoformat()
         self.modified_at = modified_at or self.created_at

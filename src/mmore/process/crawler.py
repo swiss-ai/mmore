@@ -1,16 +1,18 @@
 import json
-import os
 import logging
-from typing import List, Dict, Optional
+import os
+from typing import Dict, List, Optional
+
 import validators
-from src.mmore.type import FileDescriptor, URLDescriptor
+
+from ..type import FileDescriptor, URLDescriptor
 
 logger = logging.getLogger(__name__)
 
 
 class DispatcherReadyResult:
     def __init__(
-            self, urls: List[URLDescriptor], file_paths: Dict[str, List[FileDescriptor]]
+        self, urls: List[URLDescriptor], file_paths: Dict[str, List[FileDescriptor]]
     ):
         """
         Initialize the DispatcherReadyResult object.
@@ -30,9 +32,10 @@ class DispatcherReadyResult:
         if len(urls) > 1:
             keys_to_change = list(self.file_paths.keys())
             for key in keys_to_change:
-                self.file_paths[key.replace(self.common_root, "")] = self.file_paths[
-                    key
-                ]
+                if self.common_root:
+                    key = key.replace(self.common_root, "")
+
+                self.file_paths[key] = self.file_paths[key]
                 del self.file_paths[key]
 
     def __call__(self):
@@ -49,7 +52,9 @@ class DispatcherReadyResult:
         ]
 
     def __len__(self):
-        return len(self.urls) + sum(len(file_list) for file_list in self.file_paths.values())
+        return len(self.urls) + sum(
+            len(file_list) for file_list in self.file_paths.values()
+        )
 
     def __repr__(self):
         """
@@ -139,7 +144,9 @@ class FindAlreadyComputedFiles:
                 if "metadata" in data and "file_path" in data["metadata"]:
                     file_paths.append(data["metadata"]["file_path"])
                 else:
-                    print(f"Warning file_path not found in metadate (line{i} of {results_jsonl_path})")
+                    print(
+                        f"Warning file_path not found in metadate (line{i} of {results_jsonl_path})"
+                    )
         return file_paths
 
     def get_all_files_already_processed(self) -> set[str]:
@@ -151,8 +158,8 @@ class FindAlreadyComputedFiles:
         samples = self._get_all_samples_jsonl_paths(self.output_path)
         files_already_processed = set()
         for f in samples:
-            l = self._get_metadata_jsonl_path(f)
-            files_already_processed.update(l)
+            line = self._get_metadata_jsonl_path(f)
+            files_already_processed.update(line)
         return files_already_processed
 
 
@@ -166,10 +173,10 @@ class CrawlerConfig:
     """
 
     def __init__(
-            self,
-            root_dirs: List[str],
-            supported_extensions: Optional[List[str]] = None,
-            output_path: Optional[str] = None,
+        self,
+        root_dirs: List[str],
+        supported_extensions: Optional[List[str]] = None,
+        output_path: Optional[str] = None,
     ):
         """
         Initialize a CrawlerConfig object.
@@ -247,11 +254,11 @@ class Crawler:
     """
 
     def __init__(
-            self,
-            config: Optional[CrawlerConfig] = None,
-            root_dirs: List[str] = None,
-            output_path: str = None,
-            lax_mode: bool = False,
+        self,
+        config: Optional[CrawlerConfig] = None,
+        root_dirs: List[str] = [],
+        output_path: str = "",
+        lax_mode: bool = False,
     ):
         """
         Initialize a Crawler object.
@@ -301,8 +308,9 @@ class Crawler:
                             FileDescriptor.from_filename(filepath)
                         )
 
-    def _filter_out_already_processed_files(self, files: Dict[str, List[FileDescriptor]], output_path: str) -> Dict[
-        str, List[FileDescriptor]]:
+    def _filter_out_already_processed_files(
+        self, files: Dict[str, List[FileDescriptor]], output_path: str
+    ) -> Dict[str, List[FileDescriptor]]:
         """
         Avoid processing files that have already been processed.
         Immutable function.
@@ -312,15 +320,21 @@ class Crawler:
         Returns:
             filtered out 'files' to process.
         """
-        all_files_done: set[str] = FindAlreadyComputedFiles(output_path).get_all_files_already_processed()
+        all_files_done: set[str] = FindAlreadyComputedFiles(
+            output_path
+        ).get_all_files_already_processed()
         logger.info(f"Found {len(all_files_done)} files already processed.")
 
         for root_dir, files_in_dir in files.items():
-            files[root_dir] = [f for f in files_in_dir if f.file_path not in all_files_done]
+            files[root_dir] = [
+                f for f in files_in_dir if f.file_path not in all_files_done
+            ]
 
         if len(all_files_done) > 0:
             logger.info(f"Removed {len(all_files_done)} files already processed.")
-            logger.info(f"New total files to process: {sum(len(files) for files in files.values())}")
+            logger.info(
+                f"New total files to process: {sum(len(files) for files in files.values())}"
+            )
         return files
 
     def crawl(self, skip_already_processed: bool = False) -> DispatcherReadyResult:
@@ -355,7 +369,11 @@ class Crawler:
         file_paths: Dict[str, List[FileDescriptor]] = self.files["local"]
 
         if self.config.output_path and skip_already_processed:
-            logger.info(f"Checking if some of those files to process have already been processed.")
-            file_paths = self._filter_out_already_processed_files(files=file_paths, output_path=self.config.output_path)
+            logger.info(
+                "Checking if some of those files to process have already been processed."
+            )
+            file_paths = self._filter_out_already_processed_files(
+                files=file_paths, output_path=self.config.output_path
+            )
 
         return DispatcherReadyResult(urls=urls, file_paths=file_paths)

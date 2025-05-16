@@ -1,26 +1,22 @@
 """
-Example implementation: 
+Example implementation:
 RAG pipeline.
 Integrates Milvus retrieval with HuggingFace text generation.
 """
 
-from typing import Union, List, Dict, Optional, Any
-
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Union
 
-from langchain.chains.base import Chain
 from langchain_core.documents import Document
-from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
-from langchain_core.output_parsers import StrOutputParser
-
 from langchain_core.language_models.chat_models import BaseChatModel
-
-from .retriever import Retriever, RetrieverConfig
-from .llm import LLM, LLMConfig
-from .types import QuotedAnswer, CitedAnswer
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
+from .llm import LLM, LLMConfig
+from .retriever import Retriever, RetrieverConfig
+from .types import MMOREInput, MMOREOutput
 
 DEFAULT_PROMPT = """\
 Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
@@ -29,25 +25,28 @@ Context:
 {context}
 """
 
+
 @dataclass
 class RAGConfig:
     """Configuration for RAG pipeline."""
+
     retriever: RetrieverConfig
-    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))
+    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt2"))
     system_prompt: str = DEFAULT_PROMPT
+
 
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
 
     retriever: Retriever
     llm: BaseChatModel
-    prompt_template: str
+    prompt_template: Union[str, ChatPromptTemplate]
 
     def __init__(
-            self,
-            retriever: Retriever,
-            prompt_template: str,
-            llm: BaseChatModel,
+        self,
+        retriever: Retriever,
+        prompt_template: Union[str, ChatPromptTemplate],
+        llm: BaseChatModel,
     ):
         # Get modules
         self.retriever = retriever
@@ -55,7 +54,9 @@ class RAGPipeline:
         self.llm = llm
 
         # Build the rag chain
-        self.rag_chain = RAGPipeline._build_chain(self.retriever, RAGPipeline.format_docs, self.prompt, self.llm)
+        self.rag_chain = RAGPipeline._build_chain(
+            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm
+        )
 
     def __str__(self):
         return str(self.rag_chain)
@@ -68,10 +69,7 @@ class RAGPipeline:
         retriever = Retriever.from_config(config.retriever)
         llm = LLM.from_config(config.llm)
         chat_template = ChatPromptTemplate.from_messages(
-            [
-                ("system", config.system_prompt),
-                ("human", "{input}")
-            ]
+            [("system", config.system_prompt), ("human", "{input}")]
         )
 
         return cls(retriever, chat_template, llm)
@@ -79,39 +77,44 @@ class RAGPipeline:
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
         """Format documents for prompt."""
-        return "\n\n".join(f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs)
+        return "\n\n".join(
+            f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs
+        )
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 
     @staticmethod
     # TODO: Add non RAG Pipeline (i.e. retriever is None)
-    def _build_chain(retriever, format_docs, prompt, llm) -> Chain:
-        structured_llm = llm
-        # structured_llm = llm.with_structured_output(CitedAnswer)
-        # structured_llm = llm.with_structured_output(QuotedAnswer)
-
-        rag_chain_from_docs = (
-                prompt
-                | structured_llm
-                | StrOutputParser()
+    def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
+        validate_input = RunnableLambda(
+            lambda x: MMOREInput.model_validate(x).model_dump()
+        )
+        validate_output = RunnableLambda(
+            lambda x: MMOREOutput.model_validate(x).model_dump()
         )
 
-        return (
-            RunnablePassthrough
-            .assign(docs=retriever)
+        rag_chain_from_docs = prompt | llm | StrOutputParser()
+
+        core_chain = (
+            RunnablePassthrough.assign(docs=retriever)
             .assign(context=lambda x: format_docs(x["docs"]))
             .assign(answer=rag_chain_from_docs)
         )
 
+        return validate_input | core_chain | validate_output
+
     # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
     # TODO: Streaming (low priority)
-    def __call__(self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False) -> List[
-        Dict[str, str | List[str]]]:
+    def __call__(
+        self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False
+    ) -> List[Dict[str, str | List[str]]]:
         if isinstance(queries, Dict):
-            queries = [queries]
+            queries_list = [queries]
+        else:
+            queries_list = queries
 
-        results = self.rag_chain.batch(queries)
+        results = self.rag_chain.batch(queries_list)
 
         if return_dict:
             return results
         else:
-            return [result['answer'] for result in results]
+            return [result["answer"] for result in results]

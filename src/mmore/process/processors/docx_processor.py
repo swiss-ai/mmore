@@ -1,12 +1,15 @@
-import logging
 import io
-from docx import Document
+import logging
 from typing import List
-from PIL import Image
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
-from .base import Processor, ProcessorConfig
+
+from docx import Document
+from docx.document import Document as DocumentType
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
+from PIL import Image
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ class DOCXProcessor(Processor):
         """
 
         # First, we define a helper functions
-        def _extract_images(doc: Document) -> List[Image.Image]:
+        def _extract_images(doc: DocumentType) -> List[Image.Image]:
             """
             Extract embedded images from the DOCX document.
 
@@ -85,7 +88,7 @@ class DOCXProcessor(Processor):
         all_text = []
         for para in doc.paragraphs:
             cleaned = clean_text(para.text)
-            
+
             if cleaned.strip():
                 all_text.append(cleaned)
 
