@@ -12,8 +12,6 @@ To install `mmore`, run the following:
    pip install -e .
    ```
 
-Note that you can specify to install certain parts of the pipeline. In example, to install only the processor-related dependencies, put `'.[processor]'`. We support `processor, rag, all`.
-
 ### Alternative #1: `uv`
 
 ##### Step 1: Install system dependencies
