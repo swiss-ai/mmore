@@ -92,5 +92,18 @@ def rag(config_file):
     run_rag(config_file)
 
 
+@main.command()
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8000, help="Port on which the API should be run."
+)
+def index_api(host, port):
+    """Run the Index API."""
+    from .run_index_api import run_api
+
+    run_api(host, port)
+
 if __name__ == "__main__":
     main()
