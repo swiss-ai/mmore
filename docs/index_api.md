@@ -1,6 +1,6 @@
 # m(m)ore Indexer API Documentation
 
-![Illustration](index_api.png)
+![Illustration](./doc_images/index_api.png)
 
 ## Overview
 
