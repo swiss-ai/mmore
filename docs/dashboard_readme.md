@@ -14,15 +14,15 @@
 Before setting up the dashboard, it is useful to understand how it works. You can think of the dashboard as being made up of 4 separate parts:
 
 <p align="center">
-  <img src="doc_images/image.png" width="1000">
+  <img src="doc_images/backend_image.png" width="1000">
 </p>
 
 |  |   |
 |------------|---|
-| **Frontend:** the actual dashboard user interface (UI), and what will be displayed on your screen. | ![Frontend](doc_images/image%201.png) |
-| **Database:** the database which stores information about the file processing. | ![Database](doc_images/image%202.png) |
-| **Processing Pipeline:** the pipeline processing your documents for which you want to be able to visualize on the dashboard. | ![Pipeline](doc_images/image%203.png) |
-| **Backend Server:** *backend* is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard. | ![Backend](doc_images/image%204.png) |
+| **Frontend:** the actual dashboard user interface (UI), and what will be displayed on your screen. | ![Frontend](doc_images/backend_image%201.png) |
+| **Database:** the database which stores information about the file processing. | ![Database](doc_images/backend_image%202.png) |
+| **Processing Pipeline:** the pipeline processing your documents for which you want to be able to visualize on the dashboard. | ![Pipeline](doc_images/backend_image%203.png) |
+| **Backend Server:** *backend* is what we call the server that acts like the middle man to the 3 elements above. It receives information from the processing pipeline, stores and retrieves data from the database and sends information to be displayed on the frontend dashboard. | ![Backend](doc_images/backend_image%204.png) |
 
 
 ## 2. Setup
@@ -35,7 +35,7 @@ Each element shown above is created in a different terminal. This means that you
 Official documentation for MongoDB setup can be found [here](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/) (Ubuntu 22.04 Jammy release). 
 
 <p align="center">
-  <img src="doc_images/image%205.png" width="500">
+  <img src="doc_images/backend_image%205.png" width="500">
 </p>
 
 ### Manual Setup Instructions
@@ -154,7 +154,7 @@ This script automatically checks if MongoDB is installed, installs it if needed
 This backend serves as the bridge between the **database,** the **frontend** and **processing pipeline**, providing a clean API to interact with the data without direct database access.
 
 <p align="center">
-  <img src="doc_images/image%206.png" width="800">
+  <img src="doc_images/backend_image%206.png" width="800">
 </p>
 
 ### Setup Instructions
@@ -166,13 +166,7 @@ This backend serves as the bridge between the **database,** the **frontend** and
 source .venv/bin/activate
 ```
 
-2. **Install Dependencies**
-
-```bash
-pip install -r src/mmore/dashboard/backend/backend_requirements.txt
-```
-
-3. **Configure MongoDB Connection**
+2. **Configure MongoDB Connection**
 
 ```bash
 export MONGODB_URL="mongodb://localhost:27017"
@@ -182,12 +176,12 @@ Sets the environment variable to tell the backend how to connect to MongoDB inst
 
 > 🚨 **Important**: Your MongoDB server should be active before starting the backend.
 
-4. **Start the Backend Server**
+3. **Start the Backend Server**
 
 Run the backend on port 8000
 
 ```bash
-python -m uvicorn src.mmore.dashboard.backend.main:app --host 0.0.0.0 --port 8000
+python -m mmore dashboard-backend --host 0.0.0.0 --port 8000
 ```
 
 This command:
@@ -199,7 +193,7 @@ This command:
 
 > 🚨 **Important**: Keep this terminal window open. The backend runs in the foreground and closing the terminal will shut down the server.
 
-5. **Verify the Backend is Running**
+4. **Verify the Backend is Running**
 
 You can check if the backend is running correctly by accessing [http://localhost:8000](http://localhost:8000). You should see a response like: `{"message": "Hello World"}`
 
@@ -215,7 +209,7 @@ The next step is to set up the frontend that will communicate with this backend 
 This frontend serves as the user-facing component of the system, providing an interface for monitoring and controlling the processing pipeline without requiring direct interaction with the database or backend code.
 
 <p align="center">
-  <img src="doc_images/image%207.png" width="1000">
+  <img src="doc_images/backend_image%207.png" width="1000">
 </p>
 
 1. **Load Node Version Manager**
@@ -272,7 +266,7 @@ Executes the development script defined in package.json, and starts a local dev
 To complete the dashboard setup, you need to run a process module that will generate data for visualization in the UI. 
 
 <p align="center">
-  <img src="doc_images/image%208.png" width="1000">
+  <img src="doc_images/backend_image%208.png" width="1000">
 </p>
 
 1. **Modify Configuration File**
