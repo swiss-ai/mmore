@@ -17,7 +17,7 @@ class NERecognizer(BasePostProcessor):
 
     def process(
         self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    ) -> List[MultimodalSample]:
         # Call the extractor to get the relation graph
         relation_graph = self._extractor.invoke(sample)
 

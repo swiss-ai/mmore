@@ -43,7 +43,7 @@ class BaseFilter(BasePostProcessor):
 
     def process(
         self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    ) -> List[MultimodalSample]:
         res = self.filter(sample)
         if res:
             return [sample]
