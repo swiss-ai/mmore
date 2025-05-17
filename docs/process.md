@@ -4,13 +4,11 @@ The process module enables the extraction and standardization of text and images
 
 ## :hammer: Quick Start
 #### :technologist: Global installation
-Setup the project in each device you want to use using our setup script or looking at what it does and doing it manually.
-```bash
-pip install -e '.[all]'
-```
+[Setup the project](./installation.md) on each device you want to use using our setup script or looking at what it does and doing it manually.
 
 #### :computer: Running locally
-You need to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+You have to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+
 ```bash
 python -m mmore process --config-file examples/process/config.yaml
 ```

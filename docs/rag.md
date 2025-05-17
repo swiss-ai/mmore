@@ -1,5 +1,7 @@
 # :robot: MMORE RAG 
+
 ## :bulb: TL;DR
+
 > The `RAG` module enables the creation of a modular RAG inference pipeline for your indexed multimodal documents, using two inference modes:
 > 1. **API**: Creates a server hosting the pipeline
 > 2. **Local**: Runs the inference locally (:warning: might be long when running local models :warning:) 
@@ -7,7 +9,9 @@
 > You can customize various parts of the pipeline by defining [an inference RAG configuration file](/examples/rag/api/rag_api.yaml).
 
 ## :computer: Minimal Example:
+
 Here is a minimal example to create a RAG pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
+
 1. Create your RAG Inference config file based on the [local example](/examples/rag/config.yaml) or the [API example](/examples/rag/config_api.yaml).
 
 2. Start your RAG pipeline using the `run_rag.py` script and your config file
@@ -35,18 +39,20 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
 See [`examples/rag`](/examples/rag/) for other use cases.
 
 ## :mag: Modules
+
 The RAG decomposes into two main modules:
 1. The `Retriever`, which retrieves multimodal documents from the database. 
 2. The `LLM`, which wraps different types of multimodal-able LLMs.
 
 #### Retriever
+
 Here is an example on how to use the retriever module alone. Note that it assumes that you already created a DB using [the indexer module](index.md).
 
 1. Create a config based on the [example config file](/examples/index/config.yaml)
 
 2. Retrieve on the vector store using the `Retriever` class:
     ```python
-    from src.mmore.rag.retriever import Retriever
+    from mmore.rag.retriever import Retriever
 
     # Create the Retriever
     retriever = Retriever.from_config('/path/to/your/retriever_config.yaml')
@@ -61,6 +67,7 @@ Here is an example on how to use the retriever module alone. Note that it assume
     ```
 
 #### LLM
+
 Here is an example on how to use the `LLM` module alone. Note that it assumes that you already created a DB using [the indexer module](index.md).
 
 1. Create a config file:
@@ -72,7 +79,7 @@ Here is an example on how to use the `LLM` module alone. Note that it assumes th
 
 2. Query the LLM:
     ```python
-    from src.mmore.rag.llm import LLM
+    from mmore.rag.llm import LLM
 
     # Create the LLM
     llm = LLM.from_config('/path/to/your/llm_config.yaml')
@@ -83,18 +90,25 @@ Here is an example on how to use the `LLM` module alone. Note that it assumes th
         "system",
         "You are a helpful assistant that translates English to French. Translate the user sentence.",
     ),
-    ("human", "I love Meditron."),
+    (
+        "human",
+        "I love Meditron."
+    ),
     ]
 
     # Retrieves the top 3 documents using an hybrid approach (e.g. dense + sparse embeddings)
     llm.invoke(messages)
     ```
 ## :wrench: Customization
+
 Our RAG pipeline is built to take full advantage of [LangChain](https://python.langchain.com/docs/introduction/) abstractions, providing compatibility with all components offered.
 
 #### Retriever
+
 Our retriever is a LangChain [`BaseRetriever`](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html). If you want to create a custom retriever (e.g. GraphRetriever,...) you can simply make it inherit from this class and use it as described in our examples.
 
 #### LLM
+
 Our LLMs are LangChain's [`BaseChatModel`](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html) base class. If you want to create a custom retriever you can simply make it inherit from this class and use it as described in our examples. 
+
 > :warning: Note that we support [HuggingFace Hub](https://huggingface.co/models) models, so a simpler solution is to push a model to the hub and use the class as defined.

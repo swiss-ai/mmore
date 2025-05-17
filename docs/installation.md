@@ -80,7 +80,7 @@ docker build --build-arg PLATFORM=cpu -t mmore .
 ##### Step 3: Start an interactive session
 
 ```bash
-docker run -it -v ./test_data:/app/test_data mmore
+docker run -it -v ./examples:/app/examples mmore
 ```
 
-*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process/config.yaml`.
+*Note:* The `examples` folder is mapped to `/app/examples` inside the container, corresponding to the default path in `examples/process/config.yaml`.

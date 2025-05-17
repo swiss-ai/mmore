@@ -71,17 +71,16 @@ out_file = "/path/to/examples/process/outputs/example.jsonl"
 
 pdf_processor_config = ProcessorConfig(custom_config={"output_path": "examples/process/outputs"})
 pdf_processor = PDFProcessor(config=pdf_processor_config)
-result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
+result_pdf = pdf_processor.process_batch(pdf_file_paths, False, 1) # args: file_paths, fast mode (True/False), num_workers
 
 MultimodalSample.to_jsonl(out_file, result_pdf)
 ```
 
 ---
 
-
 ### Usage
 
-To launch the MMORE pipeline follow the specialised instructions in the docs.
+To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
 ![The MMORE pipelines archicture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
 
@@ -94,7 +93,7 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    *Supports fast processing for specific types.*
 
 3. [**:file_folder: Index**](./docs/index.md) 
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API.
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](./docs/index_api.md) for adding new files on the fly with HTTP requests.
 
 4. [**:robot: RAG**](./docs/rag.md) 
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
@@ -114,7 +113,7 @@ See [the `/docs` directory](./docs) for additional details on each modules and h
 | **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML           | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
-| **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
+| **Web Content**    | HTML                                    | CPU                      | :white_check_mark:
 
 
 ## Contributing
