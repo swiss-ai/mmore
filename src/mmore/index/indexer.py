@@ -230,6 +230,7 @@ class Indexer:
 
 
 def get_model_from_index(client: MilvusClient, index_name: Literal['dense_embedding', 'sparse_embedding'], collection_name: Optional[str] = None) -> DenseModelConfig | SparseModelConfig:
+    print(client.list_collections())
     collection_name = collection_name or client.list_collections()[0]
     if index_name == 'dense_embedding':
         index_config = client.describe_index(collection_name, index_name)
