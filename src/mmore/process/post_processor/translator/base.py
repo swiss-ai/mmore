@@ -12,19 +12,22 @@ from dataclasses import dataclass
 class TranslatorConfig:
     target_language: str
     attachment_tag: str
+    confidence_threshold: float
 
 
 class TranslatorPostProcessor(BasePostProcessor):
-    def __init__(self, target_language: str, attachment_tag: str):
+    def __init__(self, target_language: str, attachment_tag: str, confidence_threshold: float):
         super().__init__(name="🌍 Translator")
         self.target_language = target_language
         self.attachment_tag = attachment_tag
         self.updated_packages = set()
+        self.confidence_threshold = confidence_threshold
 
     @classmethod
     def from_config(cls, config: TranslatorConfig):
         translator = TranslatorPostProcessor(
-            target_language=config.target_language, attachment_tag=config.attachment_tag
+            target_language=config.target_language, attachment_tag=config.attachment_tag,
+            confidence_threshold=config.confidence_threshold
         )
         return translator
 
@@ -32,9 +35,9 @@ class TranslatorPostProcessor(BasePostProcessor):
         self, sample: MultimodalSample, **kwargs
     ) -> MultimodalSample | List[MultimodalSample]:
         from_code, confidence = classify(sample.text)
-        
+
         # If the sample is already in the right language, do nothing
-        if from_code == self.target_language:
+        if from_code == self.target_language or confidence <= self.confidence_threshold:
             return sample
 
         # Install package if needed
@@ -61,6 +64,8 @@ class TranslatorPostProcessor(BasePostProcessor):
 
         argostranslate.package.update_package_index()
         available_packages = argostranslate.package.get_available_packages()
+
+        print(from_code, self.target_language)
 
         package_to_install = next(
             filter(

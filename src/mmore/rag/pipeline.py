@@ -63,6 +63,7 @@ class RAGPipeline:
 
     @classmethod
     def from_config(cls, config: str | RAGConfig):
+        print(config)
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
 

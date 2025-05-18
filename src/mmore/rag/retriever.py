@@ -140,7 +140,7 @@ class Retriever(BaseRetriever):
                 search_weight, 1 - search_weight
             ),  # Reranking strategy
             limit=k,
-            output_fields=["text"],
+            output_fields=["*"],
             collection_name=collection_name,
             partition_names=partition_names,
         )
