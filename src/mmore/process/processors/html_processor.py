@@ -1,12 +1,14 @@
+import io
 import logging
 import os
-import io
-from bs4 import BeautifulSoup
-from PIL import Image
+from typing import List, Optional, cast
+
 import requests
-from typing import List
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+from bs4 import BeautifulSoup, Tag
+from PIL import Image
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -51,19 +53,23 @@ class HTMLProcessor(Processor):
             """
             images = []
             for img_tag in soup.find_all("img"):
-                src = img_tag.get("src")
-                if not src:
+                if not isinstance(img_tag, Tag):
                     continue
-                try:
-                    if src.startswith("http"):
-                        response = requests.get(src)
-                        image = Image.open(io.BytesIO(response.content)).convert("RGB")
-                    else:
-                        local_path = os.path.join(os.path.dirname(file_path), src)
-                        image = Image.open(local_path).convert("RGB")
-                    images.append(image)
-                except Exception as e:
-                    logger.error(f"Failed to load image {src}: {e}")
+
+                src = cast(Optional[str], img_tag.get("src"))
+                if src:
+                    try:
+                        if src.startswith("http"):
+                            response = requests.get(src)
+                            bytes_img = io.BytesIO(response.content)
+                            image = Image.open(bytes_img).convert("RGB")
+                        else:
+                            parent_path = os.path.dirname(file_path)
+                            local_path = os.path.join(parent_path, src)
+                            image = Image.open(local_path).convert("RGB")
+                        images.append(image)
+                    except Exception as e:
+                        logger.error(f"Failed to load image {src}: {e}")
             return images
 
         try:
@@ -83,9 +89,9 @@ class HTMLProcessor(Processor):
         all_text = []
         body = soup.body if soup.body else soup  # fallback if no <body> tag
 
-        for tag in body.find_all(string=True):  # better: use string=True instead of text=True
-            if tag.parent.name not in ["script", "style"]:
-                cleaned = clean_text(tag)
+        for tag in body.find_all(string=True):
+            if tag.parent and tag.parent.name not in ["script", "style"]:
+                cleaned = clean_text(tag.text)
                 if cleaned.strip():
                     all_text.append(cleaned)
         if self.config.custom_config.get("extract_images", True):
