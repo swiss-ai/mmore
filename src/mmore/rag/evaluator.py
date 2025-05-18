@@ -1,22 +1,30 @@
-from datasets import Dataset, load_dataset, load_from_disk
-from ragas import evaluate, EvaluationDataset
+from dataclasses import dataclass, field
+from typing import List
+
+from datasets import Dataset, load_dataset
+from langchain_huggingface import HuggingFaceEmbeddings
+from ragas import EvaluationDataset, evaluate
 from ragas.embeddings import BaseRagasEmbeddings
 from ragas.llms import BaseRagasLLM
-from ragas.metrics.base import Metric
 
 # Metrics
-from ragas.metrics import LLMContextPrecisionWithReference, LLMContextRecall, ContextEntityRecall, NoiseSensitivity, ResponseRelevancy, Faithfulness
-from ragas.metrics import FactualCorrectness, SemanticSimilarity
+from ragas.metrics import (
+    ContextEntityRecall,
+    FactualCorrectness,
+    Faithfulness,
+    LLMContextPrecisionWithReference,
+    LLMContextRecall,
+    NoiseSensitivity,
+    ResponseRelevancy,
+    SemanticSimilarity,
+)
+from ragas.metrics.base import Metric
 
-from langchain_huggingface import HuggingFaceEmbeddings
-from ..rag.pipeline import RAGPipeline, RAGConfig
-from ..index.indexer import IndexerConfig, Indexer, DBConfig
-from ..rag.retriever import RetrieverConfig
+from ..index.indexer import Indexer, IndexerConfig
 from ..rag.llm import LLM, LLMConfig
+from ..rag.pipeline import RAGConfig, RAGPipeline
 from ..type import MultimodalSample
 from ..utils import load_config
-from typing import Union, List
-from dataclasses import dataclass, field
 
 
 class RAGASMetrics:
@@ -28,11 +36,9 @@ class RAGASMetrics:
         "NoiseSensitivity": NoiseSensitivity,
         "ResponseRelevancy": ResponseRelevancy,
         "Faithfulness": Faithfulness,
-
         # Natural Language Comparison Metrics
         "FactualCorrectness": FactualCorrectness,
         "SemanticSimilarity": SemanticSimilarity,
- 
     }
 
     @classmethod
@@ -43,7 +49,9 @@ class RAGASMetrics:
         if metric_name in cls.METRIC_LOOKUP:
             return cls.METRIC_LOOKUP[metric_name]()
         else:
-            raise ValueError(f"Metric '{metric_name}' not found in the RAGAS metrics list.")
+            raise ValueError(
+                f"Metric '{metric_name}' not found in the RAGAS metrics list."
+            )
 
     @classmethod
     def get_all_metrics(cls):
@@ -51,37 +59,41 @@ class RAGASMetrics:
         Return a list of all available metric classes.
         """
         return [cls.get_metric_class(metric) for metric in cls.METRIC_LOOKUP]
-    
+
     @staticmethod
     def _parse_metrics(metrics: List[str]):
-        if not isinstance(metrics, list):
-            raise TypeError("The 'metrics' parameter must be a list of metric names (strings).")
-        
+        if not (isinstance(metrics, list) and all(isinstance(x, str) for x in metrics)):
+            raise TypeError(
+                "The 'metrics' parameter must be a list of metric names (strings)."
+            )
+
         parsed_metrics = []
         for metric_name in metrics:
-            if isinstance(metric_name, str):
-                try:
-                    parsed_metrics.append(RAGASMetrics.get_metric_class(metric_name))
-                except ValueError:
-                    raise ValueError(f"Invalid metric provided: {metric_name}. Metric not found.")
-            else:
-                raise ValueError(f"Invalid metric provided: {metric_name}. Each metric must be a string.")
-        
+            try:
+                parsed_metrics.append(RAGASMetrics.get_metric_class(metric_name))
+            except ValueError:
+                raise ValueError(
+                    f"Invalid metric provided: {metric_name}. Metric not found."
+                )
+
         return parsed_metrics
+
+
 @dataclass
 class EvalConfig:
     """RAG Eval Configuration"""
+
     hf_dataset_name: str
     split: str
     hf_feature_map: dict
-    metrics: Union[str, List[str]]
+    metrics: List[str]
     embeddings_name: str
-    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name='gpt2'))    
-   
+    llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt2"))
+
 
 class RAGEvaluator:
     dataset: Dataset
-    metrics: Metric | List[Metric]
+    metrics: List[Metric]
     evaluator_llm: BaseRagasLLM
     embeddings: BaseRagasEmbeddings
 
@@ -94,24 +106,25 @@ class RAGEvaluator:
     @classmethod
     def from_config(cls, config: str | EvalConfig):
         if isinstance(config, str):
-            config = load_config(config, EvalConfig)
+            config_obj = load_config(config, EvalConfig)
+        else:
+            config_obj = config
         # Load and prepare the dataset
-        hf_dataset = load_dataset(config.hf_dataset_name, split=config.split)
+        hf_dataset = load_dataset(config_obj.hf_dataset_name, split=config_obj.split)
 
-        dataset = hf_dataset.rename_columns(config.hf_feature_map)
+        dataset = hf_dataset.rename_columns(config_obj.hf_feature_map)
 
         # Add 'retrieved_contexts' and 'response' as empty fields
         dataset = dataset.map(lambda x: {"retrieved_contexts": [], "response": []})
 
         # Parse and store metrics
-        metrics = RAGASMetrics._parse_metrics(config.metrics)
+        metrics = RAGASMetrics._parse_metrics(config_obj.metrics)
 
         # Define evaluator LLM and embeddings
-        evaluator_llm = LLM.from_config(config.llm)
-        embeddings = HuggingFaceEmbeddings(model_name=config.embeddings_name)
+        evaluator_llm = LLM.from_config(config_obj.llm)
+        embeddings = HuggingFaceEmbeddings(model_name=config_obj.embeddings_name)
 
         return cls(dataset, metrics, evaluator_llm, embeddings)
-
 
     def _get_eval_dataset(self, outputs: List[dict]) -> Dataset:
         """
@@ -125,7 +138,7 @@ class RAGEvaluator:
 
         updated_dataset = self.dataset.map(
             lambda record, idx: add_outputs_to_record(record, outputs[idx]),
-            with_indices=True
+            with_indices=True,
         )
 
         return updated_dataset
@@ -138,12 +151,15 @@ class RAGEvaluator:
         # Indexing logic
         indexer = Indexer.from_config(indexer_config)
 
-        collection_name = indexer.dense_model_name.replace("-", "_") 
+        collection_name = indexer.dense_model_config.model_name.replace("-", "_")
         if not indexer.client.has_collection(collection_name):
             for i, documents in enumerate(self.dataset["corpus"]):
-                print('Creating the indexer...')
-                indexer.index_documents([MultimodalSample(doc, modalities=[]) for doc in documents],
-                                        collection_name=collection_name, partition_name=str(query_ids[i]))
+                print("Creating the indexer...")
+                indexer.index_documents(
+                    [MultimodalSample(doc, modalities=[]) for doc in documents],
+                    collection_name=collection_name,
+                    partition_name=str(query_ids[i]),
+                )
                 print("Indexer created.")
 
         # RAG initialization
@@ -152,9 +168,17 @@ class RAGEvaluator:
         # Generate RAG outputs
         for i, query in enumerate(queries):
             query_id = query_ids[i]
-            rag_outputs.append(rag(queries={'input': query, 'collection_name': collection_name, 'partition_name': str(query_id)},
-                                   return_dict=True)[0])
-   
+            rag_outputs.append(
+                rag(
+                    queries={
+                        "input": query,
+                        "collection_name": collection_name,
+                        "partition_name": str(query_id),
+                    },
+                    return_dict=True,
+                )[0]
+            )
+
         # Update the dataset with RAG outputs
         eval_dataset = self._get_eval_dataset(rag_outputs)
 

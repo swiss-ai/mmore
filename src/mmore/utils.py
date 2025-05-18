@@ -1,12 +1,19 @@
-from typing import List, Dict
+from typing import Dict, Type, TypeVar, Union, cast
+
 import yaml
+from dacite import from_dict
 
-from dacite import Config, from_dict
+T = TypeVar("T")
 
-def load_config(yaml_dict_or_path: str | Dict, config_class: Config) -> Config:
+
+def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -> T:
+    if isinstance(yaml_dict_or_path, config_class):
+        return yaml_dict_or_path
+
     if isinstance(yaml_dict_or_path, str):
-        with open(yaml_dict_or_path, 'r') as file:
+        with open(yaml_dict_or_path, "r") as file:
             data = yaml.safe_load(file)
     else:
         data = yaml_dict_or_path
-    return from_dict(config_class, data)
+
+    return from_dict(config_class, cast(Dict, data))

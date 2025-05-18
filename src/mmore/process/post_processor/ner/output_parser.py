@@ -12,6 +12,7 @@ from langchain_core.output_parsers import BaseOutputParser
 _ENTITY_ATTRIBUTES_LENGTH = 4
 _RELATIONSHIP_ATTRIBUTES_LENGTH = 5
 
+
 def _clean_str(input_str: Any) -> str:
     """Remove HTML escapes, control characters, and other unwanted characters."""
     # If we get non-string input, just give it back
@@ -22,8 +23,10 @@ def _clean_str(input_str: Any) -> str:
     # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python
     return re.sub(r"[\x00-\x1f\x7f-\x9f]", "", result)
 
+
 def _unpack_descriptions(data: Mapping) -> list[str]:
     return data.get("description", [])
+
 
 class EntityExtractionOutputParser(BaseOutputParser[nx.Graph]):
     """OutputParser for extracting entities and relationships.
@@ -105,18 +108,15 @@ class EntityExtractionOutputParser(BaseOutputParser[nx.Graph]):
                 type="",
                 description=[""],
             )
+
+        edge_descriptions = [edge_description]
         if graph.has_edge(source, target):
             edge_data = graph.get_edge_data(source, target)
             if edge_data is not None:
                 weight += edge_data["weight"]
-                edge_descriptions = list(
-                    {
-                        *_unpack_descriptions(edge_data),
-                        edge_description,
-                    }
-                )
-        else:
-            edge_descriptions = [edge_description]
+                edge_descriptions = [
+                    {*_unpack_descriptions(edge_data), edge_description}
+                ]
 
         graph.add_edge(source, target, weight=weight, description=edge_descriptions)
 

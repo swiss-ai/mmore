@@ -67,7 +67,7 @@ dependencies = [
     "motor==3.6.0",
     "fastapi[standard]",
     "fastapi==0.115.5",
-    "pydantic== 2.10.4",
+    "pydantic==2.10.4",
     "pymongo==4.9.2",
     "pymilvus==2.5.0",
     "milvus-model==0.2.12"
@@ -124,6 +124,9 @@ explicit = true
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
+
+[tool.isort]
+profile = "black"
 
 [project.scripts]
 mmore = "mmore:__main__"
