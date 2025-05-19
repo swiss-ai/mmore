@@ -107,9 +107,6 @@ conflicts = [
   ],
 ]
 
-[tool.uv.dependencies]
-mpmath = "*"
-
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
