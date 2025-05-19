@@ -18,7 +18,8 @@ authors = [
     { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
     { name = "Charlotte Meyer", email = "Charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
-    { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" }
+    { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
 
 ]
 requires-python = ">=3.10"
