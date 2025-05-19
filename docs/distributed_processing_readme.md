@@ -39,7 +39,7 @@ git clone <repository-url>
 cd mmore
 
 # Install dependencies
-pip install -e '.[process]'
+pip install -e '.[all]'
 ```
 
 ### 3. Launch the Distributed Processing
@@ -71,11 +71,7 @@ Once all nodes are running, return to the master node and type `go` when prompte
 
 ## Monitoring Progress
 
-You can monitor the processing using the dashboard:
-
-1. Start the dashboard backend on the cluster ([backend instructions](/src/mmore/dashboard/backend/README.md))
-2. Configure the frontend with the backend URL
-3. Start the frontend on your local machine ([frontend instructions](/src/mmore/dashboard/frontend/README.md))
+You can monitor the processing using the dashboard, just check its [documentation](/docs/dashboard_readme.md).
 
 The dashboard provides:
 - Real-time progress visualization
