@@ -1,15 +1,18 @@
-import logging
 import io
+import logging
+from typing import List
+
 from docx import Document
 from docx.document import Document as DocumentType
-from typing import List
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from PIL import Image
+
 from ...type import FileDescriptor, MultimodalSample
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
 logger = logging.getLogger(__name__)
+
 
 class DOCXProcessor(Processor):
     def __init__(self, config=None):
@@ -85,7 +88,7 @@ class DOCXProcessor(Processor):
         all_text = []
         for para in doc.paragraphs:
             cleaned = clean_text(para.text)
-            
+
             if cleaned.strip():
                 all_text.append(cleaned)
 

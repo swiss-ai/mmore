@@ -1,21 +1,26 @@
 import logging
-from typing import Any, Dict, List, Type, Tuple, Iterator, Union, Optional, cast
-
-from .execution_state import ExecutionState
-from .processors.url_processor import URLProcessor
-from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
-from .processors.base import AutoProcessor, Processor, ProcessorRegistry, ProcessorConfig
-import torch
-import logging
 import os
 from dataclasses import dataclass
 from operator import itemgetter
+from typing import Dict, Iterator, List, Optional, Tuple, Type, Union, cast
+
+import torch
+from dask.distributed import Client, as_completed
 from tqdm import tqdm
-from dask.distributed import as_completed, Client
-import dask.config
+
 from ..type import MultimodalSample
+from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
+from .execution_state import ExecutionState
+from .processors.base import (
+    AutoProcessor,
+    Processor,
+    ProcessorConfig,
+    ProcessorRegistry,
+)
+from .processors.url_processor import URLProcessor
 
 logger = logging.getLogger(__name__)
+
 
 class ComputeDescriptor:
     @staticmethod
@@ -37,14 +42,15 @@ class ComputeDescriptor:
             "gpu_size": gpu_size,
         }
 
+
 @dataclass
 class DispatcherConfig:
     """
     A configuration class for the dispatcher.
-    
+
     Save the results to the output path.
     Following sturcture is used:
-    
+
     output_path
     ├── processors
     |   ├── Processor_type_1
@@ -52,11 +58,12 @@ class DispatcherConfig:
     |   ├── Processor_type_2
     |   |   └── results.jsonl
     |   ├── ...
-    |   
+    |
     └── merged
         └── merged_results.jsonl
-            
+
     """
+
     output_path: str
     use_fast_processors: bool = True
     distributed: bool = False
@@ -82,12 +89,13 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
-            dashboard_backend_url=config.get("dashboard_backend_url", None)
+            dashboard_backend_url=config.get("dashboard_backend_url", None),
         )
 
     @staticmethod
     def from_yaml(yaml_path: str):
         import yaml
+
         try:
             with open(yaml_path, "r") as file:
                 config = yaml.safe_load(file)
@@ -107,7 +115,7 @@ class DispatcherConfig:
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,
-            "dashboard_backend_url": self.dashboard_backend_url
+            "dashboard_backend_url": self.dashboard_backend_url,
         }
 
     def __str__(self) -> str:
@@ -126,16 +134,17 @@ class DispatcherConfig:
             f")"
         )
 
+
 class Dispatcher:
     """
     Takes a converted crawl result and dispatches it to the appropriate processor.
     """
 
     def __init__(
-            self,
-            result: DispatcherReadyResult,
-            config: DispatcherConfig,
-            start_cluster=False,
+        self,
+        result: DispatcherReadyResult,
+        config: DispatcherConfig,
+        start_cluster=False,
     ):
         self.result = result
         self.config = config
@@ -154,7 +163,9 @@ class Dispatcher:
         for file_path_list in self.result.file_paths.values():
             for file in file_path_list:
                 processor = AutoProcessor.from_file(file)
-                logger.debug(f"Assigned file {file.file_path} to processor: {processor}")
+                logger.debug(
+                    f"Assigned file {file.file_path} to processor: {processor}"
+                )
                 processor_map[processor].append(file)
 
         url_processor = URLProcessor
@@ -163,7 +174,7 @@ class Dispatcher:
         self.intermediate_map = processor_map
 
     def _dispatch_local(
-            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
+        self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
     ) -> Iterator[List[MultimodalSample]]:
         """
         Dispatches the tasks locally.
@@ -174,25 +185,35 @@ class Dispatcher:
 
         for processor, files in task_lists:
             processor_config = processor_configs.get(processor.__name__, [])
-            processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
-            processor_config['output_path'] = self.config.output_path
-            processor_config['extract_images'] = self.config.extract_images
+            processor_config = {
+                list(d.keys())[0]: list(d.values())[0] for d in processor_config
+            }
+            processor_config["output_path"] = self.config.output_path
+            processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
-            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config)
+            processor_config = ProcessorConfig(
+                dashboard_backend_url=self.config.dashboard_backend_url,
+                custom_config=processor_config,
+            )
             proc = processor(processor_config)
-            res = proc(cast(List[Union[FileDescriptor, URLDescriptor]], files), self.config.use_fast_processors)
+            res = proc(
+                cast(List[Union[FileDescriptor, URLDescriptor]], files),
+                self.config.use_fast_processors,
+            )
             self.save_individual_processor_results(res, processor.__name__)
             yield res
 
     def _dispatch_distributed(
-            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
+        self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
     ) -> List[List[MultimodalSample]]:
         kwargs = {}
         if self.config.scheduler_file:
-            absolute_scheduler_path = os.path.join(os.getcwd(), self.config.scheduler_file)
+            absolute_scheduler_path = os.path.join(
+                os.getcwd(), self.config.scheduler_file
+            )
             if not os.path.exists(absolute_scheduler_path):
                 logger.error(f"Scheduler file {absolute_scheduler_path} does not exist")
             kwargs["scheduler_file"] = absolute_scheduler_path
@@ -205,28 +226,40 @@ class Dispatcher:
 
         for processor, files in task_lists:
             processor_config = processor_configs.get(processor.__name__, [])
-            processor_config = {list(d.keys())[0]: list(d.values())[0] for d in processor_config}
-            processor_config['output_path'] = self.config.output_path
-            processor_config['extract_images'] = self.config.extract_images
+            processor_config = {
+                list(d.keys())[0]: list(d.values())[0] for d in processor_config
+            }
+            processor_config["output_path"] = self.config.output_path
+            processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
                 f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
 
-            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config)
+            processor_config = ProcessorConfig(
+                dashboard_backend_url=self.config.dashboard_backend_url,
+                custom_config=processor_config,
+            )
 
-            def process_files(files, processor_config, processor_name) -> Tuple[List[MultimodalSample], str]:
-                return processor(processor_config)(files, self.config.use_fast_processors), processor_name
+            def process_files(
+                files, processor_config, processor_name
+            ) -> Tuple[List[MultimodalSample], str]:
+                return (
+                    processor(processor_config)(files, self.config.use_fast_processors),
+                    processor_name,
+                )
 
             try:
-                future = client.submit(process_files, files, processor_config, processor.__name__)
+                future = client.submit(
+                    process_files, files, processor_config, processor.__name__
+                )
                 futures.append(future)
             except Exception as e:
                 logger.error(f"Error dispatching task to {processor.__name__}: {e}")
 
         results = []
         for future, (result, processor_name) in tqdm(
-                as_completed(futures, with_results=True), total=len(futures)
+            as_completed(futures, with_results=True), total=len(futures)
         ):
             try:
                 results.append(result)
@@ -242,7 +275,7 @@ class Dispatcher:
         """
 
         def batch_list(
-                lst: List, obj_batch_size: int, processor: Type[Processor]
+            lst: List, obj_batch_size: int, processor: Type[Processor]
         ) -> List[List]:
             """
             Creates optimized batches using best-fit decreasing algorithm.
@@ -294,7 +327,8 @@ class Dispatcher:
             if len(file_list) > 0:
                 batched_files = batch_list(
                     file_list,
-                    self.config.batch_multiplier * batch_sizes.get(processor.__name__, 100),
+                    self.config.batch_multiplier
+                    * batch_sizes.get(processor.__name__, 100),
                     processor,
                 )
                 task_lists.extend([(processor, batch) for batch in batched_files])
@@ -309,11 +343,15 @@ class Dispatcher:
     def __call__(self) -> List[List[MultimodalSample]]:
         return self.dispatch()
 
-    def save_individual_processor_results(self, results: List[MultimodalSample], cls_name) -> None:
+    def save_individual_processor_results(
+        self, results: List[MultimodalSample], cls_name
+    ) -> None:
         if not self.config.output_path:
             return
 
-        processor_output_path = os.path.join(self.config.output_path, "processors", cls_name)
+        processor_output_path = os.path.join(
+            self.config.output_path, "processors", cls_name
+        )
         os.makedirs(processor_output_path, exist_ok=True)
         output_file = os.path.join(processor_output_path, "results.jsonl")
         MultimodalSample.to_jsonl(output_file, results)

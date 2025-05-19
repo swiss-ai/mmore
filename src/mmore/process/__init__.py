@@ -1,12 +1,14 @@
+import click
+
 from .config import get as get_config
 from .config import set as set_config
-import click
 
 
 @click.group()
 def main():
     """mmore"""
     pass
+
 
 # main.add_command(test)
 @main.group()

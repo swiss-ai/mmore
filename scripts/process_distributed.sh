@@ -40,7 +40,7 @@ done
 
 
 # Check required arguments
-if [[ -z "$MMORE_FOLDER" || -z "$CONFIG_PATH" || -z "$RANK"]]; then
+if [[ -z "$MMORE_FOLDER" || -z "$CONFIG_PATH" || -z "$RANK" ]]; then
   echo "Error: Missing required arguments."
   usage
 fi
