@@ -283,7 +283,7 @@ source .venv/bin/activate
 3. **Run the Process Module**
 
 ```bash
-python -m src.mmore.processing.run_processor --config examples/process/config.yaml
+python -m mmore process --config examples/process/config.yaml
 ```
 
 4. **Monitor the Dashboard**
