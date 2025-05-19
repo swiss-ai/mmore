@@ -74,9 +74,9 @@ This adds the official MongoDB repository to your package sources, specificall
 4. **Install MongoDB**
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-sudo apt-get install -y mongodb-org=8.0.5 mongodb-org-database=8.0.5 mongodb-org-server=8.0.5 mongodb-mongosh mongodb-org-mongos=8.0.5 mongodb-org-tools=8.0.5
+sudo apt update
+sudo apt install -y mongodb-org=8.0.5
+sudo apt install -y mongodb-org-database mondogb-org-server mongodb-mongosh mongodb-org-mongos mongodb-org-tools
 ```
 
 > ✏️ **Note**: You will be prompted to select your timezone during installation. For instance for Switzerland, enter '8' for Europe and then '63' for the timezone.
@@ -214,27 +214,15 @@ This frontend serves as the user-facing component of the system, providing an i
 
 1. **Load Node Version Manager**
 
-```bash
-source /usr/local/nvm/nvm.sh
-```
-
-This loads Node Version Manager (NVM) into your current shell session. NVM is necessary because the frontend requires a specific version of Node.js that differs from the default version installed on the system.
+If it is not already installed, install NVM following the [instructions](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating). Then make sure the Node Version Manager (NVM) is loaded into your current shell session. NVM is necessary because the frontend requires a specific version of Node.js that may differ from the default version installed on the system.
 
 2. **Install and Activate Node.js Version 23** 
 
 ```bash
-sudo -i # give root privileges 
 nvm install 23
-exit # exit root 
 nvm use 23
 ```
 
-This sequence:
-
-- Starts a shell with root privileges (necessary for the installation)
-- Uses NVM to install Node.js version 23
-- Exits the root shell
-- Sets version 23 as the active Node.js version for your current session
 3. **Install Dependencies**
 
 ```bash
@@ -247,7 +235,7 @@ This command uses NPM (Node Package Manager) to install all JavaScript dependen
 4. **Configure Backend URL** 
 
 ```bash
-export VITE_BACKEND_API_URL="http://localhost:8000"
+export VITE_BACKEND_API_URL="http://0.0.0.0:8000"
 ```
 
 Sets an environment variable that tells the frontend where to find the backend API. Vite (the build tool) will use this variable during development.
@@ -283,7 +271,7 @@ source .venv/bin/activate
 3. **Run the Process Module**
 
 ```bash
-python -m mmore process --config examples/process/config.yaml
+python -m mmore process --config-file examples/process/config.yaml
 ```
 
 4. **Monitor the Dashboard**
