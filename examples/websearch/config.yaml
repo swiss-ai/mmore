@@ -1,0 +1,8 @@
+input_file: "examples/rag/output.json"
+output_file: "examples/websearch/enhanced_results_trial.json"
+n_loops: 2
+llm_name: "OpenMeditron/meditron3-8b"
+max_searches: 10
+llm_config:
+  max_new_tokens: 2000
+  temperature: 0.2 
