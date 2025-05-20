@@ -67,7 +67,7 @@ retriever:
 Once the configuration files are in place, you can run the evaluation pipeline with the following Python script:
 
 ```python
-from src.mmore.rag.evaluator import RAGEvaluator
+from mmore.rag.evaluator import RAGEvaluator
 
 # Instantiate RAGEvaluator
 evaluator = RAGEvaluator.from_config(args.eval_config)

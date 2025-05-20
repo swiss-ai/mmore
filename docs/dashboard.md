@@ -43,7 +43,7 @@ Official documentation for MongoDB setup can be found [here](https://www.mongodb
 1. **Install required tools**
 
 ```bash
-sudo apt-get install gnupg curl
+sudo apt install gnupg curl
 ```
 
 - `gnupg`: Encryption tool for secure communication and data storage
@@ -74,8 +74,8 @@ This adds the official MongoDB repository to your package sources, specificall
 4. **Install MongoDB**
 
 ```bash
-sudo apt update
-sudo apt install -y mongodb-org=8.0.5
+sudo apt update
+sudo apt install -y mongodb-org=8.0.5
 sudo apt install -y mongodb-org-database mondogb-org-server mongodb-mongosh mongodb-org-mongos mongodb-org-tools
 ```
 
@@ -84,7 +84,7 @@ sudo apt install -y mongodb-org-database mondogb-org-server mongodb-mongosh mong
 5. **Create Data Directory**
 
 ```bash
-mkdir -p ~/mongodb
+mkdir -p ~/mongodb
 ```
 
 Creates a directory in root folder to store MongoDB data files. 
@@ -92,7 +92,7 @@ Creates a directory in root folder to store MongoDB data files.
 6. **Start the MongoDB Server**
 
 ```bash
-mongod --bind_ip_all --dbpath ~/mongodb
+mongod --bind_ip_all --dbpath ~/mongodb
 ```
 
 This starts MongoDB with the following configuration:
@@ -181,7 +181,7 @@ Sets the environment variable to tell the backend how to connect to MongoDB inst
 Run the backend on port 8000
 
 ```bash
-python -m mmore dashboard-backend --host 0.0.0.0 --port 8000
+python3 -m mmore dashboard-backend --host 0.0.0.0 --port 8000
 ```
 
 This command:
@@ -219,15 +219,15 @@ If it is not already installed, install NVM following the [instructions](https:/
 2. **Install and Activate Node.js Version 23** 
 
 ```bash
-nvm install 23
-nvm use 23
+nvm install 23
+nvm use 23
 ```
 
 3. **Install Dependencies**
 
 ```bash
 cd src/mmore/dashboard/frontend # navigte to frontend directory
-npm install
+npm install
 ```
 
 This command uses NPM (Node Package Manager) to install all JavaScript dependencies defined in the package.json file. These are libraries and frameworks needed by the frontend.
@@ -243,7 +243,7 @@ Sets an environment variable that tells the frontend where to find the backend 
 5. **Start Frontend Server**
 
 ```bash
-npm run dev
+npm run dev
 ```
 
 Executes the development script defined in package.json, and starts a local development server for the frontend application. The terminal will show the URL where the frontend is available (typically [http://localhost:5173](http://localhost:5173/)).
@@ -271,7 +271,7 @@ source .venv/bin/activate
 3. **Run the Process Module**
 
 ```bash
-python -m mmore process --config-file examples/process/config.yaml
+python3 -m mmore process --config-file examples/process/config.yaml
 ```
 
 4. **Monitor the Dashboard**
