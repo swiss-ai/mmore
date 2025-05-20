@@ -39,12 +39,15 @@ ADD . /app
 WORKDIR /app
 
 # Define the build argument with a default value of an empty string (optional)
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen ${UV_ARGUMENTS}
+COPY pyproject.toml ./
+# RUN uv sync --frozen ${UV_ARGUMENTS}
 
 
 # make uv's python the default python for the image
 ENV PATH="/app/.venv/bin:$PATH"
+
+# install mpmath
+RUN uv pip install -e . --system
 
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 
