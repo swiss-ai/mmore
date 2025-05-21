@@ -19,7 +19,7 @@ from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
 
 DEFAULT_PROMPT = """\
-Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
+        Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
 
 Context:
 {context}

@@ -54,8 +54,7 @@ class TranslatorPostProcessor(BasePostProcessor):
                 )
             )
 
-            translatedText = self.attachment_tag.join(translatedTexts)
-
+        translatedText = self.attachment_tag.join(translatedTexts)
         return MultimodalSample(translatedText, sample.modalities)
 
     def _update_package(self, from_code: str):
