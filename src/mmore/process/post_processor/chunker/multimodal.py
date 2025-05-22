@@ -34,7 +34,7 @@ class MultimodalChunker(BasePostProcessor):
 
     def process(
         self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    ) -> List[MultimodalSample]:
         return self.chunk(sample)
 
     @staticmethod

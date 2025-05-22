@@ -35,14 +35,14 @@ class BasePostProcessor(ABC):
     @abstractmethod
     def process(
         self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    ) -> List[MultimodalSample]:
         """Abstract method for processing a sample.
 
         Args:
             sample (MultimodalSample): The sample to process.
 
         Returns:
-            MultimodalSample | List[MultimodalSample]: The processed sample(s).
+            List[MultimodalSample]: The processed sample(s).
         """
         pass
 
@@ -58,11 +58,7 @@ class BasePostProcessor(ABC):
         Returns: a list of processed samples
         """
         res = []
-
         for s in tqdm(samples, desc=f"{self.name}"):
-            pp_s = self.process(s, **kwargs)
-            if isinstance(pp_s, MultimodalSample):
-                pp_s = [pp_s]
-            res.extend(pp_s)
+            res += self.process(s, **kwargs)
 
         return res

@@ -1,6 +1,6 @@
 # m(m)ore Indexer API Documentation
 
-![image.png](image.png)
+![Illustration](./doc_images/index_api.png)
 
 ## Overview
 
@@ -29,13 +29,13 @@ export DEFAULT_COLLECTION="your_collection_name"
 To start the server, run this command:
 
 ```bash
-uvicorn src.mmore.index_api.main:app 
+python3 -m mmore index-api --host the_host --port the_port
 ```
 
 This command:
 
-- Starts the Uvicorn ASGI server
-- Loads the FastAPI application from the `main.py` file
+- Starts the Uvicorn ASGI server on the specified host and port
+- Loads the FastAPI application from the `src/mmore/run_index_api.py` file
 
 > **Important**: Keep this terminal window open. The backend runs in the foreground and closing the terminal will shut down the server.
 
@@ -173,7 +173,7 @@ Returns the file with binary content.
 - File types supported:
     
     ```
-    .pdf, .docx, .pptx, .md, .txt, .xlsx, .xls, .csv, .mp4, .avi, .mov, .mkv, .mp3, .wav, .aac, .eml
+    .pdf, .docx, .pptx, .md, .txt, .xlsx, .xls, .csv, .mp4, .avi, .mov, .mkv, .mp3, .wav, .aac, .eml, .html
     ```
     
 
