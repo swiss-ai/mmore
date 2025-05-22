@@ -11,7 +11,7 @@ from src.mmore.process.post_processor.chunker.multimodal import MultimodalChunke
 from src.mmore.process.post_processor.filter import FILTERS_LOADERS_MAP, FILTER_TYPES
 from src.mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
 from src.mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
-from src.mmore.process.post_processor.tagger import load_tagger, TAGGER_TYPES
+from src.mmore.process.post_processor.tagger import load_tagger
 from src.mmore.process.post_processor.tagger.base import BaseTaggerConfig
 from src.mmore.process.post_processor.tagger.lang_detector import LangDetector
 from src.mmore.process.post_processor.tagger.modalities import ModalitiesCounter

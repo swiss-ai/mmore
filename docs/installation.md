@@ -12,8 +12,6 @@ To install `mmore`, run the following:
    pip install -e .
    ```
 
-Note that you can specify to install certain parts of the pipeline. In example, to install only the processor-related dependencies, put `'.[processor]'`. We support `processor, rag, all`.
-
 ### Alternative #1: `uv`
 
 ##### Step 1: Install system dependencies
@@ -70,19 +68,19 @@ Follow the official [Docker installation guide](https://docs.docker.com/get-star
 ##### Step 2: Build the Docker image
 
 ```bash
-docker build . --tag mmore
+sudo docker build . --tag mmore
 ```
 
 To build for CPU-only platforms (results in a smaller image size):
 
 ```bash
-docker build --build-arg PLATFORM=cpu -t mmore .
+sudo docker build --build-arg PLATFORM=cpu -t mmore .
 ```
 
 ##### Step 3: Start an interactive session
 
 ```bash
-docker run -it -v ./test_data:/app/test_data mmore
+sudo docker run -it -v ./examples:/app/examples mmore
 ```
 
-*Note:* The `test_data` folder is mapped to `/app/test_data` inside the container, corresponding to the default path in `examples/process/config.yaml`.
+*Note:* The `examples` folder is mapped to `/app/examples` inside the container, corresponding to the default path in `examples/process/config.yaml`.
