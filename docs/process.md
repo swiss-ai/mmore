@@ -38,10 +38,7 @@ bash scripts/process_distributed.sh -f /path/to/my/input/folder
 Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
 You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
 
-1.	Start the backend on the cluster [backend README](/src/mmore/dashboard/backend/README.md).
-2.  Specify the backend URL in the frontend as an environment variable.
-3.	Start the frontend on your local machine [frontend README](/src/mmore/dashboard/frontend/README.md).
-4.  Specify the backend URL in the `process_config.yaml` file and finally execute `run_process.py` as usual.
+Check the docs in the [dashboard documentation](./dashboard.md).
 
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
@@ -55,7 +52,7 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [](/README.md) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
 ### :wrench: File type parameters tuning
 

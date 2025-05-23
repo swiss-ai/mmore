@@ -16,7 +16,7 @@ Distributed processing allows you to scale document indexing across multiple mac
 
 ### 1. Prepare Your Configuration File
 
-Create or modify a configuration file that includes the distributed settings:
+Check your processing configuration file ([example](/examples/process/config.yaml)), to include the distributed settings:
 
 ```yaml
 dispatcher_config:
@@ -38,8 +38,12 @@ On each node, run:
 git clone <repository-url>
 cd mmore
 
+# Make a virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
 # Install dependencies
-pip install -e '.[all]'
+pip install -e .
 ```
 
 ### 3. Launch the Distributed Processing
@@ -71,7 +75,7 @@ Once all nodes are running, return to the master node and type `go` when prompte
 
 ## Monitoring Progress
 
-You can monitor the processing using the dashboard, just check its [documentation](/docs/dashboard_readme.md).
+You can monitor the processing using the dashboard, just check its [documentation](./dashboard.md).
 
 The dashboard provides:
 - Real-time progress visualization
