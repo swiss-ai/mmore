@@ -51,7 +51,7 @@ pip install -e .
 #### Step 1: Start the Master Node (Rank 0)
 
 ```bash
-bash scripts/process_distributed.sh --mmore-folder /path/to/mmore --config-path /path/to/config.yaml --rank 0
+bash scripts/process_distributed.sh --config-path /path/to/config.yaml --rank 0
 ```
 
 The master node will:
@@ -64,7 +64,7 @@ The master node will:
 On each additional node, run:
 
 ```bash
-bash scripts/process_distributed.sh --mmore-folder /path/to/mmore --config-path /path/to/config.yaml --rank 1
+bash scripts/process_distributed.sh --config-path /path/to/config.yaml --rank 1
 ```
 
 Replace `rank 1` with a unique rank number for each node (1, 2, 3, etc.).
