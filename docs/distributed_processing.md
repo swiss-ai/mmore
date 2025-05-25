@@ -29,7 +29,7 @@ Other important configuration options:
 - `output_folder`: Where processed results will be stored
 - `use_fast_processors`: Set to `true` for faster processing (may reduce accuracy)
 
-### 2. Install Dependencies on All Nodes
+### 2. Install Dependencies on all Nodes
 
 On each node, run:
 
@@ -51,7 +51,7 @@ pip install -e .
 #### Step 1: Start the Master Node (Rank 0)
 
 ```bash
-bash scripts/process_distributed.sh --mmore-folder /path/to/mmore --config-path /path/to/config.yaml --rank 0
+bash scripts/process_distributed.sh --config-file /path/to/config.yaml --rank 0
 ```
 
 The master node will:
@@ -64,14 +64,16 @@ The master node will:
 On each additional node, run:
 
 ```bash
-bash scripts/process_distributed.sh --mmore-folder /path/to/mmore --config-path /path/to/config.yaml --rank 1
+bash scripts/process_distributed.sh --config-path /path/to/config.yaml --rank 1
 ```
 
-Replace `rank 1` with a unique rank number for each node (1, 2, 3, etc.).
+Replace `rank 1` with a unique rank number for each node (1, 2, 3, etc.). The node should be ready in a matter of 5 seconds.
 
 #### Step 3: Begin Processing
 
-Once all nodes are running, return to the master node and type `go` when prompted to start the processing.
+Once all nodes are running, return to the master node and type `go`. The master node proceeds to crawl the input folder, split the workload among connected nodes and make them start their work.
+
+The dask server will be automatically shut down by the master node at the end of the processing. This will also shut down the dask workers on all the connected nodes.
 
 ## Monitoring Progress
 

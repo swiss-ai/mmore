@@ -1,18 +1,19 @@
 # tests/test_indexer.py
 
-import os
 import json
-import pytest
-import numpy as np
-from unittest.mock import patch, MagicMock
-
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-# Import run_index from the correct package path:
-from src.mmore.run_index import load_results, index, IndexConfig
-from src.mmore.type import MultimodalSample
 from src.mmore.index.indexer import Indexer, IndexerConfig
+
+# Import run_index from the correct package path:
+from src.mmore.run_index import index, load_results
+from src.mmore.type import MultimodalSample
 
 
 @pytest.fixture

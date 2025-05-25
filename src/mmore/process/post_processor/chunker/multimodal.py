@@ -32,9 +32,7 @@ class MultimodalChunker(BasePostProcessor):
         )
         return cls(text_chunker=text_chunker)
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         return self.chunk(sample)
 
     @staticmethod
@@ -80,7 +78,6 @@ class MultimodalChunker(BasePostProcessor):
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
 
-        # TODO: Update when id is added to multimodal sample
         chunks = []
         for chunk, mods in zip(text_chunks, modalities_chunks):
             s = MultimodalSample(
@@ -90,27 +87,6 @@ class MultimodalChunker(BasePostProcessor):
             chunks.append(s)
 
         return chunks
-
-    # TODO if you have time and are motivated and better at parallelizing than me (Whomp Whomp):
-    # def chunk_batch(self, batch: List[MultimodalSample]) -> List[List[MultimodalSample]]:
-    #     """Split a List of samples into their respective chunks
-    #     By default, this method uses multiprocessing to parallelize the chunking process.
-
-    #     Args:
-    #         batch: List of input samples to be chunked
-
-    #     Returns:
-    #         List of lists of Chunk objects containing the chunked text, modalities and metadata
-    #     """
-    #     workers = self.text_chunker._determine_optimal_workers()
-    #     if workers > 1:
-    #         with Pool(workers) as pool:
-    #             return pool.map(self.chunk, batch)
-    #     else:
-    #         return [self.chunk(t) for t in batch]
-
-    # def batch_process(self, samples, **kwargs):
-    #     return [s for sample in self.chunk_batch(samples) for s in sample]
 
 
 def _text_index_to_chunk_index(index: int, chunks: List[Chunk]) -> Optional[int]:

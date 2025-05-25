@@ -83,7 +83,6 @@ class RAGPipeline:
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 
     @staticmethod
-    # TODO: Add non RAG Pipeline (i.e. retriever is None)
     def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
@@ -102,8 +101,6 @@ class RAGPipeline:
 
         return validate_input | core_chain | validate_output
 
-    # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
-    # TODO: Streaming (low priority)
     def __call__(
         self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False
     ) -> List[Dict[str, str | List[str]]]:

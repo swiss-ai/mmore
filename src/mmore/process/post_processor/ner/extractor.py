@@ -103,21 +103,6 @@ class NERExtractor:
             config=self._chain_config,
         )
 
-        # TODO: How do we set the ID for the text?
-        # text_id = random.randint(0, 1000000)
-
-        # # add the chunk_id to the nodes
-        # for node_names in chunk_graph.nodes():
-        #     chunk_graph.nodes[node_names]["text_ids"] = [text_id]
-
-        # # add the chunk_id to the edges as well
-        # for edge_names in chunk_graph.edges():
-        #     chunk_graph.edges[edge_names]["text_ids"] = [text_id]
-
-        # if logging.getLevelName(_LOGGER.getEffectiveLevel()) == "DEBUG":
-        #     _LOGGER.debug(f"Graph for: {text_id}")
-        #     _LOGGER.debug(chunk_graph)
-
         return chunk_graph
 
     def invoke_batch(self, samples: List[MultimodalSample]) -> List[nx.Graph]:
