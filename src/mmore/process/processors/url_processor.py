@@ -70,6 +70,5 @@ class URLProcessor(Processor):
             logger.error(f"Failed to process URL {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-    # TODO: Not implemented
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         return self.process_fast(file_path)

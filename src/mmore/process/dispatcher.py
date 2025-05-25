@@ -247,7 +247,7 @@ class Dispatcher:
                 client = Client(**kwargs)
                 if ExecutionState._use_dask is None:
                     ExecutionState.initialize(distributed_mode=True, client=client)
-                
+
                 return (
                     processor(processor_config)(files, self.config.use_fast_processors),
                     processor_name,

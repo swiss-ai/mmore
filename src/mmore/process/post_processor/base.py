@@ -33,9 +33,7 @@ class BasePostProcessor(ABC):
         return self.process(sample, **kwargs)
 
     @abstractmethod
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         """Abstract method for processing a sample.
 
         Args:

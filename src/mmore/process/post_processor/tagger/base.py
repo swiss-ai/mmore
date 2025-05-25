@@ -57,9 +57,7 @@ class BaseTagger(BasePostProcessor):
         """
         return list(map(self.tag, tqdm(batch, desc=f"{self.name}")))
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         tag = self.tag(sample)
         sample.metadata[self.metadata_key] = tag
         return [sample]

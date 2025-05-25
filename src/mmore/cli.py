@@ -105,18 +105,26 @@ def index_api(host, port):
 
     run_api(host, port)
 
+
 @main.command()
 @click.option(
-    "--host", type=str, default="0.0.0.0", help="Host on which the dashboard API should be run."
+    "--host",
+    type=str,
+    default="0.0.0.0",
+    help="Host on which the dashboard API should be run.",
 )
 @click.option(
-    "--port", type=int, default=8000, help="Port on which the dashboard API should be run."
+    "--port",
+    type=int,
+    default=8000,
+    help="Port on which the dashboard API should be run.",
 )
 def dashboard_backend(host, port):
     """Run the dashboard backend."""
     from .run_dashboard_backend import run_api
 
     run_api(host, port)
+
 
 if __name__ == "__main__":
     main()

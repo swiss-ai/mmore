@@ -494,8 +494,10 @@ def process_files(
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
     return sum(list(dispatcher()), [])
 
+
 def run_api(host: str, port: int):
     uvicorn.run(app, host=host, port=port)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
