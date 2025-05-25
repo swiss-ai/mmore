@@ -2,7 +2,7 @@ data_path: examples/sample_data/ #put absolute path!
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: true
-  distributed: true
+  distributed: false
   dashboard_backend_url: null
   extract_images: true
   scheduler_file: /mmore/scheduler-file.json #put absolute path!
