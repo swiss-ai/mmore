@@ -129,7 +129,3 @@ Don't hesitate to star the project :star: if you find it interesting! (you would
 ## License
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
-
-## Acknowledgements
-
-This project is part of the [**OpenMeditron**](https://huggingface.co/OpenMeditron) initiative developed in [LiGHT](https://www.light-laboratory.org/) lab at EPFL/Yale/CMU Africa in collaboration with the [**SwissAI**](https://www.swiss-ai.org/) initiative. Thank you Scott Mahoney, Mary-Anne Hartley
