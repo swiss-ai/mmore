@@ -1,9 +1,9 @@
 import argparse
-from ....src.mmore.rag.evaluator import EvalConfig, RAGEvaluator
-from ....src.mmore.rag.llm import LLMConfig, LLM
-from ....src.mmore.index.indexer import DBConfig
 
 from dotenv import load_dotenv
+
+from ....src.mmore.rag.evaluator import RAGEvaluator
+
 load_dotenv()
 
 MOCK_EVALUATOR_CONFIG = './examples/rag/evaluation/rag_eval_example_config.yaml'

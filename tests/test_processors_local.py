@@ -1,16 +1,18 @@
-from marker.output import MarkdownOutput
 import os
 import sys
+
+from marker.output import MarkdownOutput
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+from src.mmore.process.processors.base import ProcessorConfig
 from src.mmore.process.processors.docx_processor import DOCXProcessor
 from src.mmore.process.processors.eml_processor import EMLProcessor
 from src.mmore.process.processors.md_processor import MarkdownProcessor
 from src.mmore.process.processors.media_processor import MediaProcessor
+from src.mmore.process.processors.pdf_processor import PDFProcessor
 from src.mmore.process.processors.pptx_processor import PPTXProcessor
 from src.mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
-from src.mmore.process.processors.base import ProcessorConfig
-from src.mmore.process.processors.pdf_processor import PDFProcessor
 from src.mmore.process.processors.txt_processor import TextProcessor
 from src.mmore.process.processors.url_processor import URLProcessor
 from src.mmore.type import FileDescriptor
