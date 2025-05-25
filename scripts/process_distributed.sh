@@ -6,10 +6,10 @@ RANK=""
 
 # Helper function to show usage
 usage() {
-  echo "Usage: $0 --mmore-folder <path> --config-path <path> --rank <value>"
+  echo "Usage: $0 --mmore-folder <path> --config-file <path> --rank <value>"
   echo ""
   echo "Required arguments:"
-  echo "  --config_path    Absolute path to the config.yaml file."
+  echo "  --config-file    Absolute path to the config.yaml file."
   echo "  --rank                                       Node rank."
   exit 1
 }
@@ -17,7 +17,7 @@ usage() {
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --config-path)
+    --config-file)
       CONFIG_PATH="$2"
       shift 2
       ;;
@@ -54,18 +54,17 @@ export DASK_DISTRIBUTED__WORKER__DAEMON=False
 # Dask part of the script
 
 if [ "$distributed" = "true" ]; then
-  pip list | grep dask 
   echo "Distributed mode enabled"
   # Start the Dask scheduler if the current node is the MASTER (rank 0)
   if [ "$RANK" -eq 0 ]; then
     echo "Starting the scheduler because it is the MASTER node (rank 0)"
-    dask -h
-    dask scheduler --scheduler-file "$scheduler_file" &
+    dask scheduler --scheduler-file "$scheduler_file" &> dask_scheduler.log &
+    SCHEDULER_PID=$!
   fi
 
   # Start the Dask worker
   echo "Starting the worker of every node"
-  dask worker --scheduler-file "$scheduler_file" &
+  dask worker --scheduler-file "$scheduler_file" &> "dask_scheduler_worker_$RANK.log" &
 fi
 
 
@@ -80,6 +79,7 @@ if [ "$RANK" -eq 0 ]; then
   while true; do
     read -r user_input
     if [ "$user_input" = "go" ]; then
+      echo "Starting processing"
       python -m mmore process --config-file "$CONFIG_PATH"
       break
     elif [ "$user_input" = "exit" ]; then
@@ -90,4 +90,6 @@ if [ "$RANK" -eq 0 ]; then
       echo "Invalid input. Type 'go' to run the command or 'exit' to stop."
     fi
   done
+
+  kill -9 $SCHEDULER_PID
 fi

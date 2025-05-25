@@ -55,7 +55,7 @@ class ExecutionState:
         if ExecutionState._use_dask:
             try:
                 return cast(
-                    bool, cast(Variable, ExecutionState._dask_var).get(sync=True)
+                    bool, cast(Variable, ExecutionState._dask_var).get()
                 )
             except Exception as e:
                 logger.error(f"Error getting dask variable: {e}")
