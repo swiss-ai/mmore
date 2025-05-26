@@ -29,10 +29,11 @@ First create a new venv at repo's location
 ```bash
 uv venv
 source .venv/bin/activate
+python -m ensurepip
 ```
 
 Then install mmore prepending `uv` to basic commands
 ```bash
-pip install -e .
+python -m pip install -e .
 ```
 

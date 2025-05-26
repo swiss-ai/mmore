@@ -1,6 +1,7 @@
 import logging
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ class TextProcessor(Processor):
         files (List[FileDescriptor]): List of files to be processed.
         config (ProcessorConfig): Configuration for the processor.
     """
+
     def __init__(self, config=None):
         """
         Args:
@@ -32,7 +34,6 @@ class TextProcessor(Processor):
             bool: True if the file is a plain text file (.txt), False otherwise.
         """
         return file.file_extension.lower() in [".txt"]
-
 
     def process(self, file_path: str) -> MultimodalSample:
         """

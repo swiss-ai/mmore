@@ -1,26 +1,14 @@
 """
-Utility functions for processing files, images, PDFs, and text. 
-These functions can be used across various processors for data extraction, 
+Utility functions for processing files, images, PDFs, and text.
+These functions can be used across various processors for data extraction,
 cleaning, splitting, and aggregation.
 """
 
-from io import BytesIO
 import logging
-import tempfile
-import os
-import requests
-import validators
+
+import numpy as np
 from cleantext import clean
 from PIL import Image
-from typing import List
-import fitz
-from src.mmore.type import FileDescriptor
-from datetime import datetime
-from typing import Tuple, Dict
-from pathlib import Path
-from uuid import uuid4
-import json
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +47,9 @@ def clean_text(text: str) -> str:
     )
 
 
-def clean_image(image: Image.Image, min_width=512, min_height=512, variance_threshold=100) -> bool:
+def clean_image(
+    image: Image.Image, min_width=512, min_height=512, variance_threshold=100
+) -> bool:
     """
     Validates an image based on size and variance (whether its one-colored).
 

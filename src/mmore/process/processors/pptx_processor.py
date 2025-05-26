@@ -1,12 +1,15 @@
-import logging
 import io
+import logging
+from typing import cast
 
-from PIL.Image import Image
+from PIL import Image
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from PIL import Image
-from src.mmore.process.utils import clean_text, clean_image
-from src.mmore.type import FileDescriptor, MultimodalSample
+from pptx.shapes.autoshape import Shape
+from pptx.shapes.picture import Picture
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -30,7 +33,7 @@ class PPTXProcessor(Processor):
         super().__init__(config=config or ProcessorConfig())
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -76,7 +79,7 @@ class PPTXProcessor(Processor):
                 for shape in shape_list:
                     # Extract text from shape
                     if shape.has_text_frame:
-                        cleaned_text = clean_text(shape.text)
+                        cleaned_text = clean_text(cast(Shape, shape).text)
                         if cleaned_text.strip():
                             all_text.append(cleaned_text)
 
@@ -84,7 +87,9 @@ class PPTXProcessor(Processor):
                     if self.config.custom_config.get("extract_images", True):
                         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                             try:
-                                pil_image = Image.open(io.BytesIO(shape.image.blob)).convert("RGBA")
+                                pil_image = Image.open(
+                                    io.BytesIO(cast(Picture, shape).image.blob)
+                                ).convert("RGBA")
                                 if clean_image(pil_image):
                                     embedded_images.append(pil_image)
                                     all_text.append(self.config.attachment_tag)

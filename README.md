@@ -29,7 +29,8 @@ Our package requires system dependencies. This snippet will take care of install
 sudo apt update
 sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
   libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
-  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice \
+  libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
 
 #### Step 1 – Install MMORE
@@ -40,12 +41,6 @@ To install the package simply run:
 pip install -e .
 ```
 
-To install additional RAG-related dependencies, run:
-
-```bash
-pip install -e '.[rag]'
-```
-
 > :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
 
 ### Minimal Example
@@ -54,13 +49,14 @@ You can use our predefined CLI commands to execute parts of the pipeline. Note t
 
 ```bash
 # Run processing
-mmore process --config-file examples/process/config.yaml
+python -m mmore process --config-file examples/process/config.yaml
+python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-mmore index --config-file examples/index/config.yaml
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/process/outputs/merged/final_pp.jsonl
 
 # Run RAG
-mmore rag --config-file examples/rag/api/rag_api.yaml
+python -m mmore rag --config-file examples/rag/config.yaml
 ```
 
 You can also use our package in python code as shown here:
@@ -70,35 +66,34 @@ from mmore.process.processors.pdf_processor import PDFProcessor
 from mmore.process.processors.base import ProcessorConfig
 from mmore.type import MultimodalSample
 
-pdf_file_paths = ["examples/sample_data/pdf/calendar.pdf"]
-out_file = "results/example.jsonl"
+pdf_file_paths = ["/path/to/examples/sample_data/pdf/calendar.pdf"] #write here the full path, not a relative path
+out_file = "/path/to/examples/process/outputs/example.jsonl"
 
-pdf_processor_config = ProcessorConfig(custom_config={"output_path": "results"})
+pdf_processor_config = ProcessorConfig(custom_config={"output_path": "examples/process/outputs"})
 pdf_processor = PDFProcessor(config=pdf_processor_config)
-result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
+result_pdf = pdf_processor.process_batch(pdf_file_paths, False, 1) # args: file_paths, fast mode (True/False), num_workers
 
 MultimodalSample.to_jsonl(out_file, result_pdf)
 ```
 
 ---
 
-
 ### Usage
 
-To launch the MMORE pipeline follow the specialised instructions in the docs.
+To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
 ![The MMORE pipelines archicture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
 
 
 1. **:page_facing_up: Input Documents**  
-   Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
+   Upload your multimodal documents (PDFs, videos, spreadsheets, and m(m)ore) into the pipeline.
 
 2. [**:mag: Process**](./docs/process.md) 
-   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.  
+   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.
    *Supports fast processing for specific types.*
 
 3. [**:file_folder: Index**](./docs/index.md) 
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. 
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](./docs/index_api.md) for adding new files on the fly with HTTP requests.
 
 4. [**:robot: RAG**](./docs/rag.md) 
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
@@ -108,7 +103,7 @@ To launch the MMORE pipeline follow the specialised instructions in the docs.
    *Coming soon*
    An easy way to evaluate the performance of your RAG system using Ragas.
 
-See [the `/docs` directory](/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
+See [the `/docs` directory](./docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
 
 
 #### :construction: Supported File Types  
@@ -118,7 +113,7 @@ See [the `/docs` directory](/docs) for additional details on each modules and ha
 | **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML           | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
-| **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
+| **Web Content**    | HTML                                    | CPU                      | :white_check_mark:
 
 
 ## Contributing
@@ -134,7 +129,3 @@ Don't hesitate to star the project :star: if you find it interesting! (you would
 ## License
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
-
-## Acknowledgements
-
-This project is part of the [**OpenMeditron**](https://huggingface.co/OpenMeditron) initiative developed in [LiGHT](https://www.light-laboratory.org/) lab at EPFL/Yale/CMU Africa in collaboration with the [**SwissAI**](https://www.swiss-ai.org/) initiative. Thank you Scott Mahoney, Mary-Anne Hartley

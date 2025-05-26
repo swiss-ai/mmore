@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import torch
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
@@ -20,8 +20,8 @@ class SpladeSparseEmbedding(BaseSparseEmbedding):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.splade = SpladeEmbeddingFunction(model_name=model_name, device=self.device)
 
-    def embed_query(self, text: str) -> Dict[int, float]:
-        return self.splade.encode_queries([text])
+    def embed_query(self, query: str) -> Dict[int, float]:
+        return self.splade.encode_queries([query])
 
     def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
         return self.splade.encode_documents(texts)

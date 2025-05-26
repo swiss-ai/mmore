@@ -1,7 +1,8 @@
+import os
+from pathlib import Path
+
 import click
 import yaml
-from pathlib import Path
-import os
 
 default_config = {
     "processor": {
@@ -32,6 +33,7 @@ default_config = {
             {"PPTXProcessor": 100},
             {"MarkdownProcessor": 100},
             {"EMLProcessor": 100},
+            {"HTMLProcessor": 100},
         ]
     },
 }

@@ -4,15 +4,13 @@ The process module enables the extraction and standardization of text and images
 
 ## :hammer: Quick Start
 #### :technologist: Global installation
-Setup the project in each device you want to use using our setup script or looking at what it does and doing it manually.
-```bash
-pip install -e '.[all]'
-```
+[Setup the project](./installation.md) on each device you want to use using our setup script or looking at what it does and doing it manually.
 
 #### :computer: Running locally
-You need to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+You have to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+
 ```bash
-python -m mmore process --config-file examples/process/config.yaml
+python3 -m mmore process --config-file examples/process/config.yaml
 ```
 The output of the pipeline has the following structure:
 ```
@@ -40,10 +38,7 @@ bash scripts/process_distributed.sh -f /path/to/my/input/folder
 Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
 You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
 
-1.	Start the backend on the cluster [backend README](/src/mmore/dashboard/backend/README.md).
-2.  Specify the backend URL in the frontend as an environment variable.
-3.	Start the frontend on your local machine [frontend README](/src/mmore/dashboard/frontend/README.md).
-4.  Specify the backend URL in the `process_config.yaml` file and finally execute `run_process.py` as usual.
+Check the docs in the [dashboard documentation](./dashboard.md).
 
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
@@ -57,7 +52,7 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [](/README.md) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
 ### :wrench: File type parameters tuning
 
@@ -90,7 +85,7 @@ The project supports multiple file types and utilizes various AI-based tools for
 | **EML**                               | [python built-in library](https://docs.python.org/3/library/email.html) | N/A                                                                                                                         |
 | **MP4, MOV, AVI, MKV, MP3, WAV, AAC** | [moviepy](https://pypi.org/project/moviepy/) for video frame extraction; [whisper-large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) for transcription | [whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                  |
 | **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction                                      | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
-| **Webpages (TBD)**                         | TODO| [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to navigate the webpage, extract content and content extraction; [requests](https://docs.python-requests.org/en/master/) for images |
+| **HTML**                         | [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to navigate the webpage, extract content and content extraction; [requests](https://docs.python-requests.org/en/master/) for images | N/A
 ---
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
 
@@ -109,7 +104,7 @@ You can configure parameters by providing a custom config file. You can find an 
 
 Once ready, you can run the process using the following command:
 ```bash
-python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
+python3 -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 ```
 
 Specify with `--input-data` the path (absolute or relative to the root of the repository) to the JSONL recoding of the output of the initial processing phase.
