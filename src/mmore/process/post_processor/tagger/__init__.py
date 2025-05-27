@@ -1,19 +1,17 @@
 from .base import BaseTaggerConfig
-
+from .lang_detector import LangDetector
 from .modalities import ModalitiesCounter
 from .words import WordsCounter
-from .lang_detector import LangDetector
 
-from mmore.utils import load_config
-
-__all__ = ['ModalitiesCounter', 'WordsCounter', 'LangDetector']
+__all__ = ["ModalitiesCounter", "WordsCounter", "LangDetector"]
 
 TAGGERS_LOADERS_MAP = {
-    'modalities_counter': ModalitiesCounter,
-    'words_counter': WordsCounter,
-    'lang_detector': LangDetector
+    "modalities_counter": ModalitiesCounter,
+    "words_counter": WordsCounter,
+    "lang_detector": LangDetector,
 }
 TAGGER_TYPES = list(TAGGERS_LOADERS_MAP.keys())
+
 
 def load_tagger(config: BaseTaggerConfig):
     if config.type in TAGGER_TYPES:

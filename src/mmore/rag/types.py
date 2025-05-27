@@ -1,11 +1,10 @@
 from typing import List
 
+from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 
-from langchain_core.documents import Document
-
-
 # ------------------------------- Simple Input ------------------------------- #
+
 
 class MMOREInput(BaseModel):
     """Input for the chat endpoint."""
@@ -26,14 +25,17 @@ class MMOREInput(BaseModel):
 
 # ------------------------------- Simple Output ------------------------------ #
 
+
 class MMOREOutput(BaseModel):
     """Base Answer, outputs the query, documents and answer"""
+
     input: str
     docs: List[Document]
     answer: str
 
 
 # -------------------------------- CitedAnswer ------------------------------- #
+
 
 class CitedAnswer(BaseModel):
     """Answer the user question based only on the given sources, and cite the sources used."""
@@ -49,6 +51,7 @@ class CitedAnswer(BaseModel):
 
 
 # ------------------------------- QuotedAnswer ------------------------------- #
+
 
 class Citation(BaseModel):
     source_id: int = Field(

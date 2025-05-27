@@ -1,21 +1,13 @@
-from typing import List
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
-from .splade import SpladeSparseEmbedding
-from langchain_core.embeddings import Embeddings
-
 from dataclasses import dataclass
 
-_SPLADE_MODELS = [
-    "naver/splade-cocondenser-selfdistil"
-]
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-loaders = {
-    'SPLADE': SpladeSparseEmbedding
-}
+from .splade import SpladeSparseEmbedding
 
-_names = {
-    'splade': "naver/splade-cocondenser-selfdistil"
-}
+_SPLADE_MODELS = ["naver/splade-cocondenser-selfdistil"]
+_names = {"splade": "naver/splade-cocondenser-selfdistil"}
+loaders = {"SPLADE": SpladeSparseEmbedding}
+
 
 @dataclass
 class SparseModelConfig:
@@ -29,11 +21,14 @@ class SparseModelConfig:
     @property
     def model_type(self) -> str:
         if self.model_name in _SPLADE_MODELS:
-            return 'SPLADE'
+            return "SPLADE"
         else:
             raise NotImplementedError()
 
-class SparseModel(Embeddings):
+
+class SparseModel(BaseSparseEmbedding):
     @classmethod
-    def from_config(cls, config: SparseModelConfig) -> 'SparseModel':
-        return loaders.get(config.model_type, SpladeSparseEmbedding)(model_name=config.model_name)
+    def from_config(cls, config: SparseModelConfig) -> BaseSparseEmbedding:
+        return loaders.get(config.model_type, SpladeSparseEmbedding)(
+            model_name=config.model_name
+        )

@@ -4,15 +4,13 @@ The process module enables the extraction and standardization of text and images
 
 ## :hammer: Quick Start
 #### :technologist: Global installation
-Setup the project in each device you want to use using our setup script or looking at what it does and doing it manually.
-```bash
-pip install -e '.[all]'
-```
+[Setup the project](./installation.md) on each device you want to use using our setup script or looking at what it does and doing it manually.
 
 #### :computer: Running locally
-You need to specify the input folder by modifying the [config file](https://github.com/OpenMeditron/End2End/blob/dask-cuda-poc/examples/process_config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+You have to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+
 ```bash
-python -m mmore process --config-file examples/process/config.yaml
+python3 -m mmore process --config-file examples/process/config.yaml
 ```
 The output of the pipeline has the following structure:
 ```
@@ -31,7 +29,7 @@ output_path
 ```
 #### :rocket: Running on distributed nodes
 
-We provide [a simple bash script](./entrypoint_distributed.sh) to run the process on distributed mode. Please call it with your arguments.
+We provide [a simple bash script](/scripts/process_distributed.sh) to run the process on distributed mode. Please call it with your arguments.
 ```bash
 bash scripts/process_distributed.sh -f /path/to/my/input/folder 
 ```
@@ -39,13 +37,11 @@ bash scripts/process_distributed.sh -f /path/to/my/input/folder
 #### :hourglass: Dashboard UI
 Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
 You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
-	1.	Start the backend on the cluster [backend README](/src/mmore/dashboard/backend/README.md).
-    2.  Specify the backend URL in the frontend as an environment variable.
-	3.	Start the frontend on your local machine [frontend README](/src/mmore/dashboard/frontend/README.md).
-    4.  Specify the backend URL in the `process_config.yaml` file and finally execute `run_process.py` as usual.
+
+Check the docs in the [dashboard documentation](./dashboard.md).
 
 #### :scroll: Examples
-You can find more examples scripts in [the `/examples` directory](../examples/).
+You can find more examples scripts in [the `/examples` directory](/examples).
 
 ## :zap: Optimization
 ### :racing_car: Fast mode
@@ -56,13 +52,13 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file., and follow the steps described in the [](../README.md#hammer-manual-installation) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
 ### :wrench: File type parameters tuning
 
 Many parameters are hardware-dependent and can be customized to suit your needs. For example, you can adjust the processor batch size, dispatcher batch size, and the number of threads per worker to optimize performance.
 
-You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](examples/process_config.yaml).
+You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/process/config.yaml).
 
 :rotating_light: Not all parameters are configurable yet :wink:
 
@@ -73,7 +69,7 @@ You can configure parameters by providing a custom config file. You can find an 
 Our pipeline is a 3 steps process:
 - **Crawling**: We first crawl over the file/folder to list all the files we need to process (by skipping those already processed).
 - **Dispatching**: We then dispatch the files to the workers, using a dispatcher that will send the files to the workers in batches. This part is in charge of the load balancing between different nodes if the project is running in a distributed environment.
-- **Processing**: The workers then process the files, using the appropriate tools for each file type. They extract the text, images, audio, and video frames, and send them to the next step. Our goal is to provide an easy way to add new processors for new file types, or even other types of processing for existing file types.
+- **Processing**: The workers then process the files, using the appropriate tools for each file type. They extract the text, images, audio, and video frames, and send them to the next step. We defined for this a common data structure for saving document samples: [MultimodalSample](https://github.com/swiss-ai/mmore/blob/master/src/mmore/type.py#L38). Our goal is to provide an easy way to add new processors for new file types, or even other types of processing for existing file types.
 
 ## 🛠️ Used tools
 
@@ -89,7 +85,7 @@ The project supports multiple file types and utilizes various AI-based tools for
 | **EML**                               | [python built-in library](https://docs.python.org/3/library/email.html) | N/A                                                                                                                         |
 | **MP4, MOV, AVI, MKV, MP3, WAV, AAC** | [moviepy](https://pypi.org/project/moviepy/) for video frame extraction; [whisper-large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) for transcription | [whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                  |
 | **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction                                      | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
-| **Webpages (TBD)**                         | TODO| [selenium](https://selenium-python.readthedocs.io/) to navigate the webpage and extract content; [requests](https://docs.python-requests.org/en/master/) for images; [trafilatura](https://trafilatura.readthedocs.io/en/latest/) for content extraction |
+| **HTML**                         | [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to navigate the webpage, extract content and content extraction; [requests](https://docs.python-requests.org/en/master/) for images | N/A
 ---
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
 
@@ -99,3 +95,18 @@ The system is designed to be extensible, allowing you to register custom process
 - process: how to process a single file (input:file type, output: Multimodal sample, see other processors for reference)
 
 See `TextProcessor` in `src/process/processors/text_processor.py` for a minimal example.
+
+## :broom: Post-processing
+
+Post-processing refines the extracted text data to improve quality for downstream tasks. The infrastructure is modular and extensible: mmore natively supports the following post-processors: [**Chunker**](/src/mmore/process/post_processor/chunker), [**Filter**](/src/mmore/process/post_processor/filter), [**Named Entity Recognition**](/src/mmore/process/post_processor/ner), and [**Tagger**](/src/mmore/process/post_processor/tagger). Applying the **Chunker** is heavily recommended, as it cuts documents into reasonably sized chunks that are more specific to feed to an LLM.
+
+You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/postprocessor/config.yaml).
+
+Once ready, you can run the process using the following command:
+```bash
+python3 -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
+```
+
+Specify with `--input-data` the path (absolute or relative to the root of the repository) to the JSONL recoding of the output of the initial processing phase.
+
+New post-processors can easily be implemented, and pipelines can be configured through lightweight YAML files. The post-processing stage produces a new JSONL file containing cleaned and optionally enhanced document samples.

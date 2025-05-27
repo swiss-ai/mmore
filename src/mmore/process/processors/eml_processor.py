@@ -1,11 +1,12 @@
-import logging
-import io
 import email
+import io
+import logging
 from email import policy
+
 from PIL import Image
-from typing import Dict, Any, List
-from src.mmore.process.utils import clean_text
-from src.mmore.type import FileDescriptor, MultimodalSample
+
+from ...type import FileDescriptor, MultimodalSample
+from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,10 @@ class EMLProcessor(Processor):
 
     Attributes:
         files (List[FileDescriptor]): List of EML files to be processed.
-        config (ProcessorConfig): Configuration for the processor, including options such as the 
+        config (ProcessorConfig): Configuration for the processor, including options such as the
                                    placeholder tag for embedded images (e.g., "<attachment>").
-    """    
+    """
+
     def __init__(self, config=None):
         """
         Args:
@@ -27,9 +29,9 @@ class EMLProcessor(Processor):
             config (ProcessorConfig, optional): Configuration for the processor. Defaults to None.
         """
         super().__init__(config=config or ProcessorConfig())
-    
+
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool:  
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -41,7 +43,7 @@ class EMLProcessor(Processor):
 
     def process(self, file_path: str) -> MultimodalSample:
         """
-        Process a single EML file. Extracts text content, email headers, and embedded images. 
+        Process a single EML file. Extracts text content, email headers, and embedded images.
 
         Args:
             file_path (str): Path to the EML file.
@@ -54,7 +56,7 @@ class EMLProcessor(Processor):
         """
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 msg = email.message_from_bytes(f.read(), policy=policy.default)
         except Exception as e:
             logger.error(f"Failed to open EML file {file_path}: {e}")
@@ -68,13 +70,13 @@ class EMLProcessor(Processor):
             f"From: {msg.get('From', '')}",
             f"To: {msg.get('To', '')}",
             f"Subject: {msg.get('Subject', '')}",
-            f"Date: {msg.get('Date', '')}"
+            f"Date: {msg.get('Date', '')}",
         ]
         all_text.extend([clean_text(header) for header in headers if header])
-        
+
         for part in msg.walk():
             # extract text
-            if part.get_content_type() == 'text/plain':
+            if part.get_content_type() == "text/plain":
                 try:
                     text = part.get_content()
                     cleaned = clean_text(text)
@@ -84,16 +86,23 @@ class EMLProcessor(Processor):
                     logger.error(f"Error extracting text from EML: {e}")
 
             # extract images only if passed argument in config is True
-            elif part.get_content_type().startswith('image/'):
+            elif part.get_content_type().startswith("image/"):
                 if self.config.custom_config.get("extract_images", True):
                     try:
                         image_data = part.get_payload(decode=True)
-                        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                        if isinstance(image_data, bytes):
+                            image = Image.open(io.BytesIO(image_data)).convert("RGB")
+                        else:
+                            raise ValueError(
+                                "Image data extracted is not made of bytes"
+                            )
                         embedded_images.append(image)
-                        all_text.append(self.config.attachment_tag) # default token is "<attachment>"
+                        all_text.append(
+                            self.config.attachment_tag
+                        )  # default token is "<attachment>"
                     except Exception as e:
                         logger.error(f"Error extracting image from EML: {e}")
                 else:
                     embedded_images = []
-                    
+
         return self.create_sample(all_text, embedded_images, file_path)

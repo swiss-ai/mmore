@@ -1,24 +1,21 @@
-import torch
 import re
-import numpy as np
-from typing import List, Any, Dict
-from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from typing import Optional
 
+import numpy as np
+import torch
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from PIL import Image
+from transformers import AutoModelForImageTextToText, AutoProcessor
 
-from mmore.type import MultimodalSample
+from ....type import MultimodalSample
 
-import sys
 
 class MultimodalEmbeddings(Embeddings):
     def __init__(self, model_name: str):
         super().__init__()
         self.model = AutoModelForImageTextToText.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16,
-            device_map="auto"
+            model_name, torch_dtype=torch.float16, device_map="auto"
         )
         self.processor = AutoProcessor.from_pretrained(model_name)
         self.device = self.model.device
@@ -65,22 +62,18 @@ class MultimodalEmbeddings(Embeddings):
             # replace <attachment> with empty string
             text = text.replace("<attachment>", "")
             prompt, images = MultimodalEmbeddings._extract_multimodal_inputs(
-                text, 
-                proc_token='<|image|>'
+                text, proc_token="<|image|>"
             )
             images = [Image.open(image) for image in images]
 
             if images:
                 inputs = self.processor(
-                    text=prompt,
-                    images=images,
-                    return_tensors="pt"
+                    text=prompt, images=images, return_tensors="pt"
                 ).to(self.device)
             else:
-                inputs = self.processor(
-                    text=prompt,
-                    return_tensors="pt"
-                ).to(self.device)
+                inputs = self.processor(text=prompt, return_tensors="pt").to(
+                    self.device
+                )
 
             with torch.no_grad():
                 outputs = self.model(**inputs, output_hidden_states=True)
@@ -104,20 +97,26 @@ class MultimodalEmbeddings(Embeddings):
 
     @staticmethod
     def _multimodal_to_text(sample: MultimodalSample):
-        s = '\n'.join([f"<|{modality.type}|>{modality.value}<|{modality.type}|>" for modality in sample.modalities])
+        s = "\n".join(
+            [
+                f"<|{modality.type}|>{modality.value}<|{modality.type}|>"
+                for modality in sample.modalities
+            ]
+        )
         s += sample.text
         return s
 
     @staticmethod
     def _multimodal_to_doc(sample: MultimodalSample) -> Document:
         return Document(
-            MultimodalEmbeddings._multimodal_to_text(sample),
-            metadata=sample.metadata
+            MultimodalEmbeddings._multimodal_to_text(sample), metadata=sample.metadata
         )
 
     @staticmethod
-    def _extract_multimodal_inputs(text, proc_token: str, pattern: str = None) -> tuple[str, list[str]]:
-        pattern = pattern or rf'{re.escape(proc_token)}(.*?){re.escape(proc_token)}'
+    def _extract_multimodal_inputs(
+        text, proc_token: str, pattern: Optional[str] = None
+    ) -> tuple[str, list[str]]:
+        pattern = pattern or rf"{re.escape(proc_token)}(.*?){re.escape(proc_token)}"
 
         # Find all matches in the input string
         extracted_strings = re.findall(pattern, text)
