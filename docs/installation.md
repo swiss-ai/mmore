@@ -80,12 +80,12 @@ sudo docker build --build-arg PLATFORM=cpu -t mmore .
 ##### Step 3: Start an interactive session
 
 ```bash
-sudo docker run --gpus all -it -v ./examples:/app/examples mmore
+sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/root/.cache mmore
 ```
 
 For CPU-only platforms:
 ```bash
-sudo docker run -it -v ./examples:/app/examples mmore
+sudo docker run -it -v ./examples:/app/examples -v ./.cache:/root/.cache mmore
 ```
 
 > [!WARNING]
