@@ -102,8 +102,8 @@ sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mm
 > ```
 >
 > ```sh
-> sudo apt-get update
-> sudo apt-get install -y nvidia-container-toolkit
+> sudo apt update
+> sudo apt install -y nvidia-container-toolkit
 > ```
 >
 > Modify the Docker daemon to use Nvidia:
