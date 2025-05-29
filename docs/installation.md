@@ -83,7 +83,7 @@ sudo docker build --build-arg PLATFORM=cpu -t mmore .
 sudo docker run --gpus all -it -v ./examples:/app/examples mmore
 ```
 
-To run for CPU-only platforms:
+For CPU-only platforms:
 ```bash
 sudo docker run -it -v ./examples:/app/examples mmore
 ```
@@ -113,6 +113,6 @@ sudo docker run -it -v ./examples:/app/examples mmore
 > sudo systemctl restart docker
 > ```
 >
-> Run the `docker run` command!
+> You can now use `docker run --gpus all`!
 
 *Note:* The `examples` folder is mapped to `/app/examples` inside the container, corresponding to the default path in `examples/process/config.yaml`.
