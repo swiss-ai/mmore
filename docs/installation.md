@@ -80,7 +80,39 @@ sudo docker build --build-arg PLATFORM=cpu -t mmore .
 ##### Step 3: Start an interactive session
 
 ```bash
+sudo docker run --gpus all -it -v ./examples:/app/examples mmore
+```
+
+To run for CPU-only platforms:
+```bash
 sudo docker run -it -v ./examples:/app/examples mmore
 ```
+
+> [!WARNING]
+> You may need the Nvidia toolkit so the containers can access your GPUs.
+> Read [this tutorial](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) if something breaks here!
+>
+> Configure the production repository:
+>
+> ```sh
+> curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+>   && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+>   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+>   sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+> ```
+>
+> ```sh
+> sudo apt-get update
+> sudo apt-get install -y nvidia-container-toolkit
+> ```
+>
+> Modify the Docker daemon to use Nvidia:
+>
+> ```sh
+> sudo nvidia-ctk runtime configure --runtime=docker
+> sudo systemctl restart docker
+> ```
+>
+> Run the `docker run` command!
 
 *Note:* The `examples` folder is mapped to `/app/examples` inside the container, corresponding to the default path in `examples/process/config.yaml`.
