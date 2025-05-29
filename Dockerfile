@@ -32,11 +32,16 @@ RUN apt-get update && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy the project into the image
-ADD . /app
+# Create a non-root user
+RUN useradd -m -u 1000 mmoreuser
 
-# Sync the project into a new environment, using the frozen lockfile
+# Set up working directory and permissions
+RUN mkdir -p /app && chown -R mmoreuser:mmoreuser /app
 WORKDIR /app
+
+# Copy the project into the image and set ownership
+ADD . /app
+RUN chown -R mmoreuser:mmoreuser /app
 
 # Define the build argument with a default value of an empty string (optional)
 COPY pyproject.toml ./
@@ -50,6 +55,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 RUN uv pip install -e . --system
 
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
+
+USER mmoreuser
 
 ENTRYPOINT /bin/bash
 
