@@ -12,14 +12,14 @@
 
 Here is a minimal example to create a RAG pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
 
-1. Create your RAG Inference config file based on the [local example](/examples/rag/config.yaml) or the [API example](/examples/rag/config_api.yaml).
+1. Create your RAG Inference config file based on the [local example](/examples/rag/config.yaml) or the [API example](/examples/rag/config_api.yaml). You can check the structure of the configuration file with the dataclass [RAGConfig](/src/mmore/rag/pipeline.py).
 
 2. Start your RAG pipeline using the `run_rag.py` script and your config file
     ```bash
     python3 -m mmore rag --config_file /path/to/config.yaml
     ```
 
-3. Query the server like any other LangServe server
+3. In API mode, query the server like any other LangServe server:
     ```bash
     curl --location --request POST http://localhost:8000/rag/invoke \
     -H 'Content-Type: application/json' \
@@ -35,6 +35,8 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
     curl --location --request GET http://localhost:8000/rag/input_schema \
     -H 'Content-Type: application/json' 
     ```
+
+    In local mode, the pipeline is run directly with the input data specified in the configuration file and the result is saved at the specified path.
 
 See [`examples/rag`](/examples/rag/) for other use cases.
 
