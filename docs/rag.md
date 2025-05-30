@@ -26,7 +26,7 @@ Here is a minimal example to create a RAG pipeline hosted through [LangServe](ht
     -d '{
         "input": {
             "input": "What is Meditron?",
-            "collection_name": "med_docs"
+            "collection_name": "my_docs"
         }
     }'
     ```
