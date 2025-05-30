@@ -2,7 +2,7 @@
 rag: 
   # LLM Config
   llm: 
-    llm_name: "TinyLlama/TinyLlama-1.1B-Chat-v1.0" # "OpenMeditron/meditron3-8b" # "gpt-4o-mini" # Anything supported
+    llm_name: "TinyLlama/TinyLlama-1.1B-Chat-v1.0" # "epfl-llm/meditron-70b" # "gpt-4o-mini" # Anything supported
     max_new_tokens: 100
     temperature: 0.8
   # Retriever Config
