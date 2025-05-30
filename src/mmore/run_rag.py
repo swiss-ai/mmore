@@ -47,6 +47,7 @@ class RAGInferenceConfig:
         if self.mode_args is None and self.mode == "api":
             self.mode_args = APIConfig()
 
+
 def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
     with open(input_file, "r") as f:
         return [json.loads(line) for line in f]

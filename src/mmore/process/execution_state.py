@@ -46,7 +46,7 @@ class ExecutionState:
         else:
             ExecutionState._local_state = False
             logger.info("Execution state initialized (local mode)")
-    
+
     @staticmethod
     def shutdown():
         ExecutionState._use_dask = None

@@ -87,14 +87,14 @@ class RAGPipeline:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
-        
+
         def make_output(x):
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|assistant|>\n")[-1]
-            
+
             return res_dict
-            
+
         validate_output = RunnableLambda(make_output)
 
         rag_chain_from_docs = prompt | llm | StrOutputParser()

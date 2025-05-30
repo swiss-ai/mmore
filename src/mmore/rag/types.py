@@ -19,7 +19,7 @@ class MMOREInput(BaseModel):
     )
     document_ids: List[str] = Field(
         default_factory=list,  # Set default to an empty list if not provided
-        description="List of document IDs, defaults to an empty list if not provided."
+        description="List of document IDs, defaults to an empty list if not provided.",
     )
 
 
