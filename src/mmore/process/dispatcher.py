@@ -342,6 +342,8 @@ class Dispatcher:
         else:
             results = list(self._dispatch_local(task_lists))
 
+        ExecutionState.shutdown()
+
         return results
 
     def __call__(self) -> List[List[MultimodalSample]]:

@@ -131,7 +131,7 @@ async def upload_files(
         with tempfile.TemporaryDirectory() as temp_dir:
             logging.info(f"Starting to process {len(files)} files with custom IDs")
 
-            for i, (file, file_id) in enumerate(zip(files, listIds)):
+            for file, file_id in zip(files, listIds):
                 if file.filename is None:
                     raise HTTPException(
                         status_code=422,

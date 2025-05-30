@@ -33,7 +33,10 @@ def process(config_file: str):
     help="Path to the config file for post-processing.",
 )
 @click.option(
-    "--input-data", type=str, required=True, help="Path to the input JSONL file of documents."
+    "--input-data",
+    type=str,
+    required=True,
+    help="Path to the input JSONL file of documents.",
 )
 def postprocess(config_file: str, input_data: str):
     """Run the post-processors pipeline.
@@ -59,7 +62,11 @@ def postprocess(config_file: str, input_data: str):
     help="Path to the config file for indexing.",
 )
 @click.option(
-    "--documents-path", "-f", type=str, required=False, help="Path to the JSONL file of the (post)processed documents."
+    "--documents-path",
+    "-f",
+    type=str,
+    required=False,
+    help="Path to the JSONL file of the (post)processed documents.",
 )
 @click.option(
     "--collection-name",
@@ -93,10 +100,18 @@ def index(config_file: str, documents_path: str, collection_name: str):
     help="Dispatcher configuration file path.",
 )
 @click.option(
-    "--input-file", "-f", type=str, required=True, help="Path to the JSONL file of the input queries."
+    "--input-file",
+    "-f",
+    type=str,
+    required=True,
+    help="Path to the JSONL file of the input queries.",
 )
 @click.option(
-    "--output-file", "-o", type=str, required=True, help="Path to which save the results of the retriever as a JSON."
+    "--output-file",
+    "-o",
+    type=str,
+    required=True,
+    help="Path to which save the results of the retriever as a JSON.",
 )
 def retrieve(config_file: str, input_file: str, output_file: str):
     """Retrieve documents for specified queries.
@@ -171,8 +186,8 @@ def dashboard_backend(host, port):
     """Run the dashboard backend.
 
     Args:
-      host: 
-      port: 
+      host:
+      port:
 
     Returns:
 
