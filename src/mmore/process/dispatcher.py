@@ -244,6 +244,10 @@ class Dispatcher:
             def process_files(
                 files, processor_config, processor_name
             ) -> Tuple[List[MultimodalSample], str]:
+                client = Client(**kwargs)
+                if ExecutionState._use_dask is None:
+                    ExecutionState.initialize(distributed_mode=True, client=client)
+
                 return (
                     processor(processor_config)(files, self.config.use_fast_processors),
                     processor_name,
@@ -337,6 +341,8 @@ class Dispatcher:
             results = self._dispatch_distributed(task_lists)
         else:
             results = list(self._dispatch_local(task_lists))
+
+        ExecutionState.shutdown()
 
         return results
 

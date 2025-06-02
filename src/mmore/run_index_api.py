@@ -11,14 +11,14 @@ from fastapi import FastAPI, File, Form, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 from pymilvus import MilvusClient
 
-from ..index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
-from ..process.crawler import Crawler, CrawlerConfig
-from ..process.dispatcher import Dispatcher, DispatcherConfig
-from ..rag.model import DenseModelConfig, SparseModelConfig
-from ..rag.retriever import Retriever, RetrieverConfig
-from ..run_retriever import RetrieverQuery
-from ..type import MultimodalSample
-from ..utils import load_config
+from .index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
+from .process.crawler import Crawler, CrawlerConfig
+from .process.dispatcher import Dispatcher, DispatcherConfig
+from .rag.model import DenseModelConfig, SparseModelConfig
+from .rag.retriever import Retriever, RetrieverConfig
+from .run_retriever import RetrieverQuery
+from .type import MultimodalSample
+from .utils import load_config
 
 MILVUS_URI: str = os.getenv("MILVUS_URI", "demo.db")
 MILVUS_DB: str = os.getenv("MILVUS_DB", "my_db")
@@ -131,7 +131,7 @@ async def upload_files(
         with tempfile.TemporaryDirectory() as temp_dir:
             logging.info(f"Starting to process {len(files)} files with custom IDs")
 
-            for i, (file, file_id) in enumerate(zip(files, listIds)):
+            for file, file_id in zip(files, listIds):
                 if file.filename is None:
                     raise HTTPException(
                         status_code=422,
@@ -495,6 +495,10 @@ def process_files(
     return sum(list(dispatcher()), [])
 
 
+def run_api(host: str, port: int):
+    uvicorn.run(app, host=host, port=port)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -505,4 +509,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    uvicorn.run(app, host=args.host, port=args.port)
+    run_api(args.host, args.port)

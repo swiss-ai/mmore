@@ -48,15 +48,19 @@ class ExecutionState:
             logger.info("Execution state initialized (local mode)")
 
     @staticmethod
+    def shutdown():
+        ExecutionState._use_dask = None
+        ExecutionState._dask_var = None
+        ExecutionState._local_state = False
+
+    @staticmethod
     def get_should_stop_execution() -> bool:
         """Returns the global execution state (True if it should stop)"""
         if ExecutionState._use_dask is None:
             raise Exception("Execution state not initialized")
         if ExecutionState._use_dask:
             try:
-                return cast(
-                    bool, cast(Variable, ExecutionState._dask_var).get(sync=True)
-                )
+                return cast(bool, cast(Variable, ExecutionState._dask_var).get())
             except Exception as e:
                 logger.error(f"Error getting dask variable: {e}")
                 return True

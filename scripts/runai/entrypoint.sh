@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT="run_process.py"
+SCRIPT="process"
 while getopts e:s:c:p: flag
 do
     case "${flag}" in
@@ -12,7 +12,7 @@ done
 
 # Going to repo dir
 if [ -z "$REPO_PATH" ]; then
-    REPO_PATH="/mnt/mlo/scratch/homes/$(whoami)/mmore"
+    REPO_PATH="/mmore" # change to the actual repo path
 fi
 cd $REPO_PATH
 
@@ -21,8 +21,7 @@ set -o allexport
 source .env
 set +o allexport
 
-# TODO: Update when final version is released (Install libraries)
-pip install -e '.[rag]'
+pip install -e .
 
 echo "Start time: $(date)"
 

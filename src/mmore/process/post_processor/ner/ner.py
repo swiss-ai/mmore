@@ -15,9 +15,7 @@ class NERecognizer(BasePostProcessor):
         extractor = NERExtractor.from_config(config)
         return cls(extractor)
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         # Call the extractor to get the relation graph
         relation_graph = self._extractor.invoke(sample)
 

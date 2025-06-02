@@ -1,9 +1,0 @@
-pydantic~=2.10.4
-requests~=2.32.3
-validators~=0.34.0
-motor~=3.6.0
-pymongo~=4.9.2
-starlette~=0.41.3
-typing_extensions~=4.12.2
-fastapi[standard]==0.115.5
-uvicorn[standard]==0.32.1
