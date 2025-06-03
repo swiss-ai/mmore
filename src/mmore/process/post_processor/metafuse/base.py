@@ -9,7 +9,7 @@ import argostranslate.translate
 from dataclasses import dataclass
 from enum import Enum
 
-class MetaDataPosition:
+class MetaDataPosition(Enum):
     BEGINNING = "beginning"
     END = "end"
 
@@ -18,7 +18,7 @@ class MetaDataPosition:
 class MetaDataInfusorConfig:
     metadata_keys: List[str]
     content_template: str
-    position: MetaDataPosition
+    position: str
 
 
 class MetaDataInfusor(BasePostProcessor):
@@ -33,7 +33,7 @@ class MetaDataInfusor(BasePostProcessor):
         metadata_infusor = MetaDataInfusor(
             metadata_keys=config.metadata_keys,
             content_template=config.content_template,
-            position=config.position
+            position=MetaDataPosition(config.position)
         )
         return metadata_infusor
 
@@ -50,12 +50,15 @@ class MetaDataInfusor(BasePostProcessor):
 
         match self.position:
             case MetaDataPosition.BEGINNING:
-                new_content = metadata_content + sample.text
+                new_content = metadata_content + '\n' + sample.text
             case MetaDataPosition.END:
-                new_content = sample.text + metadata_content
+                new_content = sample.text + '\n' + metadata_content
             case _:
-                new_content = metadata_content + sample.text
+                new_content = sample.text
 
-        return MultimodalSample(new_content, sample.modalities)
-
-
+        return MultimodalSample(
+            new_content,
+            sample.modalities,
+            sample.metadata,
+            sample.id
+        )

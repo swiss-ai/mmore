@@ -24,7 +24,6 @@ class OutputConfig:
 class PPPipelineConfig:
     pp_modules: List[BasePostProcessorConfig]
     output: OutputConfig
-    data_path: str
 
 
 class PPPipeline:
