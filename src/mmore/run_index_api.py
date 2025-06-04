@@ -295,6 +295,9 @@ async def delete_file(id: str = Path(..., description="ID of the file to delete"
             "message": "File successfully deleted",
             "fileId": id,
         }
+    
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
         logger.error(f"Error deleting file: {str(e)}", exc_info=True)
