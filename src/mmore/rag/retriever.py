@@ -31,7 +31,6 @@ class RetrieverConfig:
 
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
-
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
     client: MilvusClient
@@ -40,7 +39,10 @@ class Retriever(BaseRetriever):
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
-    _search_weights = {"dense": 0, "sparse": 1}
+    _search_weights = {
+        "dense": 0,
+        "sparse": 1
+    }
 
     @classmethod
     def from_config(cls, config: str | RetrieverConfig):
@@ -73,9 +75,7 @@ class Retriever(BaseRetriever):
             k=config_obj.k,
         )
 
-    def compute_query_embeddings(
-        self, query: str
-    ) -> Tuple[List[List[float]], List[Dict[int, float]]]:
+    def compute_query_embeddings(self, query: str) -> Tuple[List[float], List[float]]:
         """Compute both dense and sparse embeddings for the query."""
         dense_embedding = [self.dense_model.embed_query(query)]
         sparse_embedding = [self.sparse_model.embed_query(query)]
@@ -83,16 +83,20 @@ class Retriever(BaseRetriever):
         return dense_embedding, sparse_embedding
 
     def retrieve(
-        self,
-        query: str,
-        collection_name: str = "my_docs",
-        partition_names: List[str] = [],
-        k: int = 1,
-        search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
-    ) -> List[List[Dict[str, Any]]]:
+            self,
+            query: str,
+            collection_name: str = 'my_docs',
+            partition_names: List[str] = None,
+            min_score: float = -1.0, #-1.0 is the minimum possible score anyway
+            k: int = 1,
+            search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
+            document_ids: List[str] = None     # Optional: candidate doc IDs to restrict search
+    ) -> List[Dict[str, Any]]:
         """
         Retrieve top-k similar documents for a given query.
 
+        This method computes dense and sparse query embeddings and builds two seperate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
+        
         Args:
             query: Search query string
             collection_name: the Milvus collection to search in
@@ -101,15 +105,19 @@ class Retriever(BaseRetriever):
             k: Number of documents to retrieve
             output_fields: Fields to return in results
             search_type: Type of search to perform ("dense", "sparse", or "hybrid")
+            document_ids: Candidate document Ids to filter the search
+            
         Returns:
             The raw search results (a nested list of dictionaries) returned by Milvus
         """
-        if k == 0:
+        if k == 0: 
             return []
-
+    
+        # Validate that the specified search type is allowed
         assert search_type in get_args(
-            self._search_types
-        ), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+            self._search_types), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+        
+        # Determine the weight used to combine dense and sparse search scores
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)
 
         # Combute both dense and sparse embeddings for the query
@@ -132,7 +140,7 @@ class Retriever(BaseRetriever):
             "anns_field": "dense_embedding",  # Field to search in
             "param": {
                 "metric_type": "COSINE",  # This parameter value must be identical to the one used in the collection schema
-                "params": {"nprobe": 10},
+                "params": {"nprobe": 10}
             },
             "limit": k,
         }
@@ -148,7 +156,7 @@ class Retriever(BaseRetriever):
             "anns_field": "sparse_embedding",  # Field to search in
             "param": {
                 "metric_type": "IP",  # This parameter value must be identical to the one used in the collection schema
-                "params": {"nprobe": 10},
+                "params": {"nprobe": 10}
             },
             "limit": k,
         }
@@ -165,9 +173,7 @@ class Retriever(BaseRetriever):
         # The WeightedRanker combined the scores from the dense and sparse searches
         res = self.client.hybrid_search(
             reqs=[request_1, request_2],  # List of AnnSearchRequests
-            ranker=WeightedRanker(
-                search_weight, 1 - search_weight
-            ),  # Reranking strategy
+            ranker=WeightedRanker(search_weight, 1 - search_weight),  # Reranking strategy
             limit=k,
             output_fields=["text"],
             collection_name=collection_name,
@@ -175,27 +181,30 @@ class Retriever(BaseRetriever):
         )
 
         # Apply the threshold of min_score
-        return list(filter(lambda x: x["distance"] >= min_score, res))
+        return list(filter(lambda x: x["distance"] >= min_score, res[0]))
 
     def batch_retrieve(
-        self,
-        queries: List[str],
-        collection_name: str = "my_docs",
-        partition_names: List[str] = [],
-        k: int = 1,
-        search_type: str = "hybrid",
+            self,
+            queries: List[str],
+            collection_name: str = 'my_docs',
+            partition_names: List[str] = None,
+            min_score: float = -1.0, #-1.0 is the minimum possible score anyway
+            k: int = 1,
+            output_fields: List[str] = ["text"],
+            search_type: str = "hybrid"
     ) -> List[List[Dict[str, Any]]]:
         """
         Batch retrieve documents for multiple queries.
-
+        
         Args:
             queries: List of search query strings
             collection_name: Name of the collection in which the research has to be done
             partition_names: Names of the partitions in which the research has to be done
             min_score: Minimal score of the documents to retrieve
             k: Number of documents to retrieve per query
+            output_fields: Fields to return in results
             search_type: Type of search to perform
-
+            
         Returns:
             List of results for each query
         """
@@ -207,8 +216,8 @@ class Retriever(BaseRetriever):
                 partition_names=partition_names,
                 min_score=min_score,
                 k=k,
-                # output_fields=output_fields,
-                search_type=search_type,
+                output_fields=output_fields,
+                search_type=search_type
             )
             all_results.append(results)
         return all_results
@@ -221,13 +230,14 @@ class Retriever(BaseRetriever):
             return []
 
         # For compatibility
-        if isinstance(query.get("partition_name", None), str):
-            query["partition_name"] = [query["partition_name"]]
+        
+        #if isinstance(query.get("partition_name", None), str):
+        #    query["partition_name"] = [query["partition_name"]]
 
         results = self.retrieve(
-            query=query["input"],
-            collection_name=query.get("collection_name", "my_docs"),
-            partition_names=query.get("partition_name", []),
+            query=query,#["input"],
+            collection_name="my_docs",#query.get("collection_name", "my_docs"),
+            partition_names=[],#query.get("partition_name", []),
             k=self.k,
         )
 
