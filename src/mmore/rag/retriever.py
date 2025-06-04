@@ -240,7 +240,7 @@ class Retriever(BaseRetriever):
             partition_names=[],#query.get("partition_name", []),
             k=self.k,
         )
-
+        
         def parse_result(result: Dict[str, Any], i: int) -> Document:
             return Document(
                 page_content=result["entity"]["text"],
@@ -251,5 +251,4 @@ class Retriever(BaseRetriever):
                 },
             )
 
-        # 0 because there is only one query
-        return [parse_result(result, i) for i, result in enumerate(results[0])]
+        return [parse_result(result, i) for i, result in enumerate(results)]
