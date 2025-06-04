@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DBConfig:
-    uri: str = "demo.db"
+    uri: str = "./proc_demo.db"
     name: str = "my_db"
 
 
