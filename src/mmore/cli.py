@@ -93,10 +93,10 @@ def index(config_file: str, documents_path: str, collection_name: str):
     help="Dispatcher configuration file path.",
 )
 @click.option(
-    "--input-file", "-f", type=str, required=True, help="Path to the JSONL file of the input queries."
+    "--input-file", "-f", type=str, required=False, help="Path to the JSONL file of the input queries."
 )
 @click.option(
-    "--output-file", "-o", type=str, required=True, help="Path to which save the results of the retriever as a JSON."
+    "--output-file", "-o", type=str, required=False, help="Path to which save the results of the retriever as a JSON."
 )
 def retrieve(config_file: str, input_file: str, output_file: str):
     """Retrieve documents for specified queries.
