@@ -139,7 +139,7 @@ This API defines the retriever API of mmore, handling:
     retriever_obj = Retriever.from_config(config)
     logger.info("Retriever loaded!")
 
-    @app.get("/v1/retriever")
+    @app.post("/v1/retriever")
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
 
