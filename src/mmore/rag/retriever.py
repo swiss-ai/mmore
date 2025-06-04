@@ -5,7 +5,7 @@ Works in conjunction with the Indexer class for document retrieval.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Tuple, cast, get_args
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -26,6 +26,7 @@ class RetrieverConfig:
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
+    collection_name: Optional[str] = None
 
 
 class Retriever(BaseRetriever):
@@ -49,17 +50,17 @@ class Retriever(BaseRetriever):
             config_obj = config
 
         # Init the client
-        client = MilvusClient(uri=config_obj.db.uri, db_name=config_obj.db.name)
+        client = MilvusClient(config_obj.db.uri, db_name=config_obj.db.name)
 
         # Init models
         dense_model_config: DenseModelConfig = cast(
-            DenseModelConfig, get_model_from_index(client, "dense_embedding")
+            DenseModelConfig, get_model_from_index(client, "dense_embedding", config_obj.collection_name)
         )
         dense_model = DenseModel.from_config(dense_model_config)
         logger.info(f"Loaded dense model: {dense_model_config}")
 
         sparse_model_config: SparseModelConfig = cast(
-            SparseModelConfig, get_model_from_index(client, "sparse_embedding")
+            SparseModelConfig, get_model_from_index(client, "sparse_embedding", config_obj.collection_name)
         )
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")

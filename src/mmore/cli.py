@@ -1,4 +1,5 @@
 import click
+from typing import Optional
 
 
 @click.group()
@@ -93,12 +94,12 @@ def index(config_file: str, documents_path: str, collection_name: str):
     help="Dispatcher configuration file path.",
 )
 @click.option(
-    "--input-file", "-f", type=str, required=False, help="Path to the JSONL file of the input queries."
+    "--input-file", "-f", type=str, required=False, default=None, help="Path to the JSONL file of the input queries."
 )
 @click.option(
-    "--output-file", "-o", type=str, required=False, help="Path to which save the results of the retriever as a JSON."
+    "--output-file", "-o", type=str, required=False, default=None, help="Path to which save the results of the retriever as a JSON."
 )
-def retrieve(config_file: str, input_file: str, output_file: str):
+def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[str]):
     """Retrieve documents for specified queries.
 
     Args:
@@ -109,9 +110,12 @@ def retrieve(config_file: str, input_file: str, output_file: str):
     Returns:
 
     """
-    from .run_retriever import retrieve as run_retrieve
+    from .run_retriever import retrieve as run_retrieve, create_api
 
-    run_retrieve(config_file, input_file, output_file)
+    if input_file:
+        run_retrieve(config_file, input_file, output_file)
+    else:
+        create_api(config_file)
 
 
 @main.command()

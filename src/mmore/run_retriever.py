@@ -97,56 +97,6 @@ def retrieve(
     save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
     logger.info(f"Done! Results saved to {output_file}")
 
-class Msg(BaseModel):
-    role: str
-    content: str
-
-class RetrieverQuery(BaseModel):
-    fileIds: list[str] = Field(..., description="List of file IDs to search within")
-    maxMatches: int = Field(..., ge=1, description="Maximum number of matches to return")
-    minSimilarity: Optional[float] = Field(-1.0, ge=-1.0, le=1.0, description="Minimum similarity score for results (-1.0 to 1.0)")
-    query: str = Field(..., description="Search query")
-
-def create_api(config_file: str):
-    app = FastAPI(
-        title="mmore Retriever API",
-        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
-
-## Overview
-
-This API defines the retriever API of mmore, handling:
-
-1. **File Operations** - Direct file management within mmore.
-2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.""",
-        version="1.0.0",
-    )
-
-    # Load the config file
-    config = load_config(config_file, RetrieverConfig)
-
-    logger.info('Running retriever...')
-    retriever = Retriever.from_config(config)
-    logger.info('Retriever loaded!')
-
-    @app.get("/v1/retriever")
-    def retriver(query: RetrieverQuery):
-        """Query the retriever"""
-
-        docs_for_query = retriever.invoke(
-            query.query, 
-            document_ids=query.document_ids, 
-            k=query.maxMatches, 
-            min_score=query.minSimilarity
-        )
-
-        docs_info = []
-        for doc in docs_for_query:
-            meta = doc.metadata
-            docs_info.append({"fileId": meta["id"], "content": doc.page_content, "similarity": meta["similarity"]})
-
-        return docs_info
-
-    return app
 
 class Msg(BaseModel):
     role: str
@@ -182,6 +132,7 @@ This API defines the retriever API of mmore, handling:
     )
 
     # Load the config file
+    print(config_file)
     config = load_config(config_file, RetrieverConfig)
 
     logger.info("Running retriever...")
@@ -212,7 +163,8 @@ This API defines the retriever API of mmore, handling:
 
         return docs_info
 
-    return app
+    uvicorn.run(app, host="0.0.0.0", port=8001)
+    #return app
 
 
 if __name__ == "__main__":
@@ -240,5 +192,4 @@ if __name__ == "__main__":
     if args.input_file:  # an input file is provided
         retrieve(args.config_file, args.input_file, args.output_file)
     else:
-        api = create_api(args.config_file)
-        uvicorn.run(api, host="0.0.0.0", port=8000)
+        create_api(args.config_file)
