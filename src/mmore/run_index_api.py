@@ -257,6 +257,9 @@ async def update_file(
                 "fileId": id,
                 "filename": file.filename,
             }
+    
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
         logger.error(f"Error updating file: {str(e)}", exc_info=True)
@@ -324,6 +327,9 @@ async def download_file(id: str = Path(..., description="ID of the file to downl
             filename=filename,
             media_type="application/octet-stream",
         )
+    
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
         logger.error(f"Error downloading file: {str(e)}", exc_info=True)
