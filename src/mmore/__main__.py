@@ -1,60 +1,12 @@
+# __main__.py
+
 import click
-import argparse
 import yaml
-
-from contextlib import contextmanager
-import warnings
-import sys
-import os
-
-from mmore.websearch.pipeline import WebsearchPipeline
-from mmore.websearch.config import WebsearchConfig
-
-# @contextmanager
-# def suppress_warnings_and_stdout():
-#     # Suppress specific warnings
-#     warnings.filterwarnings('ignore', category=FutureWarning, message="The input name `inputs` is deprecated*")
-#     warnings.filterwarnings('ignore', category=FutureWarning, message="*UserWarning:*")
-    
-#     pypdfium_message = "-> Cannot close object, library is destroyed. This may cause a memory leak!*"
-#     # Redirect stdout to devnull to catch pypdfium messages
-#     old_stdout = sys.stdout
-#     devnull = open(os.devnull, 'w')
-#     # Suppress pypdfium warnings
-#     sys.stdout = devnull
-    
-#     try:
-#         sys.stdout = devnull
-#         yield
-        
-#     finally:
-#         sys.stdout = old_stdout
-#         devnull.close()
-
-# import logging
-# logger = logging.getLogger(__name__)
-# MMORE_EMOJI = "🐮"
-# logging.basicConfig(format=f'[MMORE {MMORE_EMOJI} -- %(asctime)s] %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 @click.group()
 def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(description="MMORE command line interface")
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
-
-    # Websearch command
-    websearch_parser = subparsers.add_parser("websearch", help="Run websearch pipeline")
-    websearch_parser.add_argument("--config-file", required=True, help="Path to config file")
-
-    args = parser.parse_args()
-
-    if args.command == "websearch":
-        with open(args.config_file, "r") as f:
-            config = yaml.safe_load(f)
-        pipeline = WebsearchPipeline(WebsearchConfig.from_dict(config))
-        pipeline.run()
-    else:
-        parser.print_help()
+    """CLI for mmore commands."""
+    pass
 
 
 @main.command()
@@ -143,13 +95,21 @@ def rag(config_file):
 
 
 @main.command()
-@click.option('--config-file', type=str, required=True, help='Configuration file path.')
+@click.option(
+    "--config-file",
+    type=str,
+    required=True,
+    help="Path to the Websearch configuration file (YAML).",
+)
 def websearch(config_file):
-    """Run the websearch pipeline."""
+    """Run the Websearch (+ optional RAG) pipeline."""
     from .run_websearch import run_websearch
-    with open(config_file, 'r') as f:
-        config = yaml.safe_load(f)
-    run_websearch(config)
+
+    # Load your YAML and pass it into the runner
+    with open(config_file, "r") as f:
+        config_dict = yaml.safe_load(f)
+
+    run_websearch(config_dict)
 
 
 if __name__ == "__main__":
