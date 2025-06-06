@@ -1,6 +1,8 @@
 import argparse
+
 from dotenv import load_dotenv
-load_dotenv() 
+
+load_dotenv()
 
 import json
 import logging
@@ -154,12 +156,13 @@ def make_router(config_file: str) -> APIRouter:
 
     return router
 
+
 def run_api(config_file: str, host: str, port: int):
     router = make_router(config_file)
-    
+
     app = FastAPI(
-            title="mmore Retriever API",
-            description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+        title="mmore Retriever API",
+        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
 
     ## Overview
 
@@ -167,11 +170,12 @@ def run_api(config_file: str, host: str, port: int):
 
     1. **File Operations** - Direct file management within mmore.
     2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.""",
-            version="1.0.0",
-        )
+        version="1.0.0",
+    )
     app.include_router(router)
-    
+
     uvicorn.run(app, host=host, port=port)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

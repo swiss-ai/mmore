@@ -1,5 +1,6 @@
-import click
 from typing import Optional
+
+import click
 
 
 @click.group()
@@ -34,7 +35,10 @@ def process(config_file: str):
     help="Path to the config file for post-processing.",
 )
 @click.option(
-    "--input-data", type=str, required=True, help="Path to the input JSONL file of documents."
+    "--input-data",
+    type=str,
+    required=True,
+    help="Path to the input JSONL file of documents.",
 )
 def postprocess(config_file: str, input_data: str):
     """Run the post-processors pipeline.
@@ -60,7 +64,11 @@ def postprocess(config_file: str, input_data: str):
     help="Path to the config file for indexing.",
 )
 @click.option(
-    "--documents-path", "-f", type=str, required=False, help="Path to the JSONL file of the (post)processed documents."
+    "--documents-path",
+    "-f",
+    type=str,
+    required=False,
+    help="Path to the JSONL file of the (post)processed documents.",
 )
 @click.option(
     "--collection-name",
@@ -94,10 +102,20 @@ def index(config_file: str, documents_path: str, collection_name: str):
     help="Retriever configuration file path.",
 )
 @click.option(
-    "--input-file", "-f", type=str, required=False, default=None, help="Path to the JSONL file of the input queries."
+    "--input-file",
+    "-f",
+    type=Optional[str],
+    required=False,
+    default=None,
+    help="Path to the JSONL file of the input queries.",
 )
 @click.option(
-    "--output-file", "-o", type=str, required=False, default=None, help="Path to which save the results of the retriever as a JSON."
+    "--output-file",
+    "-o",
+    type=Optional[str],
+    required=False,
+    default=None,
+    help="Path to which save the results of the retriever as a JSON.",
 )
 def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[str]):
     """Retrieve documents for specified queries.
@@ -110,9 +128,11 @@ def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[
     Returns:
 
     """
-    from .run_retriever import retrieve as run_retrieve, run_api
+    from .run_retriever import retrieve as run_retrieve
+    from .run_retriever import run_api
 
     if input_file:
+        assert isinstance(output_file, str)
         run_retrieve(config_file, input_file, output_file)
     else:
         run_api(config_file, "0.0.0.0", 8001)
@@ -183,8 +203,8 @@ def dashboard_backend(host, port):
     """Run the dashboard backend.
 
     Args:
-      host: 
-      port: 
+      host:
+      port:
 
     Returns:
 
