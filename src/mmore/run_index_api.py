@@ -320,8 +320,26 @@ def make_router(config_path: str) -> APIRouter:
             if not file_storage_path.exists():
                 raise HTTPException(status_code=404, detail=f"File with ID {id} not found")
 
-            # Determine the filename from metadata or use the ID
-            filename = id  # Default to ID if we can't determine original name
+            # Retrieve the filename from metadata
+            try:
+                client = MilvusClient(uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True)
+                file_paths = client.query(
+                    collection_name=COLLECTION_NAME,
+                    filter=f"id == '{id}'",
+                    output_fields=["file_path"]
+                )
+                
+                if len(file_paths) == 0:
+                    raise ValueError(f"Document of id {id} not found in the database")
+                
+                #all the elements with the same id refer to the same file so they have the same path
+                file_path: str = file_paths[0]["file_path"]
+                filename = file_path.split("/")[-1]
+            except Exception as db_error:
+                logger.warning(
+                    f"Error deleting from vector DB (continuing): {str(db_error)}"
+                )
+                raise db_error
 
             # Return the file
             return FileResponse(
