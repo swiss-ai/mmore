@@ -206,7 +206,7 @@ class Indexer:
                 partition_name=partition_name,
             )
 
-            inserted += list(batch_inserted.values())[0]
+            inserted += batch_inserted["insert_count"]
 
         return inserted
 
