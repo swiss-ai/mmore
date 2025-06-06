@@ -140,6 +140,33 @@ def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[
 
 @main.command()
 @click.option(
+    "--config-file",
+    "-c",
+    type=str,
+    required=True,
+    help="Retriever configuration file path.",
+)
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8000, help="Port on which the API should be run."
+)
+def live_retrieval(config_file: str, host: str, port: int):
+    """API for live indexing and retrieval of documents.
+
+    Args:
+      config_file: Path to the retriever configuration file.
+      host: Host on which the API should be run.
+      port: Port on which the API should be run.
+    """
+    from .run_live_retrieval import run
+
+    run(config_file, host, port)
+
+
+@main.command()
+@click.option(
     "--config-file", type=str, required=True, help="Dispatcher configuration file path."
 )
 def rag(config_file: str):
