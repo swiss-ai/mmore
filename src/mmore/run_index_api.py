@@ -11,14 +11,9 @@ from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadF
 from fastapi.responses import FileResponse
 from pymilvus import MilvusClient
 
-from .index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
-from .process.crawler import Crawler, CrawlerConfig
-from .process.dispatcher import Dispatcher, DispatcherConfig
-from .rag.model import DenseModelConfig, SparseModelConfig
-from .rag.retriever import Retriever, RetrieverConfig
+from .rag.retriever import RetrieverConfig
 from .run_retriever import RetrieverQuery
-from .type import MultimodalSample
-from .utils import load_config
+from .utils import get_indexer, get_retriever, load_config, process_files
 
 UPLOAD_DIR: str = "./uploads"
 
@@ -28,15 +23,12 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Cache indexers in memory
-indexers = {}
-retrievers = {}
 
 def make_router(config_path: str) -> APIRouter:
     router = APIRouter()
-    
+
     config = load_config(config_path, RetrieverConfig)
-    
+
     MILVUS_URI = config.db.uri or "./proc_demo.db"
     MILVUS_DB = config.db.name or "my_db"
     COLLECTION_NAME = config.collection_name or "my_docs"
@@ -46,7 +38,6 @@ def make_router(config_path: str) -> APIRouter:
         return {
             "message": "Indexer API is running (what are you doing here...go catch it!)"
         }
-
 
     # SINGLE FILE UPLOAD ENDPOINT
     @router.post("/v1/files", status_code=201, tags=["File Operations"])
@@ -112,7 +103,6 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error uploading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @router.post("/v1/files/bulk", status_code=201, tags=["File Operations"])
     async def upload_files(
         listIds: List[str] = Form(..., description="List of IDs for the files"),
@@ -144,7 +134,8 @@ def make_router(config_path: str) -> APIRouter:
                     file_storage_path = FilePath(UPLOAD_DIR) / file_id
                     if file_storage_path.exists():
                         raise HTTPException(
-                            status_code=400, detail=f"File with ID {file_id} already exists"
+                            status_code=400,
+                            detail=f"File with ID {file_id} already exists",
                         )
 
                     # Save to temp directory
@@ -192,7 +183,6 @@ def make_router(config_path: str) -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @router.put("/v1/files/{id}", tags=["File Operations"])
     async def update_file(
         id: str = Path(..., description="ID of the file to update"),
@@ -205,7 +195,9 @@ def make_router(config_path: str) -> APIRouter:
             # Check if file exists
             file_storage_path = FilePath(UPLOAD_DIR) / id
             if not file_storage_path.exists():
-                raise HTTPException(status_code=404, detail=f"File with ID {id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"File with ID {id} not found"
+                )
 
             if file.filename is None:
                 raise HTTPException(
@@ -241,7 +233,9 @@ def make_router(config_path: str) -> APIRouter:
                     client = MilvusClient(
                         uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                     )
-                    client.delete(collection_name=COLLECTION_NAME, filter=f"id == '{id}'")
+                    client.delete(
+                        collection_name=COLLECTION_NAME, filter=f"id == '{id}'"
+                    )
                 except Exception as delete_error:
                     logger.warning(
                         f"Error deleting existing document (may not exist): {str(delete_error)}"
@@ -259,14 +253,13 @@ def make_router(config_path: str) -> APIRouter:
                     "fileId": id,
                     "filename": file.filename,
                 }
-        
+
         except HTTPException as e:
             raise e
 
         except Exception as e:
             logger.error(f"Error updating file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @router.delete("/v1/files/{id}", tags=["File Operations"])
     async def delete_file(id: str = Path(..., description="ID of the file to delete")):
@@ -278,14 +271,18 @@ def make_router(config_path: str) -> APIRouter:
             # Check if file exists
             file_storage_path = FilePath(UPLOAD_DIR) / id
             if not file_storage_path.exists():
-                raise HTTPException(status_code=404, detail=f"File with ID {id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"File with ID {id} not found"
+                )
 
             # Delete the physical file
             os.remove(file_storage_path)
 
             # Delete from vector database
             try:
-                client = MilvusClient(uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True)
+                client = MilvusClient(
+                    uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
+                )
                 delete_result = client.delete(
                     collection_name=COLLECTION_NAME, filter=f"id == '{id}'"
                 )
@@ -300,7 +297,7 @@ def make_router(config_path: str) -> APIRouter:
                 "message": "File successfully deleted",
                 "fileId": id,
             }
-        
+
         except HTTPException as e:
             raise e
 
@@ -308,9 +305,10 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error deleting file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @router.get("/v1/files/{id}", tags=["File Operations"])
-    async def download_file(id: str = Path(..., description="ID of the file to download")):
+    async def download_file(
+        id: str = Path(..., description="ID of the file to download")
+    ):
         """
         Download a file from the system.
         """
@@ -318,21 +316,25 @@ def make_router(config_path: str) -> APIRouter:
             # Check if file exists
             file_storage_path = FilePath(UPLOAD_DIR) / id
             if not file_storage_path.exists():
-                raise HTTPException(status_code=404, detail=f"File with ID {id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"File with ID {id} not found"
+                )
 
             # Retrieve the filename from metadata
             try:
-                client = MilvusClient(uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True)
+                client = MilvusClient(
+                    uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
+                )
                 file_paths = client.query(
                     collection_name=COLLECTION_NAME,
                     filter=f"id == '{id}'",
-                    output_fields=["file_path"]
+                    output_fields=["file_path"],
                 )
-                
+
                 if len(file_paths) == 0:
                     raise ValueError(f"Document of id {id} not found in the database")
-                
-                #all the elements with the same id refer to the same file so they have the same path
+
+                # all the elements with the same id refer to the same file so they have the same path
                 file_path: str = file_paths[0]["file_path"]
                 filename = file_path.split("/")[-1]
             except Exception as db_error:
@@ -347,14 +349,13 @@ def make_router(config_path: str) -> APIRouter:
                 filename=filename,
                 media_type="application/octet-stream",
             )
-        
+
         except HTTPException as e:
             raise e
 
         except Exception as e:
             logger.error(f"Error downloading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @router.get("/v1/retriever", status_code=201, tags=["Context Retrieval"])
     def retriever(query: RetrieverQuery) -> list[dict]:
@@ -387,12 +388,13 @@ def make_router(config_path: str) -> APIRouter:
 
     return router
 
+
 def run_api(config_file: str, host: str, port: int):
     router = make_router(config_file)
-    
+
     app = FastAPI(title="Indexer API")
     app.include_router(router)
-    
+
     uvicorn.run(app, host=host, port=port)
 
 
