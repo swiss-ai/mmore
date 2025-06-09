@@ -4,15 +4,15 @@ import json
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
+import logging
 
 from duckduckgo_search import DDGS
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from rag.run_rag import run_rag
-from rag.utils import read_queries
-from rag.llm import LLM
+from ..run_rag import rag
+from ..run_rag import read_queries
+from ..rag.llm import LLM, LLMConfig
 from .config import WebsearchConfig
-
 
 class WebsearchPipeline:
     """
@@ -22,11 +22,32 @@ class WebsearchPipeline:
 
     def __init__(self, config: WebsearchConfig):
         self.config = config
-        # Initialize the LLM using the same LLMConfig as RAG
-        self.llm = LLM.from_config(config.get_llm_config())
+
+        # Initialize the LLM
+        self.llm = self._initialize_llm()
 
         # Will store RAG results if we run RAG
         self.rag_results: Optional[List[Dict[str, Any]]] = None
+
+
+
+    def _initialize_llm(self) -> LLM:
+        """
+        Initialize the LLM using the configuration.
+
+        If RAG is enabled, load and use the LLM configuration from the RAG config file.
+        Otherwise, use the default configuration from WebsearchConfig.
+        """
+        if self.config.use_rag:
+            rag_config = self.config.access_rag_config()
+            llm_config_dict = rag_config.get("rag", {}).get("llm", None)
+            if llm_config_dict is None:
+                raise ValueError("Missing 'llm' config under 'rag' key in the RAG configuration.")
+            llm_config = LLMConfig(**llm_config_dict)
+            return LLM.from_config(llm_config)
+        else:
+            llm_config = self.config.get_llm_config()
+            return LLM.from_config(llm_config)
 
     @staticmethod
     def clean_llm_output(text: str) -> str:
@@ -124,7 +145,7 @@ class WebsearchPipeline:
                     for r in ddgs.text(query, max_results=max_results)
                 ]
         except Exception as e:
-            print(f"Search error for \"{query}\": {e}")
+            logger.info(f"Search error for \"{query}\": {e}")
             return []
 
     def integrate_with_web(
@@ -262,34 +283,54 @@ class WebsearchPipeline:
             if not self.config.rag_config_path:
                 raise ValueError("rag_config_path is required when use_rag=True.")
 
-            print(f"Running RAG pipeline with config: {self.config.rag_config_path}")
+            logger.info(f"Running RAG pipeline with config: {self.config.rag_config_path}")
             # We expect run_rag(...) to return a List[Dict] if return_results=True.
-            self.rag_results = run_rag(self.config.rag_config_path, return_results=True)
-            print("RAG pipeline completed.")
+            rag(self.config.rag_config_path)
+            logger.info("RAG pipeline completed.")
+
+            rag_cfg = self.config.access_rag_config()
+            output_file = rag_cfg["mode_args"]["output_file"]
+            self.config.input_file = output_file
+
+            logger.info("Updated input file for the pipeline")
+
+            #resume RAG also
+
 
             # The RAG pipeline also writes its own JSON to rag_config.mode_args.output_file.
             # We assume that output path equals self.config.input_file at this point.
             # (In practice, you should set self.config.input_file to that path in your YAML.)
         else:
             self.rag_results = None
+            #no rag --> generate queries
+
+
+
+        #Step 2: 
+
+
 
         # Step 2: Load the JSON to process. It should be a list of records.
         with open(self.config.input_file, "r", encoding="utf-8") as f:
             data: List[Dict[str, Any]] = json.load(f)
 
         # Step 3: Process each record
-        all_outputs: List[Dict[str, Any]] = []
+        all_outputs: List[Dict[str, Any]] = []  
         for record in data:
             out = self.process_record(record)
             all_outputs.append(out)
 
+        
+        
         # Step 4: Save results
         out_path = Path(self.config.output_file)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as out_f:
             json.dump(all_outputs, out_f, indent=2, ensure_ascii=False)
 
-        print(f"\nResults saved to {out_path}")
+        logger.info(f"\nResults saved to {out_path}")
+
+
 
     def generate_summary(self, rag_answer: str, query: str) -> str:
         """

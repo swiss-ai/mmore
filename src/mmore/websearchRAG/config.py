@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict
+from pathlib import Path
+import yaml
 
-from rag.llm import LLMConfig  # Reuse the same LLMConfig as RAG
+from ..rag.llm import LLMConfig  # Reuse the same LLMConfig as RAG
 
 
 @dataclass
@@ -55,3 +57,26 @@ class WebsearchConfig:
         Convert the nested llm_config dict into an instance of rag.llm.LLMConfig.
         """
         return LLMConfig(**self.llm_config)
+    
+
+    def access_rag_config(self) -> Dict[str, Any]:
+        """
+        Access and parse the RAG configuration file defined in `rag_config_path`.
+
+        Returns:
+            A dictionary representing the RAG configuration.
+        """
+        if not self.rag_config_path:
+            raise ValueError("The 'rag_config_path' is not defined.")
+
+        # Resolve the full path to the RAG config file
+        rag_config_full_path = Path(self.rag_config_path)
+
+        if not rag_config_full_path.exists():
+            raise FileNotFoundError(f"RAG config file not found at {rag_config_full_path}")
+
+        # Load the RAG configuration
+        with open(rag_config_full_path, "r") as file:
+            rag_config = yaml.safe_load(file)
+
+        return rag_config
