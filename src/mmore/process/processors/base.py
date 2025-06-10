@@ -53,6 +53,7 @@ class ProcessorRegistry:
         Register a processor class.
         """
         cls._registry.append(processor_class)
+        processor_class.load_models()
 
     @classmethod
     def get_processors(cls):
@@ -282,3 +283,10 @@ class Processor(ABC):
         return DashboardClient(self.config.dashboard_backend_url).report(
             str(worker_id), finished_file_paths
         )
+
+    @staticmethod
+    def load_models() -> Any:
+        """
+        Load in advance the models needed for the processor
+        """
+        pass

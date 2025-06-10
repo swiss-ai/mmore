@@ -33,6 +33,9 @@ def make_router(config_path: str) -> APIRouter:
     MILVUS_DB = config.db.name or "my_db"
     COLLECTION_NAME = config.collection_name or "my_docs"
 
+    # Initialize the index database
+    indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+
     @router.get("/")
     async def root():
         return {

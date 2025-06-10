@@ -52,6 +52,11 @@ class Retriever(BaseRetriever):
         # Init the client
         client = MilvusClient(uri=config.db.uri, db_name=config.db.name)
 
+        if not client.has_collection(config.collection_name):
+            raise ValueError(
+                "The Milvus has not been initialized yet. Ensure the path is valid with a database that was already populated with the indexer."
+            )
+
         # Init models
         dense_model_config = cast(
             DenseModelConfig,
