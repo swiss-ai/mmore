@@ -357,35 +357,6 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error downloading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.get("/v1/retriever", status_code=201, tags=["Context Retrieval"])
-    def retriever(query: RetrieverQuery) -> list[dict]:
-        """Query the retriever"""
-
-        retriever = get_retriever(MILVUS_URI, MILVUS_DB)
-
-        try:
-            docs_for_query = retriever.invoke(
-                query.query,
-                document_ids=query.fileIds,
-                k=query.maxMatches,
-                min_score=query.minSimilarity,
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-        docs_info = []
-        for doc in docs_for_query:
-            meta = doc.metadata
-            docs_info.append(
-                {
-                    "fileId": meta["id"],
-                    "content": doc.page_content,
-                    "similarity": meta["similarity"],
-                }
-            )
-
-        return docs_info
-
     return router
 
 
