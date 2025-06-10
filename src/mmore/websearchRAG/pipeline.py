@@ -1,18 +1,30 @@
 # mmore/websearch/pipeline.py
+from .logging_config import logger
+
 
 import json
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
 import logging
+import json
+
 
 from duckduckgo_search import DDGS
 from langchain_core.messages import HumanMessage, SystemMessage
+
+
 
 from ..run_rag import rag
 from ..run_rag import read_queries
 from ..rag.llm import LLM, LLMConfig
 from .config import WebsearchConfig
+
+
+
+#python -m mmore websearch --config-file examples/websearchRAG/config.yaml
+
+
 
 class WebsearchPipeline:
     """
@@ -33,10 +45,7 @@ class WebsearchPipeline:
 
     def _initialize_llm(self) -> LLM:
         """
-        Initialize the LLM using the configuration.
-
-        If RAG is enabled, load and use the LLM configuration from the RAG config file.
-        Otherwise, use the default configuration from WebsearchConfig.
+        Initialize the LLM using the updated configuration for the fine-tuned multilingual model.
         """
         if self.config.use_rag:
             rag_config = self.config.access_rag_config()
@@ -47,13 +56,32 @@ class WebsearchPipeline:
             return LLM.from_config(llm_config)
         else:
             llm_config = self.config.get_llm_config()
+            # Ensure the model is configured for multilingual use
+            llm_config.language_support = "multilingual"
+            llm_config.model_name = "fine_tuned_multilingual_model"
             return LLM.from_config(llm_config)
 
-    @staticmethod
-    def clean_llm_output(text: str) -> str:
-        """Remove internal tokens or delimiters from the LLM output."""
-        return re.sub(r'<\|.*?\|>', '', text).strip()
 
+    def clean_llm_output(self, content):
+        # Define the delimiter after which the subqueries are located
+        delimiter = "---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+        
+        # Split the content based on the delimiter
+        if delimiter in content:
+
+            subquery_section = content.split(delimiter, 1)[-1]
+            # Use regex to extract lines matching the subquery format
+            subquery_section = subquery_section.lower().strip()
+            subqueries = re.findall(r"subquery \d+: (.*)", subquery_section.strip())
+            print(f"subquery_section:", subquery_section)
+            print('subquery outputs', subqueries)
+            return subqueries
+        else:
+            return []
+
+
+
+        
     @staticmethod
     def extract_answer_after_prefix(raw: str, prefix: str) -> str:
         """
@@ -85,53 +113,58 @@ class WebsearchPipeline:
         rag_answer: Optional[str] = None
     ) -> List[str]:
         """
-        Ask the LLM to produce exactly self.config.n_subqueries follow‐up search queries.
-        - If rag_answer is provided and “useful,” we prompt for subqueries that complement it.
-        - If rag_answer is None or not useful, we prompt for subqueries that answer the original query fully.
-        We expect the LLM to output one sub-query per line.
+        Generate concise search subqueries using the fine-tuned multilingual model.
         """
         n = self.config.n_subqueries
+        instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
+        task = (
+            f"Partial RAG Answer: {rag_answer}\n\n"
+            f"Generate {n}-independant subqueries to refine the answer based on the original query. Each subquery must be concise and ≤30 words.\n"
+            f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
+            "---------------------------"
+        )
 
-        if rag_answer and self.is_useful_rag_answer(rag_answer):
-            # Build a prompt that asks for sub-queries to complement the existing RAG answer
-            prompt = (
-                f"Original Query: \"{original_query}\"\n"
-                f"Current RAG Answer: \"{rag_answer}\"\n\n"
-                f"Generate {n} concise search queries (each ≤30 words) that would help update or fill gaps "
-                "in the RAG answer. Provide exactly one query per line. "
-                "Do not provide any additional commentary."
-            )
-        else:
-            # No useful RAG answer: ask for sub-queries that collectively answer the original question
-            prompt = (
-                f"Original Query: \"{original_query}\"\n\n"
-                f"No RAG knowledge is available. Generate {n} concise search queries "
-                "(each ≤30 words) that, when searched, would collectively answer the original query. "
-                "Provide exactly one query per line. Do not provide any additional commentary."
-            )
 
+        prompt = instruction + task
         messages = [
-            SystemMessage(content="You are a helpful assistant that generates search queries."),
+            SystemMessage(content="You are an assistant specializing in generating search queries."),
             HumanMessage(content=prompt),
         ]
+
         response = self.llm.invoke(messages)
-        raw = self.clean_llm_output(response.content)
+        print("######")
+        print("LLM response: ", response.content)
+        print("######")
+        print("Clean response: ", self.clean_llm_output(response.content))
+        print("--------------------")
+        return self.clean_llm_output(response.content)
 
-        # Split lines, discard empty lines, strip numbering if present
-        lines = [line.strip() for line in raw.splitlines() if line.strip()]
-        subqueries: List[str] = []
-        for line in lines:
-            # Remove leading numbering like “1. …” or “(1) …”
-            cleaned = re.sub(r'^\s*\d+[\).\s]+\s*', '', line)
-            subqueries.append(cleaned)
-            if len(subqueries) >= n:
-                break
+    def integrate_with_web(
+        self,
+        original_query: str,
+        base_knowledge: str,
+        all_results: List[Dict[str, str]]
+    ) -> str:
+        """
+        Integrate web results and base knowledge into a comprehensive answer.
+        """
+        collated_sources = "\n".join([f"Source: {r['title']}, URL: {r['url']}" for r in all_results])
+        prompt = (
+            f"Original Query: {original_query}\n\n"
+            f"Base Knowledge: {base_knowledge}\n\n"
+            f"Web Results:\n{collated_sources}\n\n"
+            "Combine the base knowledge and web results into a detailed answer. "
+            "Enclose your response within <enhanced_answer>...</enhanced_answer> tags."
+        )
 
-        # If LLM gave fewer lines, we can pad with the original query
-        while len(subqueries) < n:
-            subqueries.append(original_query)
+        messages = [
+            SystemMessage(content="You are a multilingual research assistant."),
+            HumanMessage(content=prompt),
+        ]
 
-        return subqueries
+        response = self.llm.invoke(messages)
+        return self.clean_llm_output(response.content)
+
 
     @staticmethod
     def duckduckgo_search(query: str, max_results: int = 10) -> List[Dict[str, str]]:
@@ -148,6 +181,7 @@ class WebsearchPipeline:
             logger.info(f"Search error for \"{query}\": {e}")
             return []
 
+
     def integrate_with_web(
         self,
         original_query: str,
@@ -155,53 +189,33 @@ class WebsearchPipeline:
         all_results: List[Dict[str, str]]
     ) -> str:
         """
-        Given:
-          - original_query (str),
-          - base_knowledge (either a non‐empty RAG answer or just an empty string),
-          - all_results: list of {title, url} from all sub‐queries,
-        produce a final “enhanced answer” via the LLM.
-        We’ll ask the LLM to weave base_knowledge + new web info into a single answer.
-        We’ll ask it to output the answer enclosed in <enhanced_answer>…</enhanced_answer> tags.
+        Integrate web results and base knowledge into a comprehensive answer.
         """
-        # Collate sources into a single text blob. (We omit “body” because DuckDuckGo API
-        # only supplies title & URL. You could extend to fetch page snippets if you like.)
-        collated = "\n".join([f"Source: {r['title']}, URL: {r['url']}" for r in all_results])
-
-        if base_knowledge:
-            prompt = (
-                f"Original Query: \"{original_query}\"\n\n"
-                f"Current Knowledge (RAG): \"{base_knowledge}\"\n\n"
-                f"New Information from Web:\n{collated}\n\n"
-                "Produce a comprehensive answer that integrates the RAG knowledge with the new web information. "
-                "Your final answer must be enclosed in <enhanced_answer>…</enhanced_answer> tags. "
-                "If there are any remaining gaps, list them under “ADDITIONAL GAPS” after the tags."
-            )
-        else:
-            prompt = (
-                f"Original Query: \"{original_query}\"\n\n"
-                f"No prior RAG knowledge. New Information from Web:\n{collated}\n\n"
-                "Provide a comprehensive answer that directly addresses the original query, "
-                "based solely on these web results. Your final answer must be enclosed in <enhanced_answer>…</enhanced_answer> tags. "
-                "If there are any remaining gaps, list them under “ADDITIONAL GAPS” after the tags."
-            )
+        collated_sources = "\n".join([f"Source: {r['title']}, URL: {r['url']}" for r in all_results])
+        prompt = (
+            f"Original Query: {original_query}\n\n"
+            f"Base Knowledge: {base_knowledge}\n\n"
+            f"Web Results:\n{collated_sources}\n\n"
+            "Combine the base knowledge and web results into a detailed answer. "
+            "Enclose your response within <enhanced_answer>...</enhanced_answer> tags."
+        )
 
         messages = [
-            SystemMessage(content="You are a research analyst that writes detailed answers."),
+            SystemMessage(content="You are a multilingual research assistant."),
             HumanMessage(content=prompt),
         ]
+
         response = self.llm.invoke(messages)
-        return self.clean_llm_output(response.content)
 
     @staticmethod
-    def extract_enhanced_answer(text: str) -> Dict[str, Any]:
+    def extract_enhanced_answer(text: Optional[str]) -> Dict[str, Any]:
         """
-        Extract the content between <enhanced_answer>…</enhanced_answer>, and any “ADDITIONAL GAPS” afterwards.
-        Returns a dict:
-          {
-            "answer": <string inside tags>,
-            "additional_gaps": <string after “ADDITIONAL GAPS:” or empty string>
-          }
+        Extract the content between <enhanced_answer>...</enhanced_answer>, and any “ADDITIONAL GAPS” afterwards.
+        Handles NoneType input gracefully.
         """
+        if not text or not isinstance(text, str):
+            return {"answer": "", "additional_gaps": ""}
+
         # 1) Extract between tags
         match = re.search(r"<enhanced_answer>\s*(.*?)\s*</enhanced_answer>", text, re.DOTALL | re.IGNORECASE)
         answer = match.group(1).strip() if match else text.strip()
@@ -213,6 +227,7 @@ class WebsearchPipeline:
             gaps = gap_match.group(1).strip()
 
         return {"answer": answer, "additional_gaps": gaps}
+
 
     def process_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -248,11 +263,13 @@ class WebsearchPipeline:
         all_sources: List[Dict[str, str]] = []
         seen_urls: Set[str] = set()
         for subq in subqueries:
+            logger.debug(f"subquery: {subq}")
             results = self.duckduckgo_search(subq, max_results=self.config.max_searches)
             for r in results:
                 if r["url"] not in seen_urls:
                     all_sources.append(r)
                     seen_urls.add(r["url"])
+
 
         # Step 4: Integrate RAG answer (if any) or just original query with all web results
         base_knowledge = rag_answer if useful else ""
@@ -328,7 +345,7 @@ class WebsearchPipeline:
         with open(out_path, "w", encoding="utf-8") as out_f:
             json.dump(all_outputs, out_f, indent=2, ensure_ascii=False)
 
-        logger.info(f"\nResults saved to {out_path}")
+        print(f"\nResults saved to {out_path}")
 
 
 

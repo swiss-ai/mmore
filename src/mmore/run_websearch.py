@@ -7,17 +7,22 @@ import torch
 from dataclasses import dataclass
 from typing import Any, Dict
 
+
+from .websearchRAG.logging_config import logger  # Import the shared logger
+
 from .utils import load_config
 from .websearchRAG.config import WebsearchConfig
 from .websearchRAG.pipeline import WebsearchPipeline
 
-WEBSRCH_EMOJI = "🌐"
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format=f"[WebSearch {WEBSRCH_EMOJI} -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+
+
+# WEBSRCH_EMOJI = "🌐"
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(
+#     format=f"[WebSearch {WEBSRCH_EMOJI} -- %(asctime)s] %(message)s",
+#     level=logging.INFO,
+#     datefmt="%Y-%m-%d %H:%M:%S",
+# )
 
 # CUDA tweaks (as before)
 torch.backends.cuda.enable_mem_efficient_sdp(False)
