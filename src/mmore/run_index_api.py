@@ -11,9 +11,16 @@ from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadF
 from fastapi.responses import FileResponse
 from pymilvus import MilvusClient
 
+logger = logging.getLogger(__name__)
+RETRIVER_EMOJI = "🗂️"
+logging.basicConfig(
+    format=f"[INDEX API {RETRIVER_EMOJI} -- %(asctime)s] %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
 from .rag.retriever import RetrieverConfig
-from .run_retriever import RetrieverQuery
-from .utils import get_indexer, get_retriever, load_config, process_files
+from .utils import get_indexer, load_config, process_files
 
 UPLOAD_DIR: str = "./uploads"
 
