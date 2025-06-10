@@ -5,7 +5,7 @@ Works in conjunction with the Indexer class for document retrieval.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, get_args
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
