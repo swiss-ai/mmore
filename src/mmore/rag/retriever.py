@@ -18,6 +18,8 @@ from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
 from .model import DenseModel, DenseModelConfig, SparseModel, SparseModelConfig
 
+from duckduckgo_search import DDGS
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +28,7 @@ class RetrieverConfig:
     db: DBConfig = field(default_factory=DBConfig)
     hybrid_search_weight: float = 0.5
     k: int = 1
+    use_web: bool = False
 
 
 class Retriever(BaseRetriever):
@@ -36,6 +39,7 @@ class Retriever(BaseRetriever):
     client: MilvusClient
     hybrid_search_weight: float
     k: int
+    use_web : bool
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -70,6 +74,7 @@ class Retriever(BaseRetriever):
             client=client,
             hybrid_search_weight=config_obj.hybrid_search_weight,
             k=config_obj.k,
+            use_web=config.use_web
         )
 
     def compute_query_embeddings(
@@ -207,3 +212,32 @@ class Retriever(BaseRetriever):
 
         # 0 because there is only one query
         return [parse_result(result, i) for i, result in enumerate(results[0])]
+
+        if self.use_web:
+            web_docs = self._get_web_documents(query['input'], max_results = self.k)
+            milvus_docs = parse_results(results, len(web_docs))
+            return web_docs + milvus_docs
+        else:
+            milvus_docs = parse_results(results)
+            return milvus_docs
+
+    def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
+        """Fetch additional context from the web via DuckDuckGo."""
+        logger.info("Performing web search...")
+        try:
+            results = DDGS().text(query, max_results=max_results)
+            return [
+                Document(
+                    page_content=result["body"],
+                    metadata={
+                        "source": "duckduckgo",
+                        "url": result["href"],
+                        "title": result["title"],
+                        "rank": i + 1
+                    }
+                )
+                for i, result in enumerate(results)
+            ]
+        except Exception as e:
+            logger.warning(f"DuckDuckGo search failed: {e}")
+            return []
