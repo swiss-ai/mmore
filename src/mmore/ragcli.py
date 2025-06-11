@@ -92,6 +92,7 @@ class RagCLI:
             }
         ]
         results = self.ragPP(queries, return_dict=True)
+        print(results[0])
         print(results[0]["answer"].split("<|end_header_id|>")[-1])
     
     
@@ -100,7 +101,7 @@ class RagCLI:
 
 
 def initialize_ragConfig() -> RAGConfig:
-    config_file = "examples/rag/config.yaml"
+    config_file = "src/mmore/RagCLIConfig.yaml"
     config = load_config(config_file, RAGInferenceConfig)
     config.mode_args.input_file = "tests/queries.jsonl"
     config.mode_args.output_file = "tests/output.json"
