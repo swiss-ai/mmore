@@ -28,7 +28,7 @@ class RagCLI:
                     print("Goodbye!")
                     break
                 elif cmd == "help":
-                    print("Available commands: help, greet, exit, rag, setK")
+                    print("Available commands: help, greet, exit, rag, setK, setModel")
                 elif cmd.startswith("greet "):
                     name = cmd.split(" ", 1)[1]
                     print(f"Hello, {name}!")
@@ -40,13 +40,24 @@ class RagCLI:
                             print(k)
                             self.initConfig()
                             self.ragConfig.rag.retriever.k = k
-                            save_config(self.ragConfig, self.config_file)
                             self.initalize_ragPP()
+                            save_config(self.ragConfig, self.config_file)
+                            
                         else:
                             print("Please enter a positive integer.")
                     except ValueError:
                         print("Invalid input. Please enter a valid integer.")
-
+                elif cmd.startswith("setModel "):
+                    try:
+                        new_model = cmd.split(" ", 1)[1]
+                        print(new_model)
+                        self.initConfig()
+                        self.ragConfig.rag.llm.llm_name = new_model
+                        self.initalize_ragPP()
+                        save_config(self.ragConfig, self.config_file)
+                        
+                    except OSError as e:
+                        print(f"There seems to be an error. Are you sure the model you are asking for exists? The error message: {e}")
                 elif cmd.startswith("rag "):
                     self.initConfig()
                     query = cmd.split(" ", 1)[1]
