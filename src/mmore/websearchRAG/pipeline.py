@@ -79,6 +79,20 @@ class WebsearchPipeline:
         else:
             return []
 
+    def clean_llm_summary(self, content):
+        # Define the delimiter after which the subqueries are located
+        delimiter = "---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+        
+        # Split the content based on the delimiter
+        if delimiter in content:
+
+            subquery_section = content.split(delimiter, 1)[-1]
+            # Use regex to extract lines matching the subquery format
+            subquery_section = subquery_section.lower().strip()
+            return subquery_section
+        else:
+            return []
+
 
 
         
@@ -117,12 +131,20 @@ class WebsearchPipeline:
         """
         n = self.config.n_subqueries
         instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
-        task = (
+        if rag_answer is None: 
+            task = (
+            f"Generate {n}-independant subqueries based the original query, in order to generate the most complete research. Each subquery must be concise and ≤30 words.\n"
+            f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
+            "---------------------------"
+            )
+        else:
+            task = (
             f"Partial RAG Answer: {rag_answer}\n\n"
             f"Generate {n}-independant subqueries to refine the answer based on the original query. Each subquery must be concise and ≤30 words.\n"
             f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
             "---------------------------"
-        )
+            )
+
 
 
         prompt = instruction + task
@@ -249,15 +271,17 @@ class WebsearchPipeline:
 
         # Decide if we have “useful” RAG info
         useful = False
-        if self.config.use_rag and self.is_useful_rag_answer(rag_answer):
-            useful = True
 
-        # Step 1: Optionally run a summary on the RAG answer if requested
-        if useful and self.config.rag_summary:
-            rag_answer = self.generate_summary(rag_answer, user_query)
+        # Step 1: Run a summary on the RAG answer if we want to use the rag else empty
+        if self.config.use_rag:
+            rag_summary = self.generate_summary(rag_answer, user_query)
+        else: 
+            rag_summary = None
 
-        # Step 2: Generate sub-queries
-        subqueries = self.generate_subqueries(user_query, rag_answer if useful else None)
+        print("Rag Summary", rag_summary)
+
+        # Step 2: Generate sub-queries - either RAG raw output or RAG summary
+        subqueries = self.generate_subqueries(user_query, rag_summary)
 
         # Step 3: For each sub-query, run DuckDuckGo search and collect sources
         all_sources: List[Dict[str, str]] = []
@@ -282,6 +306,7 @@ class WebsearchPipeline:
         return {
             "query": user_query,
             "rag_answer": rag_answer,
+            "rag_summary": rag_summary,
             "generated_subqueries": subqueries,
             "enhanced_answer": final_answer,
             "additional_gaps": final_gaps,
@@ -354,12 +379,15 @@ class WebsearchPipeline:
         Summarize the RAG answer (used when rag_summary=True).
         """
         prompt = (
-            "You have only the following context to answer the question—do not use any external knowledge.\n\n"
+            "You have only the following context to answer the question, do not use any external knowledge.\n\n"
             f"Question: {query}\n\n"
             "Context:\n"
             f"{rag_answer}\n\n"
-            "If the context contains the answer or useful information, respond with that information. "
+            "If the context contains the answer or useful information, respond with that information. \n"
+            "If no useful informations are, answer: no useful informations"
             "Answer:"
+            "---------------------------"
+
         )
 
         messages = [
@@ -367,4 +395,4 @@ class WebsearchPipeline:
             HumanMessage(content=prompt),
         ]
         response = self.llm.invoke(messages)
-        return self.extract_answer_after_prefix(response.content, "Answer:")
+        return self.clean_llm_summary(response.content)
