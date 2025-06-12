@@ -20,4 +20,4 @@ os.mkdir("0000_small")
 
 # Extract 100 files, and copy them in '0000_small' folder
 for i in range(100):
-    os.system(f'cp 0000/{os.listdir("0000")[i]} 0000_small')
+    os.system(f"cp 0000/{os.listdir('0000')[i]} 0000_small")

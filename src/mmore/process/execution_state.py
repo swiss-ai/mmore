@@ -31,15 +31,15 @@ class ExecutionState:
         """
         if ExecutionState._use_dask is not None:
             raise Exception("Execution state already initialized")
-        assert (
-            distributed_mode is not None
-        ), "Distributed mode must be set to True or False"
+        assert distributed_mode is not None, (
+            "Distributed mode must be set to True or False"
+        )
         ExecutionState._use_dask = distributed_mode
 
         if distributed_mode:
-            assert (
-                client is not None
-            ), "You must be in the context of a dask client to use distributed mode"
+            assert client is not None, (
+                "You must be in the context of a dask client to use distributed mode"
+            )
             ExecutionState._dask_var = Variable("should_stop_execution", client=client)
             ExecutionState._dask_var.set(False)
             logger.info("Execution state initialized (distributed mode)")

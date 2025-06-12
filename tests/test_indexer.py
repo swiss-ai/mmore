@@ -41,9 +41,9 @@ def test_load_results(sample_jsonl):
     """
     results = load_results(str(sample_jsonl))
     assert len(results) == 2, "Should load exactly 2 documents"
-    assert isinstance(
-        results[0], MultimodalSample
-    ), "Should return MultimodalSample objects"
+    assert isinstance(results[0], MultimodalSample), (
+        "Should return MultimodalSample objects"
+    )
     # If your code overrides the .id, don't check for '1':
     assert "Document text 1" in results[0].text
     assert results[1].metadata.get("author") == "Alice"
@@ -111,9 +111,9 @@ def test_indexer_integration(
     )
 
     # Verify the client did what we expect
-    assert (
-        client_instance.create_collection.called
-    ), "Should create collection if it does not exist"
+    assert client_instance.create_collection.called, (
+        "Should create collection if it does not exist"
+    )
     assert client_instance.insert.called, "Should insert documents into Milvus"
 
 
