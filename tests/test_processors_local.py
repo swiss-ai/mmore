@@ -18,7 +18,7 @@ from src.mmore.process.processors.url_processor import URLProcessor
 from src.mmore.type import FileDescriptor
 
 """
-If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.  
+If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.
 This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "src.mmore..." imports.
 """
 

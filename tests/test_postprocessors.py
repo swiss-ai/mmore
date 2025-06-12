@@ -77,8 +77,8 @@ class DummyFilter(BaseFilter):
 
 
 # Patch the filter loaders mapping and supported types for the dummy filter.
-_original_FILTERS_LOADERS_MAP = FILTERS_LOADERS_MAP.copy()
-_original_FILTER_TYPES = FILTER_TYPES[:]
+_original_filters_loaders_map = FILTERS_LOADERS_MAP.copy()
+_original_filter_type = FILTER_TYPES[:]
 FILTERS_LOADERS_MAP["dummy_filter"] = DummyFilter
 FILTER_TYPES.append("dummy_filter")
 
@@ -94,8 +94,8 @@ def test_filter_from_load_postprocessor():
 
     # Restore the original mappings to avoid side effects.
     FILTERS_LOADERS_MAP.clear()
-    FILTERS_LOADERS_MAP.update(_original_FILTERS_LOADERS_MAP)
-    FILTER_TYPES[:] = _original_FILTER_TYPES
+    FILTERS_LOADERS_MAP.update(_original_filters_loaders_map)
+    FILTER_TYPES[:] = _original_filter_type
 
 
 def test_filter_process():

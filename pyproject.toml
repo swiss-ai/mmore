@@ -159,15 +159,9 @@ testpaths = ["tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
 
-# Avoid enforcing line-length violations (`E501`)
-ignore = ["E501"]
-
-# Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402", "F401"]
+"__init__.py" = ["F401"]
 "run_index_api.py" = ["N803", "N806"]
 "run_retriever.py" = ["N815"]
-
-[tool.ruff]
-exclude = ["tests/"]

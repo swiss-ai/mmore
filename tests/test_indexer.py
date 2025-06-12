@@ -103,7 +103,7 @@ def test_indexer_integration(
     documents = MultimodalSample.from_jsonl(str(sample_jsonl))
 
     # Index them
-    idxr = Indexer.from_documents(
+    Indexer.from_documents(
         config=test_indexer_config,
         documents=documents,
         collection_name="test_collection",
