@@ -228,7 +228,7 @@ class PDFProcessor(Processor):
 
         except Exception as e:
             error_queue.put(f"GPU {gpu_id} failed: {str(e)}")
-            raise
+            raise e
         finally:
             torch.cuda.empty_cache()
             if hasattr(self, "converter"):

@@ -123,7 +123,6 @@ def make_router(config_file: str) -> APIRouter:
     router = APIRouter()
 
     # Load the config file
-    print(config_file)
     config = load_config(config_file, RetrieverConfig)
 
     logger.info("Running retriever...")

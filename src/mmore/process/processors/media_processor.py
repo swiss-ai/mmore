@@ -127,7 +127,7 @@ class MediaProcessor(Processor):
                 temp_audio.flush()
             except Exception as e:
                 logger.error(f"Error preparing audio file {file_path}: {e}")
-                raise
+                raise e
 
         ext = os.path.splitext(file_path)[1].lower()
         try:
