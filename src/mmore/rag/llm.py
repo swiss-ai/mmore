@@ -74,7 +74,9 @@ class LLMConfig:
                     else (
                         "COHERE"
                         if self.llm_name in _COHERE_MODELS
-                        else "HF" if self.base_url is None else None
+                        else "HF"
+                        if self.base_url is None
+                        else None
                     )
                 )
             )

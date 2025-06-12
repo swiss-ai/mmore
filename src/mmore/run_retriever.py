@@ -12,6 +12,9 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
+from .rag.retriever import Retriever, RetrieverConfig
+from .utils import load_config
+
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
 logging.basicConfig(
@@ -19,9 +22,6 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-from .rag.retriever import Retriever, RetrieverConfig
-from .utils import load_config
 
 load_dotenv()
 
