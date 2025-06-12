@@ -117,7 +117,13 @@ def index(config_file: str, documents_path: str, collection_name: str):
     default=None,
     help="Path to which save the results of the retriever as a JSON.",
 )
-def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[str]):
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8001, help="Port on which the API should be run."
+)
+def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[str], host: str, port: int):
     """Retrieve documents for specified queries.
 
     Args:
@@ -135,7 +141,7 @@ def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[
         assert isinstance(output_file, str)
         run_retrieve(config_file, input_file, output_file)
     else:
-        run_api(config_file, "0.0.0.0", 8001)
+        run_api(config_file, host, port)
 
 
 @main.command()
