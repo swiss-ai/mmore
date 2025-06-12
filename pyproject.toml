@@ -75,7 +75,7 @@ dependencies = [
     "pymongo==4.9.2",
     "pymilvus==2.5.0",
     "milvus-model==0.2.12",
-    "accelerate==1.6.0",
+    "accelerate==1.7.0",
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
