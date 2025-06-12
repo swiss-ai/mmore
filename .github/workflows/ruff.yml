@@ -1,0 +1,14 @@
+name: 🧹 Ruff linter checks
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: astral-sh/ruff-action@v3
+      - run: ruff check
+      - run: ruff format --check

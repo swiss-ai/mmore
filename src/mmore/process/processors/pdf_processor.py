@@ -158,8 +158,8 @@ class PDFProcessor(Processor):
             if self.config.custom_config.get("extract_images", True):
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
-                    if image and clean_image(
-                        image
+                    if (
+                        image and clean_image(image)
                     ):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
                         all_text.append(self.config.attachment_tag)

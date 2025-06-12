@@ -9,7 +9,7 @@ from fastapi import BackgroundTasks, FastAPI, Query
 from pymongo import DESCENDING
 from starlette.middleware.cors import CORSMiddleware
 
-from .dashboard.backend.model import (
+from mmore.dashboard.backend.model import (
     BatchedReports,
     DashboardMetadata,
     Progress,
