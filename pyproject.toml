@@ -31,7 +31,7 @@ dependencies = [
     "fastapi[standard]",
     "fastapi==0.115.5",
     "fasteners==0.19",
-    "uvicorn==0.32.1",
+    "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
     "dacite==1.8.1",
     "click>=8.1.7",
