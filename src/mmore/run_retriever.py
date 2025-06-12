@@ -12,8 +12,8 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
-from .rag.retriever import Retriever, RetrieverConfig
-from .utils import load_config
+from mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.utils import load_config
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"

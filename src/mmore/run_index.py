@@ -6,9 +6,9 @@ from typing import Optional, Union
 
 from dotenv import load_dotenv
 
-from .index.indexer import Indexer, IndexerConfig
-from .type import MultimodalSample
-from .utils import load_config
+from mmore.index.indexer import Indexer, IndexerConfig
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
 
 logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"

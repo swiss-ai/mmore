@@ -11,14 +11,14 @@ from fastapi import FastAPI, File, Form, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 from pymilvus import MilvusClient
 
-from .index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
-from .process.crawler import Crawler, CrawlerConfig
-from .process.dispatcher import Dispatcher, DispatcherConfig
-from .rag.model import DenseModelConfig, SparseModelConfig
-from .rag.retriever import Retriever, RetrieverConfig
-from .run_retriever import RetrieverQuery
-from .type import MultimodalSample
-from .utils import load_config
+from mmore.index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
+from mmore.process.crawler import Crawler, CrawlerConfig
+from mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from mmore.rag.model import DenseModelConfig, SparseModelConfig
+from mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.run_retriever import RetrieverQuery
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
 
 MILVUS_URI: str = os.getenv("MILVUS_URI", "demo.db")
 MILVUS_DB: str = os.getenv("MILVUS_DB", "my_db")

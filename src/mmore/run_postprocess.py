@@ -2,9 +2,9 @@ import argparse
 import logging
 from typing import List
 
-from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
-from .type import MultimodalSample
-from .utils import load_config
+from mmore.process.post_processor.pipeline import PPPipeline, PPPipelineConfig
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
 
 PP_EMOJI = "🧹"
 logger = logging.getLogger(__name__)
