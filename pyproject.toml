@@ -157,6 +157,9 @@ mmore = "mmore.cli:main"
 filterwarnings = ["ignore::Warning"]
 testpaths = ["tests"]
 
+[tool.ruff]
+exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is fixed
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
@@ -164,4 +167,3 @@ ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "run_index_api.py" = ["N803", "N806"]
-"run_retriever.py" = ["N815"]
