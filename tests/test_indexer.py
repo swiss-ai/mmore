@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from src.mmore.index.indexer import Indexer, IndexerConfig
 
 # Import run_index from the correct package path:
-from src.mmore.run_index import index, load_results
+from src.mmore.run_index import index
 from src.mmore.type import MultimodalSample
 
 
