@@ -31,9 +31,9 @@ class PDFProcessor(Processor):
         return file.file_extension.lower() == ".pdf"
 
     @staticmethod
-    def load_models():
+    def load_models(disable_image_extraction: bool = False):
         marker_config = {
-            "disable_image_extraction": True,
+            "disable_image_extraction": disable_image_extraction,
             "languages": None,
             "use_llm": False,
             "disable_multiprocessing": False,
@@ -59,7 +59,11 @@ class PDFProcessor(Processor):
             # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
             if num_gpus == 1 or len(files_paths) < 10:
                 if self.converter is None:
-                    self.converter = PDFProcessor.load_models()
+                    self.converter = PDFProcessor.load_models(
+                        disable_image_extraction=not self.config.custom_config.get(
+                            "extract_images", True
+                        )
+                    )
 
                 results = []
                 for file_path in files_paths:
