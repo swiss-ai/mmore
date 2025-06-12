@@ -123,7 +123,13 @@ def index(config_file: str, documents_path: str, collection_name: str):
 @click.option(
     "--port", type=int, default=8001, help="Port on which the API should be run."
 )
-def retrieve(config_file: str, input_file: Optional[str], output_file: Optional[str], host: str, port: int):
+def retrieve(
+    config_file: str,
+    input_file: Optional[str],
+    output_file: Optional[str],
+    host: str,
+    port: int,
+):
     """Retrieve documents for specified queries.
 
     Args:

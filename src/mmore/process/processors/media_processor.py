@@ -42,8 +42,8 @@ class MediaProcessor(Processor):
 
     @staticmethod
     def load_models(
-        self=None, fast_mode=False # pyright: ignore[reportSelfClsParameterName]
-    ):  
+        self=None, fast_mode=False  # pyright: ignore[reportSelfClsParameterName]
+    ):
         if self:
             model_name = (
                 self.config.custom_config.get("fast_model", "openai/whisper-tiny")
