@@ -107,8 +107,11 @@ class LLM(BaseChatModel):
     @staticmethod
     def _check_key(org):
         if f"{org}_API_KEY" not in os.environ:
-            print(f"Enter your {org} API key:")
-            os.environ[f"{org}_API_KEY"] = getpass()
+            # print(f"Enter your {org} API key:")
+            # os.environ[f"{org}_API_KEY"] = getpass()
+            raise ValueError(
+                f"Unable to find the API key for {org}. Please restart after setting the '{org}_API_KEY' environment variable."
+            )
 
     @classmethod
     def from_config(cls, config: str | LLMConfig):

@@ -100,9 +100,9 @@ class DispatcherConfig:
             with open(yaml_path, "r") as file:
                 config = yaml.safe_load(file)
             return DispatcherConfig.from_dict(config)
-        except (FileNotFoundError, yaml.YAMLError):
+        except (FileNotFoundError, yaml.YAMLError) as e:
             logger.error(f"[Dispatcher] Error processing file {yaml_path}")
-            raise
+            raise e
 
     def to_dict(self) -> Dict:
         """Convert the DispatcherConfig object to a dictionary."""

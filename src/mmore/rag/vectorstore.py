@@ -85,7 +85,6 @@ class VectorStoreMilvus:
         return self.milvus.add_documents(docs, **kwargs)
 
     def as_retriever(self, **kwargs: Any) -> VectorStoreRetriever:
-        print(kwargs)
         return self.milvus.as_retriever(**kwargs)
 
     @staticmethod

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DBConfig:
-    uri: str = "demo.db"
+    uri: str = "./proc_demo.db"
     name: str = "my_db"
 
 
@@ -206,7 +206,7 @@ class Indexer:
                 partition_name=partition_name,
             )
 
-            inserted += list(batch_inserted.values())[0]
+            inserted += batch_inserted["insert_count"]
 
         return inserted
 

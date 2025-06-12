@@ -47,7 +47,6 @@ def test_chunker_process():
         metadata={}
     )
     chunks = chunker.process(sample)
-    print(f"chunks: {chunks}")
     # Expect 2 chunks for the 2 sentences
     assert len(chunks) == 2, f"Expected 2 chunks, got {len(chunks)}"
     assert chunks[0].text.strip() == "Hello world.", f"Unexpected first chunk: {chunks[0].text}"
