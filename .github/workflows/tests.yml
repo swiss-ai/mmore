@@ -1,4 +1,4 @@
-name: PyTest
+name: 🧪 PyTest unit tests
 
 on:
     push:

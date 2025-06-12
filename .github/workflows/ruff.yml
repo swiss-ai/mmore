@@ -1,4 +1,4 @@
-name: Ruff
+name: 🧹 Ruff linter checks
 on:
   push:
     branches:

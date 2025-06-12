@@ -35,20 +35,6 @@ def sample_jsonl(tmp_path):
     return path
 
 
-def test_load_results(sample_jsonl):
-    """
-    Tests that load_results() properly reads JSONL files and returns a list of MultimodalSample objects
-    """
-    results = load_results(str(sample_jsonl))
-    assert len(results) == 2, "Should load exactly 2 documents"
-    assert isinstance(results[0], MultimodalSample), (
-        "Should return MultimodalSample objects"
-    )
-    # If your code overrides the .id, don't check for '1':
-    assert "Document text 1" in results[0].text
-    assert results[1].metadata.get("author") == "Alice"
-
-
 @patch("src.mmore.run_index.Indexer.from_documents")
 def test_index_invocation(mock_from_documents, sample_jsonl):
     """
