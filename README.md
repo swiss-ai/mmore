@@ -38,7 +38,7 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 To install the package simply run:
 
 ```bash
-pip install -e .
+pip install mmore
 ```
 
 > :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
