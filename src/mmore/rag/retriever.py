@@ -236,13 +236,27 @@ class Retriever(BaseRetriever):
         return all_results
 
     def _get_relevant_documents(
-        self, query: str, *, run_manager: CallbackManagerForRetrieverRun, **kwargs: Any
+        self,
+        query: str | Dict[str, Any],
+        *,
+        run_manager: CallbackManagerForRetrieverRun,
+        **kwargs: Any,
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
 
-        collection_name: str = kwargs.get("collection_name", "my_docs")
+        if isinstance(query, str):
+            query_input: str = query
+            collection_name: str = kwargs.get("collection_name", "my_docs")
+            document_ids: List[str] = kwargs.get("document_ids", [])
+        else:
+            if "input" not in query:
+                raise ValueError("Missing query input")
+
+            query_input: str = query["input"]
+            collection_name: str = query.get("collection_name", "my_docs")
+            document_ids: List[str] = query.get("document_ids", [])
+
         partition_names: Optional[List[str]] = kwargs.get("partition_names", None)
-        document_ids: List[str] = kwargs.get("document_ids", [])
         min_score: float = kwargs.get("min_score", -1.0)
         k: int = kwargs.get("k", self.k)
 
@@ -250,7 +264,7 @@ class Retriever(BaseRetriever):
             return []
 
         results = self.retrieve(
-            query=query,
+            query=query_input,
             collection_name=collection_name,
             partition_names=partition_names,
             min_score=min_score,

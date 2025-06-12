@@ -184,14 +184,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-file",
         required=False,
-        type=Optional[str],
+        type=str,
         default=None,
         help="Path to the input file of queries. If not provided, the retriever is run in API mode.",
     )
     parser.add_argument(
         "--output-file",
         required=False,
-        type=Optional[str],
+        type=str,
         default=None,
         help="Path to the output file of selected documents. Must be provided together with --input_file.",
     )
