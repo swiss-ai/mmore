@@ -184,12 +184,28 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-file",
         required=False,
+        type=Optional[str],
+        default=None,
         help="Path to the input file of queries. If not provided, the retriever is run in API mode.",
     )
     parser.add_argument(
         "--output-file",
         required=False,
+        type=Optional[str],
+        default=None,
         help="Path to the output file of selected documents. Must be provided together with --input_file.",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host on which the API should be run.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8001,
+        help="Port on which the API should be run.",
     )
     args = parser.parse_args()
 
@@ -201,4 +217,4 @@ if __name__ == "__main__":
     if args.input_file:  # an input file is provided
         retrieve(args.config_file, args.input_file, args.output_file)
     else:
-        run_api(args.config_file, "0.0.0.0", 8001)
+        run_api(args.config_file, args.host, args.port)

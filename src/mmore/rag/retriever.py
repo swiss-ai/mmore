@@ -54,7 +54,7 @@ class Retriever(BaseRetriever):
 
         if not client.has_collection(config.collection_name):
             raise ValueError(
-                "The Milvus has not been initialized yet. Ensure the path is valid with a database that was already populated with the indexer."
+                "The Milvus database has not been initialized yet. Ensure the path is valid with a database that was already populated with the indexer."
             )
 
         # Init models
@@ -239,7 +239,7 @@ class Retriever(BaseRetriever):
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun, **kwargs: Any
     ) -> List[Document]:
         """Retrieve relevant documents from Milvus. This is necessary for compatibility with LangChain."""
-        query_input: str = query
+
         collection_name: str = kwargs.get("collection_name", "my_docs")
         partition_names: Optional[List[str]] = kwargs.get("partition_names", None)
         document_ids: List[str] = kwargs.get("document_ids", [])
@@ -250,7 +250,7 @@ class Retriever(BaseRetriever):
             return []
 
         results = self.retrieve(
-            query=query_input,
+            query=query,
             collection_name=collection_name,
             partition_names=partition_names,
             min_score=min_score,

@@ -110,7 +110,7 @@ class LLM(BaseChatModel):
             # print(f"Enter your {org} API key:")
             # os.environ[f"{org}_API_KEY"] = getpass()
             raise ValueError(
-                f"Unable to find the API key for {org}. Please restart after setting '{org}_API_KEY'"
+                f"Unable to find the API key for {org}. Please restart after setting the '{org}_API_KEY' environment variable."
             )
 
     @classmethod
