@@ -18,8 +18,7 @@ from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
-
-from duckduckgo_search import DDGS
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 import logging
 logger = logging.getLogger(__name__)
@@ -217,13 +216,14 @@ class Retriever(BaseRetriever):
         """Fetch additional context from the web via DuckDuckGo."""
         logger.info("Performing web search...")
         try:
-            results = DDGS().text(query, max_results=max_results)
+            wrapper = DuckDuckGoSearchAPIWrapper()
+            results = wrapper.results(query,max_results=max_results)
             return [
                 Document(
-                    page_content=result["body"],
+                    page_content=result["snippet"],
                     metadata={
                         "source": "duckduckgo",
-                        "url": result["href"],
+                        "url": result["link"],
                         "title": result["title"],
                         "rank": i + 1
                     }
@@ -231,5 +231,5 @@ class Retriever(BaseRetriever):
                 for i, result in enumerate(results)
             ]
         except Exception as e:
-            logger.warning(f"DuckDuckGo search failed: {e}")
+            logger.warning(f"Langchain-DuckDuckGo search failed: {e}")
             return []
