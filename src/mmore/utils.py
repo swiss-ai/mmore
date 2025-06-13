@@ -186,8 +186,11 @@ def process_files(
 
     from .process.crawler import Crawler, CrawlerConfig
     from .process.dispatcher import Dispatcher, DispatcherConfig
+    from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
 
     output_path = f"./tmp/{collection_name}"
+
+    # crawling
     crawler_config = CrawlerConfig(
         root_dirs=[temp_dir],
         # For more effecient processing give only the extensions needed
@@ -196,9 +199,22 @@ def process_files(
     )
     crawler = Crawler(config=crawler_config)
     crawl_result = crawler.crawl()
+
+    # dispatching the processing
     dispatcher_config = DispatcherConfig(
         output_path=output_path, use_fast_processors=False, extract_images=True
     )
-    # pdb.set_trace()
+
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
-    return sum(list(dispatcher()), [])
+    raw_documents = sum(list(dispatcher()), [])
+
+    # post-processing (chunking)
+    default_config = {
+        "pp_modules": [{"type": "chunker"}],
+        "output": {"output_path": output_path},
+    }
+    config: PPPipelineConfig = load_config(default_config, PPPipelineConfig)
+    pipeline = PPPipeline.from_config(config)
+    chunked = pipeline(raw_documents)
+
+    return chunked

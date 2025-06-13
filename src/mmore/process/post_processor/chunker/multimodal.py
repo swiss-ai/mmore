@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MultimodalChunkerConfig:
-    chunking_strategy: str
+    chunking_strategy: str = "sentence"
     text_chunker_config: Dict[str, Any] = field(default_factory=dict)
 
 
