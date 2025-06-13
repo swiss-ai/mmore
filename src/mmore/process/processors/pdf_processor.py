@@ -20,7 +20,7 @@ IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 
 class PDFProcessor(Processor):
-    artifact_dict = create_model_dict()
+    artifact_dict = None #create_model_dict()
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
@@ -32,6 +32,9 @@ class PDFProcessor(Processor):
 
     @staticmethod
     def load_models(disable_image_extraction: bool = False):
+        if PDFProcessor.artifact_dict is None:
+            PDFProcessor.artifact_dict = create_model_dict()
+        
         marker_config = {
             "disable_image_extraction": disable_image_extraction,
             "languages": None,
@@ -202,6 +205,9 @@ class PDFProcessor(Processor):
     ):
         try:
             torch.cuda.set_device(gpu_id)
+            
+            if PDFProcessor.artifact_dict is None:
+                PDFProcessor.artifact_dict = create_model_dict()
 
             marker_config = {
                 "disable_image_extraction": not config_custom.get(
