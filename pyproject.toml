@@ -79,6 +79,7 @@ dependencies = [
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
+    "langchain_community==0.3.25",
     "langchain-huggingface==0.1.2",
     "langchain-milvus==0.1.8",
     "langchain-mistralai==0.2.7",
