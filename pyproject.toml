@@ -27,7 +27,7 @@ dependencies = [
     "numpy==1.26.3",
     "pandas==2.2.3",
     "datasets==2.19.1",
-    "transformers==4.52",
+    "transformers==4.52.4",
     "fastapi[standard]",
     "fastapi==0.115.5",
     "fasteners==0.19",
