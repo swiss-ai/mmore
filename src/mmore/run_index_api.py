@@ -19,6 +19,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
 from .utils import get_indexer, load_config, process_files
 
@@ -40,8 +41,9 @@ def make_router(config_path: str) -> APIRouter:
     MILVUS_DB = config.db.name or "my_db"
     COLLECTION_NAME = config.collection_name or "my_docs"
 
-    # Initialize the index database
+    # Initialize the index database and the processors
     indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+    register_all_processors()
 
     @router.get("/")
     async def root():
