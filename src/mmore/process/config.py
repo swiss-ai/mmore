@@ -51,6 +51,7 @@ def get_config_path():
     except PermissionError as e:
         click.echo(f"Error creating config directory: {e}", err=True)
         raise
+    print(app_dir)
     return app_dir / "config.yaml"
 
 
