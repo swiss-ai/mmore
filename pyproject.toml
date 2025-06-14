@@ -31,7 +31,7 @@ dependencies = [
     "fastapi[standard]",
     "fastapi==0.115.5",
     "fasteners==0.19",
-    "uvicorn==0.32.1",
+    "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
     "dacite==1.8.1",
     "click>=8.1.7",
@@ -57,7 +57,7 @@ dependencies = [
     "rarfile==4.2",
     "markdown==3.7",
     "markdownify==0.13.1",
-    "marker-pdf==1.6.0",
+    "marker-pdf==1.7.5",
     "moviepy==2.1.1",
     "openpyxl==3.1.5",
     "chonkie==0.2.1.post1",
@@ -75,7 +75,7 @@ dependencies = [
     "pymongo==4.9.2",
     "pymilvus==2.5.0",
     "milvus-model==0.2.12",
-    "accelerate==1.6.0",
+    "accelerate==1.7.0",
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
@@ -100,6 +100,27 @@ cpu = [
 cu124 = [
     "torch>=2.5.1",
 ]
+
+rag = [
+  "accelerate",
+  "langchain-anthropic==0.3.4",
+  "langchain-aws",
+  "langchain-cohere==0.4.2",
+  "langchain-huggingface==0.1.2",
+  "langchain-milvus==0.1.8",
+  "langchain-mistralai==0.2.7",
+  "langchain-nvidia-ai-endpoints",
+  "langchain-openai==0.3.7",
+  "langchain==0.3.20",
+  "langdetect>=1.0.9",
+  "langserve[all]==0.3.1",
+  "pymilvus==2.5.0",
+  "milvus-model==0.2.12",
+  "ragas==0.2.6",
+  "nltk>=3.9",
+]
+
+dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
 
 [tool.uv]
 conflicts = [
@@ -131,3 +152,18 @@ profile = "black"
 
 [project.scripts]
 mmore = "mmore.cli:main"
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::Warning"]
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is fixed
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"run_index_api.py" = ["N803", "N806"]

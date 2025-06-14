@@ -33,12 +33,14 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
   libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
 
+:warning: **On Ubuntu 24.04, replace `libasound2` with `libasound2t64`. You may also need to add the repository for Ubuntu 20.04 focal to have access to a few of the sources (e.g. create `/etc/apt/sources.list.d/mmore.list` with the contents `deb http://cz.archive.ubuntu.com/ubuntu focal main universe`).**
+
 #### Step 1 – Install MMORE
 
 To install the package simply run:
 
 ```bash
-pip install -e .
+pip install mmore
 ```
 
 > :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
