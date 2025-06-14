@@ -30,13 +30,14 @@ class WebsearchConfig:
     input_file: str
     output_file: str
     n_subqueries: int
+    n_loops : int
     max_searches: int
     llm_config: Dict[str, Any]
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "WebsearchConfig":
         # Validate required keys
-        required = ["use_rag", "rag_summary", "input_file", "output_file", "n_subqueries", "max_searches", "llm_config"]
+        required = ["use_rag", "rag_summary", "input_file", "output_file", "n_loops", "n_subqueries", "max_searches", "llm_config"]
         for key in required:
             if key not in d:
                 raise ValueError(f"Missing '{key}' in WebsearchConfig.")
@@ -47,6 +48,7 @@ class WebsearchConfig:
             rag_summary=d["rag_summary"],
             input_file=d["input_file"],
             output_file=d["output_file"],
+            n_loops=d["n_loops"],
             n_subqueries=int(d["n_subqueries"]),
             max_searches=int(d["max_searches"]),
             llm_config=d["llm_config"],

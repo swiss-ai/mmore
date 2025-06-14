@@ -35,6 +35,7 @@ class WebsearchSection:
     use_rag: bool
     rag_config_path: str
     use_summary: bool
+    n_subqueries : int
     input_file: str
     input_queries: str
     output_file: str
@@ -67,7 +68,8 @@ def run_websearch(config_file: str):
         "input_file": ws.input_file,
         "input_queries": ws.input_queries,
         "output_file": ws.output_file,
-        "n_subqueries": ws.n_loops,
+        "n_subqueries": ws.n_subqueries,
+        "n_loops": ws.n_loops,
         "max_searches": ws.max_searches,
         "llm_config": ws.llm_config,
     }
