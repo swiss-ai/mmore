@@ -45,38 +45,8 @@ class HTMLProcessor(Processor):
             MultimodalSample: A dictionary containing processed text and embedded images.
         """
 
-        '''def _extract_images(soup: BeautifulSoup) -> List[Image.Image]:
+        
 
-            """
-            Extract images embedded in HTML (by URL or local).
-
-            Args:
-                soup (BeautifulSoup): Parsed HTML soup.
-
-            Returns:
-                List[Image.Image]: A list of PIL images.
-            """
-            images = []
-            for img_tag in soup.find_all("img"):
-                if not isinstance(img_tag, Tag):
-                    continue
-
-                src = cast(Optional[str], img_tag.get("src"))
-                if src:
-                    try:
-                        if src.startswith("http"):
-                            response = requests.get(src)
-                            bytes_img = io.BytesIO(response.content)
-                            image = Image.open(bytes_img).convert("RGB")
-                        else:
-                            parent_path = os.path.dirname(file_path)
-                            local_path = os.path.join(parent_path, src)
-                            image = Image.open(local_path).convert("RGB")
-                        images.append(image)
-                    except Exception as e:
-                        logger.error(f"Failed to load image {src}: {e}")
-            return images
-'''
         def _extract_images(soup: BeautifulSoup, file_path: Optional[str] = None) -> List[Image.Image]:
             """
             Extract images embedded in HTML (by URL or local).
@@ -186,29 +156,10 @@ class HTMLProcessor(Processor):
 
         markdown = md(html, heading_style='ATX')
 
-        #soup = BeautifulSoup(html, "html.parser")
-
         if self.config.custom_config.get("extract_images", True):
             embedded_images = _extract_images_from_markdown(markdown)
         else:
             embedded_images = []
-        '''
-        all_text = []
-        body = soup.body if soup.body else soup  # fallback if no <body> tag
-
-        for tag in body.find_all(string=True):
-            if tag.parent and tag.parent.name not in ["script", "style"]:
-                cleaned = clean_text(tag.text)
-                if cleaned.strip():
-                    all_text.append(cleaned)
-        if self.config.custom_config.get("extract_images", True):
-            for img_tag in soup.find_all("img"):
-                all_text.append(self.config.attachment_tag)'''
-
-        #body = soup.body if soup.body else soup  # fallback if no <body> tag
-
-        # Convert the entire body to markdown
-        #markdown_text = md(str(body), strip=["script", "style"])
 
         # If extract_images is enabled, optionally replace image markdown with a placeholder
         if self.config.custom_config.get("extract_images", True):
@@ -216,7 +167,7 @@ class HTMLProcessor(Processor):
             markdown = re.sub(r'!\[.*?\]\(.*?\)', self.config.attachment_tag, markdown)
 
         # Clean the markdown text
-        cleaned_markdown = markdown#clean_text(markdown).strip()
+        cleaned_markdown = clean_text(markdown).strip()
         all_text = [cleaned_markdown] if cleaned_markdown else []
 
         return self.create_sample(all_text, embedded_images, file_path)
