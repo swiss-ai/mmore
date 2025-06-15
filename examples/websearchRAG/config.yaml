@@ -1,12 +1,13 @@
 websearch:
-  use_rag: true
+  use_rag: false
   rag_config_path: examples/rag/config.yaml
   use_summary: false
+  n_subqueries : 3
   input_file: examples/rag/output.json
   input_queries: examples/rag/queries.jsonl
   output_file: examples/websearchRAG/enhanced_results_trial.json
   n_loops: 2
   max_searches: 10
   llm_config:
-    temperature: 0.2
-    llm: OpenMeditron/meditron3-8b
+    llm_name: OpenMeditron/meditron3-8b
+    max_new_tokens: 250

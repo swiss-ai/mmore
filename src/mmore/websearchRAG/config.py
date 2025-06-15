@@ -28,6 +28,7 @@ class WebsearchConfig:
     use_rag: bool
     rag_summary: bool
     input_file: str
+    input_queries: str
     output_file: str
     n_subqueries: int
     n_loops : int
@@ -47,6 +48,7 @@ class WebsearchConfig:
             use_rag=d["use_rag"],
             rag_summary=d["rag_summary"],
             input_file=d["input_file"],
+            input_queries=d["input_queries"],
             output_file=d["output_file"],
             n_loops=d["n_loops"],
             n_subqueries=int(d["n_subqueries"]),

@@ -1,0 +1,88 @@
+[
+  {
+    "query": "When was Barack Obama born?",
+    "rag_summary": null,
+    "web_summary": null,
+    "short_answer": "barack obama was born on august 4, 1961, in honolulu, hawaii.",
+    "detailed_answer": "barack obama was born in honolulu, hawaii, to barack obama sr., a kenyan economist, and ann dunham, an anthropologist from kansas. his parents met while attending the university of hawaii. they divorced when barack was two years old, leaving ann to raise him primarily on her own. obama graduated from columbia university and harvard law school. he was elected to the illinois senate in 1996 and the u.s. senate in 2004. in 2008, he became the first african-american president of the united states, serving two terms from 2009 to 2017.",
+    "sources": [
+      "https://www.providencejournal.com/story/news/politics/2025/06/14/president-donald-trumps-birthday-is-june-14-how-old-is-he/84147169007/",
+      "https://www.aplustopper.com/essay-on-barack-obama/",
+      "https://kvia.com/politics/cnn-us-politics/2025/02/05/barack-obama-fast-facts-2/",
+      "https://www.mapsofworld.com/usa/presidents/barack-obama.html",
+      "https://www.havefunwithhistory.com/barack-obama-timeline/",
+      "https://facts.net/history/historical-events/38-facts-about-barack-obama-elected-u-s-president/",
+      "https://www.cnbctv18.com/world/barack-obama-turns-62-all-about-former-us-president-and-his-famous-quotes-19453865.htm",
+      "https://www.britannica.com/biography/Barack-Obama",
+      "https://www.britannica.com/facts/Barack-Obama",
+      "https://www.politifact.com/factchecks/2025/jan/13/threads-posts/no-this-isnt-proof-former-president-barack-obama-w/",
+      "https://www.britannica.com/biography/Barack-Obama/Politics-and-ascent-to-the-presidency",
+      "https://thegrio.com/2025/03/14/barack-obama/",
+      "https://publicfinanceinternational.org/when-is-obamas-birthday/"
+    ]
+  },
+  {
+    "query": "Who founded Google?",
+    "rag_summary": null,
+    "web_summary": null,
+    "short_answer": "larry page and sergey brin founded google in 1998.",
+    "detailed_answer": "google was founded in 1998 by two ph.d. students at stanford university, larry page and sergey brin. initially, the company focused on developing a search engine that could provide relevant and accurate search results. over the years, google expanded its services to include a wide range of products and services, such as google drive, google maps, youtube, and google assistant. today, google is one of the most influential tech companies globally, with over 140,000 employees and a market value of over $1 trillion.",
+    "sources": [
+      "https://worldhistoryjournal.com/2025/02/21/how-google-started-and-became-a-global-tech-powerhouse/",
+      "https://newswirejet.com/google-mission-and-vision-statement/",
+      "https://www.indiatoday.in/technology/news/story/google-co-founder-sergey-brin-is-back-from-semi-retirement-is-now-daily-working-at-google-2728026-2025-05-21",
+      "https://umatechnology.org/a-brief-history-of-google-from-1998-to-the-present-day/",
+      "https://www.britannica.com/money/Google-Inc",
+      "https://www.businessinsider.com/sergey-brin-career-life-education?op=1",
+      "https://www.reference.com/business-finance/google-s-vision-statement-66f207e3583fca5f-14",
+      "https://panmore.com/google-vision-statement-mission-statement",
+      "https://biographyhost.com/p/larry-page-biography.html",
+      "https://canvasbusinessmodel.com/blogs/mission/google-mission",
+      "https://interestingengineering.com/culture/almost-everything-you-need-to-know-about-googles-history",
+      "https://en.wikipedia.org/wiki/Larry_Page",
+      "https://www.link-assistant.com/news/how-old-is-google.html"
+    ]
+  },
+  {
+    "query": "Where is the Eiffel Tower located?",
+    "rag_summary": null,
+    "web_summary": null,
+    "short_answer": "the eiffel tower is located in paris, france.",
+    "detailed_answer": "the eiffel tower is a wrought-iron structure located in paris, france. it is situated on the banks of the seine river in the 7th arrondissement of paris. the tower was designed and built by gustave eiffel and his team between 1887 and 1889 for the 1889 exposition universelle, a world's fair celebrating the 100th anniversary of the french revolution. the tower stands at an official height of 984 feet (300 meters), including its antennas, and is made of 18,038 pieces of metal connected with 2.5 million rivets. it is considered a technological masterpiece in building-construction history and is one of the most recognizable structures in the world, drawing millions of visitors each year.",
+    "sources": [
+      "https://artenquire.com/2024/08/28/who-built-the-eiffel-tower-and-why/",
+      "https://duitdesign.com/who-designed-the-eiffel-tower-and-when-was-it-built.html",
+      "https://www.solosophie.com/eiffel-tower-wasnt-designed-by-gustave-eiffel/",
+      "https://heightandsize.com/eiffel-tower-height/",
+      "https://travelpander.com/eiffel-tower-history-and-facts/",
+      "https://www.travelandleisure.com/attractions/landmarks-monuments/eiffel-tower-facts",
+      "https://www.britannica.com/topic/Eiffel-Tower-Paris-France",
+      "https://travelpander.com/does-the-eiffel-tower-have-a-purpose/",
+      "https://travelpander.com/eiffel-tower-why-is-it-important/",
+      "https://parade.com/travel/eiffel-tower-facts",
+      "https://www.architecturaldigest.com/story/eiffel-tower-everything-you-need-to-know"
+    ]
+  },
+  {
+    "query": "When will the artificial intelligence conference be held?",
+    "rag_summary": null,
+    "web_summary": null,
+    "short_answer": "the ai conference will be held on september 17-18, 2025, in san francisco, california, us.",
+    "detailed_answer": "the ai conference is a two-day in-person conference discussing the latest in ai. it will be held on september 17-18, 2025, in san francisco, california, us. the conference will cover topics such as what's working in the best applied-ai startups, and technical lessons into the nuances of neural architectures, foundational models, alignment, and more. the cost of attending the conference ranges from $199.",
+    "sources": [
+      "https://aaai.org/conference/aaai/aaai-25/main-technical-track/",
+      "https://engine.com/business-travel-guide/biggest-ai-expos-events-conferences-2025",
+      "https://www.iso.org/news/2025/01/world-first-international-ai-standards-summit-announced-in-davos",
+      "https://www.analyticsinsight.net/artificial-intelligence/top-ai-conferences-to-watch-out-for-in-2025",
+      "https://oxfordabstracts.com/blog/top-ai-conferences-to-attend/",
+      "https://www.forbes.com/sites/dianaspehar/2025/02/10/paris-ai-summit-2025-5-critical-themes-shaping-global-ai-policy/",
+      "https://vsynergize.com/blog/top-6-global-ai-summit-and-conferences-in-2025/",
+      "https://aaai.org/conference/aaai/aaai-25/",
+      "https://www.datacamp.com/blog/top-ai-conferences",
+      "https://www.analyticsvidhya.com/blog/2025/06/ai-conferences-2025/",
+      "https://datasciencedojo.com/blog/top-ai-conferences-in-usa/",
+      "https://www.ip-paris.fr/en/news/ai-action-summit-conference-ai-science-and-society-ip-paris",
+      "https://onu.delegfrance.org/ai-action-summit-10-and-11-february-2025"
+    ]
+  }
+]
