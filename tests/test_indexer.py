@@ -97,9 +97,9 @@ def test_indexer_integration(
     )
 
     # Verify the client did what we expect
-    assert client_instance.create_collection.called, (
-        "Should create collection if it does not exist"
-    )
+    assert (
+        client_instance.create_collection.called
+    ), "Should create collection if it does not exist"
     assert client_instance.insert.called, "Should insert documents into Milvus"
 
 
