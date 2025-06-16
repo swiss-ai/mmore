@@ -49,7 +49,7 @@ dependencies = [
     "python-docx",
     "python-pptx",
     "clean-text",
-    "requests==2.32.3",
+    "requests==2.32.4",
     "selenium==4.27.1",
     "surya-ocr>=0.8.3",
     "xlrd==2.0.1",
