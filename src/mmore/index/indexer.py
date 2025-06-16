@@ -116,7 +116,7 @@ class Indexer:
                 name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=128
             ),
             FieldSchema(
-                name="document_id", dtype=DataType.VARCHAT, max_length=128
+                name="document_id", dtype=DataType.VARCHAR, max_length=128
             ),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
             FieldSchema(
