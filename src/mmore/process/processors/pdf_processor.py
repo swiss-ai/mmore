@@ -42,10 +42,14 @@ class PDFProcessor(Processor):
             "disable_multiprocessing": False,
         }
         config_parser = ConfigParser(marker_config)
-        return PdfConverter(
+        converter = PdfConverter(
             artifact_dict=PDFProcessor.artifact_dict,
             config=config_parser.generate_config_dict(),
         )
+        
+        converter.initialize_processors(converter.default_processors)
+        
+        return converter
 
     # overwriting the process_batch
     def process_batch(
