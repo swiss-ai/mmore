@@ -93,10 +93,6 @@ def make_router(config_path: str) -> APIRouter:
                 file_extension = FilePath(file.filename).suffix.lower()
                 documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])
 
-                # Set the custom ID
-                for doc in documents:
-                    doc.id = fileId
-
                 # Get indexer and index the document
                 indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
                 indexer.index_documents(
@@ -171,8 +167,7 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
-                for doc, docId in zip(documents, listIds):
-                    doc.id = docId
+                for doc in documents:
                     modified_documents.append(doc)
 
                 logging.info("Indexing the files")
@@ -187,7 +182,7 @@ def make_router(config_path: str) -> APIRouter:
                     "status": "success",
                     "message": f"Successfully processed and indexed {len(modified_documents)} documents",
                     "documents": [
-                        {"id": doc.id, "text": doc.text[:50] + "..."}
+                        {"id": doc.document_id, "text": doc.text[:50] + "..."}
                         for doc in modified_documents
                     ],
                 }

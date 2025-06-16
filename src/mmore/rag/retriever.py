@@ -137,7 +137,7 @@ class Retriever(BaseRetriever):
         if document_ids:
             # Create a comme-seperated string of quoted document IDs
             ids_str = ",".join(f'"{d}"' for d in document_ids)
-            expr = f"id in [{ids_str}]"
+            expr = f"document_id in [{ids_str}]"
         else:
             # No filtering if doc_ids is not provided
             expr = None

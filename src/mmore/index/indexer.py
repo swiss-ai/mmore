@@ -114,7 +114,10 @@ class Indexer:
         fields = [
             FieldSchema(
                 name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=128
-            ),  # Add doc_id field
+            ),
+            FieldSchema(
+                name="document_id", dtype=DataType.VARCHAT, max_length=128
+            ),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
             FieldSchema(
                 name="dense_embedding",
@@ -192,6 +195,7 @@ class Indexer:
             data = [
                 {
                     "id": sample.id,
+                    "document_id": sample.document_id,
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
