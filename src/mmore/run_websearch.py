@@ -4,27 +4,24 @@ import argparse
 import logging
 import time
 import torch
-from dataclasses import dataclass
-from typing import Any, Dict
+from dataclasses import dataclass, asdict, fields
+from typing import Any, Dict, Optional, Union, cast
+
+import uvicorn
+from fastapi import FastAPI
+from langserve import add_routes
+
+from .websearchRAG.logging_config import logger
+from .utils import load_config
+from .websearchRAG.config import WebsearchConfig
+from .websearchRAG.pipeline import WebsearchPipeline
+from .run_rag import LocalConfig, APIConfig, create_api
 
 
 from .websearchRAG.logging_config import logger  # Import the shared logger
 
-from .utils import load_config
-from .websearchRAG.config import WebsearchConfig
-from .websearchRAG.pipeline import WebsearchPipeline
 
-
-
-# WEBSRCH_EMOJI = "🌐"
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(
-#     format=f"[WebSearch {WEBSRCH_EMOJI} -- %(asctime)s] %(message)s",
-#     level=logging.INFO,
-#     datefmt="%Y-%m-%d %H:%M:%S",
-# )
-
-# CUDA tweaks (as before)
+# CUDA tweaks for best perf
 torch.backends.cuda.enable_mem_efficient_sdp(False)
 torch.backends.cuda.enable_flash_sdp(False)
 torch.backends.cuda.enable_math_sdp(True)
@@ -35,52 +32,74 @@ class WebsearchSection:
     use_rag: bool
     rag_config_path: str
     use_summary: bool
-    n_subqueries : int
+    n_subqueries: int
     input_file: str
     input_queries: str
     output_file: str
     n_loops: int
     max_searches: int
     llm_config: Dict[str, Any]
+    mode: str
 
 
 @dataclass
-class WebsearchAppConfig:
+class WebsearchInferenceConfig:
     websearch: WebsearchSection
+    mode: str   = "local"                   # "local" or "api"
+    mode_args: Optional[Union[LocalConfig, APIConfig]] = None
+
+    def __post_init__(self):
+        if self.mode == "api" and self.mode_args is None:
+            self.mode_args = APIConfig()
 
 
-def run_websearch(config_file: str):
-    """
-    Run the Websearch (+ optional RAG) pipeline according to the YAML at config_file.
-    """
-    logger.info(f"Websearch configuration file: {config_file}")
+def build_pipeline(ws: WebsearchSection) -> WebsearchPipeline:
+    ws_dict = asdict(ws)
+    config_fields = {f.name for f in fields(WebsearchConfig)}
+    filtered_dict = {k: v for k, v in ws_dict.items() if k in config_fields}
+    web_cfg = WebsearchConfig(**filtered_dict)
+    return WebsearchPipeline(config=web_cfg)
 
-    # 1) Load and parse the YAML using the wrapper
-    app_cfg = load_config(config_file, WebsearchAppConfig)
-    ws = app_cfg.websearch
-    logger.info(f"Parsed Websearch section: {ws}")
+def run_websearch(config_file):
 
-    # 2) Map to the pipeline's config dict
-    web_cfg_dict = {
-        "use_rag": ws.use_rag,
-        "rag_config_path": ws.rag_config_path,
-        "rag_summary": ws.use_summary,
-        "input_file": ws.input_file,
-        "input_queries": ws.input_queries,
-        "output_file": ws.output_file,
-        "n_subqueries": ws.n_subqueries,
-        "n_loops": ws.n_loops,
-        "max_searches": ws.max_searches,
-        "llm_config": ws.llm_config,
-    }
-    web_cfg = WebsearchConfig.from_dict(web_cfg_dict)
-    logger.info(f"Using WebsearchConfig: {web_cfg}")
+    # 1) Load config
+    cfg = load_config(config_file, WebsearchInferenceConfig)
+    ws  = cfg.websearch
+    #logger.info("Configuration file", ws)
+    if not cfg.mode:
+        raise ValueError("Configuration is missing the 'mode' field. Ensure it is set to 'local' or 'api'.")
 
-    # 3) Instantiate and run
-    pipeline = WebsearchPipeline(config=web_cfg)
-    start = time.time()
-    pipeline.run()
-    logger.info(f"Websearch pipeline completed in {time.time() - start:.2f} seconds.")
+
+    # 2) Build pipeline once
+    # web_cfg = WebsearchConfig(**asdict(ws))
+    # pipeline = WebsearchPipeline(config=web_cfg)
+    pipeline = build_pipeline(ws)
+
+    # 3) Dispatch on mode
+    if cfg.mode == "local":
+        logger.info("Running Websearch pipeline in LOCAL mode...")
+        start = time.time()
+        pipeline.run()
+        logger.info(f"Completed in {time.time() - start:.2f}s")
+
+    elif cfg.mode == "api":
+        logger.info("Starting Websearch pipeline in API mode...")
+        # wrap pipeline.__call__ via create_api
+        app: FastAPI = create_api(pipeline, cfg.mode_args.endpoint)
+
+        @app.get("/health")
+        def _health():
+            return {"status": "healthy"}
+
+        uvicorn.run(
+            app,
+            host=cfg.mode_args.host,
+            port=cfg.mode_args.port,
+            log_level="info",
+        )
+
+    else:
+        raise ValueError(f"Unknown mode: {cfg.mode!r}. Must be 'local' or 'api'.")
 
 
 if __name__ == "__main__":

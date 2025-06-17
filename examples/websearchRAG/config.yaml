@@ -11,3 +11,4 @@ websearch:
   llm_config:
     llm_name: OpenMeditron/meditron3-8b
     max_new_tokens: 250
+  mode: local

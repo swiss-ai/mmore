@@ -8,6 +8,7 @@ import logging
 import time
 
 from langchain_community.tools import DuckDuckGoSearchResults
+from duckduckgo_search.exceptions import RatelimitException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 
@@ -35,6 +36,7 @@ class WebsearchPipeline:
         self.llm = self._initialize_llm()
         self.rag_results: Optional[List[Dict[str, Any]]] = None
 
+
     def _initialize_llm(self) -> LLM:
         if self.config.use_rag is True:
             rag_cfg = self.config.access_rag_config()
@@ -53,7 +55,7 @@ class WebsearchPipeline:
 
     def generate_summary(self, rag_answer: str, query: str) -> str:
         """
-        Summarize the RAG answer (used when rag_summary=True).
+        Summarize the RAG answer (used when rag_summary=True)
         """
         prompt = (
             "You have only the following context to answer the question, do not use any external knowledge.\n\n"
@@ -62,7 +64,7 @@ class WebsearchPipeline:
             f"{rag_answer}\n\n"
             "If the context contains the answer or any useful information, respond with that information. \n"
             "If no useful informations are, answer: no useful informations"
-            "Answer:"
+            "Answer: \n"
             "---------------------------"
         )
         
@@ -75,39 +77,24 @@ class WebsearchPipeline:
         ]
         response = self.llm.invoke(messages)
         print("##SUMMARY CLEAN##")
-        print(self._clean_section(response.content))
-        return self._clean_section(response.content)
+        print(self._clean_llm_output(response.content))
+        return self._clean_llm_output(response.content)
 
-    def _clean_section(self, content: str) -> str:
+
+
+    def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
-        subquery_section = content.split(delimiter)[-1].strip()
-        subquery_section = subquery_section.lower().strip()
-        print("##Current Response##")
-        print(subquery_section)
-        print("##")
-        return subquery_section
+        
+        if delimiter not in content:
+            return [] if extract_subqueries else ""
 
-    @staticmethod
-    def is_useful(text: str) -> bool:
-        t = text.strip().lower()
-        if not t or t.startswith("i don't know") or t.startswith("no"):
-            return False
-        return True
+        # Extract the section after the delimiter
+        cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
+        
+        return cleaned_section
 
-    def clean_llm_output(self, content):
-        # Define the delimiter after which the subqueries are located
-        delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
 
-        # Split the content based on the delimiter
-        if delimiter in content:
 
-            subquery_section = content.split(delimiter, 1)[-1]
-            # Use regex to extract lines matching the subquery format
-            subquery_section = subquery_section.lower().strip()
-            subqueries = re.findall(r"subquery \d+: (.*)", subquery_section.strip())
-            return subqueries
-        else:
-            return []
 
     def generate_subqueries(
         self,
@@ -140,44 +127,37 @@ class WebsearchPipeline:
         ]
 
         response = self.llm.invoke(messages)
-        print("######")
-        print("Clean response: ", self.clean_llm_output(response.content))
-        print("--------------------")
-        return self.clean_llm_output(response.content)
+        cleaned_answer = self._clean_llm_output(response.content)
+        cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
+        # print("######")
+        # print("Clean response: ", cleaned_answer)
+        # print("--------------------")
+        return cleaned_answer
 
-    # @staticmethod
-    # def duckduckgo_search(query: str, max_results: int = 10) -> List[Dict[str, str]]:
-    #     time.sleep(2)
-    #     try:
-    #         with DDGS() as ddgs:
-    #             print("query:", query)
-    #             results = ddgs.text(query, max_results=max_results)
-    #         return [{"title": r.get("title", ""), "url": r.get("href", "")} for r in results]
-    #     except Exception as e:
-    #         logger.error(f"DuckDuckGo error: {e}")
-    #         return []
+ 
+ 
 
     @staticmethod
     def duckduckgo_search(query: str, max_results: int = 10) -> List[Dict[str, str]]:
         """
-        Perform a DuckDuckGo search using LangChain DuckDuckGo wrapper.
+        Perform a DuckDuckGo search using LangChain DuckDuckGo wrapper
 
-        Returns a list of dicts with keys: 'title' and 'url'.
+        Returns a list of dicts with keys: 'title' and 'url'
         """
-        time.sleep(2)  # polite delay
+        time.sleep(2)  # delay to try to avoid error 202 ### TO BE IMPROVED ###
         try:
-            wrapper = DuckDuckGoSearchAPIWrapper(max_results=max_results)
+            wrapper = DuckDuckGoSearchAPIWrapper(max_results=max_results, backend='auto')
             search = DuckDuckGoSearchResults(api_wrapper=wrapper, output_format="list")
-            # Use run() method with output_format="list" to get list of dicts
+
             results = search.invoke(query)
-            # Each item is expected to have keys like: 'title', 'link', 'snippet'
-            # Map 'link' to 'url' for compatibility with existing code
+
             formatted_results = []
             for r in results:
                 snippet = r.get("snippet", "")
                 url = r.get("link", "")  # note: it's "link" in LangChain results
                 if url:
                     formatted_results.append({"snippet": snippet, "url": url})
+            print("Websearch", formatted_results)
             return formatted_results
         except Exception as e:
             logger.error(f"DuckDuckGo search error: {e}")
@@ -203,7 +183,7 @@ class WebsearchPipeline:
         msgs = [SystemMessage(content="You are a research assistant."), HumanMessage(content=prompt)]
         resp = self.llm.invoke(msgs)
         # parse
-        clean_content = self._clean_section(resp.content)
+        clean_content = self._clean_llm_output(resp.content)
        
         sa_matches = re.findall(
             r"short answer:\s*(.*?)(?=detailed answer:)",
@@ -218,8 +198,6 @@ class WebsearchPipeline:
         short = sa_matches[-1].strip().rstrip(",") if sa_matches else ""
         detailed = da_matches[-1].strip() if da_matches else ""
         return {"short": short, "detailed": detailed}
-
-
 
 
 
@@ -259,7 +237,7 @@ class WebsearchPipeline:
                     subquery_snippets.append(snippet)
 
                 # Summarize each subquery's snippets independently if rag_summary is True
-                if self.config.rag_summary:
+                if self.config.use_summary:
                     if subquery_snippets:
                         combined_snippets = "\n".join(subquery_snippets)
                         summary = self.generate_summary(combined_snippets, sq)
@@ -267,13 +245,13 @@ class WebsearchPipeline:
                     else:
                         subquery_summaries.append("")
 
-            if self.config.rag_summary:
+            if self.config.use_summary:
                 combined_sub_summaries = "\n".join([str(s) if s else "" for s in subquery_summaries])
                 web_summary = self.generate_summary(combined_sub_summaries, qr)
                 web_summaries.append(web_summary)
                 #print("Current websummary: ", web_summary)
             
-                # Combine rag summary, web summary, and original query for final integration
+                # Combine rag summary, web summary, and original query for final answer
                 context_for_llm = f"RAG informations:\n{rag_summary or ''}\n\nWeb informations:\n{web_summary}"
             else:
                 # If not summarizing subqueries, use rag summary or current context with snippets
@@ -282,11 +260,11 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join([str(s) if s else "" for s in web_summaries])
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-            # Integrate all info with LLM
+            # Current context, web content  to generate the answer
             out = self.integrate_with_llm(qr, context_for_llm, snippets)
             final_short, final_detailed = out["short"], out["detailed"]
 
-            # Prepare context for next loop iteration
+            # Prepare context for next search loop
             current_context = final_detailed
 
 
@@ -294,7 +272,7 @@ class WebsearchPipeline:
         return {
             "query": qr,
             "rag_summary": rag_summary if self.config.use_rag else None,
-            "web_summary": web_summary_all if self.config.rag_summary else None,
+            "web_summary": web_summary_all if self.config.use_summary else None,
             "short_answer": final_short,
             "detailed_answer": final_detailed,
             "sources": list(all_sources),
