@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from langserve import add_routes
 
+from mmore.rag.pipeline import RAGConfig, RAGPipeline
+from mmore.utils import load_config
+
 RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -17,9 +20,6 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-from .rag.pipeline import RAGConfig, RAGPipeline
-from .utils import load_config
 
 load_dotenv()
 
