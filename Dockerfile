@@ -58,5 +58,5 @@ ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 
 USER mmoreuser
 
-ENTRYPOINT /bin/bash
+ENTRYPOINT ["/bin/bash"]
 
