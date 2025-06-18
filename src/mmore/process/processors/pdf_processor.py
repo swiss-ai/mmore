@@ -20,7 +20,7 @@ IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 
 class PDFProcessor(Processor):
-    artifact_dict = None #create_model_dict()
+    artifact_dict = None
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
@@ -34,7 +34,7 @@ class PDFProcessor(Processor):
     def load_models(disable_image_extraction: bool = False):
         if PDFProcessor.artifact_dict is None:
             PDFProcessor.artifact_dict = create_model_dict()
-        
+
         marker_config = {
             "disable_image_extraction": disable_image_extraction,
             "languages": None,
@@ -46,9 +46,9 @@ class PDFProcessor(Processor):
             artifact_dict=PDFProcessor.artifact_dict,
             config=config_parser.generate_config_dict(),
         )
-        
+
         converter.initialize_processors(converter.default_processors)
-        
+
         return converter
 
     # overwriting the process_batch
@@ -178,8 +178,8 @@ class PDFProcessor(Processor):
             if self.config.custom_config.get("extract_images", True):
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
-                    if image and clean_image(
-                        image
+                    if (
+                        image and clean_image(image)
                     ):  # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
                         all_text.append(self.config.attachment_tag)
@@ -209,7 +209,7 @@ class PDFProcessor(Processor):
     ):
         try:
             torch.cuda.set_device(gpu_id)
-            
+
             if PDFProcessor.artifact_dict is None:
                 PDFProcessor.artifact_dict = create_model_dict()
 

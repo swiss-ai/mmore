@@ -42,7 +42,8 @@ class MediaProcessor(Processor):
 
     @staticmethod
     def load_models(
-        self=None, fast_mode=False  # pyright: ignore[reportSelfClsParameterName]
+        self=None,  # pyright: ignore[reportSelfClsParameterName]
+        fast_mode=False,
     ):
         if self:
             model_name = (

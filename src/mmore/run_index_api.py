@@ -92,7 +92,7 @@ def make_router(config_path: str) -> APIRouter:
                 # Process and index the file
                 file_extension = FilePath(file.filename).suffix.lower()
                 documents = process_files(temp_dir, COLLECTION_NAME, [file_extension])
-                
+
                 for doc in documents:
                     defDocId = doc.document_id
                     doc.document_id = fileId
@@ -177,7 +177,6 @@ def make_router(config_path: str) -> APIRouter:
                     doc.document_id = docId
                     doc.id = doc.id.replace(defDocId, docId)
                     modified_documents.append(doc)
-
 
                 logging.info("Indexing the files")
 
@@ -323,7 +322,7 @@ def make_router(config_path: str) -> APIRouter:
 
     @router.get("/v1/files/{id}", tags=["File Operations"])
     async def download_file(
-        id: str = Path(..., description="ID of the file to download")
+        id: str = Path(..., description="ID of the file to download"),
     ):
         """
         Download a file from the system.

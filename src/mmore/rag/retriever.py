@@ -122,9 +122,9 @@ class Retriever(BaseRetriever):
             return []
 
         # Validate that the specified search type is allowed
-        assert search_type in get_args(
-            self._search_types
-        ), f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+        assert search_type in get_args(self._search_types), (
+            f"Invalid search_type: {search_type}. Must be 'dense', 'sparse', or 'hybrid'"
+        )
 
         # Determine the weight used to combine dense and sparse search scores
         search_weight = self._search_weights.get(search_type, self.hybrid_search_weight)

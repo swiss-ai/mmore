@@ -81,7 +81,10 @@ class MultimodalChunker(BasePostProcessor):
         chunks = []
         for i, (chunk, mods) in enumerate(zip(text_chunks, modalities_chunks)):
             s = MultimodalSample(
-                text=chunk.text, modalities=mods, metadata=sample.metadata, id=f"{sample.id}+{i}"
+                text=chunk.text,
+                modalities=mods,
+                metadata=sample.metadata,
+                id=f"{sample.id}+{i}",
             )
             chunks.append(s)
 

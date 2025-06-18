@@ -183,7 +183,6 @@ def process_files(
         ".html",
     ],
 ) -> List["MultimodalSample"]:
-
     from .process.crawler import Crawler, CrawlerConfig
     from .process.dispatcher import Dispatcher, DispatcherConfig
     from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
