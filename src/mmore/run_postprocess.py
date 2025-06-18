@@ -2,6 +2,10 @@ import argparse
 import logging
 from typing import List
 
+from mmore.process.post_processor.pipeline import PPPipeline, PPPipelineConfig
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
+
 PP_EMOJI = "🧹"
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -9,10 +13,6 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
-from .type import MultimodalSample
-from .utils import load_config
 
 
 def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:
