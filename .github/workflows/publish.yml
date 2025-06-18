@@ -1,28 +1,41 @@
 name: 📦 Publish Python Package
 on:
   release:
-    types: [created]
+    types: [published]
+permissions:
+  contents: read
 jobs:
-  pypi-publish:
-    name: Publish release to PyPI
+  release-build:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Build release distributions
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      id-token: write
+    # Dedicated environments with protections for publishing are strongly recommended.
     environment:
       name: pypi
       url: https://pypi.org/p/mmore
-    permissions:
-      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
         with:
-          python-version: ["3.10", "3.11", "3.12"]
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel
-      - name: Build package
-        run: |
-          python setup.py sdist bdist_wheel  # Could also be python -m build
-      - name: Publish package distributions to PyPI
+          name: release-dists
+          path: dist/
+      - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
