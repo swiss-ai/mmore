@@ -31,7 +31,7 @@ class IndexConfig:
 def load_results(path: str):
     # Load the results computed and saved by 'run_process.py'
     results = []
-    result.info(f"Loading results from {path}")
+    logger.info(f"Loading results from {path}")
     with open(path, "rb") as f:
         for line in f:
             results.append(MultimodalSample.from_dict(json.loads(line)))

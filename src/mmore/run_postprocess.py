@@ -19,7 +19,7 @@ def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:
     return [s for path in data_path for s in MultimodalSample.from_jsonl(path)]
 
 
-def postprocess(config_file):
+def postprocess(config_file, input_data):
     """Run post-processors pipeline."""
     if isinstance(input_data, str):
         input_data = [input_data]

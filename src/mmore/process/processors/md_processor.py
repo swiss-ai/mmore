@@ -149,7 +149,7 @@ class MarkdownProcessor(Processor):
                     embedded_images.append(image)
                 else:
                     html = html.replace(tag, "")
-                    logger.error(f"Image {src} not found in {assets_path}")
+                    logger.error(f"Image {src} not found in {file_path}")
                     continue
             except Exception as e:
                 html = html.replace(tag, "")
