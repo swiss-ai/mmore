@@ -38,9 +38,9 @@ class ComputeDescriptor:
                 )
 
         return {
-            "num_gpus": num_gpus,
-            "gpu_size": gpu_size,
-        }
+                "num_gpus": num_gpus,
+                "gpu_size": gpu_size,
+                }
 
 
 @dataclass
@@ -73,6 +73,7 @@ class DispatcherConfig:
     batch_multiplier: int = 1
     extract_images: bool = False
     dashboard_backend_url: Optional[str] = None
+    attachment_tag: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -81,6 +82,7 @@ class DispatcherConfig:
     def from_dict(config: Dict) -> "DispatcherConfig":
         """Create a DispatcherConfig object from a dictionary."""
         return DispatcherConfig(
+<<<<<<< HEAD
             output_path=config["output_path"],
             use_fast_processors=config.get("use_fast_processors", True),
             distributed=config.get("distributed", False),
@@ -91,6 +93,19 @@ class DispatcherConfig:
             extract_images=config.get("extract_images", False),
             dashboard_backend_url=config.get("dashboard_backend_url", None),
         )
+=======
+                output_path=config["output_path"],
+                use_fast_processors=config.get("use_fast_processors", True),
+                distributed=config.get("distributed", False),
+                scheduler_file=config.get("scheduler_file"),
+                processor_config=config.get("processor"),
+                process_batch_sizes=config.get("process_batch_sizes"),
+                batch_multiplier=config.get("batch_multiplier", 1),
+                extract_images=config.get("extract_images", False),
+                dashboard_backend_url=config.get("dashboard_backend_url", None),
+                attachment_tag=config.get("attachment_tag", "<attachment>")
+                )
+>>>>>>> fa32224 (Fix installation requirements)
 
     @staticmethod
     def from_yaml(yaml_path: str):
@@ -107,6 +122,7 @@ class DispatcherConfig:
     def to_dict(self) -> Dict:
         """Convert the DispatcherConfig object to a dictionary."""
         return {
+<<<<<<< HEAD
             "use_fast_processors": self.use_fast_processors,
             "distributed": self.distributed,
             "scheduler_file": self.scheduler_file,
@@ -117,22 +133,36 @@ class DispatcherConfig:
             "extract_images": self.extract_images,
             "dashboard_backend_url": self.dashboard_backend_url,
         }
+=======
+                "use_fast_processors": self.use_fast_processors,
+                "distributed": self.distributed,
+                "scheduler_file": self.scheduler_file,
+                "output_path": self.output_path,
+                "processor": self.processor_config,
+                "process_batch_sizes": self.process_batch_sizes,
+                "batch_multiplier": self.batch_multiplier,
+                "extract_images": self.extract_images,
+                "dashboard_backend_url": self.dashboard_backend_url,
+                "attachment_tag" : self.attachment_tag
+                }
+>>>>>>> fa32224 (Fix installation requirements)
 
     def __str__(self) -> str:
         """Return a string representation of the DispatcherConfig object."""
         return (
-            f"DispatcherConfig("
-            f"use_fast_processors={self.use_fast_processors}, "
-            f"distributed={self.distributed}, "
-            f"scheduler_file={self.scheduler_file}, "
-            f"output_path={self.output_path}, "
-            f"processor_config={self.processor_config}, "
-            f"process_batch_sizes={self.process_batch_sizes}, "
-            f"batch_multiplier={self.batch_multiplier}"
-            f"extract_images={self.extract_images}"
-            f"dashboard_backend_url={self.dashboard_backend_url}"
-            f")"
-        )
+                f"DispatcherConfig("
+                f"use_fast_processors={self.use_fast_processors}, "
+                f"distributed={self.distributed}, "
+                f"scheduler_file={self.scheduler_file}, "
+                f"output_path={self.output_path}, "
+                f"processor_config={self.processor_config}, "
+                f"process_batch_sizes={self.process_batch_sizes}, "
+                f"batch_multiplier={self.batch_multiplier}"
+                f"extract_images={self.extract_images}"
+                f"dashboard_backend_url={self.dashboard_backend_url}"
+                f"attachment_tag={self.attachment_tag}"
+                f")"
+                )
 
 
 class Dispatcher:
@@ -141,11 +171,19 @@ class Dispatcher:
     """
 
     def __init__(
+<<<<<<< HEAD
         self,
         result: DispatcherReadyResult,
         config: DispatcherConfig,
         start_cluster=False,
     ):
+=======
+            self,
+            result: DispatcherReadyResult,
+            config: DispatcherConfig,
+            start_cluster=False,
+            ):
+>>>>>>> fa32224 (Fix installation requirements)
         self.result = result
         self.config = config
         self.start_cluster = start_cluster
@@ -157,8 +195,8 @@ class Dispatcher:
         """
 
         processor_map = {
-            processor: [] for processor in ProcessorRegistry.get_processors()
-        }
+                processor: [] for processor in ProcessorRegistry.get_processors()
+                }
 
         for file_path_list in self.result.file_paths.values():
             for file in file_path_list:
@@ -174,8 +212,13 @@ class Dispatcher:
         self.intermediate_map = processor_map
 
     def _dispatch_local(
+<<<<<<< HEAD
         self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
     ) -> Iterator[List[MultimodalSample]]:
+=======
+            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
+            ) -> Any:
+>>>>>>> fa32224 (Fix installation requirements)
         """
         Dispatches the tasks locally.
         """
@@ -192,12 +235,18 @@ class Dispatcher:
             processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
+<<<<<<< HEAD
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
             processor_config = ProcessorConfig(
                 dashboard_backend_url=self.config.dashboard_backend_url,
                 custom_config=processor_config,
             )
+=======
+                    f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                    )
+            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config, attachement_tag=self.config.attachment_tag)
+>>>>>>> fa32224 (Fix installation requirements)
             proc = processor(processor_config)
             res = proc(
                 cast(List[Union[FileDescriptor, URLDescriptor]], files),
@@ -207,8 +256,13 @@ class Dispatcher:
             yield res
 
     def _dispatch_distributed(
+<<<<<<< HEAD
         self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
     ) -> List[List[MultimodalSample]]:
+=======
+            self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
+            ) -> List[List[MultimodalSample]]:
+>>>>>>> fa32224 (Fix installation requirements)
         kwargs = {}
         if self.config.scheduler_file:
             absolute_scheduler_path = os.path.join(
@@ -233,8 +287,8 @@ class Dispatcher:
             processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
-                f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
-            )
+                    f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                    )
 
             processor_config = ProcessorConfig(
                 dashboard_backend_url=self.config.dashboard_backend_url,
@@ -263,8 +317,13 @@ class Dispatcher:
 
         results = []
         for future, (result, processor_name) in tqdm(
+<<<<<<< HEAD
             as_completed(futures, with_results=True), total=len(futures)
         ):
+=======
+                as_completed(futures, with_results=True), total=len(futures)
+                ):
+>>>>>>> fa32224 (Fix installation requirements)
             try:
                 results.append(result)
                 self.save_individual_processor_results(result, processor_name)
@@ -279,8 +338,13 @@ class Dispatcher:
         """
 
         def batch_list(
+<<<<<<< HEAD
             lst: List, obj_batch_size: int, processor: Type[Processor]
         ) -> List[List]:
+=======
+                lst: List, obj_batch_size: int, processor: Type[Processor]
+                ) -> List[List]:
+>>>>>>> fa32224 (Fix installation requirements)
             """
             Creates optimized batches using best-fit decreasing algorithm.
 
@@ -330,11 +394,18 @@ class Dispatcher:
         for processor, file_list in self.intermediate_map.items():
             if len(file_list) > 0:
                 batched_files = batch_list(
+<<<<<<< HEAD
                     file_list,
                     self.config.batch_multiplier
                     * batch_sizes.get(processor.__name__, 100),
                     processor,
                 )
+=======
+                        file_list,
+                        self.config.batch_multiplier * batch_sizes.get(processor.__name__, 100),
+                        processor,
+                        )
+>>>>>>> fa32224 (Fix installation requirements)
                 task_lists.extend([(processor, batch) for batch in batched_files])
         results = []
         if self.config.distributed:

@@ -115,8 +115,13 @@ class PDFProcessor(Processor):
     def process(self, file_path: str) -> MultimodalSample:
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
+<<<<<<< HEAD
         text = re.sub(IMG_REGEX, "<attachment>", text)
         images = list(images.values())
+=======
+        text = re.sub(IMG_REGEX, self.config.attachment_tag, text)
+        images = images.values()
+>>>>>>> fa32224 (Fix installation requirements)
         return self.create_sample([text], images, file_path)
 
     def process_fast(self, file_path: str) -> MultimodalSample:
@@ -190,6 +195,7 @@ class PDFProcessor(Processor):
             torch.cuda.set_device(gpu_id)
 
             marker_config = {
+<<<<<<< HEAD
                 "disable_image_extraction": not config_custom.get(
                     "extract_images", True
                 ),
@@ -204,6 +210,20 @@ class PDFProcessor(Processor):
                 artifact_dict=create_model_dict(),
                 config=config_parser.generate_config_dict(),
             )
+=======
+                    "disable_image_extraction": not config_custom.get("extract_images", True),
+                    "languages": None,
+                    "use_llm": False,
+                    "disable_multiprocessing": False,
+                    "device": f"cuda:{gpu_id}"
+                    }
+
+            config_parser = ConfigParser(marker_config)
+            self.converter = PdfConverter(
+                    artifact_dict=create_model_dict(),
+                    config=config_parser.generate_config_dict()
+                    )
+>>>>>>> fa32224 (Fix installation requirements)
 
             batch_results = []
             for file in files_paths:
@@ -221,5 +241,9 @@ class PDFProcessor(Processor):
             raise
         finally:
             torch.cuda.empty_cache()
+<<<<<<< HEAD
             if hasattr(self, "converter"):
+=======
+            if hasattr(self, 'converter'):
+>>>>>>> fa32224 (Fix installation requirements)
                 del self.converter
