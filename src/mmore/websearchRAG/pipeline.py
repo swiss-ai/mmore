@@ -35,22 +35,23 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self.rag_results: Optional[List[Dict[str, Any]]] = None
+        self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches, backend='auto')
+        self.search = DuckDuckGoSearchResults(api_wrapper=self.wrapper, output_format="list")
 
 
     def _initialize_llm(self) -> LLM:
-        if self.config.use_rag is True:
+        if self.config.use_rag :
             rag_cfg = self.config.access_rag_config()
             llm_conf = rag_cfg.get("rag", {}).get("llm")
             if llm_conf is None:
                 raise ValueError("Missing 'llm' config under 'rag' in RAG configuration.")
             return LLM.from_config(LLMConfig(**llm_conf))
-        elif self.config.use_rag is False:
+        else :
             base_conf = self.config.get_llm_config()
             if isinstance(base_conf, LLMConfig):  # Ensure it's a dictionary
                 base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
-        else:
-            raise ValueError("Invalid value for 'use_rag'. Must be True or False.")
+
 
 
     def generate_summary(self, rag_answer: str, query: str) -> str:
@@ -137,8 +138,7 @@ class WebsearchPipeline:
  
  
 
-    @staticmethod
-    def duckduckgo_search(query: str, max_results: int = 10) -> List[Dict[str, str]]:
+    def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
         """
         Perform a DuckDuckGo search using LangChain DuckDuckGo wrapper
 
@@ -146,10 +146,7 @@ class WebsearchPipeline:
         """
         time.sleep(2)  # delay to try to avoid error 202 ### TO BE IMPROVED ###
         try:
-            wrapper = DuckDuckGoSearchAPIWrapper(max_results=max_results, backend='auto')
-            search = DuckDuckGoSearchResults(api_wrapper=wrapper, output_format="list")
-
-            results = search.invoke(query)
+            results = self.search.invoke(query)
 
             formatted_results = []
             for r in results:
@@ -225,7 +222,7 @@ class WebsearchPipeline:
 
             for sq in subs:
                 #print("subquery:", sq)
-                res = self.duckduckgo_search(sq, max_results=self.config.max_searches)
+                res = self.duckduckgo_search(query = sq)
 
                 subquery_snippets = []
                 for r in res:
