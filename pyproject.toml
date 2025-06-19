@@ -88,7 +88,7 @@ dependencies = [
     "nltk>=3.9",
     "starlette==0.46",
     "typing_extensions==4.12.2",
-    "sympy==1.14.0"
+    "sympy==1.14.0",
     "langid",
     "mammoth==1.9.0",
     "argostranslate",
