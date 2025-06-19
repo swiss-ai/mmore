@@ -7,11 +7,7 @@ from fastapi import HTTPException
 from pymilvus import MilvusClient
 
 if TYPE_CHECKING:
-    from .index.indexer import DBConfig, Indexer, IndexerConfig, get_model_from_index
-    from .process.crawler import Crawler, CrawlerConfig
-    from .process.dispatcher import Dispatcher, DispatcherConfig
-    from .rag.model.dense.base import DenseModelConfig
-    from .rag.model.sparse.base import SparseModelConfig
+    from .index.indexer import Indexer
     from .rag.retriever import Retriever, RetrieverConfig
     from .type import MultimodalSample
 
