@@ -71,9 +71,15 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
         try:
+<<<<<<< HEAD
             all_text, embedded_images = MarkdownProcessor._process_md(
                 content,
                 file_path,
+=======
+            all_text, embedded_images = self.process_md(
+                content,
+                os.path.dir(file_path),
+>>>>>>> 30e331b (Migration to mammoth for DOCX processor)
                 self.config.attachment_tag,
                 self.config.custom_config.get("extract_images", True),
             )
@@ -83,12 +89,21 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
     @staticmethod
+<<<<<<< HEAD
     def _process_md(
         content: str,
         file_path: str,
         attachment_tag: Optional[str] = None,
         extract_images: bool = True,
     ) -> Tuple[str, list[Image.Image]]:
+=======
+    def process_md(
+        content: str,
+        assets_path: str,
+        attachment_tag: str = None,
+        extract_images: bool = True,
+    ) -> (str, list[Image.Image]):
+>>>>>>> 30e331b (Migration to mammoth for DOCX processor)
         """
         The actual proccessing logic for Markdown files.
 
@@ -149,7 +164,7 @@ class MarkdownProcessor(Processor):
                     embedded_images.append(image)
                 else:
                     html = html.replace(tag, "")
-                    logger.error(f"Image {src} not found in {file_path}")
+                    logger.error(f"Image {src} not found in {assets_path}")
                     continue
             except Exception as e:
                 html = html.replace(tag, "")

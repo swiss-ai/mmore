@@ -1,4 +1,5 @@
 import io
+<<<<<<< HEAD
 import logging
 from typing import List
 
@@ -10,6 +11,24 @@ from PIL import Image
 from ...type import FileDescriptor, MultimodalSample
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
+=======
+import uuid
+import os
+from pathlib import Path
+
+import mammoth
+import tempfile
+from markdownify import markdownify
+from typing import List, Dict, Any
+from src.mmore.process.utils import clean_text
+from src.mmore.process.processors.md_processor import MarkdownProcessor
+from src.mmore.type import FileDescriptor, MultimodalSample
+
+from .base import Processor, ProcessorConfig
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
+from PIL import Image
+import mimetypes
+>>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
 logger = logging.getLogger(__name__)
 
@@ -52,50 +71,68 @@ class DOCXProcessor(Processor):
         defined in the processor configuration (e.g., "<attachment>").
         """
 
+<<<<<<< HEAD
         # First, we define a helper functions
         def _extract_images(doc: DocumentType) -> List[Image.Image]:
             """
             Extract embedded images from the DOCX document.
+=======
+        def _convert_image(image: mammoth.documents.Image) -> Dict[str, Any]:
+            with image.open() as image_bytes:
+                try:
+                    pil_image = Image.open(io.BytesIO(image_bytes.read()))
+>>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
-            Args:
-                doc (Document): The DOCX document object.
+                    # Generate unique image path and save the image there
+                    image_path = Path(os.path.join(image_output_dir, str(uuid.uuid4())))
+                    image_path = image_path.with_suffix(
+                        mimetypes.guess_extension(image.content_type)
+                    )
 
-            Returns:
-                List[Image.Image]: A list of extracted PIL images.
-            """
-            images = []
-            for rel in doc.part.rels.values():
-                if rel.reltype == RT.IMAGE and not rel.is_external:
-                    try:
-                        blob = rel.target_part.blob
-                        image = Image.open(io.BytesIO(blob)).convert("RGB")
-                        images.append(image)
-                    except Exception as e:
-                        logger.error(f"Failed to extract image: {e}")
-            return images
+                    pil_image.save(image_path)
+
+                    return {"src": image_path.absolute().as_posix()}
+
+                except Exception as e:
+                    logger.warn(
+                        f"Failed to load image with MIME type {image.content_type}: {e}"
+                    )
+                    return {"src": ""}
+
+        image_output_dir = self.config.custom_config.get("image_output_dir", None)
+
+        # If no image_output_dir is specified then create a temporary output dir
+        if image_output_dir is None:
+            image_output_dir = tempfile.mkdtemp(prefix="mmore_docx_")
+            logger.info(f"Saving files in {image_output_dir}")
 
         try:
-            doc = Document(file_path)
+            with open(file_path, "rb") as docx_fileobj:
+                result = mammoth.convert_to_html(
+                    docx_fileobj,
+                    convert_image=mammoth.images.img_element(_convert_image),
+                )
+
         except Exception as e:
-            logger.error(f"Failed to open Word file {file_path}: {e}")
+            logger.warn(f"Failed to convert {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        if self.config.custom_config.get("extract_images", True):
-            embedded_images = _extract_images(doc)
-        else:
-            embedded_images = []
+        markdown = markdownify(result.value)
 
+<<<<<<< HEAD
         all_text = []
         for para in doc.paragraphs:
             cleaned = clean_text(para.text)
 
             if cleaned.strip():
                 all_text.append(cleaned)
+=======
+        all_text, embedded_images = MarkdownProcessor.process_md(
+            content=markdown,
+            assets_path=image_output_dir,
+            attachment_tag=self.config.attachment_tag,
+            extract_images=self.config.custom_config.get("extract_images", True),
+        )
+>>>>>>> 30e331b (Migration to mammoth for DOCX processor)
 
-            if self.config.custom_config.get("extract_images", True):
-                xml = para._p.xml
-                # check if there are any images in the paragraph, replace with <attachment> token
-                if "w:drawing" in xml:
-                    all_text.append(self.config.attachment_tag)
-
-        return self.create_sample(all_text, embedded_images, file_path)
+        return self.create_sample([all_text], embedded_images, file_path)
