@@ -19,7 +19,7 @@ from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
 
 DEFAULT_PROMPT = """\
-        Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
+Use the following context to answer the questions. If none of the context answer the question, just say you don't know.
 
 Context:
 {context}
@@ -63,7 +63,6 @@ class RAGPipeline:
 
     @classmethod
     def from_config(cls, config: str | RAGConfig):
-        print(config)
         if isinstance(config, str):
             config = load_config(config, RAGConfig)
 
