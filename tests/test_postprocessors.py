@@ -1,25 +1,20 @@
-import os
-import sys
-
 import pytest
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-from src.mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
-from src.mmore.process.post_processor.chunker.multimodal import (
+from mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
+from mmore.process.post_processor.chunker.multimodal import (
     MultimodalChunker,
     MultimodalChunkerConfig,
 )
-from src.mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
-from src.mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
-from src.mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
-from src.mmore.process.post_processor.tagger import load_tagger
-from src.mmore.process.post_processor.tagger.base import BaseTaggerConfig
-from src.mmore.process.post_processor.tagger.lang_detector import LangDetector
-from src.mmore.process.post_processor.tagger.modalities import ModalitiesCounter
-from src.mmore.process.post_processor.tagger.words import WordsCounter
-from src.mmore.rag.llm import LLM
-from src.mmore.type import MultimodalSample
+from mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
+from mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
+from mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
+from mmore.process.post_processor.tagger import load_tagger
+from mmore.process.post_processor.tagger.base import BaseTaggerConfig
+from mmore.process.post_processor.tagger.lang_detector import LangDetector
+from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
+from mmore.process.post_processor.tagger.words import WordsCounter
+from mmore.rag.llm import LLM
+from mmore.type import MultimodalSample
 
 
 # ------------------ Chunker Tests ------------------
@@ -325,7 +320,8 @@ def test_tagger_process_lang_detector():
     processed = tagger.process(sample)
     detected_lang = sample.metadata.get("lang")
     # langdetect typically returns "en" for English.
-    assert detected_lang in ["en", "EN"], (
-        f"Expected detected language 'en', got {detected_lang}"
-    )
+    assert detected_lang in [
+        "en",
+        "EN",
+    ], f"Expected detected language 'en', got {detected_lang}"
     assert isinstance(processed, list), "Expected process() to return a list."

@@ -1,19 +1,16 @@
 # tests/test_indexer.py
 
 import json
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from src.mmore.index.indexer import Indexer, IndexerConfig
+from mmore.index.indexer import Indexer, IndexerConfig
 
 # Import run_index from the correct package path:
-from src.mmore.run_index import index, load_results
-from src.mmore.type import MultimodalSample
+from mmore.run_index import index, load_results
+from mmore.type import MultimodalSample
 
 
 @pytest.fixture
@@ -41,6 +38,7 @@ def test_load_results(sample_jsonl):
     """
     results = load_results(str(sample_jsonl))
     assert len(results) == 2, "Should load exactly 2 documents"
+    print(type(results[0]), MultimodalSample)
     assert isinstance(results[0], MultimodalSample), (
         "Should return MultimodalSample objects"
     )
@@ -49,7 +47,7 @@ def test_load_results(sample_jsonl):
     assert results[1].metadata.get("author") == "Alice"
 
 
-@patch("src.mmore.run_index.Indexer.from_documents")
+@patch("mmore.run_index.Indexer.from_documents")
 def test_index_invocation(mock_from_documents, sample_jsonl):
     """
     Tests that index function loads the config and calls Indexer.from_documents.
@@ -59,7 +57,7 @@ def test_index_invocation(mock_from_documents, sample_jsonl):
     mock_indexer_config.documents_path = str(sample_jsonl)
 
     # Patch load_config so it returns the mock config
-    with patch("src.mmore.run_index.load_config", return_value=mock_indexer_config):
+    with patch("mmore.run_index.load_config", return_value=mock_indexer_config):
         index(config_file="fake_config.yml")
     mock_from_documents.assert_called_once()
 
@@ -68,9 +66,9 @@ def test_index_invocation(mock_from_documents, sample_jsonl):
     assert call_args["collection_name"] == "test_collection"
 
 
-@patch("src.mmore.index.indexer.MilvusClient")
-@patch("src.mmore.index.indexer.DenseModel.from_config")
-@patch("src.mmore.index.indexer.SparseModel.from_config")
+@patch("mmore.index.indexer.MilvusClient")
+@patch("mmore.index.indexer.DenseModel.from_config")
+@patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_integration(
     mock_sparse_model, mock_dense_model, mock_milvus_client, sample_jsonl
 ):
@@ -117,7 +115,7 @@ def test_indexer_integration(
     assert client_instance.insert.called, "Should insert documents into Milvus"
 
 
-@patch("src.mmore.index.indexer.MilvusClient")
+@patch("mmore.index.indexer.MilvusClient")
 def test_index_documents_error(mock_milvus_client, sample_jsonl):
     """
     Tests that an exception is raised if insertion fails.
@@ -134,8 +132,8 @@ def test_index_documents_error(mock_milvus_client, sample_jsonl):
 
     # Patch the embeddings to return arrays
     with (
-        patch("src.mmore.index.indexer.DenseModel.from_config") as mock_dense_model,
-        patch("src.mmore.index.indexer.SparseModel.from_config") as mock_sparse_model,
+        patch("mmore.index.indexer.DenseModel.from_config") as mock_dense_model,
+        patch("mmore.index.indexer.SparseModel.from_config") as mock_sparse_model,
     ):
         mock_dense_model.return_value.embed_documents.return_value = [
             np.array([0.01, 0.02])
