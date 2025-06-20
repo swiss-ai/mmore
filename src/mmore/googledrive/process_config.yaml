@@ -1,6 +1,6 @@
-data_path: examples/sample_data/ #put absolute path!
+data_path: src/mmore/googledrive/downloads/ #put absolute path!
 dispatcher_config:
-  output_path: examples/process/outputs/ #put absolute path!
+  output_path: src/mmore/googledrive/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
   dashboard_backend_url: null
