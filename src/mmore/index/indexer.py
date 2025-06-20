@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DBConfig:
-    uri: str = "demo.db"
+    uri: str = "./proc_demo.db"
     name: str = "my_db"
 
 
@@ -114,7 +114,8 @@ class Indexer:
         fields = [
             FieldSchema(
                 name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=128
-            ),  # Add doc_id field
+            ),
+            FieldSchema(name="document_id", dtype=DataType.VARCHAR, max_length=128),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
             FieldSchema(
                 name="dense_embedding",
@@ -192,6 +193,7 @@ class Indexer:
             data = [
                 {
                     "id": sample.id,
+                    "document_id": sample.document_id,
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s.reshape(1, -1),
@@ -206,7 +208,7 @@ class Indexer:
                 partition_name=partition_name,
             )
 
-            inserted += list(batch_inserted.values())[0]
+            inserted += batch_inserted["insert_count"]
 
         return inserted
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import click
 
 
@@ -97,27 +99,41 @@ def index(config_file: str, documents_path: str, collection_name: str):
     "-c",
     type=str,
     required=True,
-    help="Dispatcher configuration file path.",
+    help="Retriever configuration file path.",
 )
 @click.option(
     "--input-file",
     "-f",
-    type=str,
-    required=True,
+    type=Optional[str],
+    required=False,
+    default=None,
     help="Path to the JSONL file of the input queries.",
 )
 @click.option(
     "--output-file",
     "-o",
-    type=str,
-    required=True,
+    type=Optional[str],
+    required=False,
+    default=None,
     help="Path to which save the results of the retriever as a JSON.",
 )
-def retrieve(config_file: str, input_file: str, output_file: str):
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8001, help="Port on which the API should be run."
+)
+def retrieve(
+    config_file: str,
+    input_file: Optional[str],
+    output_file: Optional[str],
+    host: str,
+    port: int,
+):
     """Retrieve documents for specified queries.
 
     Args:
-      config_file: path to the config file for the retriver.
+      config_file: path to the config file for the retriever.
       input_file: path to the JSONL file of the input queries.
       output_file: path to which save the results of the retriever as a JSON.
 
@@ -125,8 +141,40 @@ def retrieve(config_file: str, input_file: str, output_file: str):
 
     """
     from .run_retriever import retrieve as run_retrieve
+    from .run_retriever import run_api
 
-    run_retrieve(config_file, input_file, output_file)
+    if input_file:
+        assert isinstance(output_file, str)
+        run_retrieve(config_file, input_file, output_file)
+    else:
+        run_api(config_file, host, port)
+
+
+@main.command()
+@click.option(
+    "--config-file",
+    "-c",
+    type=str,
+    required=True,
+    help="Retriever configuration file path.",
+)
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8000, help="Port on which the API should be run."
+)
+def live_retrieval(config_file: str, host: str, port: int):
+    """API for live indexing and retrieval of documents.
+
+    Args:
+      config_file: Path to the retriever configuration file.
+      host: Host on which the API should be run.
+      port: Port on which the API should be run.
+    """
+    from .run_live_retrieval import run
+
+    run(config_file, host, port)
 
 
 @main.command()
@@ -149,15 +197,23 @@ def rag(config_file: str):
 
 @main.command()
 @click.option(
+    "--config-file",
+    "-c",
+    type=str,
+    required=True,
+    help="Retriever configuration file path.",
+)
+@click.option(
     "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
 )
 @click.option(
     "--port", type=int, default=8000, help="Port on which the API should be run."
 )
-def index_api(host, port):
+def index_api(config_file, host, port):
     """Run the Index API.
 
     Args:
+      config_file: Path to the retriever configuration file.
       host: Host on which the API should be run.
       port: Port on which the API should be run.
 
@@ -166,7 +222,7 @@ def index_api(host, port):
     """
     from .run_index_api import run_api
 
-    run_api(host, port)
+    run_api(config_file, host, port)
 
 
 @main.command()

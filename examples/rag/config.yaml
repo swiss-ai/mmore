@@ -1,7 +1,7 @@
 rag:
   llm: 
     llm_name: OpenMeditron/meditron3-8b
-    max_new_tokens: 250
+    max_new_tokens: 1200
   retriever:
     db:
       uri: ./proc_demo.db

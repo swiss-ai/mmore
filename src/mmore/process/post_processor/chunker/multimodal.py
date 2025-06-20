@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class MultimodalChunkerConfig:
-    chunking_strategy: str
+    chunking_strategy: str = "sentence"
     text_chunker_config: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -79,11 +79,13 @@ class MultimodalChunker(BasePostProcessor):
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
 
         chunks = []
-        for chunk, mods in zip(text_chunks, modalities_chunks):
+        for i, (chunk, mods) in enumerate(zip(text_chunks, modalities_chunks)):
             s = MultimodalSample(
-                text=chunk.text, modalities=mods, metadata=sample.metadata
+                text=chunk.text,
+                modalities=mods,
+                metadata=sample.metadata,
+                id=f"{sample.id}+{i}",
             )
-            s.id = sample.id
             chunks.append(s)
 
         return chunks
