@@ -63,13 +63,13 @@ def test_docx_no_image_extraction():
     )
 
     # Ensure that the attachment placeholder is not present.
-    assert (
-        "<attachment>" not in combined_text
-    ), "Attachment tag should not appear when image extraction is disabled."
+    assert "<attachment>" not in combined_text, (
+        "Attachment tag should not appear when image extraction is disabled."
+    )
     # Verify that no images were extracted.
-    assert (
-        len(result.modalities) == 0
-    ), "Expected no images when image extraction is disabled."
+    assert len(result.modalities) == 0, (
+        "Expected no images when image extraction is disabled."
+    )
 
 
 #  ------------------ EML Processor Tests ------------------
@@ -142,14 +142,14 @@ def test_md_image_extraction():
     )
     # Count the number of attachment placeholders inserted in text
     placeholder_count = combined_text.count(custom_attachment_tag)
-    assert (
-        placeholder_count == 2
-    ), f"Expected 2 attachment placeholders, found {placeholder_count}"
+    assert placeholder_count == 2, (
+        f"Expected 2 attachment placeholders, found {placeholder_count}"
+    )
     # Assert that modalities is a list and that two images were extracted
     assert isinstance(result.modalities, list), "Modalities should be a list"
-    assert (
-        len(result.modalities) == 2
-    ), f"Expected 2 images in modalities, found {len(result.modalities)}"
+    assert len(result.modalities) == 2, (
+        f"Expected 2 images in modalities, found {len(result.modalities)}"
+    )
 
 
 # ------------------ Media Processor Tests ------------------
@@ -192,9 +192,9 @@ def test_media_process_batch():
     # Call process_batch with a dummy num_workers value
     results = processor.process_batch(files, fast_mode=False, num_workers=1)
     # Verify that each file in the batch produces a result with non-empty text and a list of modalities.
-    assert len(results) == len(
-        files
-    ), "Number of results should match number of files processed."
+    assert len(results) == len(files), (
+        "Number of results should match number of files processed."
+    )
     for result in results:
         assert result.text, "Text should not be empty"
         assert isinstance(result.modalities, list), "Modalities should be a list"
@@ -230,9 +230,9 @@ def test_pptx_extract_notes():
     )
 
     expected_text = "Data analysis has multiple facets and approaches"
-    assert (
-        expected_text in combined_text
-    ), f"Expected notes not found in extracted text: {combined_text}"
+    assert expected_text in combined_text, (
+        f"Expected notes not found in extracted text: {combined_text}"
+    )
 
 
 # ------------------ Spreadsheet Processor Tests ------------------
@@ -273,9 +273,9 @@ def test_spreadsheet_multi_sheet_content():
     # 1) Confirm that the names of each sheet appear in the extracted text
     expected_sheet_names = ["Form Responses 1"]
     for sheet_name in expected_sheet_names:
-        assert (
-            sheet_name in combined_text
-        ), f"Didn't find '{sheet_name}' in extracted text."
+        assert sheet_name in combined_text, (
+            f"Didn't find '{sheet_name}' in extracted text."
+        )
 
     # 2) Check for specific cell content that should exist in the file
     expected_snippets = [
@@ -285,9 +285,9 @@ def test_spreadsheet_multi_sheet_content():
         "Female",
     ]
     for snippet in expected_snippets:
-        assert (
-            snippet in combined_text
-        ), f"Expected '{snippet}' not found in spreadsheet text."
+        assert snippet in combined_text, (
+            f"Expected '{snippet}' not found in spreadsheet text."
+        )
 
     # 3) Since there are no images, confirm modalities is empty
     assert isinstance(result.modalities, list), "Modalities should be a list."
@@ -352,9 +352,9 @@ def test_text_process_standard():
     result = processor.process(sample_file)
     # Verify that some text is extracted and no image modalities are returned.
     assert result.text, "Text should not be empty"
-    assert (
-        isinstance(result.modalities, list) and len(result.modalities) == 0
-    ), "Modalities should be an empty list"
+    assert isinstance(result.modalities, list) and len(result.modalities) == 0, (
+        "Modalities should be an empty list"
+    )
 
 
 # ------------------ URL Processor Tests ------------------
@@ -373,9 +373,9 @@ def test_url_process_standard():
         " ".join(result.text) if isinstance(result.text, list) else result.text
     )
     # Expect that the text from example.com contains "illustrative examples".
-    assert (
-        "illustrative examples" in combined_text
-    ), "Expected 'illustrative examples' in extracted text from http://example.com"
+    assert "illustrative examples" in combined_text, (
+        "Expected 'illustrative examples' in extracted text from http://example.com"
+    )
     assert isinstance(result.modalities, list), "Modalities should be a list"
 
 
@@ -392,6 +392,6 @@ def test_url_process_invalid():
     result = processor.process(sample_url)
     # If URL processing fails, expect empty text and no modalities.
     assert not result.text, "Expected empty text for invalid URL"
-    assert (
-        isinstance(result.modalities, list) and len(result.modalities) == 0
-    ), "Expected no modalities for invalid URL"
+    assert isinstance(result.modalities, list) and len(result.modalities) == 0, (
+        "Expected no modalities for invalid URL"
+    )

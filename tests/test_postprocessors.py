@@ -27,9 +27,9 @@ def test_chunker_from_load_postprocessor():
     config_args = {"chunking_strategy": "sentence", "text_chunker_config": {}}
     base_config = BasePostProcessorConfig(type="chunker", args=config_args)
     processor = load_postprocessor(base_config)
-    assert isinstance(
-        processor, MultimodalChunker
-    ), "Expected a MultimodalChunker instance."
+    assert isinstance(processor, MultimodalChunker), (
+        "Expected a MultimodalChunker instance."
+    )
 
 
 def test_chunker_process():
@@ -47,12 +47,12 @@ def test_chunker_process():
     chunks = chunker.process(sample)
     # Expect 2 chunks for the 2 sentences
     assert len(chunks) == 2, f"Expected 2 chunks, got {len(chunks)}"
-    assert (
-        chunks[0].text.strip() == "Hello world."
-    ), f"Unexpected first chunk: {chunks[0].text}"
-    assert (
-        chunks[1].text.strip() == "This is a test."
-    ), f"Unexpected second chunk: {chunks[1].text}"
+    assert chunks[0].text.strip() == "Hello world.", (
+        f"Unexpected first chunk: {chunks[0].text}"
+    )
+    assert chunks[1].text.strip() == "This is a test.", (
+        f"Unexpected second chunk: {chunks[1].text}"
+    )
 
 
 # ------------------ Filter Tests ------------------
@@ -117,16 +117,16 @@ def test_filter_process():
     accept_filter = DummyAcceptFilter("dummy_accept")
     accepted = accept_filter.process(sample)
     # When filter returns True, process() should return the sample wrapped in a list.
-    assert accepted == [
-        sample
-    ], f"Expected sample to be kept when filter returns True, got {accepted}"
+    assert accepted == [sample], (
+        f"Expected sample to be kept when filter returns True, got {accepted}"
+    )
 
     reject_filter = DummyRejectFilter("dummy_reject")
     rejected = reject_filter.process(sample)
     # When filter returns False, process() should return an empty list.
-    assert (
-        rejected == []
-    ), f"Expected sample to be rejected when filter returns False, got {rejected}"
+    assert rejected == [], (
+        f"Expected sample to be rejected when filter returns False, got {rejected}"
+    )
 
 
 # ------------------ NER Tests ------------------
@@ -147,9 +147,7 @@ def test_ner_from_config():
     """
     # Patch LLM.from_config to return our dummy LLM regardless of input.
     original_llm_from_config = LLM.from_config
-    LLM.from_config = (
-        lambda cfg: DummyLLM()
-    )  # pyright: ignore[reportAttributeAccessIssue]
+    LLM.from_config = lambda cfg: DummyLLM()  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
         llm=LLMConfig("dummy"),  # dummy config; our lambda ignores it
@@ -174,9 +172,7 @@ def test_ner_process():
     which should add to the sample's metadata a list with one dictionary.
     """
     original_llm_from_config = LLM.from_config
-    LLM.from_config = (
-        lambda cfg: DummyLLM()
-    )  # pyright: ignore[reportAttributeAccessIssue]
+    LLM.from_config = lambda cfg: DummyLLM()  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
         llm=LLMConfig("dummy"),
@@ -204,15 +200,15 @@ def test_ner_process():
     # We expect one entity: HELLO WORLD as an ORGANIZATION with the given description.
     assert len(ner_entities) == 1, f"Expected 1 entity, got {len(ner_entities)}."
     entity_info: dict[str, str] = ner_entities[0]
-    assert (
-        entity_info.get("entity") == "HELLO WORLD"
-    ), f"Unexpected entity name: {entity_info.get('entity')}"
-    assert (
-        entity_info.get("type") == "ORGANIZATION"
-    ), f"Unexpected entity type: {entity_info.get('type')}"
-    assert entity_info.get("description") == [
-        "A SAMPLE ORGANIZATION"
-    ], f"Unexpected entity description: {entity_info.get('description')}"
+    assert entity_info.get("entity") == "HELLO WORLD", (
+        f"Unexpected entity name: {entity_info.get('entity')}"
+    )
+    assert entity_info.get("type") == "ORGANIZATION", (
+        f"Unexpected entity type: {entity_info.get('type')}"
+    )
+    assert entity_info.get("description") == ["A SAMPLE ORGANIZATION"], (
+        f"Unexpected entity description: {entity_info.get('description')}"
+    )
 
     # Restore the original LLM.from_config
     LLM.from_config = original_llm_from_config
@@ -253,9 +249,9 @@ def test_tagger_from_load_tagger_modalities():
     """
     config = BaseTaggerConfig(type="modalities_counter", args={})
     tagger = load_tagger(config)
-    assert isinstance(
-        tagger, ModalitiesCounter
-    ), "Expected a ModalitiesCounter instance."
+    assert isinstance(tagger, ModalitiesCounter), (
+        "Expected a ModalitiesCounter instance."
+    )
 
 
 def test_tagger_from_load_tagger_lang_detector():
@@ -292,9 +288,9 @@ def test_tagger_process_words_counter():
     processed = tagger.process(sample)
     expected_count = len(sample.text.split())
     # WordsCounter's default metadata_key is set in its __init__ to 'word_count'
-    assert (
-        sample.metadata.get("word_count") == expected_count
-    ), f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
+    assert sample.metadata.get("word_count") == expected_count, (
+        f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
+    )
     assert isinstance(processed, list), "Expected process() to return a list."
 
 
@@ -318,9 +314,9 @@ def test_tagger_process_modalities_counter():
     processed = tagger.process(sample)
     expected_count = len(sample.modalities)
     # ModalitiesCounter's default metadata_key is 'modalities_count'
-    assert (
-        sample.metadata.get("modalities_count") == expected_count
-    ), f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
+    assert sample.metadata.get("modalities_count") == expected_count, (
+        f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
+    )
     assert isinstance(processed, list), "Expected process() to return a list."
 
 
