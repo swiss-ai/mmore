@@ -41,8 +41,13 @@ class TranslatorPostProcessor(BasePostProcessor):
         constrained_languages (Optional[List[str]]): List of languages to constrain the classifier to.
     """
 
-    def __init__(self, target_language: str, attachment_tag: str, confidence_threshold: float,
-                 constrained_languages: Optional[List[str]] = None):
+    def __init__(
+        self,
+        target_language: str,
+        attachment_tag: str,
+        confidence_threshold: float,
+        constrained_languages: Optional[List[str]] = None,
+    ):
         """
         Initializes the TranslatorPostProcessor.
 
@@ -60,7 +65,6 @@ class TranslatorPostProcessor(BasePostProcessor):
         self.classifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
         self.classifier.set_languages(constrained_languages)
 
-
     @classmethod
     def from_config(cls, config: TranslatorConfig):
         """
@@ -73,15 +77,14 @@ class TranslatorPostProcessor(BasePostProcessor):
             TranslatorPostProcessor: An instance of the translator post-processor.
         """
         translator = TranslatorPostProcessor(
-            target_language=config.target_language, attachment_tag=config.attachment_tag,
+            target_language=config.target_language,
+            attachment_tag=config.attachment_tag,
             confidence_threshold=config.confidence_threshold,
-            constrained_languages=config.constrained_languages
+            constrained_languages=config.constrained_languages,
         )
         return translator
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         from_code, confidence = self.classifier.classify(sample.text)
 
         # If the sample is already in the right language, do nothing
@@ -103,12 +106,13 @@ class TranslatorPostProcessor(BasePostProcessor):
             )
 
         translated_text = self.attachment_tag.join(translated_texts)
-        return [MultimodalSample(
-            text=translated_text,
-            modalities=sample.modalities,
-            metadata={"original_text" : sample.text, **sample.metadata}
-        )]
-
+        return [
+            MultimodalSample(
+                text=translated_text,
+                modalities=sample.modalities,
+                metadata={"original_text": sample.text, **sample.metadata},
+            )
+        ]
 
     def _update_package(self, from_code: str):
         if from_code in self.updated_packages:

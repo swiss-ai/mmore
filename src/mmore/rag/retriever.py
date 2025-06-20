@@ -88,7 +88,7 @@ class Retriever(BaseRetriever):
         partition_names: List[str] = [],
         k: int = 1,
         search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
-        expr: Optional[str] = None
+        expr: Optional[str] = None,
     ) -> List[List[Dict[str, Any]]]:
         """
         Retrieve top-k similar documents for a given query.
@@ -120,7 +120,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
-            "expr": expr
+            "expr": expr,
         }
 
         search_param_2 = {
@@ -131,7 +131,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
-            "expr": expr
+            "expr": expr,
         }
 
         request_1 = AnnSearchRequest(**search_param_1)

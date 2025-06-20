@@ -1,4 +1,3 @@
-
 import os
 
 from .base import BaseTagger, BaseTaggerConfig
@@ -33,5 +32,3 @@ class FileNamer(BaseTagger):
     def from_config(cls, config: BaseTaggerConfig):
         file_namer = FileNamer()
         return file_namer
-
-

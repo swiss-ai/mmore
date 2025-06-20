@@ -1,3 +1,3 @@
 from .base import TranslatorConfig, TranslatorPostProcessor
 
-__all__ = ['TranslatorPostProcessor', 'TranslatorConfig']
+__all__ = ["TranslatorPostProcessor", "TranslatorConfig"]

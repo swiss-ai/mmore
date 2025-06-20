@@ -60,25 +60,29 @@ class DOCXProcessor(Processor):
 
         def _convert_image(image: mammoth.documents.Image) -> Dict[str, Any]:
             if not self.config.custom_config.get("extract_images", False):
-                return {"src" : ""}
+                return {"src": ""}
 
             with image.open() as image_bytes:
                 try:
                     pil_image = Image.open(io.BytesIO(image_bytes.read()))
 
                     # Generate unique image path and save the image there
-                    image_path = Path(os.path.join(str(image_output_dir), str(uuid.uuid4())))
+                    image_path = Path(
+                        os.path.join(str(image_output_dir), str(uuid.uuid4()))
+                    )
                     image_path = image_path.with_suffix(
                         mimetypes.guess_extension(image.content_type)
                     )
 
                     pil_image.save(image_path)
                     logger.info(f"Saving image {image_path}")
-                    all_images.append(MultimodalRawInput(type="image", value=str(image_path)))
+                    all_images.append(
+                        MultimodalRawInput(type="image", value=str(image_path))
+                    )
 
                     print("Saving image to {image_path}")
 
-                    return {"src" : "", "alt": self.config.attachment_tag}
+                    return {"src": "", "alt": self.config.attachment_tag}
 
                 except Exception as e:
                     logger.warning(
@@ -97,7 +101,7 @@ class DOCXProcessor(Processor):
             with open(file_path, "rb") as docx_fileobj:
                 result = mammoth.convert_to_html(
                     docx_fileobj,
-                    convert_image=mammoth.images.img_element(_convert_image)
+                    convert_image=mammoth.images.img_element(_convert_image),
                 )
 
         except Exception as e:
@@ -107,9 +111,9 @@ class DOCXProcessor(Processor):
         markdown = markdownify(result.value)
 
         sample = MultimodalSample(
-            text=re.sub(r'!\[<([^>]+)>\]\(\)', r'<\1>', markdown),
+            text=re.sub(r"!\[<([^>]+)>\]\(\)", r"<\1>", markdown),
             modalities=all_images,
-            metadata={"file_path" : file_path}
+            metadata={"file_path": file_path},
         )
 
         return sample

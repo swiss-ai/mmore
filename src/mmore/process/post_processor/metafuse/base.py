@@ -20,7 +20,12 @@ class MetaDataInfusorConfig:
 
 
 class MetaDataInfusor(BasePostProcessor):
-    def __init__(self, metadata_keys: List[str], content_template: str, position: MetaDataPosition):
+    def __init__(
+        self,
+        metadata_keys: List[str],
+        content_template: str,
+        position: MetaDataPosition,
+    ):
         super().__init__(name="☕ Metadata Infusor")
         self.metadata_keys = metadata_keys
         self.content_template = content_template
@@ -31,14 +36,11 @@ class MetaDataInfusor(BasePostProcessor):
         metadata_infusor = MetaDataInfusor(
             metadata_keys=config.metadata_keys,
             content_template=config.content_template,
-            position=MetaDataPosition(config.position)
+            position=MetaDataPosition(config.position),
         )
         return metadata_infusor
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> List[MultimodalSample]:
-
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         format_mapping = defaultdict()
         for key in self.metadata_keys:
             value = sample.metadata.get(key, "")
@@ -48,15 +50,12 @@ class MetaDataInfusor(BasePostProcessor):
 
         match self.position:
             case MetaDataPosition.BEGINNING:
-                new_content = metadata_content + '\n' + sample.text
+                new_content = metadata_content + "\n" + sample.text
             case MetaDataPosition.END:
-                new_content = sample.text + '\n' + metadata_content
+                new_content = sample.text + "\n" + metadata_content
             case _:
                 new_content = sample.text
 
-        return [MultimodalSample(
-            new_content,
-            sample.modalities,
-            sample.metadata,
-            sample.id
-        )]
+        return [
+            MultimodalSample(new_content, sample.modalities, sample.metadata, sample.id)
+        ]

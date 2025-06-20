@@ -11,7 +11,7 @@ TAGGERS_LOADERS_MAP = {
     "modalities_counter": ModalitiesCounter,
     "words_counter": WordsCounter,
     "lang_detector": LangDetector,
-    "file_namer" : FileNamer
+    "file_namer": FileNamer,
 }
 TAGGER_TYPES = list(TAGGERS_LOADERS_MAP.keys())
 
