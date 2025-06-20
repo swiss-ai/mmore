@@ -42,7 +42,7 @@ def make_router(config_path: str) -> APIRouter:
     COLLECTION_NAME = config.collection_name or "my_docs"
 
     # Initialize the index database and the processors
-    indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+    get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
     register_all_processors()
 
     @router.get("/")

@@ -16,7 +16,6 @@ from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
-from .model import DenseModel, SparseModel
 from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
 
