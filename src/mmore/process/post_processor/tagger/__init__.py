@@ -1,3 +1,5 @@
+from mmore.process.post_processor.tagger.file_namer import FileNamer
+
 from .base import BaseTaggerConfig
 from .lang_detector import LangDetector
 from .modalities import ModalitiesCounter
@@ -9,6 +11,7 @@ TAGGERS_LOADERS_MAP = {
     "modalities_counter": ModalitiesCounter,
     "words_counter": WordsCounter,
     "lang_detector": LangDetector,
+    "file_namer": FileNamer,
 }
 TAGGER_TYPES = list(TAGGERS_LOADERS_MAP.keys())
 

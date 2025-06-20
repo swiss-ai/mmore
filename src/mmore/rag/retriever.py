@@ -5,7 +5,7 @@ Works in conjunction with the Indexer class for document retrieval.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Tuple, cast, get_args
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -88,6 +88,7 @@ class Retriever(BaseRetriever):
         partition_names: List[str] = [],
         k: int = 1,
         search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
+        expr: Optional[str] = None,
     ) -> List[List[Dict[str, Any]]]:
         """
         Retrieve top-k similar documents for a given query.
@@ -119,6 +120,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
+            "expr": expr,
         }
 
         search_param_2 = {
@@ -129,6 +131,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
+            "expr": expr,
         }
 
         request_1 = AnnSearchRequest(**search_param_1)
@@ -140,7 +143,7 @@ class Retriever(BaseRetriever):
                 search_weight, 1 - search_weight
             ),  # Reranking strategy
             limit=k,
-            output_fields=["text"],
+            output_fields=["*"],
             collection_name=collection_name,
             partition_names=partition_names,
         )
