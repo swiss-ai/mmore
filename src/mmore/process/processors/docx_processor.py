@@ -1,19 +1,19 @@
 import io
-import uuid
+import logging
+import mimetypes
 import os
-from pathlib import Path
 import re
+import tempfile
+import uuid
+from pathlib import Path
+from typing import Any, Dict
 
 import mammoth
-import tempfile
-import logging
 from markdownify import markdownify
-from typing import Dict, Any
-from ...type import FileDescriptor, MultimodalRawInput, MultimodalSample
-
-from .base import Processor, ProcessorConfig
 from PIL import Image
-import mimetypes
+
+from ...type import FileDescriptor, MultimodalRawInput, MultimodalSample
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class DOCXProcessor(Processor):
             with open(file_path, "rb") as docx_fileobj:
                 result = mammoth.convert_to_html(
                     docx_fileobj,
-                    convert_image=mammoth.images.img_element(_convert_image) 
+                    convert_image=mammoth.images.img_element(_convert_image)
                 )
 
         except Exception as e:

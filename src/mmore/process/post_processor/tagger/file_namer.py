@@ -1,7 +1,8 @@
-from langdetect import detect
+
+import os
 
 from .base import BaseTagger, BaseTaggerConfig
-import os
+
 
 class FileNamer(BaseTagger):
     """

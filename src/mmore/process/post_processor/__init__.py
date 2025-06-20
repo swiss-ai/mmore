@@ -1,7 +1,6 @@
 from typing import cast
 
 from ...utils import load_config
-
 from .base import BasePostProcessor, BasePostProcessorConfig
 from .filter import FILTER_TYPES, load_filter
 from .filter.base import BaseFilterConfig
@@ -34,7 +33,7 @@ def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
         return TranslatorPostProcessor.from_config(config_translator)
 
     elif config.type == 'metafuse':
-        from .metafuse import MetaDataInfusorConfig, MetaDataInfusor
+        from .metafuse import MetaDataInfusor, MetaDataInfusorConfig
         config_metafuse = load_config(config.args, MetaDataInfusorConfig)
         return MetaDataInfusor.from_config(config_metafuse)
 

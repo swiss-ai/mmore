@@ -1,12 +1,12 @@
+from dataclasses import dataclass
 from typing import List, Optional
-from mmore.type import MultimodalSample
-from mmore.process.post_processor.base import BasePostProcessor
-from langid import classify
-from langid.langid import LanguageIdentifier, model
+
 import argostranslate.package
 import argostranslate.translate
+from langid.langid import LanguageIdentifier, model
 
-from dataclasses import dataclass
+from mmore.process.post_processor.base import BasePostProcessor
+from mmore.type import MultimodalSample
 
 
 @dataclass
@@ -94,17 +94,17 @@ class TranslatorPostProcessor(BasePostProcessor):
         # Split text to avoid attachment tag being translated
         splitted_texts = sample.text.split(self.attachment_tag)
 
-        translatedTexts = []
+        translated_texts = []
         for text in splitted_texts:
-            translatedTexts.append(
+            translated_texts.append(
                 argostranslate.translate.translate(
                     text, from_code, self.target_language
                 )
             )
 
-        translatedText = self.attachment_tag.join(translatedTexts)
+        translated_text = self.attachment_tag.join(translated_texts)
         return [MultimodalSample(
-            text=translatedText, 
+            text=translated_text,
             modalities=sample.modalities,
             metadata={"original_text" : sample.text, **sample.metadata}
         )]

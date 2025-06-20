@@ -1,4 +1,5 @@
 from mmore.process.post_processor.tagger.file_namer import FileNamer
+
 from .base import BaseTaggerConfig
 from .lang_detector import LangDetector
 from .modalities import ModalitiesCounter
