@@ -49,7 +49,7 @@ class DOCXProcessor(Processor):
             file_path (str): Path to the DOCX file.
 
         Returns:
-            dict: A dictionary containing processed text and embedded images.
+            MultimodalSample: A sample containing the extracted text and images.
 
         The method parses the DOCX file, cleans and extracts textual content from paragraphs,
         and extracts embedded images. Images in the paragraphs are replaced with a placeholder tag

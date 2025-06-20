@@ -11,6 +11,15 @@ from dataclasses import dataclass
 
 @dataclass
 class TranslatorConfig:
+    """
+    Configuration for the TranslatorPostProcessor.
+    Attributes:
+        target_language (str): The language code to translate text into.
+        attachment_tag (str): A tag used to identify parts of the text that should not be translated.
+        confidence_threshold (float): Minimum confidence level for translation to be applied.
+        constrained_languages (Optional[List[str]]): List of languages to constrain the classifier to.
+    """
+
     target_language: str
     attachment_tag: str
     confidence_threshold: float
@@ -18,8 +27,31 @@ class TranslatorConfig:
 
 
 class TranslatorPostProcessor(BasePostProcessor):
+    """
+    A post-processor that translates text in multimodal samples to a specified target language.
+    This post-processor uses the Argos Translate library to perform translations and can handle
+    text with specific attachment tags that should not be translated.
+    It also includes a language classifier to determine the source language of the text.
+    Attributes:
+        target_language (str): The language code to translate text into.
+        attachment_tag (str): A tag used to identify parts of the text that should not be translated.
+        updated_packages (set): A set of updated language packages to avoid redundant updates.
+        confidence_threshold (float): Minimum confidence level for translation to be applied.
+        classifier (LanguageIdentifier): Language identifier for detecting the source language.
+        constrained_languages (Optional[List[str]]): List of languages to constrain the classifier to.
+    """
+
     def __init__(self, target_language: str, attachment_tag: str, confidence_threshold: float,
                  constrained_languages: Optional[List[str]] = None):
+        """
+        Initializes the TranslatorPostProcessor.
+
+        Args:
+            target_language (str): The language code to translate text into.
+            attachment_tag (str): A tag used to identify parts of the text that should not be translated.
+            confidence_threshold (float): Minimum confidence level for translation to be applied.
+            constrained_languages (Optional[List[str]]): List of languages to constrain the classifier to.
+        """
         super().__init__(name="🌍 Translator")
         self.target_language = target_language
         self.attachment_tag = attachment_tag
@@ -31,6 +63,15 @@ class TranslatorPostProcessor(BasePostProcessor):
 
     @classmethod
     def from_config(cls, config: TranslatorConfig):
+        """
+        Creates an instance of TranslatorPostProcessor from a configuration object.
+
+        Args:
+            config (TranslatorConfig): Configuration object containing parameters for the translator.
+
+        Returns:
+            TranslatorPostProcessor: An instance of the translator post-processor.
+        """
         translator = TranslatorPostProcessor(
             target_language=config.target_language, attachment_tag=config.attachment_tag,
             confidence_threshold=config.confidence_threshold,
