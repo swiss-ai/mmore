@@ -1,13 +1,16 @@
 pp_modules:
   - type: file_namer
+  - type: chunker
+    args:
+      chunking_strategy: sentence
   - type: translator
     args:
       target_language: en
       attachment_tag: <attachment>
       confidence_threshold: 0.7
-  - type: chunker
-    args:
-      chunking_strategy: sentence
+      constrained_languages: 
+        - fr
+        - en
   - type: metafuse
     args:
       metadata_keys:
