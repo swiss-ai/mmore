@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 import click
 import torch
@@ -34,7 +35,7 @@ class ProcessInference:
 
     data_path: str
     dispatcher_config: DispatcherConfig
-    skip_already_processed: bool
+    skip_already_processed: bool = False
 
 
 def process(config_file: str):

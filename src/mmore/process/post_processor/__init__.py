@@ -33,5 +33,10 @@ def load_postprocessor(config: BasePostProcessorConfig) -> BasePostProcessor:
         config_translator = load_config(config.args, TranslatorConfig)
         return TranslatorPostProcessor.from_config(config_translator)
 
+    elif config.type == 'metafuse':
+        from .metafuse import MetaDataInfusorConfig, MetaDataInfusor
+        config_metafuse = load_config(config.args, MetaDataInfusorConfig)
+        return MetaDataInfusor.from_config(config_metafuse)
+
     else:
         raise ValueError(f"Unrecognized postprocessor type: {config.type}")

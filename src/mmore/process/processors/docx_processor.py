@@ -2,6 +2,7 @@ import io
 import uuid
 import os
 from pathlib import Path
+import re
 
 import mammoth
 import tempfile
@@ -66,7 +67,7 @@ class DOCXProcessor(Processor):
                     pil_image = Image.open(io.BytesIO(image_bytes.read()))
 
                     # Generate unique image path and save the image there
-                    image_path = Path(os.path.join(image_output_dir, str(uuid.uuid4())))
+                    image_path = Path(os.path.join(str(image_output_dir), str(uuid.uuid4())))
                     image_path = image_path.with_suffix(
                         mimetypes.guess_extension(image.content_type)
                     )
@@ -96,7 +97,7 @@ class DOCXProcessor(Processor):
             with open(file_path, "rb") as docx_fileobj:
                 result = mammoth.convert_to_html(
                     docx_fileobj,
-                    convert_image=mammoth.images.img_element(_convert_image),
+                    convert_image=mammoth.images.img_element(_convert_image) 
                 )
 
         except Exception as e:
@@ -106,7 +107,7 @@ class DOCXProcessor(Processor):
         markdown = markdownify(result.value)
 
         sample = MultimodalSample(
-            text=markdown,
+            text=re.sub(r'!\[<([^>]+)>\]\(\)', r'<\1>', markdown),
             modalities=all_images,
             metadata={"file_path" : file_path}
         )

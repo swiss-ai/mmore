@@ -39,7 +39,7 @@ class MetaDataInfusor(BasePostProcessor):
 
     def process(
         self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    ) -> List[MultimodalSample]:
 
         format_mapping = defaultdict()
         for key in self.metadata_keys:
@@ -56,9 +56,9 @@ class MetaDataInfusor(BasePostProcessor):
             case _:
                 new_content = sample.text
 
-        return MultimodalSample(
+        return [MultimodalSample(
             new_content,
             sample.modalities,
             sample.metadata,
             sample.id
-        )
+        )]
