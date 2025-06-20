@@ -116,7 +116,7 @@ class LLM(BaseChatModel):
             )
 
     @classmethod
-    def from_config(cls, config: str | LLMConfig):
+    def from_config(cls, config: str | LLMConfig) -> BaseChatModel:
         if isinstance(config, str):
             config = load_config(config, LLMConfig)
 

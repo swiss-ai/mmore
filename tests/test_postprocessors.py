@@ -1,3 +1,5 @@
+from typing import Dict, List, cast
+
 import pytest
 
 from mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
@@ -13,8 +15,8 @@ from mmore.process.post_processor.tagger.base import BaseTaggerConfig
 from mmore.process.post_processor.tagger.lang_detector import LangDetector
 from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
 from mmore.process.post_processor.tagger.words import WordsCounter
-from mmore.rag.llm import LLM
-from mmore.type import MultimodalSample
+from mmore.rag.llm import LLM, LLMConfig
+from mmore.type import MultimodalRawInput, MultimodalSample
 
 
 # ------------------ Chunker Tests ------------------
@@ -25,9 +27,9 @@ def test_chunker_from_load_postprocessor():
     config_args = {"chunking_strategy": "sentence", "text_chunker_config": {}}
     base_config = BasePostProcessorConfig(type="chunker", args=config_args)
     processor = load_postprocessor(base_config)
-    assert isinstance(processor, MultimodalChunker), (
-        "Expected a MultimodalChunker instance."
-    )
+    assert isinstance(
+        processor, MultimodalChunker
+    ), "Expected a MultimodalChunker instance."
 
 
 def test_chunker_process():
@@ -45,12 +47,12 @@ def test_chunker_process():
     chunks = chunker.process(sample)
     # Expect 2 chunks for the 2 sentences
     assert len(chunks) == 2, f"Expected 2 chunks, got {len(chunks)}"
-    assert chunks[0].text.strip() == "Hello world.", (
-        f"Unexpected first chunk: {chunks[0].text}"
-    )
-    assert chunks[1].text.strip() == "This is a test.", (
-        f"Unexpected second chunk: {chunks[1].text}"
-    )
+    assert (
+        chunks[0].text.strip() == "Hello world."
+    ), f"Unexpected first chunk: {chunks[0].text}"
+    assert (
+        chunks[1].text.strip() == "This is a test."
+    ), f"Unexpected second chunk: {chunks[1].text}"
 
 
 # ------------------ Filter Tests ------------------
@@ -73,7 +75,7 @@ class DummyFilter(BaseFilter):
 # Patch the filter loaders mapping and supported types for the dummy filter.
 _original_filters_loaders_map = FILTERS_LOADERS_MAP.copy()
 _original_filter_type = FILTER_TYPES[:]
-FILTERS_LOADERS_MAP["dummy_filter"] = DummyFilter
+FILTERS_LOADERS_MAP["dummy_filter"] = DummyFilter  # pyright: ignore[reportArgumentType]
 FILTER_TYPES.append("dummy_filter")
 
 
@@ -115,16 +117,16 @@ def test_filter_process():
     accept_filter = DummyAcceptFilter("dummy_accept")
     accepted = accept_filter.process(sample)
     # When filter returns True, process() should return the sample wrapped in a list.
-    assert accepted == [sample], (
-        f"Expected sample to be kept when filter returns True, got {accepted}"
-    )
+    assert accepted == [
+        sample
+    ], f"Expected sample to be kept when filter returns True, got {accepted}"
 
     reject_filter = DummyRejectFilter("dummy_reject")
     rejected = reject_filter.process(sample)
     # When filter returns False, process() should return an empty list.
-    assert rejected == [], (
-        f"Expected sample to be rejected when filter returns False, got {rejected}"
-    )
+    assert (
+        rejected == []
+    ), f"Expected sample to be rejected when filter returns False, got {rejected}"
 
 
 # ------------------ NER Tests ------------------
@@ -145,10 +147,12 @@ def test_ner_from_config():
     """
     # Patch LLM.from_config to return our dummy LLM regardless of input.
     original_llm_from_config = LLM.from_config
-    LLM.from_config = lambda cfg: DummyLLM()
+    LLM.from_config = (
+        lambda cfg: DummyLLM()
+    )  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
-        llm={"dummy": "dummy"},  # dummy config; our lambda ignores it
+        llm=LLMConfig("dummy"),  # dummy config; our lambda ignores it
         prompt="dummy prompt",  # a simple string; PromptTemplate.from_template() will be used
         entity_types=["ORGANIZATION"],
         tuple_delimiter="<|>",
@@ -170,10 +174,12 @@ def test_ner_process():
     which should add to the sample's metadata a list with one dictionary.
     """
     original_llm_from_config = LLM.from_config
-    LLM.from_config = lambda cfg: DummyLLM()
+    LLM.from_config = (
+        lambda cfg: DummyLLM()
+    )  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
-        llm={"dummy": "dummy"},
+        llm=LLMConfig("dummy"),
         prompt="dummy prompt",
         entity_types=["ORGANIZATION"],
         tuple_delimiter="<|>",
@@ -192,19 +198,21 @@ def test_ner_process():
     # The sample's metadata should include an 'ner' key.
     assert "ner" in sample.metadata, "Expected sample.metadata to include key 'ner'."
 
-    ner_entities = sample.metadata["ner"]
+    ner_entities: List[Dict[str, str]] = cast(
+        List[Dict[str, str]], sample.metadata["ner"]
+    )
     # We expect one entity: HELLO WORLD as an ORGANIZATION with the given description.
     assert len(ner_entities) == 1, f"Expected 1 entity, got {len(ner_entities)}."
-    entity_info = ner_entities[0]
-    assert entity_info.get("entity") == "HELLO WORLD", (
-        f"Unexpected entity name: {entity_info.get('entity')}"
-    )
-    assert entity_info.get("type") == "ORGANIZATION", (
-        f"Unexpected entity type: {entity_info.get('type')}"
-    )
-    assert entity_info.get("description") == ["A SAMPLE ORGANIZATION"], (
-        f"Unexpected entity description: {entity_info.get('description')}"
-    )
+    entity_info: dict[str, str] = ner_entities[0]
+    assert (
+        entity_info.get("entity") == "HELLO WORLD"
+    ), f"Unexpected entity name: {entity_info.get('entity')}"
+    assert (
+        entity_info.get("type") == "ORGANIZATION"
+    ), f"Unexpected entity type: {entity_info.get('type')}"
+    assert entity_info.get("description") == [
+        "A SAMPLE ORGANIZATION"
+    ], f"Unexpected entity description: {entity_info.get('description')}"
 
     # Restore the original LLM.from_config
     LLM.from_config = original_llm_from_config
@@ -217,11 +225,17 @@ def test_ner_process():
 # This enables load_tagger() to instantiate them.
 # ---------------------------------------------------------------------------
 if not hasattr(WordsCounter, "from_config"):
-    WordsCounter.from_config = classmethod(lambda cls, config: cls())
+    WordsCounter.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 if not hasattr(ModalitiesCounter, "from_config"):
-    ModalitiesCounter.from_config = classmethod(lambda cls, config: cls())
+    ModalitiesCounter.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 if not hasattr(LangDetector, "from_config"):
-    LangDetector.from_config = classmethod(lambda cls, config: cls())
+    LangDetector.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 
 
 def test_tagger_from_load_tagger_words():
@@ -239,9 +253,9 @@ def test_tagger_from_load_tagger_modalities():
     """
     config = BaseTaggerConfig(type="modalities_counter", args={})
     tagger = load_tagger(config)
-    assert isinstance(tagger, ModalitiesCounter), (
-        "Expected a ModalitiesCounter instance."
-    )
+    assert isinstance(
+        tagger, ModalitiesCounter
+    ), "Expected a ModalitiesCounter instance."
 
 
 def test_tagger_from_load_tagger_lang_detector():
@@ -278,9 +292,9 @@ def test_tagger_process_words_counter():
     processed = tagger.process(sample)
     expected_count = len(sample.text.split())
     # WordsCounter's default metadata_key is set in its __init__ to 'word_count'
-    assert sample.metadata.get("word_count") == expected_count, (
-        f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
-    )
+    assert (
+        sample.metadata.get("word_count") == expected_count
+    ), f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
     assert isinstance(processed, list), "Expected process() to return a list."
 
 
@@ -292,14 +306,21 @@ def test_tagger_process_modalities_counter():
     config = BaseTaggerConfig(type="modalities_counter", args={})
     tagger = load_tagger(config)
     sample = MultimodalSample(
-        text="Some text", modalities=["img1", "img2", "video1"], metadata={}, id="2"
+        text="Some text",
+        modalities=[
+            MultimodalRawInput(type="image", value="img1"),
+            MultimodalRawInput(type="image", value="img2"),
+            MultimodalRawInput(type="video", value="video1"),
+        ],
+        metadata={},
+        id="2",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.modalities)
     # ModalitiesCounter's default metadata_key is 'modalities_count'
-    assert sample.metadata.get("modalities_count") == expected_count, (
-        f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
-    )
+    assert (
+        sample.metadata.get("modalities_count") == expected_count
+    ), f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
     assert isinstance(processed, list), "Expected process() to return a list."
 
 
