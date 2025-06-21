@@ -1,10 +1,17 @@
+import argparse
 import io
 import os
+import shutil
 from urllib.parse import parse_qs, urlparse
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+
+from ..run_index import IndexConfig, index
+from ..run_postprocess import postprocess
+from ..run_process import process
+from ..utils import load_config
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +97,36 @@ def download_folder_recursive(folder_id):
                 print(f"Saved to {path} (folder: {folder})")
 
 if __name__ == "__main__":
-    folder_link = input("Enter Google Drive folder URL: ").strip()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--drive-url", required=True, help="Path to the google drive."
+    )
+
+    args = parser.parse_args()
+
+    folder_link = args.drive_url.strip()
     folder_id = get_folder_id_from_url(folder_link)
+    print("Downloading...")
     download_folder_recursive(folder_id)
+    print("Download finished!")
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    PROCESS_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'process_config.yaml')
+    INDEX_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'index_config.yaml')
+    POSTPROCESS_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'postprocess_config.yaml')
+    POSTPROCESS_INPUT_DATA = os.path.join(os.path.join(SCRIPT_DIR, 'outputs'), 'merged/merged_results.jsonl')
+    print("Processing...")
+    process(PROCESS_CONFIG_FILE)
+    print("Processing done!")
+    print("Postprocessing...")
+    postprocess(POSTPROCESS_CONFIG_FILE, POSTPROCESS_INPUT_DATA)
+    print("Postprocessing done!")
+    print("Indexing...")
+    index_config = load_config(INDEX_CONFIG_FILE, IndexConfig)
+    index(
+        INDEX_CONFIG_FILE, index_config.documents_path, index_config.collection_name
+    )
+    print("Indexing done!")
+    print("Deleting original documents...")
+    shutil.rmtree(os.path.join(SCRIPT_DIR, 'downloads'))
     print("Done!")
+
