@@ -15,7 +15,7 @@ class TranslatorConfig:
     Configuration for the TranslatorPostProcessor.
     Attributes:
         target_language (str): The language code to translate text into.
-        attachment_tag (str): A tag used to identify parts of the text that should not be translated.
+        attachment_tag (str): A tag used to identify modalities placeholders in the text
         confidence_threshold (float): Minimum confidence level for translation to be applied.
         constrained_languages (Optional[List[str]]): List of languages to constrain the classifier to.
     """
@@ -120,8 +120,6 @@ class TranslatorPostProcessor(BasePostProcessor):
 
         argostranslate.package.update_package_index()
         available_packages = argostranslate.package.get_available_packages()
-
-        print(from_code, self.target_language)
 
         package_to_install = next(
             filter(

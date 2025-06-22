@@ -75,12 +75,10 @@ class DOCXProcessor(Processor):
                     )
 
                     pil_image.save(image_path)
-                    logger.info(f"Saving image {image_path}")
+                    logger.info(f"Saving image to {image_path}")
                     all_images.append(
                         MultimodalRawInput(type="image", value=str(image_path))
                     )
-
-                    print("Saving image to {image_path}")
 
                     return {"src": "", "alt": self.config.attachment_tag}
 
