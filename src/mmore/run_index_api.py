@@ -91,7 +91,9 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Process and index the file
                 file_extension = FilePath(file.filename).suffix.lower()
-                documents = process_files_default(temp_dir, COLLECTION_NAME, [file_extension])
+                documents = process_files_default(
+                    temp_dir, COLLECTION_NAME, [file_extension]
+                )
 
                 for doc in documents:
                     defDocId = doc.document_id
@@ -172,7 +174,9 @@ def make_router(config_path: str) -> APIRouter:
                 file_extensions = [
                     FilePath(cast(str, file.filename)).suffix.lower() for file in files
                 ]
-                documents = process_files_default(temp_dir, COLLECTION_NAME, file_extensions)
+                documents = process_files_default(
+                    temp_dir, COLLECTION_NAME, file_extensions
+                )
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
@@ -241,7 +245,9 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Process and index the file
                 file_extension = FilePath(file.filename).suffix.lower()
-                documents = process_files_default(temp_dir, COLLECTION_NAME, [file_extension])
+                documents = process_files_default(
+                    temp_dir, COLLECTION_NAME, [file_extension]
+                )
 
                 # Set the custom ID
                 for doc in documents:
