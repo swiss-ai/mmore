@@ -50,12 +50,12 @@ class MediaProcessor(Processor):
                 self.config.custom_config.get("fast_model", "openai/whisper-tiny")
                 if fast_mode
                 else self.config.custom_config.get(
-                    "normal_model", "openai/whisper-large-v3"
+                    "normal_model", "openai/whisper-large-v3-turbo"
                 )
             )
         else:
             model_name = (
-                "openai/whisper-tiny" if fast_mode else "openai/whisper-large-v3"
+                "openai/whisper-tiny" if fast_mode else "openai/whisper-large-v3-turbo"
             )
 
         try:
