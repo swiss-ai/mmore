@@ -151,7 +151,7 @@ def get_retriever(uri: str, db_name: str) -> "Retriever":
     return retrievers[uri]
 
 
-def process_files(
+def process_files_default(
     temp_dir: str,
     collection_name: str,
     extensions: List[str] = [
