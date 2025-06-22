@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
 import logging
 import time
+import tempfile
+import os
 
 from langchain_community.tools import DuckDuckGoSearchResults
 from duckduckgo_search.exceptions import RatelimitException
@@ -34,7 +36,7 @@ class WebsearchPipeline:
     def __init__(self, config: WebsearchConfig):
         self.config = config
         self.llm = self._initialize_llm()
-        self.rag_results: Optional[List[Dict[str, Any]]] = None
+        self.rag_results = None
         self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches, backend='auto')
         self.search = DuckDuckGoSearchResults(api_wrapper=self.wrapper, output_format="list")
 
@@ -77,8 +79,8 @@ class WebsearchPipeline:
             HumanMessage(content=prompt),
         ]
         response = self.llm.invoke(messages)
-        print("##SUMMARY CLEAN##")
-        print(self._clean_llm_output(response.content))
+        # print("##SUMMARY CLEAN##")
+        # print(self._clean_llm_output(response.content))
         return self._clean_llm_output(response.content)
 
 
@@ -152,8 +154,9 @@ class WebsearchPipeline:
             for r in results:
                 snippet = r.get("snippet", "")
                 url = r.get("link", "")  # note: it's "link" in LangChain results
+                title = r.get("title", "")
                 if url:
-                    formatted_results.append({"snippet": snippet, "url": url})
+                    formatted_results.append({"snippet": snippet, "url": url, "title" : title})
             print("Websearch", formatted_results)
             return formatted_results
         except Exception as e:
@@ -202,10 +205,11 @@ class WebsearchPipeline:
     def process_record(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         qr = rec.get("input", "").strip()
         rag_ans = rec.get("answer", "") if self.config.use_rag else ""
+        self.rag_results = rag_ans
         rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
 
         all_sources: Set[str] = set()
-        current_context = rag_summary or ""
+        current_context = rag_summary
         final_short, final_detailed = "", ""
         web_summary = ""
 
@@ -225,9 +229,16 @@ class WebsearchPipeline:
                 res = self.duckduckgo_search(query = sq)
 
                 subquery_snippets = []
+                # for r in res:
+                #     if r["url"] not in all_sources:
+                #         all_sources.add(r["url"])
+
+
                 for r in res:
                     if r["url"] not in all_sources:
-                        all_sources.add(r["url"])
+                        all_sources[url] = []
+                    all_sources[url].append(r["title"])
+
                     snippet = f"{r['snippet']})"
                     snippets.append(snippet)
                     #print("Current sub-snippet", snippet)
@@ -268,13 +279,13 @@ class WebsearchPipeline:
 
         return {
             "query": qr,
+            "rag informations" : self.rag_results,
             "rag_summary": rag_summary if self.config.use_rag else None,
             "web_summary": web_summary_all if self.config.use_summary else None,
             "short_answer": final_short,
             "detailed_answer": final_detailed,
             "sources": list(all_sources),
         }
-
 
 
 
@@ -308,3 +319,57 @@ class WebsearchPipeline:
         with open(outp, 'w', encoding='utf-8') as f:
             json.dump(outputs, f, ensure_ascii=False, indent=2)
         print(f"Results saved to {outp}")
+
+
+
+
+    def run_api(self, use_rag, use_summary, query):
+        """
+        Process queries and handle them with a temporary JSONL file.
+        
+        Parameters:
+        - use_rag (bool): Indicates whether to use RAG.
+        - use_summary (bool): Indicates whether to use summarization.
+        - query (list): List of query dictionaries.
+        
+        Returns:
+        - List of processed query results.
+        """
+        # Save query to a temporary JSONL file
+        self.config.use_rag = use_rag
+        self.config.use_summary = use_summary
+
+        temp_file_path = self._save_query_as_json(query)
+        
+        try:
+            outputs = []
+            # Read from the temporary JSONL file
+            with open(temp_file_path, 'r', encoding='utf-8') as f:                
+                if self.config.use_rag :
+                    for line in f:
+                        record = json.loads(line)
+                        outputs.append(self.process_record(record))
+                else:
+                    for line in f:
+                        record = json.loads(line.strip())
+                        outputs.append(self.process_record(record))
+            
+            return outputs
+
+        finally:
+            # Clean up the temporary file
+            print(f"Deleting temporary file: {temp_file_path}")
+        os.remove(temp_file_path)
+
+
+    def _save_query_as_json(self, query):
+        """Save query to a temporary JSONL file and return the file path."""
+        suffix = '.json' if self.config.use_rag else '.jsonl'
+        with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False) as temp_file:
+            # Convert Pydantic models to dictionaries if needed
+            if isinstance(query, list):
+                temp_file.writelines(json.dumps(q.dict() if hasattr(q, "dict") else q) + '\n' for q in query)
+            else:
+                temp_file.write(json.dumps(query.dict() if hasattr(query, "dict") else query) + '\n')
+            print(f"Query saved to temporary file: {temp_file.name}")
+            return temp_file.name

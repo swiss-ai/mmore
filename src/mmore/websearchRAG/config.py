@@ -1,7 +1,7 @@
 # mmore/websearch/config.py
 
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from pathlib import Path
 import yaml
 
@@ -19,29 +19,31 @@ class WebsearchConfig:
       use_summary:        (bool) If True, run an initial LLM-based summary of the RAG answer.
       input_file:         (str) Path to the JSON file used as “queries” (or RAG output).
       output_file:        (str) Path where the enhanced JSON results will be written.
+      input_queries:      (str) Path to queries file.
       n_subqueries:       (int) Number of sub-queries to generate via LLM.
+      n_loops:            (int) Number of loops to run the process.
       max_searches:       (int) Max results to fetch from DuckDuckGo per sub-query.
       llm_config:         (dict) Passed to rag.llm.LLMConfig (keys: llm_name, max_new_tokens, temperature, etc.)
+      mode:               (str) Mode of operation ("local" or "api").
     """
 
-    rag_config_path: str  # e.g. "../rag/config.yaml"
-    input_file: str
-    input_queries: str
-    output_file: str
-    mode : str 
-    llm_config: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt-4"))
-    use_rag: bool = True
+    rag_config_path: str  # e.g., "../rag/config.yaml"
+    use_rag: bool = False
     use_summary: bool = False
+    input_file: Optional[str] = None
+    input_queries: Optional[str] = None
+    output_file: Optional[str] = None
     n_subqueries: int = 3
-    n_loops : int = 2
+    n_loops: int = 2
     max_searches: int = 10
+    llm_config: Dict[str, Any] = field(default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 100})
+    mode: str = "local"
 
     def __post_init__(self):
-        required_fields = ["rag_config_path", "input_file", "output_file", "mode"]
+        required_fields = ["rag_config_path", "llm_config", "mode"]
         for field in required_fields:
             if not getattr(self, field):
                 raise ValueError(f"'{field}' is a required field.")
-
 
     def get_llm_config(self) -> LLMConfig:
         """
@@ -49,7 +51,6 @@ class WebsearchConfig:
         """
         return LLMConfig(**self.llm_config)
     
-
     def access_rag_config(self) -> Dict[str, Any]:
         """
         Access and parse the RAG configuration file defined in `rag_config_path`.
