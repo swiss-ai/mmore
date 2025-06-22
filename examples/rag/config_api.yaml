@@ -8,7 +8,7 @@ rag:
   # Retriever Config
   retriever:
     db:
-      uri: ./proc_demo3.db
+      uri: ./proc_demo.db
       name: my_db
     hybrid_search_weight: 0.5
     k: 5

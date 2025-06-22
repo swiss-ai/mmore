@@ -53,7 +53,8 @@ class Retriever(BaseRetriever):
 
         if not client.has_collection(config.collection_name):
             raise ValueError(
-                "The Milvus database has not been initialized yet. Ensure the path is valid with a database that was already populated with the indexer."
+                f"The Milvus database has not been initialized yet / does not have a collection {config.collection_name}. "
+                "Ensure the path is valid with a database that was already populated with the indexer."
             )
 
         # Init models

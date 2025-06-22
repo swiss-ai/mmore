@@ -47,7 +47,7 @@ class PDFProcessor(Processor):
             config=config_parser.generate_config_dict(),
         )
 
-        converter.initialize_processors(converter.default_processors)
+        converter.initialize_processors(list(converter.default_processors))
 
         return converter
 
@@ -131,7 +131,11 @@ class PDFProcessor(Processor):
 
     def process(self, file_path: str) -> MultimodalSample:
         if self.converter is None:
-            self.converter = PDFProcessor.load_models()
+            self.converter = PDFProcessor.load_models(
+                disable_image_extraction=not self.config.custom_config.get(
+                    "extract_images", True
+                )
+            )
 
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)

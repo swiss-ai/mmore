@@ -99,7 +99,11 @@ def make_router(config_path: str) -> APIRouter:
                     doc.id = doc.id.replace(defDocId, fileId)
 
                 # Get indexer and index the document
-                indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                try:
+                    indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=str(e))
+
                 indexer.index_documents(
                     documents=documents, collection_name=COLLECTION_NAME
                 )
@@ -180,7 +184,11 @@ def make_router(config_path: str) -> APIRouter:
 
                 logging.info("Indexing the files")
 
-                indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                try:
+                    indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=str(e))
+
                 indexer.index_documents(
                     documents=modified_documents, collection_name=COLLECTION_NAME
                 )
@@ -240,7 +248,10 @@ def make_router(config_path: str) -> APIRouter:
                     doc.id = id
 
                 # Get indexer and reindex the document
-                indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                try:
+                    indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=str(e))
 
                 # First delete the existing document
                 try:

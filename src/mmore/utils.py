@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
 
 import yaml
 from dacite import from_dict
-from fastapi import HTTPException
 from pymilvus import MilvusClient
 
 if TYPE_CHECKING:
@@ -70,9 +69,7 @@ def create_new_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer
         )
         return indexer
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create new indexer: {str(e)}"
-        )
+        raise Exception(f"Unable to create a new indexer: {str(e)}")
 
 
 def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
@@ -114,9 +111,8 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
 
         return indexer
     except Exception as e:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection {collection_name} not found or could not be loaded: {str(e)}",
+        raise Exception(
+            f"Collection {collection_name} not found or could not be loaded: {str(e)}"
         )
 
 
