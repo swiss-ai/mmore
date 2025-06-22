@@ -43,7 +43,7 @@ def make_router(config_path: str) -> APIRouter:
 
     # Initialize the index database and the processors
     get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
-    register_all_processors()
+    register_all_processors(preload=True)
 
     @router.get("/")
     async def root():

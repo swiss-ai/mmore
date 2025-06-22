@@ -48,12 +48,13 @@ class ProcessorRegistry:
     _registry = []
 
     @classmethod
-    def register(cls, processor_class):
+    def register(cls, processor_class, preload: bool = False):
         """
         Register a processor class.
         """
         cls._registry.append(processor_class)
-        processor_class.load_models()
+        if preload:
+            processor_class.load_models()
 
     @classmethod
     def get_processors(cls):
