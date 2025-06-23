@@ -25,7 +25,7 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "numpy==1.26.3",
-    "pandas==2.2.3",
+    "pandas==2.3.0",
     "datasets==2.19.1",
     "transformers==4.52.4",
     "fasteners==0.19",
