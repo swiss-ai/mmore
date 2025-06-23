@@ -1,8 +1,11 @@
+import logging
+
 from huggingface_hub import model_info
 from huggingface_hub.utils import HfHubHTTPError
 
-import logging
-import json
+from .rag.pipeline import RAGConfig, RAGPipeline
+from .run_rag import RAGInferenceConfig
+from .utils import load_config, save_config
 
 RAG_EMOJI = "🧠🧠🧠🧠🧠"
 logger = logging.getLogger(__name__)
@@ -12,9 +15,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-from .rag.pipeline import RAGConfig, RAGPipeline
-from .run_rag import RAGInferenceConfig
-from .utils import load_config, save_config
+
 
 
 class RagCLI:
@@ -87,7 +88,7 @@ class RagCLI:
                     else:
                         print(message)
 
-                elif cmd.startswith("webrag "):
+                elif cmd.startswith("setWebrag "):
                     
                     res = cmd.split(" ", 1)[1].lower()
                     if res in ["true", "false"]:
@@ -97,16 +98,10 @@ class RagCLI:
                         self.modified = False if old == self.ragConfig.rag.retriever.use_web else True
                         save_config(self.ragConfig, self.config_file)
                     else:
-                        print("Invalid output. Enter 'webrag True' or 'webrag False'.")
+                        print("Invalid output. Enter 'setWebrag True' or 'setWebrag False'.")
                     
-                elif cmd.startswith("rag "):
-                    self.initConfig()
-                    query = cmd.split(" ", 1)[1]
-                    print(query)
-                    if self.ragPP is None or self.modified:
-                        self.initalize_ragPP()
-                        self.modified = False
-                    self.do_rag(query)
+                elif cmd == "rag":
+                    self.cli_ception()
                     
                     
                 else:
@@ -114,6 +109,20 @@ class RagCLI:
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting...")
                 break
+
+    def cli_ception(self):
+        while True:
+            query = input("rag > ")
+            if query == "/bye":
+                break
+            else:
+                self.initConfig()
+                if self.ragPP is None or self.modified:
+                    self.initalize_ragPP()
+                    self.modified = False
+                self.do_rag(query)
+
+
 
     def initConfig(self):
         if self.ragConfig is None:
@@ -150,6 +159,21 @@ def initialize_ragConfig() -> RAGConfig:
     config_file = "src/mmore/RagCLIConfig.yaml"
     config = load_config(config_file, RAGInferenceConfig)
     return config
+
+def str_in_color(to_print:str, color:str, bold:bool = False)->str:
+    COLORS = {
+        "reset": "\033[0m",
+        "bold": "\033[1m",
+        "red": "\033[31m",
+        "green": "\033[32m",
+        "yellow": "\033[33m",
+        "blue": "\033[34m",
+    }
+    style = COLORS.get(color, COLORS["reset"])
+    if bold:
+        style = COLORS["bold"] + style
+    return f"{style}{to_print}{COLORS["reset"]}"
+
 
 if __name__ == "__main__":
     myRagCli = RagCLI()
