@@ -66,6 +66,8 @@ def process(config_file: str):
                 ".wav",
                 ".aac",  # Audio files
                 ".eml",  # Emails
+                ".html",
+                ".htm",  # HTML pages
             ],
             output_path=config.dispatcher_config.output_path,
         )

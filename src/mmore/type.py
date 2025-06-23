@@ -50,10 +50,13 @@ class MultimodalSample:
     modalities: List[MultimodalRawInput]
     metadata: Dict[str, Union[str, Dict, List]] = field(default_factory=dict)
     id: str = ""
+    document_id: str = ""
 
     def __post_init__(self):
         if self.id == "":
             self.id = str(hash(self.text))
+        if self.document_id == "":
+            self.document_id = self.id.split("+")[0]
         if self.metadata is None:
             self.metadata = {}
 

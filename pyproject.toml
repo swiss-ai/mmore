@@ -164,7 +164,7 @@ exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is f
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
-ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
+ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) and Module level import not at top of file (`E402`)
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
