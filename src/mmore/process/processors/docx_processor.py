@@ -6,9 +6,10 @@ import re
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, BinaryIO, Callable, Dict, Optional, cast
 
 import mammoth
+from mammoth.documents import Image as m_Image
 from markdownify import markdownify
 from PIL import Image
 
@@ -58,21 +59,31 @@ class DOCXProcessor(Processor):
 
         all_images = []
 
-        def _convert_image(image: mammoth.documents.Image) -> Dict[str, Any]:
+        def _convert_image(image: m_Image) -> Dict[str, Any]:
             if not self.config.custom_config.get("extract_images", False):
                 return {"src": ""}
 
-            with image.open() as image_bytes:
+            content_type = cast(Optional[str], image.content_type)
+
+            with cast(Callable[[], BinaryIO], image.open)() as image_bytes:
                 try:
                     pil_image = Image.open(io.BytesIO(image_bytes.read()))
+
+                    if content_type is None:
+                        raise ValueError("Invalid content type")
 
                     # Generate unique image path and save the image there
                     image_path = Path(
                         os.path.join(str(image_output_dir), str(uuid.uuid4()))
                     )
-                    image_path = image_path.with_suffix(
-                        mimetypes.guess_extension(image.content_type)
-                    )
+
+                    extension = mimetypes.guess_extension(content_type)
+                    if extension is None:
+                        raise ValueError(
+                            "Unable to determine the extension of the image"
+                        )
+
+                    image_path = image_path.with_suffix(extension)
 
                     pil_image.save(image_path)
                     logger.info(f"Saving image to {image_path}")
@@ -84,7 +95,7 @@ class DOCXProcessor(Processor):
 
                 except Exception as e:
                     logger.warning(
-                        f"Failed to load image with MIME type {image.content_type}: {e}"
+                        f"Failed to load image with MIME type {content_type}: {e}"
                     )
                     return {"src": "", "alt": ""}
 
