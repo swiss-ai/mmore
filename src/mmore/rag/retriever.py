@@ -149,6 +149,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
+            "expr": expr,
         }
 
         # Attach the filtering expression if available
@@ -165,6 +166,7 @@ class Retriever(BaseRetriever):
                 "params": {"nprobe": 10},
             },
             "limit": k,
+            "expr": expr,
         }
 
         # Attach the filtering expression if available
