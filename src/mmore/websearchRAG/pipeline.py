@@ -14,6 +14,8 @@ from duckduckgo_search.exceptions import RatelimitException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 
+from ddg import Duckduckgo
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from ..run_rag import rag
@@ -164,7 +166,11 @@ class WebsearchPipeline:
             return []
 
 
-
+    def search_alternative(self, query):
+        dg_api = Duckduckgo()
+        results = dg_api.search(query)
+        print("query", query)
+        print("Ohh yeah yeah", results)
 
 
     def integrate_with_llm( self, original: str, rag_doc: str, web_snippets: List[str]) -> Dict[str, str]:
@@ -209,6 +215,7 @@ class WebsearchPipeline:
         rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
 
         all_sources: Set[str] = set()
+        source_map = {}
         current_context = rag_summary
         final_short, final_detailed = "", ""
         web_summary = ""
@@ -227,6 +234,7 @@ class WebsearchPipeline:
             for sq in subs:
                 #print("subquery:", sq)
                 res = self.duckduckgo_search(query = sq)
+                self.search_alternative(sq)
 
                 subquery_snippets = []
                 # for r in res:
@@ -235,10 +243,10 @@ class WebsearchPipeline:
 
 
                 for r in res:
-                    if r["url"] not in all_sources:
-                        all_sources[url] = []
-                    all_sources[url].append(r["title"])
-
+                    if r["url"] not in source_map:
+                        source_map[r["url"]] = []  # Initialize as a list for titles
+                    source_map[r["url"]].append( r["title"])  # Add title to the list
+                    
                     snippet = f"{r['snippet']})"
                     snippets.append(snippet)
                     #print("Current sub-snippet", snippet)
@@ -284,7 +292,8 @@ class WebsearchPipeline:
             "web_summary": web_summary_all if self.config.use_summary else None,
             "short_answer": final_short,
             "detailed_answer": final_detailed,
-            "sources": list(all_sources),
+            #"sources": list(all_sources),
+            "sources" : source_map,
         }
 
 
