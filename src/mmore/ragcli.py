@@ -27,7 +27,17 @@ class RagCLI:
         self.modified : bool = False #flag to indicate if the configuration has been modified
 
     def launch_cli(self):
-        print("Welcome to this RAG command-line interface! Available commands are: config, rag, setK, setModel, webrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>")
+        print_in_color("Welcome to this RAG command-line interface! 🧠", "green", bold=True)
+        print("Available commands are: config, rag, setK, setModel, setWebrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>")
+        print(f'Available commands:\n\
+        {str_in_color("config", "green")} : see the current config \n\
+        {str_in_color("rag", "green")} : enter the RAG CLI \n\
+        {str_in_color("setK", "green")} : set the number of documents to retrieve \n\
+        {str_in_color("setModel", "green")} : set the model for generation \n\
+        {str_in_color("setWebrag", "green")} : decide whether to use web rag \n\
+        {str_in_color("help", "green")} : learn more about a command \n\
+        {str_in_color("exit", "green")} : exit the CLI')
+        print_in_color("To learn more about usage of a specific command, use the following: \n help <command>", "red", bold=True)
         while True:
             try:
                 cmd = input("> ").strip()
@@ -37,29 +47,31 @@ class RagCLI:
                 elif cmd == "help":
                     print("Available commands are: config, rag, setK, setModel, webrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>")
                 elif cmd.startswith("help "):
-                    command = cmd.split(" ",1)[1].lower()
+                    command = cmd.split(" ",1)[1]
                     if command=="help":
                         print("To see a list of commands, use the command 'help'. To learn more about usage of a specific command, use the following: \n help <command>")
                     elif command=="config":
                         print("Print the current configuration.")
                     elif command=="rag":
-                        print("Use the command in the following way: 'rag <query>'. This will implement retrieval-augmented generation.")
-                    elif command=="setk":
+                        print("Enter the RAG CLI. Type /bye to exit.")
+                    elif command=="setK":
                         print("Use the command in the following way: 'setK <k>', for a positive integer k. This will set the number of documents to retrieve during RAG.")
-                    elif command=="setmodel":
+                    elif command=="setModel":
                         print("Use the command in the following way: 'setModel <model_path>', where model_path is the huggingface path to the model you'd like to use.")
-                    elif command=="webrag":
+                    elif command=="webRag":
                         print("Use the command in the following way: 'webrag <bool>', where bool is either True or False. This will determine if a web search is done during RAG.")
                     elif command=="exit":
                         print("Exit the CLI.")
+                    else:
+                        print("Sorry, this command does not exist.")
 
                 elif cmd=="config":
                     self.initConfig()
                     confrag = self.ragConfig.rag
-                    print(f"k: {confrag.retriever.k} \n model: {confrag.llm.llm_name} \n use web for rag: {confrag.retriever.use_web}")
+                    print(f"k: {str_in_color(confrag.retriever.k, 'blue')} \nmodel: {str_in_color(confrag.llm.llm_name, 'blue')} \nuse web for rag: {str_in_color(confrag.retriever.use_web, 'blue')}")
                 elif cmd.startswith("greet "):
                     name = cmd.split(" ", 1)[1]
-                    print(f"Hello, {name}!")
+                    print(f'Hello, {str_in_color(name,"yellow", True)}!')
                 elif cmd.startswith("setK "):
                     k_str = cmd.split(" ", 1)[1]
                     try:
@@ -98,7 +110,7 @@ class RagCLI:
                         self.modified = False if old == self.ragConfig.rag.retriever.use_web else True
                         save_config(self.ragConfig, self.config_file)
                     else:
-                        print("Invalid output. Enter 'setWebrag True' or 'setWebrag False'.")
+                        print(f"Invalid output. Enter {str_in_color('setWebrag True', 'green')} or {str_in_color('setWebrag False', 'red')}.")
                     
                 elif cmd == "rag":
                     self.cli_ception()
@@ -112,10 +124,12 @@ class RagCLI:
 
     def cli_ception(self):
         while True:
-            query = input("rag > ")
+            query = input(str_in_color("rag > ", "red", bold=True))
             if query == "/bye":
+                print_in_color("Exiting the RAG CLI", "red", True)
                 break
             else:
+                print_in_color("Beginning the RAG CLI - type /bye to exit", "green", True)
                 self.initConfig()
                 if self.ragPP is None or self.modified:
                     self.initalize_ragPP()
@@ -143,15 +157,22 @@ class RagCLI:
             }
         ]
         results = self.ragPP(queries, return_dict=True)
+        #print(results)
         print(results[0]["answer"].split("<|end_header_id|>")[-1])
+        if self.ragConfig.rag.retriever.use_web:
+            print("\nSources: \n")
+            for i in range(self.ragConfig.rag.retriever.k):
+                url = results[0]['docs'][i]['metadata']['url']
+                title = results[0]['docs'][i]['metadata']['title']
+                print(f"{title} : {url}")
     
     
 def is_valid_model_path(model_path: str):
     try:
         model_info(model_path)
-        return True, f"New model set to {model_path}"
+        return True, f"New model set to {str_in_color(model_path, 'blue', True)}"
     except HfHubHTTPError as e:
-        return False, f"There seems to be an error. Are you sure the model you are asking for exists? The error message: {e}"
+        return False, f'{str_in_color("There seems to be an error. Are you sure the model you are asking for exists?", "red", True)} The error message: {e}'
 
 
 
@@ -173,6 +194,9 @@ def str_in_color(to_print:str, color:str, bold:bool = False)->str:
     if bold:
         style = COLORS["bold"] + style
     return f"{style}{to_print}{COLORS['reset']}"
+
+def print_in_color(to_print: str, color:str, bold: bool = False)->None:
+    print(str_in_color(to_print, color, bold))
 
 
 if __name__ == "__main__":
