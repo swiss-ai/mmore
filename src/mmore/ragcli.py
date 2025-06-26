@@ -172,7 +172,7 @@ def str_in_color(to_print:str, color:str, bold:bool = False)->str:
     style = COLORS.get(color, COLORS["reset"])
     if bold:
         style = COLORS["bold"] + style
-    return f"{style}{to_print}{COLORS["reset"]}"
+    return f"{style}{to_print}{COLORS['reset']}"
 
 
 if __name__ == "__main__":

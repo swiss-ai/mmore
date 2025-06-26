@@ -5,7 +5,7 @@ rag:
       name: my_db
     hybrid_search_weight: 0.5
     k: 4
-    use_web: false
+    use_web: true
   llm:
     llm_name: OpenMeditron/meditron3-8b
     base_url: null
