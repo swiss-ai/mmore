@@ -1,11 +1,12 @@
+import argparse
 import logging
 
 from huggingface_hub import model_info
 from huggingface_hub.utils import HfHubHTTPError
 
-from .rag.pipeline import RAGConfig, RAGPipeline
+from .rag.pipeline import RAGPipeline
 from .run_rag import RAGInferenceConfig
-from .utils import load_config, save_config
+from .utils import load_config
 
 RAG_EMOJI = "🧠🧠🧠🧠🧠"
 logger = logging.getLogger(__name__)
@@ -19,25 +20,25 @@ logging.basicConfig(
 
 
 class RagCLI:
-    config_file = "src/mmore/RagCLIConfig.yaml"
 
-    def __init__(self):
+    def __init__(self, config_file:str):
         self.ragConfig = None
         self.ragPP = None
         self.modified : bool = False #flag to indicate if the configuration has been modified
+        self.config_file = config_file
 
     def launch_cli(self):
         print_in_color("Welcome to this RAG command-line interface! 🧠", "green", bold=True)
         print("Available commands are: config, rag, setK, setModel, setWebrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>")
         print(f'Available commands:\n\
-        {str_in_color("config", "green")} : see the current config \n\
-        {str_in_color("rag", "green")} : enter the RAG CLI \n\
-        {str_in_color("setK", "green")} : set the number of documents to retrieve \n\
-        {str_in_color("setModel", "green")} : set the model for generation \n\
-        {str_in_color("setWebrag", "green")} : decide whether to use web rag \n\
-        {str_in_color("help", "green")} : learn more about a command \n\
-        {str_in_color("exit", "green")} : exit the CLI')
-        print_in_color("To learn more about usage of a specific command, use the following: \n help <command>", "red", bold=True)
+        {str_green("config")} : see the current config \n\
+        {str_green("rag")} : enter the RAG CLI \n\
+        {str_green("setK")} : set the number of documents to retrieve \n\
+        {str_green("setModel")} : set the model for generation \n\
+        {str_green("setWebrag")} : decide whether to use web rag \n\
+        {str_green("help")} : learn more about a command \n\
+        {str_green("exit")} : exit the CLI')
+        print_in_color("To learn more about usage of a specific command, use the following: \n help <command>", "blue", bold=True)
         while True:
             try:
                 cmd = input("> ").strip()
@@ -81,7 +82,7 @@ class RagCLI:
                             self.initConfig()
                             self.ragConfig.rag.retriever.k = k
                             self.modified = True
-                            save_config(self.ragConfig, self.config_file)
+                            #save_config(self.ragConfig, self.config_file)
                             
                         else:
                             print("Please enter a positive integer.")
@@ -96,7 +97,7 @@ class RagCLI:
                         self.initConfig()
                         self.ragConfig.rag.llm.llm_name = new_model
                         self.modified = True
-                        save_config(self.ragConfig, self.config_file)  
+                        #save_config(self.ragConfig, self.config_file)  
                     else:
                         print(message)
 
@@ -108,7 +109,7 @@ class RagCLI:
                         old = self.ragConfig.rag.retriever.use_web
                         self.ragConfig.rag.retriever.use_web = True if res=="true" else False
                         self.modified = False if old == self.ragConfig.rag.retriever.use_web else True
-                        save_config(self.ragConfig, self.config_file)
+                        #save_config(self.ragConfig, self.config_file)
                     else:
                         print(f"Invalid output. Enter {str_in_color('setWebrag True', 'green')} or {str_in_color('setWebrag False', 'red')}.")
                     
@@ -124,7 +125,7 @@ class RagCLI:
 
     def cli_ception(self):
         while True:
-            query = input(str_in_color("rag > ", "red", bold=True))
+            query = input(str_in_color("rag (type /bye to exit) > ", "red", bold=True))
             if query == "/bye":
                 print_in_color("Exiting the RAG CLI", "red", True)
                 break
@@ -140,8 +141,8 @@ class RagCLI:
 
     def initConfig(self):
         if self.ragConfig is None:
-            self.ragConfig = initialize_ragConfig()
-            save_config(self.ragConfig, self.config_file)
+            self.ragConfig = load_config(self.config_file, RAGInferenceConfig)
+            #save_config(self.ragConfig, self.config_file)
 
     def initalize_ragPP(self):
         logger.info("Creating the RAG Pipeline...")
@@ -175,12 +176,6 @@ def is_valid_model_path(model_path: str):
         return False, f'{str_in_color("There seems to be an error. Are you sure the model you are asking for exists?", "red", True)} The error message: {e}'
 
 
-
-def initialize_ragConfig() -> RAGConfig:
-    config_file = "src/mmore/RagCLIConfig.yaml"
-    config = load_config(config_file, RAGInferenceConfig)
-    return config
-
 def str_in_color(to_print:str, color:str, bold:bool = False)->str:
     COLORS = {
         "reset": "\033[0m",
@@ -198,7 +193,19 @@ def str_in_color(to_print:str, color:str, bold:bool = False)->str:
 def print_in_color(to_print: str, color:str, bold: bool = False)->None:
     print(str_in_color(to_print, color, bold))
 
+def str_green(text, bold=False):
+  return str_in_color(text, "green", bold=bold)
+
 
 if __name__ == "__main__":
-    myRagCli = RagCLI()
+
+    #example usage: python -m mmore.ragcli --config-file examples/rag/config.yaml
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config-file", required=True, help="Path to the RAG configuration file."
+    )
+    args = parser.parse_args()
+
+    myRagCli = RagCLI(args.config_file)
     myRagCli.launch_cli()
