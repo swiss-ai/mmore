@@ -47,13 +47,19 @@ def process(config_file: str):
 
     config: ProcessInference = load_config(config_file, ProcessInference)
 
-    if config.data_path:
-        data_path = config.data_path
+    if config.google_drive_ids:
         google_drive_ids = config.google_drive_ids
         ggdrive_downloader = GoogleDriveDownloader(google_drive_ids)
         ggdrive_downloader.download_all()
+        ggdrive_download_dir = ggdrive_downloader.download_dir
+
+
+
+    if config.data_path:
+        data_path = config.data_path
+        root_dirs = data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
         crawler_config = CrawlerConfig(
-            root_dirs=data_path+[ggdrive_downloader.download_dir],
+            root_dirs=root_dirs,
             supported_extensions=[
                 ".pdf",
                 ".docx",
@@ -115,6 +121,8 @@ def process(config_file: str):
         MultimodalSample.to_jsonl(output_file, res)
 
     logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
+
+    ggdrive_downloader.remove_downloads()
 
     overall_end_time = time.time()
     overall_time = overall_end_time - overall_start_time

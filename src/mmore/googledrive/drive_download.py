@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 from typing import List
 from urllib.parse import parse_qs, urlparse
 
@@ -87,6 +88,10 @@ class GoogleDriveDownloader:
             q=query,
             fields="nextPageToken, files(id, name, mimeType)").execute()
         return results.get('files', [])
+
+    def remove_downloads(self):
+        if os.path.exists(self.download_dir):
+            shutil.rmtree(self.download_dir)
 
 
 
