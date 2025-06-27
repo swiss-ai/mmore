@@ -3,11 +3,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from typing import List
 
 import click
 import torch
 
 from mmore.dashboard.backend.client import DashboardClient
+from mmore.googledrive.drive_download import GoogleDriveDownloader
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.type import MultimodalSample
@@ -32,7 +34,8 @@ torch.backends.cuda.enable_math_sdp(True)
 class ProcessInference:
     """Inference configuration."""
 
-    data_path: str
+    data_path: List[str]
+    google_drive_ids: List[str]
     dispatcher_config: DispatcherConfig
 
 
@@ -46,8 +49,11 @@ def process(config_file: str):
 
     if config.data_path:
         data_path = config.data_path
+        google_drive_ids = config.google_drive_ids
+        ggdrive_downloader = GoogleDriveDownloader(google_drive_ids)
+        ggdrive_downloader.download_all()
         crawler_config = CrawlerConfig(
-            root_dirs=[data_path],
+            root_dirs=data_path+[ggdrive_downloader.download_dir],
             supported_extensions=[
                 ".pdf",
                 ".docx",
@@ -74,6 +80,7 @@ def process(config_file: str):
     logger.info(f"Using crawler configuration: {crawler_config}")
     crawler = Crawler(config=crawler_config)
 
+
     crawl_start_time = time.time()
     crawl_result = crawler.crawl()
     crawl_end_time = time.time()
@@ -93,6 +100,10 @@ def process(config_file: str):
 
     dispatch_end_time = time.time()
     dispatch_time = dispatch_end_time - dispatch_start_time
+
+
+
+
     logger.info(f"Dispatching and processing completed in {dispatch_time:.2f} seconds")
 
     output_path = config.dispatcher_config.output_path

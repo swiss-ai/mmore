@@ -1,4 +1,5 @@
-data_path: examples/sample_data/ #put absolute path!
+data_path: [examples/sample_data/] #put absolute path!
+google_drive_ids: [0B8o6W5SS5nGXb3U5TFNxbUJaOTA]
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path!
   use_fast_processors: false
