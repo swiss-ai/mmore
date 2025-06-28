@@ -132,3 +132,8 @@ profile = "black"
 
 [project.scripts]
 mmore = "mmore.cli:main"
+
+[tool.ruff]
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) and Module level import not at top of file (`E402`)
