@@ -8,13 +8,12 @@ import logging
 import time
 import tempfile
 import os
+from dataclasses import dataclass,asdict
 
 from langchain_community.tools import DuckDuckGoSearchResults
 from duckduckgo_search.exceptions import RatelimitException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
-
-from ddg import Duckduckgo
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -25,7 +24,15 @@ from .config import WebsearchConfig
 
 
 
-# python -m mmore websearch --config-file examples/websearchRAG/config.yaml
+@dataclass
+class ProcessedResponse:
+    query: str
+    rag_informations: str
+    rag_summary: str
+    web_summary: str
+    short_answer: str
+    detailed_answer: str
+    sources: Dict[str, Any]  # Maps URLs to lists of titles
 
 
 
@@ -39,7 +46,7 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self.rag_results = None
-        self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches, backend='auto')
+        self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches)
         self.search = DuckDuckGoSearchResults(api_wrapper=self.wrapper, output_format="list")
 
 
@@ -52,13 +59,11 @@ class WebsearchPipeline:
             return LLM.from_config(LLMConfig(**llm_conf))
         else :
             base_conf = self.config.get_llm_config()
-            if isinstance(base_conf, LLMConfig):  # Ensure it's a dictionary
-                base_conf = base_conf.__dict__
+            base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
 
 
-
-    def generate_summary(self, rag_answer: str, query: str) -> str:
+    def generate_summary(self, rag_answer, query: str):
         """
         Summarize the RAG answer (used when rag_summary=True)
         """
@@ -68,37 +73,49 @@ class WebsearchPipeline:
             "Context:\n"
             f"{rag_answer}\n\n"
             "If the context contains the answer or any useful information, respond with that information. \n"
-            "If no useful informations are, answer: no useful informations"
+            "If no useful informations are, answer: no useful informations\n"
             "Answer: \n"
             "---------------------------"
         )
         
-        if not self.config.use_rag:
-            return None
-
         messages = [
             SystemMessage(content="You are a helpful assistant that summarizes text relevant to the question."),
             HumanMessage(content=prompt),
         ]
         response = self.llm.invoke(messages)
-        # print("##SUMMARY CLEAN##")
-        # print(self._clean_llm_output(response.content))
         return self._clean_llm_output(response.content)
 
+    def evaluate_subquery_relevance(self, query, current_subqueries, previous_subqueries):
+        prompt = (
+            f"Original query:\n{query}\n\n"
+            f"Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
+            f"New subqueries:\n{current_subqueries}\n\n"
+            "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
+            "Respond strictly with 'yes' if at least one is relevant, or 'no' if none are."
+        )
+        messages = [
+            SystemMessage(content="You are a helpful assistant"),
+            HumanMessage(content=prompt),
+        ]
+        response = self.llm.invoke(messages)
+        response = self._clean_llm_output(response.content)
+        
+        if 'no' in response :
+            return False
+        else :
+            return True
 
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
         
         if delimiter not in content:
-            return [] if extract_subqueries else ""
+            return content
 
         # Extract the section after the delimiter
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
         
         return cleaned_section
-
-
 
 
     def generate_subqueries(
@@ -134,9 +151,6 @@ class WebsearchPipeline:
         response = self.llm.invoke(messages)
         cleaned_answer = self._clean_llm_output(response.content)
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
-        # print("######")
-        # print("Clean response: ", cleaned_answer)
-        # print("--------------------")
         return cleaned_answer
 
  
@@ -148,7 +162,6 @@ class WebsearchPipeline:
 
         Returns a list of dicts with keys: 'title' and 'url'
         """
-        time.sleep(2)  # delay to try to avoid error 202 ### TO BE IMPROVED ###
         try:
             results = self.search.invoke(query)
 
@@ -157,20 +170,13 @@ class WebsearchPipeline:
                 snippet = r.get("snippet", "")
                 url = r.get("link", "")  # note: it's "link" in LangChain results
                 title = r.get("title", "")
-                if url:
-                    formatted_results.append({"snippet": snippet, "url": url, "title" : title})
-            print("Websearch", formatted_results)
+                
+                formatted_results.append({"snippet": snippet, "url": url, "title" : title})
+            
             return formatted_results
         except Exception as e:
             logger.error(f"DuckDuckGo search error: {e}")
             return []
-
-
-    def search_alternative(self, query):
-        dg_api = Duckduckgo()
-        results = dg_api.search(query)
-        print("query", query)
-        print("Ohh yeah yeah", results)
 
 
     def integrate_with_llm( self, original: str, rag_doc: str, web_snippets: List[str]) -> Dict[str, str]:
@@ -190,7 +196,7 @@ class WebsearchPipeline:
         resp = self.llm.invoke(msgs)
         # parse
         clean_content = self._clean_llm_output(resp.content)
-       
+      
         sa_matches = re.findall(
             r"short answer:\s*(.*?)(?=detailed answer:)",
             clean_content,
@@ -201,10 +207,10 @@ class WebsearchPipeline:
             clean_content,
             flags=re.IGNORECASE|re.DOTALL
         )
+
         short = sa_matches[-1].strip().rstrip(",") if sa_matches else ""
         detailed = da_matches[-1].strip() if da_matches else ""
         return {"short": short, "detailed": detailed}
-
 
 
 
@@ -214,6 +220,7 @@ class WebsearchPipeline:
         self.rag_results = rag_ans
         rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
 
+       
         all_sources: Set[str] = set()
         source_map = {}
         current_context = rag_summary
@@ -221,6 +228,8 @@ class WebsearchPipeline:
         web_summary = ""
 
         web_summaries = []
+        previous_sub = []
+
 
         for loop in range(self.config.n_loops):
             if self.config.use_rag:
@@ -231,42 +240,40 @@ class WebsearchPipeline:
             snippets, urls = [], []
             subquery_summaries = []
 
+
+            if loop > 0 and not self.evaluate_subquery_relevance(qr, subs, previous_sub):
+                break
+            
             for sq in subs:
-                #print("subquery:", sq)
+                time.sleep(10)
                 res = self.duckduckgo_search(query = sq)
-                self.search_alternative(sq)
 
                 subquery_snippets = []
-                # for r in res:
-                #     if r["url"] not in all_sources:
-                #         all_sources.add(r["url"])
-
 
                 for r in res:
                     if r["url"] not in source_map:
-                        source_map[r["url"]] = []  # Initialize as a list for titles
-                    source_map[r["url"]].append( r["title"])  # Add title to the list
-                    
+                        source_map[r["url"]] = [] 
+
+                    if r["title"] not in source_map[r["url"]]:
+                        source_map[r["url"]].append(r["title"]) 
+
                     snippet = f"{r['snippet']})"
                     snippets.append(snippet)
-                    #print("Current sub-snippet", snippet)
                     subquery_snippets.append(snippet)
 
-                # Summarize each subquery's snippets independently if rag_summary is True
-                if self.config.use_summary:
-                    if subquery_snippets:
-                        combined_snippets = "\n".join(subquery_snippets)
-                        summary = self.generate_summary(combined_snippets, sq)
-                        subquery_summaries.append(summary)
-                    else:
-                        subquery_summaries.append("")
-
-            if self.config.use_summary:
-                combined_sub_summaries = "\n".join([str(s) if s else "" for s in subquery_summaries])
-                web_summary = self.generate_summary(combined_sub_summaries, qr)
-                web_summaries.append(web_summary)
-                #print("Current websummary: ", web_summary)
             
+                    combined_snippets = "\n".join(subquery_snippets)
+
+                    summary = self.generate_summary(combined_snippets, sq)
+                    subquery_summaries.append(summary)
+
+            previous_sub = subs
+
+            combined_sub_summaries = "\n".join([str(s) if s else "" for s in subquery_summaries])
+            web_summary = self.generate_summary(combined_sub_summaries, qr)
+            web_summaries.append(web_summary)
+
+            if self.config.use_summary:           
                 # Combine rag summary, web summary, and original query for final answer
                 context_for_llm = f"RAG informations:\n{rag_summary or ''}\n\nWeb informations:\n{web_summary}"
             else:
@@ -276,6 +283,7 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join([str(s) if s else "" for s in web_summaries])
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
+            print(web_summary_all)
             # Current context, web content  to generate the answer
             out = self.integrate_with_llm(qr, context_for_llm, snippets)
             final_short, final_detailed = out["short"], out["detailed"]
@@ -283,20 +291,17 @@ class WebsearchPipeline:
             # Prepare context for next search loop
             current_context = final_detailed
 
+        solution =  ProcessedResponse(
+        query=qr,
+        rag_informations=self.rag_results,
+        rag_summary=rag_summary if self.config.use_rag else None,
+        web_summary=web_summary_all,
+        short_answer=final_short,
+        detailed_answer=final_detailed,
+        sources=source_map
+        )
 
-
-        return {
-            "query": qr,
-            "rag informations" : self.rag_results,
-            "rag_summary": rag_summary if self.config.use_rag else None,
-            "web_summary": web_summary_all if self.config.use_summary else None,
-            "short_answer": final_short,
-            "detailed_answer": final_detailed,
-            #"sources": list(all_sources),
-            "sources" : source_map,
-        }
-
-
+        return asdict(solution)
 
 
 
@@ -320,14 +325,15 @@ class WebsearchPipeline:
 
 
         outputs = []
-        for rec in data:
-            outputs.append(self.process_record(rec))
+        outputs = [self.process_record(rec) for rec in data] 
+
+
         # save
         outp = Path(self.config.output_file)
         outp.parent.mkdir(exist_ok=True, parents=True)
         with open(outp, 'w', encoding='utf-8') as f:
             json.dump(outputs, f, ensure_ascii=False, indent=2)
-        print(f"Results saved to {outp}")
+        logger.info(f"Results saved to {outp}")
 
 
 
@@ -366,8 +372,8 @@ class WebsearchPipeline:
             return outputs
 
         finally:
-            # Clean up the temporary file
-            print(f"Deleting temporary file: {temp_file_path}")
+            # Delete the temporary file
+            logger.info(f"Deleting temporary file: {temp_file_path}")
         os.remove(temp_file_path)
 
 
@@ -380,5 +386,5 @@ class WebsearchPipeline:
                 temp_file.writelines(json.dumps(q.dict() if hasattr(q, "dict") else q) + '\n' for q in query)
             else:
                 temp_file.write(json.dumps(query.dict() if hasattr(query, "dict") else query) + '\n')
-            print(f"Query saved to temporary file: {temp_file.name}")
+            logger.info(f"Query saved to temporary file: {temp_file.name}")
             return temp_file.name

@@ -23,10 +23,9 @@ from .run_rag import LocalConfig, APIConfig, RAGInferenceConfig
 from .run_rag import create_api as create_api_rag
 
 
-from .websearchRAG.logging_config import logger  # Import the shared logger
+from .websearchRAG.logging_config import logger 
 
 
-#à quoi ça sert?
 load_dotenv()
 
 
@@ -72,8 +71,9 @@ def run_websearch(config_file):
 class QueryInput(BaseModel):
     input: str = Field(..., description="The user query")
     collection_name: Optional[str] = Field(
-        None, description="The collection to search (optional)"
+        None, description="The collection to search if use_rag set to True"
     )
+
 
 class WebQuery(BaseModel):
     query: QueryInput = Field(
@@ -150,15 +150,3 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     run_websearch(args.config_file)
-
-
-
-
-# {
-#   "query": {
-#     "input": "When was Barack Obama born?",
-#     "collection_name": "my_docs"
-#   },
-#   "use_rag": true,
-#   "use_summary": true
-# }

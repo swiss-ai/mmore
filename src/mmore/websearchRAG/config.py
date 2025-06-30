@@ -1,7 +1,7 @@
 # mmore/websearch/config.py
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Literal
 from pathlib import Path
 import yaml
 
@@ -36,8 +36,8 @@ class WebsearchConfig:
     n_subqueries: int = 3
     n_loops: int = 2
     max_searches: int = 10
-    llm_config: Dict[str, Any] = field(default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 100})
-    mode: str = "local"
+    llm_config: Dict[str, Any] = field(default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 1200})
+    mode: Literal["local", "api"] = "local" 
 
     def __post_init__(self):
         required_fields = ["rag_config_path", "llm_config", "mode"]
