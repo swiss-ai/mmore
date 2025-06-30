@@ -85,7 +85,7 @@ class DispatcherConfig:
             use_fast_processors=config.get("use_fast_processors", True),
             distributed=config.get("distributed", False),
             scheduler_file=config.get("scheduler_file"),
-            processor_config=config.get("processor"),
+            processor_config=config.get("processor_config"),
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
@@ -100,9 +100,9 @@ class DispatcherConfig:
             with open(yaml_path, "r") as file:
                 config = yaml.safe_load(file)
             return DispatcherConfig.from_dict(config)
-        except (FileNotFoundError, yaml.YAMLError):
+        except (FileNotFoundError, yaml.YAMLError) as e:
             logger.error(f"[Dispatcher] Error processing file {yaml_path}")
-            raise
+            raise e
 
     def to_dict(self) -> Dict:
         """Convert the DispatcherConfig object to a dictionary."""
@@ -111,7 +111,7 @@ class DispatcherConfig:
             "distributed": self.distributed,
             "scheduler_file": self.scheduler_file,
             "output_path": self.output_path,
-            "processor": self.processor_config,
+            "processor_config": self.processor_config,
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,

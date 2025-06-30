@@ -1,21 +1,18 @@
 import os
-import sys
 
 from marker.output import MarkdownOutput
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-from src.mmore.process.processors.base import ProcessorConfig
-from src.mmore.process.processors.docx_processor import DOCXProcessor
-from src.mmore.process.processors.eml_processor import EMLProcessor
-from src.mmore.process.processors.md_processor import MarkdownProcessor
-from src.mmore.process.processors.media_processor import MediaProcessor
-from src.mmore.process.processors.pdf_processor import PDFProcessor
-from src.mmore.process.processors.pptx_processor import PPTXProcessor
-from src.mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
-from src.mmore.process.processors.txt_processor import TextProcessor
-from src.mmore.process.processors.url_processor import URLProcessor
-from src.mmore.type import FileDescriptor
+from mmore.process.processors.base import ProcessorConfig
+from mmore.process.processors.docx_processor import DOCXProcessor
+from mmore.process.processors.eml_processor import EMLProcessor
+from mmore.process.processors.md_processor import MarkdownProcessor
+from mmore.process.processors.media_processor import MediaProcessor
+from mmore.process.processors.pdf_processor import PDFProcessor
+from mmore.process.processors.pptx_processor import PPTXProcessor
+from mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
+from mmore.process.processors.txt_processor import TextProcessor
+from mmore.process.processors.url_processor import URLProcessor
+from mmore.type import FileDescriptor
 
 """
 If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.
@@ -165,7 +162,7 @@ def test_media_process_standard():
     )
     processor = MediaProcessor(config=config)
     # Overriding load_models function with a lambda to bypass the actual model loading and heavy dependencies
-    processor.load_models = lambda fast_mode=False: setattr(
+    processor.load_models = lambda self=None, fast_mode=False: setattr(
         processor, "pipelines", [lambda x: {"text": "dummy transcription"}]
     )
     processor.load_models()
@@ -186,7 +183,7 @@ def test_media_process_batch():
     )
     processor = MediaProcessor(config=config)
     # Overriding load_models function with a lambda to bypass the actual model loading and heavy dependencies
-    processor.load_models = lambda fast_mode=False: setattr(
+    processor.load_models = lambda self=None, fast_mode=False: setattr(
         processor,
         "pipelines",
         [lambda x: {"text": "dummy transcription"} for _ in processor.devices],
@@ -310,10 +307,12 @@ def test_pdf_process_standard():
         }
     )
     processor = PDFProcessor(config=config)
-    processor.converter = lambda file_path: MarkdownOutput(
-        markdown="dummy rendered content with ![](dummy.jpg)",
-        images={"dummy.jpg": "dummy image data"},
-        metadata={},
+    processor.converter = (  # pyright: ignore[reportAttributeAccessIssue]
+        lambda file_path: MarkdownOutput(
+            markdown="dummy rendered content with ![](dummy.jpg)",
+            images={"dummy.jpg": "dummy image data"},
+            metadata={},
+        )
     )
     # Process file
     result = processor.process(sample_file)
@@ -333,7 +332,9 @@ def test_pdf_process_fast():
         }
     )
     processor = PDFProcessor(config=config)
-    processor.converter = lambda file_path: "dummy rendered content with ![](dummy.jpg)"
+    processor.converter = (  # pyright: ignore[reportAttributeAccessIssue]
+        lambda file_path: "dummy rendered content with ![](dummy.jpg)"
+    )
     # Process file
     result = processor.process_fast(sample_file)
     assert result.text, "Text should not be empty"

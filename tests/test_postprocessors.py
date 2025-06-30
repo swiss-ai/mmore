@@ -1,25 +1,22 @@
-import os
-import sys
+from typing import Dict, List, cast
 
 import pytest
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-from src.mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
-from src.mmore.process.post_processor.chunker.multimodal import (
+from mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
+from mmore.process.post_processor.chunker.multimodal import (
     MultimodalChunker,
     MultimodalChunkerConfig,
 )
-from src.mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
-from src.mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
-from src.mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
-from src.mmore.process.post_processor.tagger import load_tagger
-from src.mmore.process.post_processor.tagger.base import BaseTaggerConfig
-from src.mmore.process.post_processor.tagger.lang_detector import LangDetector
-from src.mmore.process.post_processor.tagger.modalities import ModalitiesCounter
-from src.mmore.process.post_processor.tagger.words import WordsCounter
-from src.mmore.rag.llm import LLM
-from src.mmore.type import MultimodalSample
+from mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
+from mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
+from mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
+from mmore.process.post_processor.tagger import load_tagger
+from mmore.process.post_processor.tagger.base import BaseTaggerConfig
+from mmore.process.post_processor.tagger.lang_detector import LangDetector
+from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
+from mmore.process.post_processor.tagger.words import WordsCounter
+from mmore.rag.llm import LLM, LLMConfig
+from mmore.type import MultimodalRawInput, MultimodalSample
 
 
 # ------------------ Chunker Tests ------------------
@@ -48,7 +45,6 @@ def test_chunker_process():
         text="Hello world. This is a test.", modalities=[], metadata={}
     )
     chunks = chunker.process(sample)
-    print(f"chunks: {chunks}")
     # Expect 2 chunks for the 2 sentences
     assert len(chunks) == 2, f"Expected 2 chunks, got {len(chunks)}"
     assert chunks[0].text.strip() == "Hello world.", (
@@ -79,7 +75,7 @@ class DummyFilter(BaseFilter):
 # Patch the filter loaders mapping and supported types for the dummy filter.
 _original_filters_loaders_map = FILTERS_LOADERS_MAP.copy()
 _original_filter_type = FILTER_TYPES[:]
-FILTERS_LOADERS_MAP["dummy_filter"] = DummyFilter
+FILTERS_LOADERS_MAP["dummy_filter"] = DummyFilter  # pyright: ignore[reportArgumentType]
 FILTER_TYPES.append("dummy_filter")
 
 
@@ -151,10 +147,10 @@ def test_ner_from_config():
     """
     # Patch LLM.from_config to return our dummy LLM regardless of input.
     original_llm_from_config = LLM.from_config
-    LLM.from_config = lambda cfg: DummyLLM()
+    LLM.from_config = lambda cfg: DummyLLM()  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
-        llm={"dummy": "dummy"},  # dummy config; our lambda ignores it
+        llm=LLMConfig("dummy"),  # dummy config; our lambda ignores it
         prompt="dummy prompt",  # a simple string; PromptTemplate.from_template() will be used
         entity_types=["ORGANIZATION"],
         tuple_delimiter="<|>",
@@ -176,10 +172,10 @@ def test_ner_process():
     which should add to the sample's metadata a list with one dictionary.
     """
     original_llm_from_config = LLM.from_config
-    LLM.from_config = lambda cfg: DummyLLM()
+    LLM.from_config = lambda cfg: DummyLLM()  # pyright: ignore[reportAttributeAccessIssue]
 
     config = NERExtractorConfig(
-        llm={"dummy": "dummy"},
+        llm=LLMConfig("dummy"),
         prompt="dummy prompt",
         entity_types=["ORGANIZATION"],
         tuple_delimiter="<|>",
@@ -198,10 +194,12 @@ def test_ner_process():
     # The sample's metadata should include an 'ner' key.
     assert "ner" in sample.metadata, "Expected sample.metadata to include key 'ner'."
 
-    ner_entities = sample.metadata["ner"]
+    ner_entities: List[Dict[str, str]] = cast(
+        List[Dict[str, str]], sample.metadata["ner"]
+    )
     # We expect one entity: HELLO WORLD as an ORGANIZATION with the given description.
     assert len(ner_entities) == 1, f"Expected 1 entity, got {len(ner_entities)}."
-    entity_info = ner_entities[0]
+    entity_info: dict[str, str] = ner_entities[0]
     assert entity_info.get("entity") == "HELLO WORLD", (
         f"Unexpected entity name: {entity_info.get('entity')}"
     )
@@ -223,11 +221,17 @@ def test_ner_process():
 # This enables load_tagger() to instantiate them.
 # ---------------------------------------------------------------------------
 if not hasattr(WordsCounter, "from_config"):
-    WordsCounter.from_config = classmethod(lambda cls, config: cls())
+    WordsCounter.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 if not hasattr(ModalitiesCounter, "from_config"):
-    ModalitiesCounter.from_config = classmethod(lambda cls, config: cls())
+    ModalitiesCounter.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 if not hasattr(LangDetector, "from_config"):
-    LangDetector.from_config = classmethod(lambda cls, config: cls())
+    LangDetector.from_config = (  # pyright: ignore[reportAttributeAccessIssue]
+        classmethod(lambda cls, config: cls())
+    )
 
 
 def test_tagger_from_load_tagger_words():
@@ -298,7 +302,14 @@ def test_tagger_process_modalities_counter():
     config = BaseTaggerConfig(type="modalities_counter", args={})
     tagger = load_tagger(config)
     sample = MultimodalSample(
-        text="Some text", modalities=["img1", "img2", "video1"], metadata={}, id="2"
+        text="Some text",
+        modalities=[
+            MultimodalRawInput(type="image", value="img1"),
+            MultimodalRawInput(type="image", value="img2"),
+            MultimodalRawInput(type="video", value="video1"),
+        ],
+        metadata={},
+        id="2",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.modalities)

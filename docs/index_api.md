@@ -173,7 +173,7 @@ Returns the file with binary content.
 - File types supported:
     
     ```
-    .pdf, .docx, .pptx, .md, .txt, .xlsx, .xls, .csv, .mp4, .avi, .mov, .mkv, .mp3, .wav, .aac, .eml, .html
+    .pdf, .docx, .pptx, .md, .txt, .xlsx, .xls, .csv, .mp4, .avi, .mov, .mkv, .mp3, .wav, .aac, .eml, .html, .htm
     ```
     
 
