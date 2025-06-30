@@ -1,4 +1,4 @@
-<h1 align="center"> 
+<h1 align="center">
 
 ![image](https://github.com/user-attachments/assets/502e2c7e-1200-498a-9ebd-10a27ed48ab6)
 
@@ -29,24 +29,21 @@ Our package requires system dependencies. This snippet will take care of install
 sudo apt update
 sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
   libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
-  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice
+  libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice \
+  libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
+
+:warning: **On Ubuntu 24.04, replace `libasound2` with `libasound2t64`. You may also need to add the repository for Ubuntu 20.04 focal to have access to a few of the sources (e.g. create `/etc/apt/sources.list.d/mmore.list` with the contents `deb http://cz.archive.ubuntu.com/ubuntu focal main universe`).**
 
 #### Step 1 – Install MMORE
 
 To install the package simply run:
 
 ```bash
-pip install -e '.[all]'
+pip install mmore
 ```
 
-To install additional RAG-related dependencies, run:
-
-```bash
-pip install -e '.[rag]'
-```
-
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
+> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 ### Minimal Example
 
@@ -67,59 +64,58 @@ python -m mmore rag --config-file examples/rag/config.yaml
 You can also use our package in python code as shown here:
 
 ```python
-from mmore.process.processors.pdf_processor import PDFProcessor 
+from mmore.process.processors.pdf_processor import PDFProcessor
 from mmore.process.processors.base import ProcessorConfig
 from mmore.type import MultimodalSample
 
-pdf_file_paths = ["examples/sample_data/pdf/calendar.pdf"]
-out_file = "results/example.jsonl"
+pdf_file_paths = ["/path/to/examples/sample_data/pdf/calendar.pdf"] #write here the full path, not a relative path
+out_file = "/path/to/examples/process/outputs/example.jsonl"
 
-pdf_processor_config = ProcessorConfig(custom_config={"output_path": "results"})
+pdf_processor_config = ProcessorConfig(custom_config={"output_path": "examples/process/outputs"})
 pdf_processor = PDFProcessor(config=pdf_processor_config)
-result_pdf = pdf_processor.process_batch(pdf_file_paths, True, 1) # args: file_paths, fast mode (True/False), num_workers
+result_pdf = pdf_processor.process_batch(pdf_file_paths, False, 1) # args: file_paths, fast mode (True/False), num_workers
 
 MultimodalSample.to_jsonl(out_file, result_pdf)
 ```
 
 ---
 
-
 ### Usage
 
-To launch the MMORE pipeline follow the specialised instructions in the docs.
+To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
 ![The MMORE pipelines archicture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
 
 
-1. **:page_facing_up: Input Documents**  
-   Upload your multimodal documents (PDFs, videos, spreadsheets, and more) into the pipeline.
+1. **:page_facing_up: Input Documents**
+   Upload your multimodal documents (PDFs, videos, spreadsheets, and m(m)ore) into the pipeline.
 
-2. [**:mag: Process**](./docs/process.md) 
-   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.  
+2. [**:mag: Process**](https://github.com/swiss-ai/mmore/blob/master/docs/process.md)
+   Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.
    *Supports fast processing for specific types.*
 
-3. [**:file_folder: Index**](./docs/index.md) 
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. 
+3. [**:file_folder: Index**](https://github.com/swiss-ai/mmore/blob/master/docs/index.md)
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](https://github.com/swiss-ai/mmore/blob/master/docs/index_api.md) for adding new files on the fly with HTTP requests.
 
-4. [**:robot: RAG**](./docs/rag.md) 
+4. [**:robot: RAG**](https://github.com/swiss-ai/mmore/blob/master/docs/rag.md)
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
    *Supports API hosting or local inference.*
 
-5. **:tada: Evaluation**  
+5. **:tada: Evaluation**
    *Coming soon*
    An easy way to evaluate the performance of your RAG system using Ragas.
 
-See [the `/docs` directory](/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
+See [the `/docs` directory](https://github.com/swiss-ai/mmore/blob/master/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
 
 
-#### :construction: Supported File Types  
+#### :construction: Supported File Types
 
 | **Category**      | **File Types**                           | **Supported Device**      |  **Fast Mode**      |
 |--------------------|------------------------------------------|--------------------------| --------------------------|
 | **Text Documents** | DOCX, MD, PPTX, XLSX, TXT, EML           | CPU                      | :x:
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
-| **Web Content (TBD)**    | Webpages                                | GPU/CPU                  | :white_check_mark:
+| **Web Content**    | HTML                                    | CPU                      | :x:
 
 
 ## Contributing
@@ -129,13 +125,25 @@ We welcome contributions to improve the current state of the pipeline, feel free
 - Open an issue to report a bug or ask for a new feature
 - Open a pull request to fix a bug or add a new feature
 - You can find ongoing new features and bugs in the [Issues]
-   
+
 Don't hesitate to star the project :star: if you find it interesting! (you would be our star).
+
+### To make sure your code is pretty, this repo has a `pre-commit` configuration file that runs linters (`isort`, `black`)
+
+1. Install pre-commit if you haven't already
+
+`pip install pre-commit`
+
+2. Set up the git hook scripts
+
+`pre-commit install`
+
+3. Run the checks manually (optional but good before first commit)
+
+`pre-commit run --all-files`
+
+We also use `pyright` to type-check the code base, please make sure your Pull Requests are type-checked.
 
 ## License
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
-
-## Acknowledgements
-
-This project is part of the [**OpenMeditron**](https://huggingface.co/OpenMeditron) initiative developed in [LiGHT](https://www.light-laboratory.org/) lab at EPFL/Yale/CMU Africa in collaboration with the [**SwissAI**](https://www.swiss-ai.org/) initiative. Thank you Scott Mahoney, Mary-Anne Hartley

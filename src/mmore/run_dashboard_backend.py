@@ -1,13 +1,21 @@
+import argparse
 import os
 from datetime import datetime
 from typing import Any, Optional
 
 import motor.motor_asyncio
+import uvicorn
 from fastapi import BackgroundTasks, FastAPI, Query
 from pymongo import DESCENDING
 from starlette.middleware.cors import CORSMiddleware
 
-from .model import BatchedReports, DashboardMetadata, Progress, Report, WorkerLatest
+from mmore.dashboard.backend.model import (
+    BatchedReports,
+    DashboardMetadata,
+    Progress,
+    Report,
+    WorkerLatest,
+)
 
 app = FastAPI()
 # allow all origins
@@ -121,7 +129,7 @@ async def get_workers_latest() -> list[WorkerLatest]:
 
     # max nbr of reports per worker -> to avoid retrieving too much data
     max_nbr_reports_by_worker = 500
-    
+
     pipeline = [
         {"$sort": {"timestamp": -1}},
         {
@@ -238,3 +246,22 @@ async def get_stop_status():
         return False
 
     return m.get("ask_to_stop", False)
+
+
+def run_api(host: str, port: int):
+    uvicorn.run(app, host=host, port=port)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host on which the dashboard API should be run.",
+    )
+    parser.add_argument(
+        "--port", default=8000, help="Port on which the dashboard API should be run."
+    )
+    args = parser.parse_args()
+
+    run_api(args.host, args.port)

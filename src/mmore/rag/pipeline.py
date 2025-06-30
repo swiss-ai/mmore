@@ -83,14 +83,19 @@ class RAGPipeline:
         # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 
     @staticmethod
-    # TODO: Add non RAG Pipeline (i.e. retriever is None)
     def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
-        validate_output = RunnableLambda(
-            lambda x: MMOREOutput.model_validate(x).model_dump()
-        )
+
+        def make_output(x):
+            """Validate the output of the LLM and keep only the actual answer of the assistant"""
+            res_dict = MMOREOutput.model_validate(x).model_dump()
+            res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
+
+            return res_dict
+
+        validate_output = RunnableLambda(make_output)
 
         rag_chain_from_docs = prompt | llm | StrOutputParser()
 
@@ -102,8 +107,6 @@ class RAGPipeline:
 
         return validate_input | core_chain | validate_output
 
-    # TODO: Define query input/output formats clearly and pass them here (or in build chain idk)
-    # TODO: Streaming (low priority)
     def __call__(
         self, queries: Dict[str, Any] | List[Dict[str, Any]], return_dict: bool = False
     ) -> List[Dict[str, str | List[str]]]:

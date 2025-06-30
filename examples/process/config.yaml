@@ -5,7 +5,7 @@ dispatcher_config:
   distributed: false
   dashboard_backend_url: null
   extract_images: true
-  #scheduler_file: scheduler-file.json #put absolute path!
+  scheduler_file: /mmore/scheduler-file.json #put absolute path!
   process_batch_sizes:
     - URLProcessor: 40
     - DOCXProcessor: 100

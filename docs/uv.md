@@ -33,6 +33,6 @@ source .venv/bin/activate
 
 Then install mmore prepending `uv` to basic commands
 ```bash
-pip install -e .
+uv pip install -e .
 ```
 

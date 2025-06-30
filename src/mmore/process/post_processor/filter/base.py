@@ -41,9 +41,7 @@ class BaseFilter(BasePostProcessor):
         """
         pass
 
-    def process(
-        self, sample: MultimodalSample, **kwargs
-    ) -> MultimodalSample | List[MultimodalSample]:
+    def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         res = self.filter(sample)
         if res:
             return [sample]
