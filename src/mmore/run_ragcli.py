@@ -128,7 +128,6 @@ class RagCLI:
                 print_in_color("Exiting the RAG CLI", "red", True)
                 break
             else:
-                print_in_color("Beginning the RAG CLI - type /bye to exit", "green", True)
                 self.init_config()
                 if self.ragPP is None or self.modified:
                     self.initialize_ragpp()
@@ -157,6 +156,7 @@ class RagCLI:
         ]
         results = self.ragPP(queries, return_dict=True)
         #print(results)
+        print(query)
         print(results[0]["answer"].split("<|end_header_id|>")[-1])
         if self.ragConfig.rag.retriever.use_web:
             print("\nSources: \n")
