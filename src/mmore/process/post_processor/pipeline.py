@@ -49,7 +49,7 @@ class PPPipeline:
         logger.info("-" * 50)
         logger.info("PP Pipeline:")
         for i, processor in enumerate(self.post_processors):
-            logger.info(f"  > {i+1}. {processor.name}")
+            logger.info(f"  > {i + 1}. {processor.name}")
         logger.info("-" * 50)
 
     @classmethod
@@ -75,7 +75,7 @@ class PPPipeline:
         for i, processor in enumerate(self.post_processors):
             samples = processor.batch_process(samples)
             if self.output_config.save_each_step:
-                self.save_results(samples, f"{i+1}___{processor.name}.jsonl")
+                self.save_results(samples, f"{i + 1}___{processor.name}.jsonl")
         self.save_results(samples, "final_pp.jsonl")
         return samples
 

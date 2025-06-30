@@ -10,5 +10,4 @@ repos:
         args: [
           --fix,                # auto-fix lint + style issues
           --unsafe-fixes,       # allows formatting & import sorting
-          
-      ]
+        ]

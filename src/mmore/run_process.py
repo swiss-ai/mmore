@@ -7,6 +7,12 @@ from dataclasses import dataclass
 import click
 import torch
 
+from mmore.dashboard.backend.client import DashboardClient
+from mmore.process.crawler import Crawler, CrawlerConfig
+from mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from mmore.type import MultimodalSample
+from mmore.utils import load_config
+
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -14,12 +20,6 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-
-from .dashboard.backend.client import DashboardClient
-from .process.crawler import Crawler, CrawlerConfig
-from .process.dispatcher import Dispatcher, DispatcherConfig
-from .type import MultimodalSample
-from .utils import load_config
 
 overall_start_time = time.time()
 
@@ -34,6 +34,7 @@ class ProcessInference:
 
     data_path: str
     dispatcher_config: DispatcherConfig
+    skip_already_processed: bool = False
 
 
 def process(config_file: str):
@@ -65,6 +66,8 @@ def process(config_file: str):
                 ".wav",
                 ".aac",  # Audio files
                 ".eml",  # Emails
+                ".html",
+                ".htm",  # HTML pages
             ],
             output_path=config.dispatcher_config.output_path,
         )
@@ -75,7 +78,7 @@ def process(config_file: str):
     crawler = Crawler(config=crawler_config)
 
     crawl_start_time = time.time()
-    crawl_result = crawler.crawl()
+    crawl_result = crawler.crawl(skip_already_processed=config.skip_already_processed)
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")

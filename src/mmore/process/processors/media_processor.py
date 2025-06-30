@@ -16,10 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class MediaProcessor(Processor):
+    @staticmethod
+    def _get_available_devices():
+        if torch.cuda.is_available():
+            return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
+        return [torch.device("cpu")]
+
+    devices = _get_available_devices()
+    pipelines = []
+
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
-        self.devices = self._get_available_devices()
-        self.pipelines = []
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -33,33 +40,37 @@ class MediaProcessor(Processor):
             ".wav",
         ]
 
-    def _get_available_devices(self):
-        if torch.cuda.is_available():
-            return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
-        return [torch.device("cpu")]
-
-    def load_models(self, fast_mode=False):
-        model_name = (
-            self.config.custom_config.get("fast_model", "openai/whisper-tiny")
-            if fast_mode
-            else self.config.custom_config.get(
-                "normal_model", "openai/whisper-large-v3"
+    @staticmethod
+    def load_models(
+        self=None,  # pyright: ignore[reportSelfClsParameterName]
+        fast_mode=False,
+    ):
+        if self:
+            model_name = (
+                self.config.custom_config.get("fast_model", "openai/whisper-tiny")
+                if fast_mode
+                else self.config.custom_config.get(
+                    "normal_model", "openai/whisper-large-v3-turbo"
+                )
             )
-        )
+        else:
+            model_name = (
+                "openai/whisper-tiny" if fast_mode else "openai/whisper-large-v3-turbo"
+            )
 
         try:
-            self.pipelines = []
-            for device in self.devices:
+            MediaProcessor.pipelines = []
+            for device in MediaProcessor.devices:
                 pipe = pipeline_t(
                     "automatic-speech-recognition",
                     model=model_name,
                     device=device,
                     return_timestamps=True,
                 )
-                self.pipelines.append(pipe)
+                MediaProcessor.pipelines.append(pipe)
         except Exception as e:
             logger.error(f"Error loading models: {e}")
-            self.pipelines = []
+            MediaProcessor.pipelines = []
 
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
@@ -117,7 +128,7 @@ class MediaProcessor(Processor):
                 temp_audio.flush()
             except Exception as e:
                 logger.error(f"Error preparing audio file {file_path}: {e}")
-                raise
+                raise e
 
         ext = os.path.splitext(file_path)[1].lower()
         try:
