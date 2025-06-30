@@ -283,7 +283,6 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join([str(s) if s else "" for s in web_summaries])
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-            print(web_summary_all)
             # Current context, web content  to generate the answer
             out = self.integrate_with_llm(qr, context_for_llm, snippets)
             final_short, final_detailed = out["short"], out["detailed"]
