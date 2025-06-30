@@ -192,7 +192,7 @@ def print_in_color(to_print: str, color:str, bold: bool = False)->None:
     print(str_in_color(to_print, color, bold))
 
 def str_green(text, bold=False):
-  return str_in_color(text, "green", bold=bold)
+    return str_in_color(text, "green", bold=bold)
 
 
 if __name__ == "__main__":
