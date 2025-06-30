@@ -313,7 +313,6 @@ class Retriever(BaseRetriever):
         except Exception as e:
             logger.warning(f"Langchain-DuckDuckGo search failed: {e}")
             return []
-        
 
     def get_documents_by_ids(
         self, doc_ids: list[str], collection_name: str = "my_docs"

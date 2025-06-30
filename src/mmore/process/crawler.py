@@ -144,7 +144,7 @@ class FindAlreadyComputedFiles:
                 if "metadata" in data and "file_path" in data["metadata"]:
                     file_paths.append(data["metadata"]["file_path"])
                 else:
-                    print(
+                    logger.error(
                         f"Warning file_path not found in metadate (line{i} of {results_jsonl_path})"
                     )
         return file_paths
@@ -224,9 +224,9 @@ class CrawlerConfig:
             with open(yaml_path, "r") as file:
                 config = yaml.safe_load(file)
             return CrawlerConfig.from_dict(config)
-        except (FileNotFoundError, yaml.YAMLError):
+        except (FileNotFoundError, yaml.YAMLError) as e:
             logger.error(f"[Crawler] Error processing {yaml_path}.")
-            raise
+            raise e
 
     def to_dict(self):
         """
