@@ -1,5 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
+from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from ..rag.llm import LLM
 
 class WebsearchOnly:
     """Class dedicated to performing web searches and validating their usefulness."""
@@ -24,3 +26,4 @@ class WebsearchOnly:
         )
         response = llm.invoke(prompt)
         return response.strip()
+

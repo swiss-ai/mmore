@@ -33,10 +33,10 @@ Based on the implementation of the `RAG` module, the `Websearch` module enables 
  1. **API**: Creates a server hosting the pipeline
  2. **Local**: Runs the inference locally
  
-You can customize various parts of the pipeline by defining [an inference RAG configuration file](/examples/rag/api/rag_api.yaml).
+You can customize various parts of the pipeline by defining [an inference Websearch configuration file](/examples/websearchRAG/config_api.yaml).
 
 
-Users can adjust the pipeline according to their [requirements](/examples/websearch/config.yaml) through the following parameters:
+Users can adjust the pipeline according to their [requirements](/examples/websearchRAG/config.yaml) through the following parameters:
 
 - `use_rag`: Enables or disables RAG retrieval.
 - `use_summary`: Activates summarization of retrieved web snippets.
@@ -71,9 +71,11 @@ Here is a example to create a Websearch pipeline hosted through [LangServe](http
         }
     }'
     ```
+    In the API mode, it is necessary to provide the `use_rag` and `use_summary`parameters in the query, the number of `n_loops` and `n_subqueries` are defined in the config file.
 
     In local mode, the pipeline is run directly with the input data specified in the configuration file and the result is saved at the specified path.
 
+    For both mode, if we want to use the RAG pipeline, it is necessay to provide the path to the rag configuration file.
 
 
 ## Results and Outputs

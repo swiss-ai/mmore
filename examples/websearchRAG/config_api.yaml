@@ -6,7 +6,7 @@ websearch:
   mode: api
   llm_config:
     llm_name: OpenMeditron/meditron3-8b
-    max_new_tokens: 250
+    max_new_tokens: 1200
 
 # Mode Config
 mode_args:
