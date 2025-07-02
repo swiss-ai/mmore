@@ -248,7 +248,11 @@ class Indexer:
         return inserted
 
 
-def get_model_from_index(client: MilvusClient, index_name: Literal['dense_embedding', 'sparse_embedding'], collection_name: Optional[str] = None) -> DenseModelConfig | SparseModelConfig:
+def get_model_from_index(
+    client: MilvusClient,
+    index_name: Literal["dense_embedding", "sparse_embedding"],
+    collection_name: Optional[str] = None,
+) -> DenseModelConfig | SparseModelConfig:
     print(client.list_collections())
     collection_name = collection_name or client.list_collections()[0]
     if index_name == "dense_embedding":

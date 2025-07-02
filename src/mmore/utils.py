@@ -26,9 +26,11 @@ def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -
 
     return from_dict(config_class, cast(Dict, data))
 
+
 # Custom Dumper to preserve \n and avoid wrapping
 class LiteralStringDumper(yaml.SafeDumper):
     pass
+
 
 def str_presenter(dumper, data):
     if "\n" in data or "\r" in data:
@@ -36,7 +38,9 @@ def str_presenter(dumper, data):
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
+
 LiteralStringDumper.add_representer(str, str_presenter)
+
 
 def save_config(config: Any, path: str) -> None:
     if not is_dataclass(config):
@@ -52,6 +56,7 @@ def save_config(config: Any, path: str) -> None:
             allow_unicode=True,
             width=float("inf"),  # prevents line wrapping
         )
+
 
 # Cache indexers in memory
 indexers = {}
