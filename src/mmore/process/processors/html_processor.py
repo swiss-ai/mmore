@@ -42,8 +42,6 @@ class HTMLProcessor(Processor):
         """
 
         def _extract_images_from_markdown(markdown_text: str) -> List[Image.Image]:
-
-
             """
             Extract images from a markdown string.
 
@@ -54,20 +52,23 @@ class HTMLProcessor(Processor):
             Returns:
                 List[Image.Image]: A list of PIL images.
             """
-            image_pattern = re.compile(r'!\[.*?\]\((.*?)\)')
+            image_pattern = re.compile(r"!\[.*?\]\((.*?)\)")
             image_paths = image_pattern.findall(markdown_text)
 
             images = []
+
             def download_image(url):
                 headers = {
-                "User-Agent": "YourAppName/1.0 (your.email@example.com) Python requests"
+                    "User-Agent": "YourAppName/1.0 (your.email@example.com) Python requests"
                 }
                 response = requests.get(url, headers=headers, timeout=10)
                 response.raise_for_status()
 
                 content_type = response.headers.get("Content-Type", "")
                 if "image" not in content_type:
-                    raise ValueError(f"Content at {url} is not an image (type: {content_type})")
+                    raise ValueError(
+                        f"Content at {url} is not an image (type: {content_type})"
+                    )
 
                 image = Image.open(io.BytesIO(response.content)).convert("RGB")
                 return image
@@ -79,9 +80,7 @@ class HTMLProcessor(Processor):
                         image = download_image(url)
 
                     else:
-
                         raise ValueError("can't download static files, sorry")
-
 
                     images.append(image)
 
@@ -90,7 +89,6 @@ class HTMLProcessor(Processor):
 
             return images
 
-
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 html = f.read()
@@ -98,7 +96,7 @@ class HTMLProcessor(Processor):
             logger.error(f"Failed to open HTML file {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        markdown = md(html, heading_style='ATX')
+        markdown = md(html, heading_style="ATX")
 
         if self.config.custom_config.get("extract_images", True):
             embedded_images = _extract_images_from_markdown(markdown)
@@ -109,7 +107,7 @@ class HTMLProcessor(Processor):
         # If extract_images is enabled, optionally replace image markdown with a placeholder
         if self.config.custom_config.get("extract_images", True):
             # Replace all image markdown with the placeholder
-            markdown = re.sub(r'!\[.*?\]\(.*?\)', self.config.attachment_tag, markdown)
+            markdown = re.sub(r"!\[.*?\]\(.*?\)", self.config.attachment_tag, markdown)
 
         # Clean the markdown text
         cleaned_markdown = clean_text(markdown).strip()
