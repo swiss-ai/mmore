@@ -84,6 +84,7 @@ dependencies = [
     "langchain-openai==0.3.7",
     "langchain==0.3.20",
     "langserve[all]==0.3.1",
+    "markdownify==0.13.1",
     "ragas==0.2.6",
     "nltk>=3.9",
     "starlette==0.46",
