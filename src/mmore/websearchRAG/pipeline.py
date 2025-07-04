@@ -4,21 +4,18 @@ import json
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
-import logging
 import time
 import tempfile
 import os
 from dataclasses import dataclass,asdict
 
 from langchain_community.tools import DuckDuckGoSearchResults
-from duckduckgo_search.exceptions import RatelimitException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from ..run_rag import rag
-from ..run_rag import read_queries
 from ..rag.llm import LLM, LLMConfig
 from .config import WebsearchConfig
 
@@ -221,7 +218,6 @@ class WebsearchPipeline:
         rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
 
        
-        all_sources: Set[str] = set()
         source_map = {}
         current_context = rag_summary
         final_short, final_detailed = "", ""
@@ -237,7 +233,7 @@ class WebsearchPipeline:
             else:
                 subs = self.generate_subqueries(qr)  # Based on original query only
 
-            snippets, urls = [], []
+            snippets = []
             subquery_summaries = []
 
 
