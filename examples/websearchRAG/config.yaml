@@ -1,0 +1,14 @@
+websearch:
+  use_rag: true
+  rag_config_path: examples/rag/config.yaml
+  use_summary: true
+  n_subqueries : 2
+  input_file: examples/rag/output.json
+  input_queries: examples/rag/queries.jsonl
+  output_file: examples/websearchRAG/enhanced_results_trial.json
+  n_loops: 2
+  max_searches: 5
+  mode: local
+  llm_config:
+    llm_name: OpenMeditron/meditron3-8b
+    max_new_tokens: 1200
