@@ -41,7 +41,6 @@ class Retriever(BaseRetriever):
     hybrid_search_weight: float
     k: int
     use_web: bool
-    
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -82,7 +81,7 @@ class Retriever(BaseRetriever):
             client=client,
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
-            use_web=config.use_web
+            use_web=config.use_web,
         )
 
     def compute_query_embeddings(
@@ -278,14 +277,21 @@ class Retriever(BaseRetriever):
 
         def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
             return Document(
-                page_content=result['entity']['text'],
-                metadata={'id': result['id'], 'rank': offset + i + 1, 'similarity': result['distance']}
+                page_content=result["entity"]["text"],
+                metadata={
+                    "id": result["id"],
+                    "rank": offset + i + 1,
+                    "similarity": result["distance"],
+                },
             )
-        def parse_results(results: List[Dict[str, Any]], offset: int = 0) -> List[Document]:
+
+        def parse_results(
+            results: List[Dict[str, Any]], offset: int = 0
+        ) -> List[Document]:
             return [parse_result(result, i, offset) for i, result in enumerate(results)]
 
         if self.use_web:
-            web_docs = self._get_web_documents(query['input'], max_results = self.k)
+            web_docs = self._get_web_documents(query["input"], max_results=self.k)
             milvus_docs = parse_results(results, len(web_docs))
             return web_docs + milvus_docs
         else:
@@ -297,7 +303,7 @@ class Retriever(BaseRetriever):
         logger.info("Performing web search...")
         try:
             wrapper = DuckDuckGoSearchAPIWrapper()
-            results = wrapper.results(query,max_results=max_results)
+            results = wrapper.results(query, max_results=max_results)
             return [
                 Document(
                     page_content=result["snippet"],
@@ -305,8 +311,8 @@ class Retriever(BaseRetriever):
                         "source": "duckduckgo",
                         "url": result["link"],
                         "title": result["title"],
-                        "rank": i + 1
-                    }
+                        "rank": i + 1,
+                    },
                 )
                 for i, result in enumerate(results)
             ]
