@@ -33,7 +33,8 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
-RUN useradd -m -u 1000 mmoreuser
+RUN groupadd --gid 84257 mmoreuser \
+ && useradd --uid 272918 --gid 84257 -m mmoreuser
 
 # Set up working directory and permissions
 RUN mkdir -p /app && chown -R mmoreuser:mmoreuser /app
