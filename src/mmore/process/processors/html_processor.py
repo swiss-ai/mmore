@@ -1,10 +1,10 @@
 import io
 import logging
-import os
-from typing import List, Optional, cast
+import re
+from typing import List
 
 import requests
-from bs4 import BeautifulSoup, Tag
+from markdownify import markdownify as md
 from PIL import Image
 
 from ...type import FileDescriptor, MultimodalSample
@@ -41,35 +41,52 @@ class HTMLProcessor(Processor):
             MultimodalSample: A dictionary containing processed text and embedded images.
         """
 
-        def _extract_images(soup: BeautifulSoup) -> List[Image.Image]:
+        def _extract_images_from_markdown(markdown_text: str) -> List[Image.Image]:
             """
-            Extract images embedded in HTML (by URL or local).
+            Extract images from a markdown string.
 
             Args:
-                soup (BeautifulSoup): Parsed HTML soup.
+                markdown_text (str): The markdown string.
+                file_path (Optional[str]): Path to the markdown source (to resolve local image paths).
 
             Returns:
                 List[Image.Image]: A list of PIL images.
             """
-            images = []
-            for img_tag in soup.find_all("img"):
-                if not isinstance(img_tag, Tag):
-                    continue
+            image_pattern = re.compile(r"!\[.*?\]\((.*?)\)")
+            image_paths = image_pattern.findall(markdown_text)
 
-                src = cast(Optional[str], img_tag.get("src"))
-                if src:
-                    try:
-                        if src.startswith("http"):
-                            response = requests.get(src)
-                            bytes_img = io.BytesIO(response.content)
-                            image = Image.open(bytes_img).convert("RGB")
-                        else:
-                            parent_path = os.path.dirname(file_path)
-                            local_path = os.path.join(parent_path, src)
-                            image = Image.open(local_path).convert("RGB")
-                        images.append(image)
-                    except Exception as e:
-                        logger.error(f"Failed to load image {src}: {e}")
+            images = []
+
+            def download_image(url):
+                headers = {
+                    "User-Agent": "YourAppName/1.0 (your.email@example.com) Python requests"
+                }
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+
+                content_type = response.headers.get("Content-Type", "")
+                if "image" not in content_type:
+                    raise ValueError(
+                        f"Content at {url} is not an image (type: {content_type})"
+                    )
+
+                image = Image.open(io.BytesIO(response.content)).convert("RGB")
+                return image
+
+            for src in image_paths:
+                try:
+                    if src.startswith("http") or src.startswith("//"):
+                        url = src if src.startswith("http") else "https:" + src
+                        image = download_image(url)
+
+                    else:
+                        raise ValueError("can't download static files, sorry")
+
+                    images.append(image)
+
+                except Exception as e:
+                    logger.error(f"Failed to load image {src}: {e}")
+
             return images
 
         try:
@@ -79,23 +96,21 @@ class HTMLProcessor(Processor):
             logger.error(f"Failed to open HTML file {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        soup = BeautifulSoup(html, "html.parser")
+        markdown = md(html, heading_style="ATX")
 
         if self.config.custom_config.get("extract_images", True):
-            embedded_images = _extract_images(soup)
+            embedded_images = _extract_images_from_markdown(markdown)
+
         else:
             embedded_images = []
 
-        all_text = []
-        body = soup.body if soup.body else soup  # fallback if no <body> tag
-
-        for tag in body.find_all(string=True):
-            if tag.parent and tag.parent.name not in ["script", "style"]:
-                cleaned = clean_text(tag.text)
-                if cleaned.strip():
-                    all_text.append(cleaned)
+        # If extract_images is enabled, optionally replace image markdown with a placeholder
         if self.config.custom_config.get("extract_images", True):
-            for img_tag in soup.find_all("img"):
-                all_text.append(self.config.attachment_tag)
+            # Replace all image markdown with the placeholder
+            markdown = re.sub(r"!\[.*?\]\(.*?\)", self.config.attachment_tag, markdown)
+
+        # Clean the markdown text
+        cleaned_markdown = clean_text(markdown).strip()
+        all_text = [cleaned_markdown] if cleaned_markdown else []
 
         return self.create_sample(all_text, embedded_images, file_path)

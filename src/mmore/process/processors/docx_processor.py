@@ -1,14 +1,19 @@
 import io
 import logging
-from typing import List
+import mimetypes
+import os
+import re
+import tempfile
+import uuid
+from pathlib import Path
+from typing import Any, BinaryIO, Callable, Dict, Optional, cast
 
-from docx import Document
-from docx.document import Document as DocumentType
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
+import mammoth
+from mammoth.documents import Image as m_Image
+from markdownify import markdownify
 from PIL import Image
 
-from ...type import FileDescriptor, MultimodalSample
-from ..utils import clean_text
+from ...type import FileDescriptor, MultimodalRawInput, MultimodalSample
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -45,57 +50,79 @@ class DOCXProcessor(Processor):
             file_path (str): Path to the DOCX file.
 
         Returns:
-            dict: A dictionary containing processed text and embedded images.
+            MultimodalSample: A sample containing the extracted text and images.
 
         The method parses the DOCX file, cleans and extracts textual content from paragraphs,
         and extracts embedded images. Images in the paragraphs are replaced with a placeholder tag
         defined in the processor configuration (e.g., "<attachment>").
         """
 
-        # First, we define a helper functions
-        def _extract_images(doc: DocumentType) -> List[Image.Image]:
-            """
-            Extract embedded images from the DOCX document.
+        all_images = []
 
-            Args:
-                doc (Document): The DOCX document object.
+        def _convert_image(image: m_Image) -> Dict[str, Any]:
+            if not self.config.custom_config.get("extract_images", False):
+                return {"src": ""}
 
-            Returns:
-                List[Image.Image]: A list of extracted PIL images.
-            """
-            images = []
-            for rel in doc.part.rels.values():
-                if rel.reltype == RT.IMAGE and not rel.is_external:
-                    try:
-                        blob = rel.target_part.blob
-                        image = Image.open(io.BytesIO(blob)).convert("RGB")
-                        images.append(image)
-                    except Exception as e:
-                        logger.error(f"Failed to extract image: {e}")
-            return images
+            content_type = cast(Optional[str], image.content_type)
+
+            with cast(Callable[[], BinaryIO], image.open)() as image_bytes:
+                try:
+                    pil_image = Image.open(io.BytesIO(image_bytes.read()))
+
+                    if content_type is None:
+                        raise ValueError("Invalid content type")
+
+                    # Generate unique image path and save the image there
+                    image_path = Path(
+                        os.path.join(str(image_output_dir), str(uuid.uuid4()))
+                    )
+
+                    extension = mimetypes.guess_extension(content_type)
+                    if extension is None:
+                        raise ValueError(
+                            "Unable to determine the extension of the image"
+                        )
+
+                    image_path = image_path.with_suffix(extension)
+
+                    pil_image.save(image_path)
+                    logger.info(f"Saving image to {image_path}")
+                    all_images.append(
+                        MultimodalRawInput(type="image", value=str(image_path))
+                    )
+
+                    return {"src": "", "alt": self.config.attachment_tag}
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load image with MIME type {content_type}: {e}"
+                    )
+                    return {"src": "", "alt": ""}
+
+        image_output_dir = self.config.custom_config.get("image_output_dir", None)
+
+        # If no image_output_dir is specified then create a temporary output dir
+        if image_output_dir is None:
+            image_output_dir = tempfile.mkdtemp(prefix="mmore_docx_")
+            logger.info(f"Saving files in {image_output_dir}")
 
         try:
-            doc = Document(file_path)
+            with open(file_path, "rb") as docx_fileobj:
+                result = mammoth.convert_to_html(
+                    docx_fileobj,
+                    convert_image=mammoth.images.img_element(_convert_image),
+                )
+
         except Exception as e:
-            logger.error(f"Failed to open Word file {file_path}: {e}")
+            logger.warning(f"Failed to convert {file_path}: {e}")
             return self.create_sample([], [], file_path)
 
-        if self.config.custom_config.get("extract_images", True):
-            embedded_images = _extract_images(doc)
-        else:
-            embedded_images = []
+        markdown = markdownify(result.value)
 
-        all_text = []
-        for para in doc.paragraphs:
-            cleaned = clean_text(para.text)
+        sample = MultimodalSample(
+            text=re.sub(r"!\[<([^>]+)>\]\(\)", r"<\1>", markdown),
+            modalities=all_images,
+            metadata={"file_path": file_path},
+        )
 
-            if cleaned.strip():
-                all_text.append(cleaned)
-
-            if self.config.custom_config.get("extract_images", True):
-                xml = para._p.xml
-                # check if there are any images in the paragraph, replace with <attachment> token
-                if "w:drawing" in xml:
-                    all_text.append(self.config.attachment_tag)
-
-        return self.create_sample(all_text, embedded_images, file_path)
+        return sample
