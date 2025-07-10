@@ -74,6 +74,7 @@ dependencies = [
     "pymilvus==2.5.0",
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
+    "cohere==5.15.0",
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
@@ -106,6 +107,7 @@ cu124 = [
 
 rag = [
   "accelerate",
+  "cohere==5.15.0",
   "langchain-anthropic==0.3.4",
   "langchain-aws",
   "langchain-cohere==0.4.2",
