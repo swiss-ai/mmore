@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 import click
 import torch
@@ -34,7 +34,7 @@ torch.backends.cuda.enable_math_sdp(True)
 class ProcessInference:
     """Inference configuration."""
 
-    data_path: List[str]
+    data_path: Union[List[str], str]
     google_drive_ids: List[str]
     dispatcher_config: DispatcherConfig
 
@@ -55,6 +55,8 @@ def process(config_file: str):
 
     if config.data_path:
         data_path = config.data_path
+        if isinstance(data_path, str):
+            data_path = [data_path]
         root_dirs = (
             data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
         )
