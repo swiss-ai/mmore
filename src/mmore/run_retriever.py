@@ -12,7 +12,7 @@ from typing import List, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
@@ -119,19 +119,8 @@ class RetrieverQuery(BaseModel):
     query: str = Field(..., description="Search query")
 
 
-def create_api(config_file: str):
-    app = FastAPI(
-        title="mmore Retriever API",
-        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
-
-## Overview
-
-This API defines the retriever API of mmore, handling:
-
-1. **File Operations** - Direct file management within mmore.
-2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.""",
-        version="1.0.0",
-    )
+def make_router(config_file: str) -> APIRouter:
+    router = APIRouter()
 
     # Load the config file
     config = load_config(config_file, RetrieverConfig)
@@ -140,7 +129,7 @@ This API defines the retriever API of mmore, handling:
     retriever_obj = Retriever.from_config(config)
     logger.info("Retriever loaded!")
 
-    @app.get("/v1/retriever")
+    @router.post("/v1/retriever", tags=["Retrieval"])
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
 
@@ -164,23 +153,59 @@ This API defines the retriever API of mmore, handling:
 
         return docs_info
 
-    return app
+    return router
+
+
+def run_api(config_file: str, host: str, port: int):
+    router = make_router(config_file)
+
+    app = FastAPI(
+        title="mmore Retriever API",
+        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+
+    ## Overview
+
+    This API defines the retriever API of mmore, handling:
+
+    1. **File Operations** - Direct file management within mmore.
+    2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.""",
+        version="1.0.0",
+    )
+    app.include_router(router)
+
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config-file", required=True, help="Path to the index configuration file."
+        "--config-file", required=True, help="Path to the retriever configuration file."
     )
     parser.add_argument(
         "--input-file",
         required=False,
+        type=str,
+        default=None,
         help="Path to the input file of queries. If not provided, the retriever is run in API mode.",
     )
     parser.add_argument(
         "--output-file",
         required=False,
+        type=str,
+        default=None,
         help="Path to the output file of selected documents. Must be provided together with --input_file.",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host on which the API should be run.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8001,
+        help="Port on which the API should be run.",
     )
     args = parser.parse_args()
 
@@ -192,5 +217,4 @@ if __name__ == "__main__":
     if args.input_file:  # an input file is provided
         retrieve(args.config_file, args.input_file, args.output_file)
     else:
-        api = create_api(args.config_file)
-        uvicorn.run(api, host="0.0.0.0", port=8000)
+        run_api(args.config_file, args.host, args.port)

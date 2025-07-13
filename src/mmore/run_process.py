@@ -37,6 +37,7 @@ class ProcessInference:
     data_path: Union[List[str], str]
     google_drive_ids: List[str]
     dispatcher_config: DispatcherConfig
+    skip_already_processed: bool = False
 
 
 def process(config_file: str):
@@ -79,6 +80,8 @@ def process(config_file: str):
                 ".wav",
                 ".aac",  # Audio files
                 ".eml",  # Emails
+                ".html",
+                ".htm",  # HTML pages
             ],
             output_path=config.dispatcher_config.output_path,
         )
@@ -89,7 +92,7 @@ def process(config_file: str):
     crawler = Crawler(config=crawler_config)
 
     crawl_start_time = time.time()
-    crawl_result = crawler.crawl()
+    crawl_result = crawler.crawl(skip_already_processed=config.skip_already_processed)
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.0.0"
+version = "1.0.1"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -25,7 +25,7 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "numpy==1.26.3",
-    "pandas==2.2.3",
+    "pandas==2.3.0",
     "datasets==2.19.1",
     "transformers==4.52.4",
     "fasteners==0.19",
@@ -74,16 +74,18 @@ dependencies = [
     "pymilvus==2.5.0",
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
+    "cohere==5.15.0",
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
-    "langchain-huggingface==0.3.0",
+    "langchain-huggingface==0.1.2",
     "langchain-milvus==0.1.8",
     "langchain-mistralai==0.2.7",
     "langchain-nvidia-ai-endpoints",
     "langchain-openai==0.3.7",
     "langchain==0.3.20",
     "langserve[all]==0.3.1",
+    "markdownify==0.13.1",
     "ragas==0.2.6",
     "nltk>=3.9",
     "starlette==0.46",
@@ -91,6 +93,10 @@ dependencies = [
     "sympy==1.14.0",
     "google-auth==2.39.0",
     "google-api-python-client==2.173.0"
+    "langid",
+    "mammoth==1.9.0",
+    "argostranslate",
+    "sentence-transformers",
 ]
 
 [project.optional-dependencies]
@@ -103,10 +109,11 @@ cu124 = [
 
 rag = [
   "accelerate",
+  "cohere==5.15.0",
   "langchain-anthropic==0.3.4",
   "langchain-aws",
   "langchain-cohere==0.4.2",
-  "langchain-huggingface==0.3.0",
+  "langchain-huggingface==0.1.2",
   "langchain-milvus==0.1.8",
   "langchain-mistralai==0.2.7",
   "langchain-nvidia-ai-endpoints",
@@ -162,7 +169,7 @@ exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is f
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
-ignore = ["E501"]   # Avoid enforcing line-length violations (`E501`)
+ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) and Module level import not at top of file (`E402`)
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]

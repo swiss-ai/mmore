@@ -20,12 +20,36 @@ IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 
 class PDFProcessor(Processor):
+    artifact_dict = None
+
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
+        self.converter = None
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
         return file.file_extension.lower() == ".pdf"
+
+    @staticmethod
+    def load_models(disable_image_extraction: bool = False):
+        if PDFProcessor.artifact_dict is None:
+            PDFProcessor.artifact_dict = create_model_dict()
+
+        marker_config = {
+            "disable_image_extraction": disable_image_extraction,
+            "languages": None,
+            "use_llm": False,
+            "disable_multiprocessing": False,
+        }
+        config_parser = ConfigParser(marker_config)
+        converter = PdfConverter(
+            artifact_dict=PDFProcessor.artifact_dict,
+            config=config_parser.generate_config_dict(),
+        )
+
+        converter.initialize_processors(list(converter.default_processors))
+
+        return converter
 
     # overwriting the process_batch
     def process_batch(
@@ -39,22 +63,15 @@ class PDFProcessor(Processor):
             else:
                 num_gpus = torch.cuda.device_count()
 
-            if (
-                num_gpus == 1 or len(files_paths) < 10
-            ):  # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
-                marker_config = {
-                    "disable_image_extraction": not self.config.custom_config.get(
-                        "extract_images", True
-                    ),
-                    "languages": None,
-                    "use_llm": False,
-                    "disable_multiprocessing": False,
-                }
-                config_parser = ConfigParser(marker_config)
-                self.converter = PdfConverter(
-                    artifact_dict=create_model_dict(),
-                    config=config_parser.generate_config_dict(),
-                )
+            # 1 GPU available or length of files_paths is less than 10 we just do single-GPU
+            if num_gpus == 1 or len(files_paths) < 10:
+                if self.converter is None:
+                    self.converter = PDFProcessor.load_models(
+                        disable_image_extraction=not self.config.custom_config.get(
+                            "extract_images", True
+                        )
+                    )
+
                 results = []
                 for file_path in files_paths:
                     try:
@@ -113,6 +130,13 @@ class PDFProcessor(Processor):
                 return results
 
     def process(self, file_path: str) -> MultimodalSample:
+        if self.converter is None:
+            self.converter = PDFProcessor.load_models(
+                disable_image_extraction=not self.config.custom_config.get(
+                    "extract_images", True
+                )
+            )
+
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
@@ -189,6 +213,9 @@ class PDFProcessor(Processor):
         try:
             torch.cuda.set_device(gpu_id)
 
+            if PDFProcessor.artifact_dict is None:
+                PDFProcessor.artifact_dict = create_model_dict()
+
             marker_config = {
                 "disable_image_extraction": not config_custom.get(
                     "extract_images", True
@@ -201,7 +228,7 @@ class PDFProcessor(Processor):
 
             config_parser = ConfigParser(marker_config)
             self.converter = PdfConverter(
-                artifact_dict=create_model_dict(),
+                artifact_dict=PDFProcessor.artifact_dict,
                 config=config_parser.generate_config_dict(),
             )
 
@@ -218,7 +245,7 @@ class PDFProcessor(Processor):
 
         except Exception as e:
             error_queue.put(f"GPU {gpu_id} failed: {str(e)}")
-            raise
+            raise e
         finally:
             torch.cuda.empty_cache()
             if hasattr(self, "converter"):
