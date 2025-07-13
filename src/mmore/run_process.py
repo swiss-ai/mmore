@@ -53,11 +53,11 @@ def process(config_file: str):
         ggdrive_downloader.download_all()
         ggdrive_download_dir = ggdrive_downloader.download_dir
 
-
-
     if config.data_path:
         data_path = config.data_path
-        root_dirs = data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
+        root_dirs = (
+            data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
+        )
         crawler_config = CrawlerConfig(
             root_dirs=root_dirs,
             supported_extensions=[
@@ -86,7 +86,6 @@ def process(config_file: str):
     logger.info(f"Using crawler configuration: {crawler_config}")
     crawler = Crawler(config=crawler_config)
 
-
     crawl_start_time = time.time()
     crawl_result = crawler.crawl()
     crawl_end_time = time.time()
@@ -106,9 +105,6 @@ def process(config_file: str):
 
     dispatch_end_time = time.time()
     dispatch_time = dispatch_end_time - dispatch_start_time
-
-
-
 
     logger.info(f"Dispatching and processing completed in {dispatch_time:.2f} seconds")
 
