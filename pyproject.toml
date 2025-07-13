@@ -92,11 +92,11 @@ dependencies = [
     "typing_extensions==4.12.2",
     "sympy==1.14.0",
     "google-auth==2.39.0",
-    "google-api-python-client==2.173.0"
-    "langid",
+    "google-api-python-client==2.173.0",
     "mammoth==1.9.0",
     "argostranslate",
     "sentence-transformers",
+    "langid"
 ]
 
 [project.optional-dependencies]
