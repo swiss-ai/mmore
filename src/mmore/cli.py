@@ -252,6 +252,7 @@ def dashboard_backend(host, port):
 
     run_api(host, port)
 
+
 @main.command()
 @click.option(
     "--config-file", type=str, required=True, help="Configuration for the RAG CLI."
@@ -269,6 +270,7 @@ def ragcli(config_file: str):
 
     my_rag_cli = RagCLI(config_file)
     my_rag_cli.launch_cli()
+
 
 if __name__ == "__main__":
     main()
