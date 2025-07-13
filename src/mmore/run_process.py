@@ -3,11 +3,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from typing import List, Union
 
 import click
 import torch
 
 from mmore.dashboard.backend.client import DashboardClient
+from mmore.googledrive.drive_download import GoogleDriveDownloader
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.type import MultimodalSample
@@ -32,7 +34,8 @@ torch.backends.cuda.enable_math_sdp(True)
 class ProcessInference:
     """Inference configuration."""
 
-    data_path: str
+    data_path: Union[List[str], str]
+    google_drive_ids: List[str]
     dispatcher_config: DispatcherConfig
     skip_already_processed: bool = False
 
@@ -45,10 +48,21 @@ def process(config_file: str):
 
     config: ProcessInference = load_config(config_file, ProcessInference)
 
+    if config.google_drive_ids:
+        google_drive_ids = config.google_drive_ids
+        ggdrive_downloader = GoogleDriveDownloader(google_drive_ids)
+        ggdrive_downloader.download_all()
+        ggdrive_download_dir = ggdrive_downloader.download_dir
+
     if config.data_path:
         data_path = config.data_path
+        if isinstance(data_path, str):
+            data_path = [data_path]
+        root_dirs = (
+            data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
+        )
         crawler_config = CrawlerConfig(
-            root_dirs=[data_path],
+            root_dirs=root_dirs,
             supported_extensions=[
                 ".pdf",
                 ".docx",
@@ -96,6 +110,7 @@ def process(config_file: str):
 
     dispatch_end_time = time.time()
     dispatch_time = dispatch_end_time - dispatch_start_time
+
     logger.info(f"Dispatching and processing completed in {dispatch_time:.2f} seconds")
 
     output_path = config.dispatcher_config.output_path
@@ -107,6 +122,8 @@ def process(config_file: str):
         MultimodalSample.to_jsonl(output_file, res)
 
     logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
+
+    ggdrive_downloader.remove_downloads()
 
     overall_end_time = time.time()
     overall_time = overall_end_time - overall_start_time
