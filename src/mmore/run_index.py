@@ -28,17 +28,6 @@ class IndexConfig:
     documents_path: str
 
 
-def load_results(path: str):
-    # Load the results computed and saved by 'run_process.py'
-    results = []
-    logger.info(f"Loading results from {path}")
-    with open(path, "rb") as f:
-        for line in f:
-            results.append(MultimodalSample.from_dict(json.loads(line)))
-    logger.info(f"Loaded {len(results)} results")
-    return results
-
-
 def index(
     config_file: Union[IndexConfig, str],
     documents_path: Optional[str] = None,
