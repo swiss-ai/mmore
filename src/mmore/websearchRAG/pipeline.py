@@ -1,24 +1,20 @@
-from .logging_config import logger
-
 import json
-import re
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Set
-import time
-import tempfile
 import os
-from dataclasses import dataclass,asdict
+import re
+import tempfile
+import time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-
-
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from ..run_rag import rag
 from ..rag.llm import LLM, LLMConfig
+from ..run_rag import rag
 from .config import WebsearchConfig
-
+from .logging_config import logger
 
 
 @dataclass
@@ -74,7 +70,7 @@ class WebsearchPipeline:
             "Answer: \n"
             "---------------------------"
         )
-        
+
         messages = [
             SystemMessage(content="You are a helpful assistant that summarizes text relevant to the question."),
             HumanMessage(content=prompt),
@@ -96,7 +92,7 @@ class WebsearchPipeline:
         ]
         response = self.llm.invoke(messages)
         response = self._clean_llm_output(response.content)
-        
+
         if 'no' in response :
             return False
         else :
@@ -105,13 +101,13 @@ class WebsearchPipeline:
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
-        
+
         if delimiter not in content:
             return content
 
         # Extract the section after the delimiter
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
-        
+
         return cleaned_section
 
 
@@ -150,8 +146,8 @@ class WebsearchPipeline:
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
         return cleaned_answer
 
- 
- 
+
+
 
     def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
         """
@@ -167,9 +163,9 @@ class WebsearchPipeline:
                 snippet = r.get("snippet", "")
                 url = r.get("link", "")  # note: it's "link" in LangChain results
                 title = r.get("title", "")
-                
+
                 formatted_results.append({"snippet": snippet, "url": url, "title" : title})
-            
+
             return formatted_results
         except Exception as e:
             logger.error(f"DuckDuckGo search error: {e}")
@@ -193,7 +189,7 @@ class WebsearchPipeline:
         resp = self.llm.invoke(msgs)
         # parse
         clean_content = self._clean_llm_output(resp.content)
-      
+
         sa_matches = re.findall(
             r"short answer:\s*(.*?)(?=detailed answer:)",
             clean_content,
@@ -217,7 +213,7 @@ class WebsearchPipeline:
         self.rag_results = rag_ans
         rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
 
-       
+
         source_map = {}
         current_context = rag_summary
         final_short, final_detailed = "", ""
@@ -239,7 +235,7 @@ class WebsearchPipeline:
 
             if loop > 0 and not self.evaluate_subquery_relevance(qr, subs, previous_sub):
                 break
-            
+
             for sq in subs:
                 time.sleep(10)
                 res = self.duckduckgo_search(query = sq)
@@ -248,16 +244,16 @@ class WebsearchPipeline:
 
                 for r in res:
                     if r["url"] not in source_map:
-                        source_map[r["url"]] = [] 
+                        source_map[r["url"]] = []
 
                     if r["title"] not in source_map[r["url"]]:
-                        source_map[r["url"]].append(r["title"]) 
+                        source_map[r["url"]].append(r["title"])
 
                     snippet = f"{r['snippet']})"
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
 
-            
+
                     combined_snippets = "\n".join(subquery_snippets)
 
                     summary = self.generate_summary(combined_snippets, sq)
@@ -269,7 +265,7 @@ class WebsearchPipeline:
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
-            if self.config.use_summary:           
+            if self.config.use_summary:
                 # Combine rag summary, web summary, and original query for final answer
                 context_for_llm = f"RAG informations:\n{rag_summary or ''}\n\nWeb informations:\n{web_summary}"
             else:
@@ -320,7 +316,7 @@ class WebsearchPipeline:
 
 
         outputs = []
-        outputs = [self.process_record(rec) for rec in data] 
+        outputs = [self.process_record(rec) for rec in data]
 
 
         # save
@@ -336,12 +332,10 @@ class WebsearchPipeline:
     def run_api(self, use_rag, use_summary, query):
         """
         Process queries and handle them with a temporary JSONL file.
-        
         Parameters:
         - use_rag (bool): Indicates whether to use RAG.
         - use_summary (bool): Indicates whether to use summarization.
         - query (list): List of query dictionaries.
-        
         Returns:
         - List of processed query results.
         """
@@ -350,11 +344,11 @@ class WebsearchPipeline:
         self.config.use_summary = use_summary
 
         temp_file_path = self._save_query_as_json(query)
-        
+
         try:
             outputs = []
             # Read from the temporary JSONL file
-            with open(temp_file_path, 'r', encoding='utf-8') as f:                
+            with open(temp_file_path, 'r', encoding='utf-8') as f:
                 if self.config.use_rag :
                     for line in f:
                         record = json.loads(line)
@@ -363,7 +357,7 @@ class WebsearchPipeline:
                     for line in f:
                         record = json.loads(line.strip())
                         outputs.append(self.process_record(record))
-            
+
             return outputs
 
         finally:

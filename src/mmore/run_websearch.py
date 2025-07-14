@@ -2,23 +2,21 @@
 
 import argparse
 import time
-import torch
 from dataclasses import dataclass
 from typing import Optional, Union
 
+import torch
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 
+from .rag.pipeline import RAGPipeline
+from .run_rag import APIConfig, LocalConfig, RAGInferenceConfig
 from .utils import load_config
 from .websearchRAG.config import WebsearchConfig
+from .websearchRAG.logging_config import logger
 from .websearchRAG.pipeline import WebsearchPipeline
-from .rag.pipeline import RAGPipeline
-from .run_rag import LocalConfig, APIConfig, RAGInferenceConfig
-
-from .websearchRAG.logging_config import logger 
-
 
 load_dotenv()
 
@@ -83,7 +81,7 @@ class WebQuery(BaseModel):
         example=False
     )
 
-     
+
 def create_api(config_file: str):
     app = FastAPI(
         title="mmore Websearch API",
@@ -109,13 +107,13 @@ This API defines the retriever API of mmore, handling:
 
         if query.use_rag:
             logger.info("Launch RAG")
-            config_RAG = load_config(config_file.websearch.rag_config_path, RAGInferenceConfig)
+            config_rag = load_config(config_file.websearch.rag_config_path, RAGInferenceConfig)
             logger.info("Creating the RAG Pipeline...")
-            rag_pp = RAGPipeline.from_config(config_RAG.rag)
+            rag_pp = RAGPipeline.from_config(config_rag.rag)
             data = rag_pp([query.query.dict()], return_dict=True)
             logger.info("RAG done")
             logger.info("##RAG##", data)
-        else: 
+        else:
             data = query.query
 
         logger.info("Launch websearch")

@@ -1,8 +1,8 @@
 # mmore/websearch/config.py
-
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Literal
 from pathlib import Path
+from typing import Any, Dict, Literal, Optional
+
 import yaml
 
 from ..rag.llm import LLMConfig  # Reuse the same LLMConfig as RAG
@@ -37,20 +37,20 @@ class WebsearchConfig:
     n_loops: int = 2
     max_searches: int = 10
     llm_config: Dict[str, Any] = field(default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 1200})
-    mode: Literal["local", "api"] = "local" 
+    mode: Literal["local", "api"] = "local"
 
     def __post_init__(self):
-        required_fields = ["rag_config_path", "llm_config", "mode"]
-        for field in required_fields:
-            if not getattr(self, field):
-                raise ValueError(f"'{field}' is a required field.")
+        required_fields = ["n_loops","n_subqueries", "max_searches", "mode"]
+        for field_name in required_fields:
+            if not getattr(self, field_name):
+                raise ValueError(f"'{field_name}' is a required field.")
 
     def get_llm_config(self) -> LLMConfig:
         """
         Convert the nested llm_config dict into an instance of rag.llm.LLMConfig.
         """
         return LLMConfig(**self.llm_config)
-    
+
     def access_rag_config(self) -> Dict[str, Any]:
         """
         Access and parse the RAG configuration file defined in `rag_config_path`.

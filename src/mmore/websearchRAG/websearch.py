@@ -1,7 +1,10 @@
-from typing import List, Dict
+from typing import Dict
+
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+
 from ..rag.llm import LLM
+
 
 class WebsearchOnly:
     """Class dedicated to performing web searches and validating their usefulness."""
@@ -18,7 +21,7 @@ class WebsearchOnly:
 
     def resume_web_search(self, query: str, web_output: str) -> str:
         """Call LLM to resume the current web output based on the original query, return a summary of the web search and the source."""
-        llm = LLM() 
+        llm = LLM()
         prompt = (
             f"Original Query: '{query}'\n"
             f"Web content: '{web_output}'\n"
