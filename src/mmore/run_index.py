@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 from dataclasses import dataclass
 from typing import Optional, Union
