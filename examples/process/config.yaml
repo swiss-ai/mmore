@@ -1,11 +1,11 @@
-data_path: examples/sample_data/ #put absolute path!
+data_path: examples/sample_data/ #put absolute path or relative to the root of the module
 dispatcher_config:
-  output_path: examples/process/outputs/ #put absolute path!
+  output_path: examples/process/outputs/ #put absolute path or relative to the root of the module
   use_fast_processors: false
   distributed: false
   dashboard_backend_url: null
   extract_images: true
-  scheduler_file: /mmore/scheduler-file.json #put absolute path!
+  scheduler_file: null # for instance /path/to/mmore/scheduler-file.json
   process_batch_sizes:
     - URLProcessor: 40
     - DOCXProcessor: 100
