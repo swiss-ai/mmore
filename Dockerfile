@@ -32,6 +32,10 @@ RUN groupadd --gid ${USER_GID} mmoreuser \
  && useradd --uid ${USER_UID} --gid ${USER_GID} -m mmoreuser
 
 WORKDIR /app
+RUN chown -R mmoreuser:mmoreuser /app
+
+USER mmoreuser
+
 RUN python3 -m venv .venv \
  && .venv/bin/pip install --no-cache-dir uv
 
@@ -42,7 +46,5 @@ RUN .venv/bin/uv pip install --no-cache ${UV_ARGUMENTS} -e .
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
-
-USER mmoreuser
 
 ENTRYPOINT ["/bin/bash"]
