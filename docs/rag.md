@@ -109,6 +109,17 @@ Our RAG pipeline is built to take full advantage of [LangChain](https://python.l
 
 Our retriever is a LangChain [`BaseRetriever`](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html). If you want to create a custom retriever (e.g. GraphRetriever,...) you can simply make it inherit from this class and use it as described in our examples.
 
+#### WebRAG (only in local mode at the moment)
+When doing RAG in local mode, one can use WebRAG - the [`DuckDuckGo Search API`](https://python.langchain.com/docs/integrations/tools/ddg/) is used to search the web using the query and adds its results to the context. 
+
+#### CLI for RAG (only in local mode at the moment)
+A user-friendly CLI for RAG. Start your RAG CLI using the `run_ragcli.py` script and your config file
+```bash
+python3 -m mmore ragcli --config_file /path/to/config.yaml
+```
+
+You can customize the CLI by defining [a RAG configuration file](/examples/rag/config.yaml) or by setting preferences from withing the CLI.
+
 #### LLM
 
 Our LLMs are LangChain's [`BaseChatModel`](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html) base class. If you want to create a custom retriever you can simply make it inherit from this class and use it as described in our examples. 
