@@ -37,7 +37,7 @@ RUN python3 -m venv .venv \
 
 COPY pyproject.toml poetry.lock* /app/
 
-RUN .venv/bin/pip install --no-cache-dir -e . --system
+RUN .venv/bin/pip install --no-cache-dir -e .
 
 COPY --chown=mmoreuser:mmoreuser . /app
 
