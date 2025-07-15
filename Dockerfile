@@ -1,34 +1,22 @@
 ARG PLATFORM
 ARG UV_ARGUMENTS=""
 
-# We select the image based on the platform argument
-
-# Define GPU image
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04 AS gpu
 ARG PLATFORM
 RUN echo "Using GPU image"
 
-# Define cpu image
 FROM ubuntu:22.04 AS cpu
 ARG PLATFORM
 ARG UV_ARGUMENTS="--extra cpu"
 RUN echo "Using CPU-only image"
 
-# Select image
-FROM ${PLATFORM:-gpu}
-ARG PLATFORM
-
-COPY --from=ghcr.io/astral-sh/uv:0.5.8 /uv /uvx /bin/
-
-# Install Python, create virtualenv, and install UV
-RUN apt-get update \
- && apt-get install -y python3-venv python3-pip \
- && python3 -m venv /app/.venv \
- && /app/.venv/bin/pip install uv
+FROM ${PLATFORM:-gpu} AS build
+ARG UV_ARGUMENTS
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      tzdata nano curl ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 \
+      python3-venv python3-pip \
+      tzdata nano curl ffmpeg libsm6 libxext6 chromium-browser nss3 gconf-2-4 \
       libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxrender1 \
       libasound2 libatk1.0-0 libgtk-3-0 libreoffice libjpeg-dev libpango-1.0-0 \
       libpangoft2-1.0-0 weasyprint && \
@@ -40,25 +28,18 @@ RUN apt-get update && \
 RUN groupadd --gid 84257 mmoreuser \
  && useradd --uid 272918 --gid 84257 -m mmoreuser
 
-# Set up working directory and permissions
-RUN mkdir -p /app && chown -R mmoreuser:mmoreuser /app
 WORKDIR /app
+RUN python3 -m venv .venv \
+ && .venv/bin/pip install --no-cache-dir uv
 
-# Copy the project into the image and set ownership
-ADD . /app
-RUN chown -R mmoreuser:mmoreuser /app
+COPY pyproject.toml poetry.lock* /app/
 
-# Define the build argument with a default value of an empty string (optional)
-COPY pyproject.toml ./
-# RUN uv sync --frozen ${UV_ARGUMENTS}
+RUN .venv/bin/pip install --no-cache-dir -e . --system
 
-# make uv's python the default python for the image
+COPY --chown=mmoreuser:mmoreuser . /app
+
 ENV PATH="/app/.venv/bin:$PATH"
-
-# install mpmath
-RUN pip install -e . 
-
-ENV DASK_DISTRIBUTED__WORKER__DAEMON=False DASK_DISTRIBUTED__WORKER__DAEMON=False
+ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 
 USER mmoreuser
 
