@@ -32,6 +32,8 @@ def postprocess(config_file, input_data):
 
     # Load samples
     samples = _load_dataset(input_data)
+    if len(samples) == 0:
+        logger.warning("⚠️ Found no file to postprocess")
 
     # Run pipeline
     samples = pipeline(samples)
