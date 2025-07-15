@@ -19,7 +19,7 @@ ARG USER_GID=1000
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       python3-venv python3-pip \
-      tzdata nano curl ffmpeg libsm6 libxext6 chromium-browser nss3 gconf-2-4 \
+      tzdata nano curl ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4 \
       libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxrender1 \
       libasound2 libatk1.0-0 libgtk-3-0 libreoffice libjpeg-dev libpango-1.0-0 \
       libpangoft2-1.0-0 weasyprint && \
