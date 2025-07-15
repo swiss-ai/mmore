@@ -11,8 +11,8 @@ jobs:
     strategy:
       matrix:
         user:
-          - { uid: 1000,    gid: 1000,    tag: "1000-1000"    }
-          - { uid: 84257,   gid: 272918,  tag: "84257-272918" }
+          - { uid: 1000,    gid: 1000,    tag: "10001000"    }
+          - { uid: 84257,   gid: 272918,  tag: "84257272918" }
 
     steps:
       - name: Checkout
@@ -45,7 +45,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.meta.outputs.repository }}:${{ matrix.user.tag }}
+            ${{ steps.meta.outputs.tags }}-${{ matrix.user.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PLATFORM=gpu
