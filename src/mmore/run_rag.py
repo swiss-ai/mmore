@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Union, cast
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from langserve import add_routes
+from pydantic import BaseModel
 
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
@@ -62,15 +62,31 @@ def save_results(results: List[Dict], output_file: Union[Path, str]):
         json.dump(results, f, indent=2)
 
 
+class InnerInput(BaseModel):
+    input: str
+    collection_name: Optional[str] = None
+
+class RAGInput(BaseModel):
+    input: InnerInput
+
+class RAGOutput(BaseModel):
+    input: Optional[str] = None
+    context: Optional[str] = None
+    answer: Optional[str] = None
+
 def create_api(rag: RAGPipeline, endpoint: str):
     app = FastAPI(
         title="RAG Pipeline API",
         description="API for question answering using RAG",
-        version="1.0",
+        version="2.0",
     )
 
-    # Add routes for the RAG chain
-    add_routes(app, rag.rag_chain, path=endpoint, playground_type="chat")
+    @app.post(endpoint, response_model=RAGOutput)
+    async def run_rag(request: RAGInput):
+        # Extract the inner input dict to pass to rag_chain
+        pipeline_input = request.input.model_dump()
+        output_dict = rag.rag_chain.invoke(pipeline_input)
+        return RAGOutput(**output_dict)
 
     @app.get("/health")
     def health_check():
@@ -80,7 +96,7 @@ def create_api(rag: RAGPipeline, endpoint: str):
 
 
 def rag(config_file):
-    """Run RAG."""
+    """Run RAG in local or API"""
     config = load_config(config_file, RAGInferenceConfig)
 
     logger.info("Creating the RAG Pipeline...")
@@ -93,14 +109,16 @@ def rag(config_file):
         queries = read_queries(config_args.input_file)
         results = rag_pp(queries, return_dict=True)
         save_results(results, config_args.output_file)
+
     elif config.mode == "api":
         config_args = cast(APIConfig, config.mode_args)
 
         app = create_api(rag_pp, config_args.endpoint)
         uvicorn.run(app, host=config_args.host, port=config_args.port)
+
     else:
         raise ValueError(
-            f"Unknown inference mode: {config.mode}. Should be in [api, local]"
+            f"Unknown mode: {config.mode}. Should be either api or local"
         )
 
 
