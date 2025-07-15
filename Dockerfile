@@ -13,6 +13,9 @@ RUN echo "Using CPU-only image"
 FROM ${PLATFORM:-gpu} AS build
 ARG UV_ARGUMENTS
 
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       python3-venv python3-pip \
@@ -25,8 +28,8 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
-RUN groupadd --gid 84257 mmoreuser \
- && useradd --uid 272918 --gid 84257 -m mmoreuser
+RUN groupadd --gid ${USER_GID} mmoreuser \
+ && useradd --uid ${USER_UID} --gid ${USER_GID} -m mmoreuser
 
 WORKDIR /app
 RUN python3 -m venv .venv \
