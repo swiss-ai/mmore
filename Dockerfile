@@ -20,7 +20,11 @@ ARG PLATFORM
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.8 /uv /uvx /bin/
 
-RUN apt-get update && apt-get install -y python3-pip && pip3 install uv
+# Install Python, create virtualenv, and install UV
+RUN apt-get update \
+ && apt-get install -y python3-venv python3-pip \
+ && python3 -m venv /app/.venv \
+ && /app/.venv/bin/pip install uv
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -48,7 +52,6 @@ RUN chown -R mmoreuser:mmoreuser /app
 COPY pyproject.toml ./
 # RUN uv sync --frozen ${UV_ARGUMENTS}
 
-
 # make uv's python the default python for the image
 ENV PATH="/app/.venv/bin:$PATH"
 
@@ -60,4 +63,3 @@ ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 USER mmoreuser
 
 ENTRYPOINT ["/bin/bash"]
-
