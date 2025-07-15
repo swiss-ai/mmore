@@ -36,10 +36,9 @@ RUN python3 -m venv .venv \
  && .venv/bin/pip install --no-cache-dir uv
 
 COPY pyproject.toml poetry.lock* /app/
-
-RUN .venv/bin/pip install --no-cache-dir -e .
-
 COPY --chown=mmoreuser:mmoreuser . /app
+
+RUN .venv/bin/uv pip install --no-cache ${UV_ARGUMENTS} -e .
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
