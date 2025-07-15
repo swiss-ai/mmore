@@ -56,9 +56,9 @@ COPY pyproject.toml ./
 ENV PATH="/app/.venv/bin:$PATH"
 
 # install mpmath
-RUN uv pip install -e . --system
+RUN pip install -e . 
 
-ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
+ENV DASK_DISTRIBUTED__WORKER__DAEMON=False DASK_DISTRIBUTED__WORKER__DAEMON=False
 
 USER mmoreuser
 
