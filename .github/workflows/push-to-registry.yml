@@ -12,7 +12,7 @@ jobs:
       matrix:
         user:
           - { uid: 1000,    gid: 1000,    tag: "10001000"    }
-          - { uid: 84257,   gid: 272918,  tag: "84257272918" }
+          - { uid: 272918,  gid: 84257,   tag: "84257272918" }
 
     steps:
       - name: Checkout
