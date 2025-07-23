@@ -9,9 +9,9 @@ import click
 import torch
 
 from mmore.dashboard.backend.client import DashboardClient
-from mmore.googledrive.drive_download import GoogleDriveDownloader
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
+from mmore.process.drive_download import GoogleDriveDownloader
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
 
