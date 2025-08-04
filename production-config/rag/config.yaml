@@ -1,0 +1,15 @@
+rag:
+  llm: 
+    llm_name: OpenMeditron/meditron3-8b
+    max_new_tokens: 1200
+  retriever:
+    db:
+      uri: $ROOT_OUT_DIR/db/proc_demo.db
+      name: 'my_db'
+    hybrid_search_weight: 0.5
+    k: 5
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+mode: local
+mode_args:
+  input_file: $ROOT_IN_DIR/rag/queries.jsonl
+  output_file: $ROOT_OUT_DIR/rag/output.json

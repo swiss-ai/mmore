@@ -43,7 +43,7 @@ To install the package simply run:
 pip install mmore
 ```
 
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](./docs/uv.md).
+> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 ### Minimal Example
 
@@ -90,14 +90,14 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
 1. **:page_facing_up: Input Documents**
    Upload your multimodal documents (PDFs, videos, spreadsheets, and m(m)ore) into the pipeline.
 
-2. [**:mag: Process**](./docs/process.md)
+2. [**:mag: Process**](https://github.com/swiss-ai/mmore/blob/master/docs/process.md)
    Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.
    *Supports fast processing for specific types.*
 
-3. [**:file_folder: Index**](./docs/index.md)
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](./docs/index_api.md) for adding new files on the fly with HTTP requests.
+3. [**:file_folder: Index**](https://github.com/swiss-ai/mmore/blob/master/docs/index.md)
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](https://github.com/swiss-ai/mmore/blob/master/docs/index_api.md) for adding new files on the fly with HTTP requests.
 
-4. [**:robot: RAG**](./docs/rag.md)
+4. [**:robot: RAG**](https://github.com/swiss-ai/mmore/blob/master/docs/rag.md)
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
    *Supports API hosting or local inference.*
 
@@ -105,7 +105,7 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
    *Coming soon*
    An easy way to evaluate the performance of your RAG system using Ragas.
 
-See [the `/docs` directory](./docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
+See [the `/docs` directory](https://github.com/swiss-ai/mmore/blob/master/docs) for additional details on each modules and hands-on tutorials on parts of the pipeline.
 
 
 #### :construction: Supported File Types

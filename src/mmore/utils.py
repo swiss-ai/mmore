@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
 
 import yaml
@@ -13,6 +14,17 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def expand_env_vars(obj):
+    if isinstance(obj, dict):
+        return {key: expand_env_vars(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [expand_env_vars(item) for item in obj]
+    elif isinstance(obj, str):
+        return os.path.expandvars(obj)
+    else:
+        return obj
+
+
 def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -> T:
     if isinstance(yaml_dict_or_path, config_class):
         return yaml_dict_or_path
@@ -22,6 +34,9 @@ def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -
             data = yaml.safe_load(file)
     else:
         data = yaml_dict_or_path
+
+    # we want to support $ROOT_IN_DIR, $ROOT_OUT_DIR
+    data = expand_env_vars(data)
 
     return from_dict(config_class, cast(Dict, data))
 
