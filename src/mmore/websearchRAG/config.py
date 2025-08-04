@@ -36,11 +36,13 @@ class WebsearchConfig:
     n_subqueries: int = 3
     n_loops: int = 2
     max_searches: int = 10
-    llm_config: Dict[str, Any] = field(default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 1200})
+    llm_config: Dict[str, Any] = field(
+        default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 1200}
+    )
     mode: Literal["local", "api"] = "local"
 
     def __post_init__(self):
-        required_fields = ["n_loops","n_subqueries", "max_searches", "mode"]
+        required_fields = ["n_loops", "n_subqueries", "max_searches", "mode"]
         for field_name in required_fields:
             if not getattr(self, field_name):
                 raise ValueError(f"'{field_name}' is a required field.")
@@ -65,7 +67,9 @@ class WebsearchConfig:
         rag_config_full_path = Path(self.rag_config_path)
 
         if not rag_config_full_path.exists():
-            raise FileNotFoundError(f"RAG config file not found at {rag_config_full_path}")
+            raise FileNotFoundError(
+                f"RAG config file not found at {rag_config_full_path}"
+            )
 
         # Load the RAG configuration
         with open(rag_config_full_path, "r") as file:

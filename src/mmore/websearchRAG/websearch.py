@@ -9,9 +9,11 @@ from ..rag.llm import LLM
 class WebsearchOnly:
     """Class dedicated to performing web searches and validating their usefulness."""
 
-    def __init__(self, region: str = 'wt-wt', max_results: int = 10):
+    def __init__(self, region: str = "wt-wt", max_results: int = 10):
         """Initialize the WebsearchOnly class with search parameters."""
-        self.wrapper = DuckDuckGoSearchAPIWrapper(region=region, max_results=max_results)
+        self.wrapper = DuckDuckGoSearchAPIWrapper(
+            region=region, max_results=max_results
+        )
 
     def websearch_pipeline(self, query: str) -> Dict[str, str]:
         """Perform a single web search."""
@@ -29,4 +31,3 @@ class WebsearchOnly:
         )
         response = llm.invoke(prompt)
         return response.strip()
-

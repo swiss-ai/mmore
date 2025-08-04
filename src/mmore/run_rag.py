@@ -66,13 +66,16 @@ class InnerInput(BaseModel):
     input: str
     collection_name: Optional[str] = None
 
+
 class RAGInput(BaseModel):
     input: InnerInput
+
 
 class RAGOutput(BaseModel):
     input: Optional[str] = None
     context: Optional[str] = None
     answer: Optional[str] = None
+
 
 def create_api(rag: RAGPipeline, endpoint: str):
     app = FastAPI(
@@ -117,9 +120,7 @@ def rag(config_file):
         uvicorn.run(app, host=config_args.host, port=config_args.port)
 
     else:
-        raise ValueError(
-            f"Unknown mode: {config.mode}. Should be either api or local"
-        )
+        raise ValueError(f"Unknown mode: {config.mode}. Should be either api or local")
 
 
 if __name__ == "__main__":

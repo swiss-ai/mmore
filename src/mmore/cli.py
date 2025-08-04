@@ -225,6 +225,7 @@ def index_api(config_file, host, port):
 
     run_api(config_file, host, port)
 
+
 @main.command()
 @click.option(
     "--config-file",
@@ -241,6 +242,7 @@ def websearch(config_file):
         config_dict = yaml.safe_load(f)
 
     run_websearch(config_dict)
+
 
 @main.command()
 @click.option(
