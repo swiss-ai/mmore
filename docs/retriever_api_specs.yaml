@@ -56,14 +56,14 @@ paths:
         '201':
           description: File successfully uploaded
 
-  /files/{id}:
+  /files/{fileId}:
     put:
       tags:
         - File Operations
       summary: Update a file
       description: Replace an existing file with a new version
       parameters:
-        - name: id
+        - name: fileId
           in: path
           required: true
           schema:
@@ -93,7 +93,7 @@ paths:
 
         **Warning**: Not limited operation.
       parameters:
-        - name: id
+        - name: fileId
           in: path
           required: true
           schema:
@@ -108,7 +108,7 @@ paths:
       summary: Download a file
       description: Download a file from the system
       parameters:
-        - name: id
+        - name: fileId
           in: path
           required: true
           schema:

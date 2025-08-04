@@ -202,7 +202,7 @@ def make_router(config_path: str) -> APIRouter:
                     "status": "success",
                     "message": f"Successfully processed and indexed {len(modified_documents)} documents",
                     "documents": [
-                        {"id": doc.document_id, "text": doc.text[:50] + "..."}
+                        {"fileId": doc.document_id, "text": doc.text[:50] + "..."}
                         for doc in modified_documents
                     ],
                 }
@@ -210,9 +210,9 @@ def make_router(config_path: str) -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.put("/v1/files/{id}", tags=["File Operations"])
+    @router.put("/v1/files/{fileId}", tags=["File Operations"])
     async def update_file(
-        id: str = Path(..., description="ID of the file to update"),
+        fileId: str = Path(..., description="ID of the file to update"),
         file: UploadFile = File(..., description="The new file content"),
     ):
         """
@@ -220,10 +220,10 @@ def make_router(config_path: str) -> APIRouter:
         """
         try:
             # Check if file exists
-            file_storage_path = FilePath(UPLOAD_DIR) / id
+            file_storage_path = FilePath(UPLOAD_DIR) / fileId
             if not file_storage_path.exists():
                 raise HTTPException(
-                    status_code=404, detail=f"File with ID {id} not found"
+                    status_code=404, detail=f"File with ID {fileId} not found"
                 )
 
             if file.filename is None:
@@ -251,7 +251,7 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Set the custom ID
                 for doc in documents:
-                    doc.id = id
+                    doc.id = fileId
 
                 # Get indexer and reindex the document
                 try:
@@ -265,8 +265,15 @@ def make_router(config_path: str) -> APIRouter:
                     client = MilvusClient(
                         uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                     )
+                    all_ids: List[str] = [
+                        r["id"]
+                        for r in client.query(
+                            collection_name=COLLECTION_NAME, output_fields=["id"]
+                        )
+                        if r["id"].startswith(fileId)
+                    ]
                     client.delete(
-                        collection_name=COLLECTION_NAME, filter=f"id == '{id}'"
+                        collection_name=COLLECTION_NAME, filter=f"id in {all_ids}"
                     )
                 except Exception as delete_error:
                     logger.warning(
@@ -282,7 +289,7 @@ def make_router(config_path: str) -> APIRouter:
                 return {
                     "status": "success",
                     "message": "File successfully updated",
-                    "fileId": id,
+                    "fileId": fileId,
                     "filename": file.filename,
                 }
 
@@ -293,18 +300,18 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error updating file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.delete("/v1/files/{id}", tags=["File Operations"])
-    async def delete_file(id: str = Path(..., description="ID of the file to delete")):
+    @router.delete("/v1/files/{fileId}", tags=["File Operations"])
+    async def delete_file(fileId: str = Path(..., description="ID of the file to delete")):
         """
         Delete a file from the system.
 
         """
         try:
             # Check if file exists
-            file_storage_path = FilePath(UPLOAD_DIR) / id
+            file_storage_path = FilePath(UPLOAD_DIR) / fileId
             if not file_storage_path.exists():
                 raise HTTPException(
-                    status_code=404, detail=f"File with ID {id} not found"
+                    status_code=404, detail=f"File with ID {fileId} not found"
                 )
 
             # Delete the physical file
@@ -315,8 +322,15 @@ def make_router(config_path: str) -> APIRouter:
                 client = MilvusClient(
                     uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                 )
+                all_ids: List[str] = [
+                    r["id"]
+                    for r in client.query(
+                        collection_name=COLLECTION_NAME, output_fields=["id"]
+                    )
+                    if r["id"].startswith(fileId)
+                ]
                 delete_result = client.delete(
-                    collection_name=COLLECTION_NAME, filter=f"id == '{id}'"
+                    collection_name=COLLECTION_NAME, filter=f"id in {all_ids}"
                 )
                 logger.info(f"Deleted document from vector DB: {delete_result}")
             except Exception as db_error:
@@ -327,7 +341,7 @@ def make_router(config_path: str) -> APIRouter:
             return {
                 "status": "success",
                 "message": "File successfully deleted",
-                "fileId": id,
+                "fileId": fileId,
             }
 
         except HTTPException as e:
@@ -337,19 +351,19 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error deleting file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.get("/v1/files/{id}", tags=["File Operations"])
+    @router.get("/v1/files/{fileId}", tags=["File Operations"])
     async def download_file(
-        id: str = Path(..., description="ID of the file to download"),
+        fileId: str = Path(..., description="ID of the file to download"),
     ):
         """
         Download a file from the system.
         """
         try:
             # Check if file exists
-            file_storage_path = FilePath(UPLOAD_DIR) / id
+            file_storage_path = FilePath(UPLOAD_DIR) / fileId
             if not file_storage_path.exists():
                 raise HTTPException(
-                    status_code=404, detail=f"File with ID {id} not found"
+                    status_code=404, detail=f"File with ID {fileId} not found"
                 )
 
             # Retrieve the filename from metadata
@@ -359,12 +373,12 @@ def make_router(config_path: str) -> APIRouter:
                 )
                 file_paths = client.query(
                     collection_name=COLLECTION_NAME,
-                    filter=f"id == '{id}'",
+                    filter=f"id == '{fileId}'",
                     output_fields=["file_path"],
                 )
 
                 if len(file_paths) == 0:
-                    raise ValueError(f"Document of id {id} not found in the database")
+                    raise ValueError(f"Document of id {fileId} not found in the database")
 
                 # all the elements with the same id refer to the same file so they have the same path
                 file_path: str = file_paths[0]["file_path"]
