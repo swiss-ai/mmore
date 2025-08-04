@@ -173,6 +173,9 @@ paths:
                   properties:
                     fileId:
                       type: string
+                    chunkId:
+                      type: string
+                      nullable: true
                     content:
                       type: string
                     similarity:
