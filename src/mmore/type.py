@@ -92,6 +92,10 @@ class MultimodalSample:
     @classmethod
     def from_jsonl(cls, file_path: str) -> List["MultimodalSample"]:
         samples = []
+        if not os.path.exists(file_path):
+            logger.warning(f"⚠️ File path {file_path} does not exist")
+            return samples
+
         with open(file_path, "r") as f:
             for line in f:
                 samples.append(cls.from_dict(json.loads(line)))

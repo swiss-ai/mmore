@@ -97,6 +97,10 @@ def process(config_file: str):
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")
 
+    if len(crawl_result) == 0:
+        logger.warning("⚠️ Found no file to process")
+        return
+
     dispatcher_config: DispatcherConfig = config.dispatcher_config
 
     url = dispatcher_config.dashboard_backend_url

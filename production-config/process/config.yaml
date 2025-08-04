@@ -1,12 +1,11 @@
-data_path: examples/sample_data/ #put absolute path! Possible to pass a list of folders as well
-google_drive_ids: [] #put ids of google drive folders
+data_path: $ROOT_IN_DIR/sample_data/ #put absolute path!
 dispatcher_config:
-  output_path: examples/process/outputs/ #put absolute path or relative to the root of the module
+  output_path: $ROOT_OUT_DIR/process/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
   dashboard_backend_url: null
   extract_images: true
-  scheduler_file: null # for instance /path/to/mmore/scheduler-file.json
+  scheduler_file: /mmore/scheduler-file.json #put absolute path!
   process_batch_sizes:
     - URLProcessor: 40
     - DOCXProcessor: 100

@@ -129,7 +129,7 @@ def make_router(config_file: str) -> APIRouter:
     retriever_obj = Retriever.from_config(config)
     logger.info("Retriever loaded!")
 
-    @router.post("/v1/retriever", tags=["Retrieval"])
+    @router.post("/v1/retrieve", tags=["Retrieval"])
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
 

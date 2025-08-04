@@ -160,6 +160,10 @@ profile = "black"
 [project.scripts]
 mmore = "mmore.cli:main"
 
+[tool.setuptools]
+packages = ["mmore"]
+package-dir = {"" = "src"}
+
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::Warning"]
 testpaths = ["tests"]
