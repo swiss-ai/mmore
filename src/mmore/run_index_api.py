@@ -359,7 +359,7 @@ def make_router(config_path: str) -> APIRouter:
                 )
                 file_paths = client.query(
                     collection_name=COLLECTION_NAME,
-                    filter=f"id == '{fileId}'",
+                    filter=f"document_id == '{fileId}'",
                     output_fields=["file_path"],
                 )
 
