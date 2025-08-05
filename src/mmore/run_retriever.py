@@ -143,9 +143,16 @@ def make_router(config_file: str) -> APIRouter:
         docs_info = []
         for doc in docs_for_query:
             meta = doc.metadata
+            if "+" in meta["id"]:
+                fileId, chunkId = meta["id"].split("+")
+            else:
+                fileId = meta["id"]
+                chunkId = None
+                
             docs_info.append(
                 {
-                    "fileId": meta["id"],
+                    "fileId": fileId,
+                    "chunkId": chunkId,
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
                 }
