@@ -266,7 +266,8 @@ def make_router(config_path: str) -> APIRouter:
                         uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                     )
                     client.delete(
-                        collection_name=COLLECTION_NAME, filter=f"document_id == '{fileId}'"
+                        collection_name=COLLECTION_NAME,
+                        filter=f"document_id == '{fileId}'",
                     )
                 except Exception as delete_error:
                     logger.warning(
@@ -294,7 +295,9 @@ def make_router(config_path: str) -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.delete("/v1/files/{fileId}", tags=["File Operations"])
-    async def delete_file(fileId: str = Path(..., description="ID of the file to delete")):
+    async def delete_file(
+        fileId: str = Path(..., description="ID of the file to delete"),
+    ):
         """
         Delete a file from the system.
 
@@ -364,7 +367,9 @@ def make_router(config_path: str) -> APIRouter:
                 )
 
                 if len(file_paths) == 0:
-                    raise ValueError(f"Document of id {fileId} not found in the database")
+                    raise ValueError(
+                        f"Document of id {fileId} not found in the database"
+                    )
 
                 # all the elements with the same id refer to the same file so they have the same path
                 file_path: str = file_paths[0]["file_path"]
