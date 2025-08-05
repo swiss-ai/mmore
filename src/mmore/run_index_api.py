@@ -265,15 +265,8 @@ def make_router(config_path: str) -> APIRouter:
                     client = MilvusClient(
                         uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                     )
-                    all_ids: List[str] = [
-                        r["id"]
-                        for r in client.query(
-                            collection_name=COLLECTION_NAME, output_fields=["id"]
-                        )
-                        if r["id"].startswith(fileId)
-                    ]
                     client.delete(
-                        collection_name=COLLECTION_NAME, filter=f"id in {all_ids}"
+                        collection_name=COLLECTION_NAME, filter=f"document_id == '{fileId}'"
                     )
                 except Exception as delete_error:
                     logger.warning(
@@ -322,15 +315,8 @@ def make_router(config_path: str) -> APIRouter:
                 client = MilvusClient(
                     uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                 )
-                all_ids: List[str] = [
-                    r["id"]
-                    for r in client.query(
-                        collection_name=COLLECTION_NAME, output_fields=["id"]
-                    )
-                    if r["id"].startswith(fileId)
-                ]
                 delete_result = client.delete(
-                    collection_name=COLLECTION_NAME, filter=f"id in {all_ids}"
+                    collection_name=COLLECTION_NAME, filter=f"document_id == {fileId}"
                 )
                 logger.info(f"Deleted document from vector DB: {delete_result}")
             except Exception as db_error:
