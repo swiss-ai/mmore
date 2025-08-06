@@ -1,4 +1,5 @@
-data_path: examples/sample_data/ #put absolute path or relative to the root of the module
+data_path: examples/sample_data/ #put absolute path! Possible to pass a list of folders as well
+google_drive_ids: [] #put ids of google drive folders
 dispatcher_config:
   output_path: examples/process/outputs/ #put absolute path or relative to the root of the module
   use_fast_processors: false
