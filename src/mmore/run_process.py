@@ -48,6 +48,7 @@ def process(config_file: str):
 
     config: ProcessInference = load_config(config_file, ProcessInference)
 
+    ggdrive_downloader, ggdrive_download_dir = None, None
     if config.google_drive_ids:
         google_drive_ids = config.google_drive_ids
         ggdrive_downloader = GoogleDriveDownloader(google_drive_ids)
@@ -58,9 +59,12 @@ def process(config_file: str):
         data_path = config.data_path
         if isinstance(data_path, str):
             data_path = [data_path]
-        root_dirs = (
-            data_path + [ggdrive_download_dir] if config.google_drive_ids else data_path
-        )
+
+        if ggdrive_download_dir:
+            root_dirs = data_path + [ggdrive_download_dir]
+        else:
+            root_dirs = data_path
+
         crawler_config = CrawlerConfig(
             root_dirs=root_dirs,
             supported_extensions=[
@@ -127,7 +131,8 @@ def process(config_file: str):
 
     logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
 
-    ggdrive_downloader.remove_downloads()
+    if ggdrive_downloader:
+        ggdrive_downloader.remove_downloads()
 
     overall_end_time = time.time()
     overall_time = overall_end_time - overall_start_time
