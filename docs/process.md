@@ -17,7 +17,7 @@ python3 -m mmore process --config-file examples/process/config.yaml
 
  We also support processing documents directly from **Google Drive**.
 
- To enable this feature, the user must create a [Google service account](https://cloud.google.com/iam/docs/service-accounts-create) and download the corresponding secrets as a JSON file. Name that file `client_secrets.json` put it in `googledrive/` (this folder may need to be created).
+ To enable this feature, the user must create a [Google service account](https://cloud.google.com/iam/docs/service-accounts-create) and download the corresponding secrets as a JSON file. Name that file `client_secrets.json` put it in `googledrive/` (this folder may need to be created at the root of the mmore repository).
 
  Make sure your **Google service account** has permission to view the drives you want to process.
 
