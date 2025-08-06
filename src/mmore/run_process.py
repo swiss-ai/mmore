@@ -55,18 +55,18 @@ def process(config_file: str):
         ggdrive_downloader.download_all()
         ggdrive_download_dir = ggdrive_downloader.download_dir
 
-    if config.data_path:
-        data_path = config.data_path
+    data_path = config.data_path or ggdrive_download_dir
+
+    if data_path:
         if isinstance(data_path, str):
             data_path = [data_path]
 
-        if ggdrive_download_dir:
-            root_dirs = data_path + [ggdrive_download_dir]
-        else:
-            root_dirs = data_path
+        # add the ggdrive_download_dir only if needed
+        if config.data_path and ggdrive_download_dir:
+            data_path += [ggdrive_download_dir]
 
         crawler_config = CrawlerConfig(
-            root_dirs=root_dirs,
+            root_dirs=data_path,
             supported_extensions=[
                 ".pdf",
                 ".docx",
