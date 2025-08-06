@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 from typing import List
-from urllib.parse import parse_qs, urlparse
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
