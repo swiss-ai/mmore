@@ -111,14 +111,3 @@ class GoogleDriveDownloader:
     def remove_downloads(self):
         if os.path.exists(self.download_dir):
             shutil.rmtree(self.download_dir)
-
-    def get_folder_id_from_url(url):
-        parsed = urlparse(url)
-        path_parts = parsed.path.split("/")
-        if "folders" in path_parts:
-            folder_index = path_parts.index("folders")
-            return path_parts[folder_index + 1]
-        query_params = parse_qs(parsed.query)
-        if "id" in query_params:
-            return query_params["id"][0]
-        raise ValueError("Could not extract folder ID from the URL")
