@@ -114,7 +114,7 @@ rag = [
   "langchain-mistralai==0.2.7",
   "langchain-nvidia-ai-endpoints",
   "langchain-openai==0.3.7",
-  "langchain==0.3.20",
+  "langchain==0.3.25",
   "langdetect>=1.0.9",
   "langserve[all]==0.3.1",
   "pymilvus==2.5.0",
