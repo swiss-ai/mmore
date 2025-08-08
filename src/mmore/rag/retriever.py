@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -28,6 +29,7 @@ class RetrieverConfig:
     hybrid_search_weight: float = 0.5
     k: int = 1
     collection_name: str = "my_docs"
+    use_web: bool = False
 
 
 class Retriever(BaseRetriever):
@@ -38,6 +40,7 @@ class Retriever(BaseRetriever):
     client: MilvusClient
     hybrid_search_weight: float
     k: int
+    use_web: bool
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -78,6 +81,7 @@ class Retriever(BaseRetriever):
             client=client,
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
+            use_web=config.use_web,
         )
 
     def compute_query_embeddings(
@@ -271,18 +275,50 @@ class Retriever(BaseRetriever):
             document_ids=document_ids,
         )
 
-        def parse_result(result: Dict[str, Any], i: int) -> Document:
+        def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
             return Document(
                 page_content=result["entity"]["text"],
                 metadata={
                     "id": result["id"],
-                    "rank": i + 1,
+                    "rank": offset + i + 1,
                     "similarity": result["distance"],
                 },
             )
 
-        # 0 because there is only one query
-        return [parse_result(result, i) for i, result in enumerate(results)]
+        def parse_results(
+            results: List[Dict[str, Any]], offset: int = 0
+        ) -> List[Document]:
+            return [parse_result(result, i, offset) for i, result in enumerate(results)]
+
+        if self.use_web:
+            web_docs = self._get_web_documents(query["input"], max_results=self.k)
+            milvus_docs = parse_results(results, len(web_docs))
+            return web_docs + milvus_docs
+        else:
+            milvus_docs = parse_results(results)
+            return milvus_docs
+
+    def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
+        """Fetch additional context from the web via DuckDuckGo."""
+        logger.info("Performing web search...")
+        try:
+            wrapper = DuckDuckGoSearchAPIWrapper()
+            results = wrapper.results(query, max_results=max_results)
+            return [
+                Document(
+                    page_content=result["snippet"],
+                    metadata={
+                        "source": "duckduckgo",
+                        "url": result["link"],
+                        "title": result["title"],
+                        "rank": i + 1,
+                    },
+                )
+                for i, result in enumerate(results)
+            ]
+        except Exception as e:
+            logger.warning(f"Langchain-DuckDuckGo search failed: {e}")
+            return []
 
     def get_documents_by_ids(
         self, doc_ids: list[str], collection_name: str = "my_docs"

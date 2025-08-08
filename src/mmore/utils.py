@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
+from dataclasses import asdict, is_dataclass
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
 import yaml
 from dacite import from_dict
@@ -39,6 +40,37 @@ def load_config(yaml_dict_or_path: Union[str, Dict, T], config_class: Type[T]) -
     data = expand_env_vars(data)
 
     return from_dict(config_class, cast(Dict, data))
+
+
+# Custom Dumper to preserve \n and avoid wrapping
+class LiteralStringDumper(yaml.SafeDumper):
+    pass
+
+
+def str_presenter(dumper, data):
+    if "\n" in data or "\r" in data:
+        # Force double-quoted string with literal escapes
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+LiteralStringDumper.add_representer(str, str_presenter)
+
+
+def save_config(config: Any, path: str) -> None:
+    if not is_dataclass(config):
+        raise ValueError("Provided config is not a dataclass instance.")
+
+    with open(path, "w") as file:
+        yaml.dump(
+            asdict(config),
+            file,
+            Dumper=LiteralStringDumper,
+            sort_keys=False,
+            default_flow_style=False,
+            allow_unicode=True,
+            width=float("inf"),  # prevents line wrapping
+        )
 
 
 # Cache indexers in memory
