@@ -103,8 +103,6 @@ class RagCLI:
                             self.init_config()
                             self.ragConfig.rag.retriever.k = k
                             self.modified = True
-                            # save_config(self.ragConfig, self.config_file)
-
                         else:
                             print("Please enter a positive integer.")
                     except ValueError:
@@ -118,7 +116,6 @@ class RagCLI:
                         self.init_config()
                         self.ragConfig.rag.llm.llm_name = new_model
                         self.modified = True
-                        # save_config(self.ragConfig, self.config_file)
                     else:
                         print(message)
 
@@ -135,7 +132,6 @@ class RagCLI:
                             if old == self.ragConfig.rag.retriever.use_web
                             else True
                         )
-                        # save_config(self.ragConfig, self.config_file)
                     else:
                         print(
                             f"Invalid output. Enter {str_in_color('setWebrag True', 'green')} or {str_in_color('setWebrag False', 'red')}."
@@ -166,7 +162,6 @@ class RagCLI:
     def init_config(self):
         if self.ragConfig is None:
             self.ragConfig = load_config(self.config_file, RAGInferenceConfig)
-            # save_config(self.ragConfig, self.config_file)
 
     def initialize_ragpp(self):
         logger.info("Creating the RAG Pipeline...")
@@ -176,7 +171,7 @@ class RagCLI:
     def do_rag(self, query):
         queries = [{"input": query, "collection_name": "my_docs"}]
         results = self.ragPP(queries, return_dict=True)
-        # print(results)
+        
         print(query)
         print(results[0]["answer"].split("<|end_header_id|>")[-1])
         if self.ragConfig.rag.retriever.use_web:
