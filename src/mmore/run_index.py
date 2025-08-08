@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 from dataclasses import dataclass
 from typing import Optional, Union
@@ -26,17 +25,6 @@ class IndexConfig:
     indexer: IndexerConfig
     collection_name: str
     documents_path: str
-
-
-def load_results(path: str):
-    # Load the results computed and saved by 'run_process.py'
-    results = []
-    logger.info(f"Loading results from {path}")
-    with open(path, "rb") as f:
-        for line in f:
-            results.append(MultimodalSample.from_dict(json.loads(line)))
-    logger.info(f"Loaded {len(results)} results")
-    return results
 
 
 def index(

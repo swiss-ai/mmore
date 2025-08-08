@@ -1,5 +1,5 @@
 dispatcher_config:
-  output_path: /mnt/mlo/scratch/homes/mmore/datasets/cc_sample/mmore_output_fast/
+  output_path: examples/mmore_output_fast/
   use_fast_processors: true
   distributed: false
   extract_images: true

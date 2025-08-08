@@ -86,7 +86,7 @@ This command:
 {
   "status": "success",
   "message": "Successfully processed and indexed 3 documents",
-  "documents": [{"id": "doc1", "text": "First 50 characters..."}]
+  "documents": [{"fileId": "doc1", "text": "First 50 characters..."}]
 }
 ```
 
@@ -94,13 +94,13 @@ This command:
 
 ## 🔁 Update Endpoint
 
-### ✏️ `PUT /v1/files/{id}`
+### ✏️ `PUT /v1/files/{fileId}`
 
 **Replace an existing file and re-index**
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `id` | `str` (path) | Existing file ID |
+| `fileId` | `str` (path) | Existing file ID |
 | `file` | `UploadFile` (form) | New file to replace with |
 - Deletes the previous vector entry.
 - Re-indexes new content with the same ID.
@@ -120,13 +120,13 @@ This command:
 
 ## 🗑️ Delete Endpoint
 
-### ❌ `DELETE /v1/files/{id}`
+### ❌ `DELETE /v1/files/{fileId}`
 
 **Delete a file and remove its vector entry**
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `id` | `str` (path) | ID of the file to delete |
+| `fileId` | `str` (path) | ID of the file to delete |
 - Deletes both local file and vector DB entry.
 
 **Response**:
@@ -143,13 +143,13 @@ This command:
 
 ## 📥 Download Endpoint
 
-### 📄 `GET /v1/files/{id}`
+### 📄 `GET /v1/files/{fileId}`
 
 **Download a file by its ID**
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `id` | `str` (path) | ID of the file to download |
+| `fileId` | `str` (path) | ID of the file to download |
 
 Returns the file with binary content.
 

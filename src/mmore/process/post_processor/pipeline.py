@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from ...type import MultimodalSample
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
@@ -30,8 +30,11 @@ class PPPipeline:
     def __init__(
         self,
         *processors: BasePostProcessor,
-        output_config: OutputConfig = OutputConfig(output_path="./results"),
+        output_config: Optional[OutputConfig] = None,
     ):
+        if output_config is None:
+            output_config = OutputConfig(output_path="./results")
+
         self.post_processors = processors
         self.output_config = output_config
 
