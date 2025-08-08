@@ -24,7 +24,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==1.26.3; python_version <'3.12'",
+    "numpy==1.26.3; python_version < '3.12'",
     "numpy==2.2.6; python_version >= '3.12'",
     "pandas==2.3.0",
     "datasets==2.19.1",
@@ -62,7 +62,8 @@ dependencies = [
     "chonkie==0.2.1.post1",
     "langdetect>=1.0.9",
     "trafilatura==2.0.0",
-    "datatrove==0.6.0",
+    "datatrove==0.3.0; python_version < '3.12'",
+    "datatrove==0.6.0; python_version >= '3.12'",
     "validators==0.34.0",
     "bokeh",
     "motor==3.7.1",
