@@ -60,7 +60,7 @@ dependencies = [
     "openpyxl==3.1.5",
     "chonkie==0.2.1.post1",
     "langdetect>=1.0.9",
-    "trafilatura==1.4.0",
+    "trafilatura==2.0.0",
     "datatrove==0.3.0",
     "validators==0.34.0",
     "bokeh",
