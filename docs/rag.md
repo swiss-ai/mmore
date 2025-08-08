@@ -118,7 +118,7 @@ A user-friendly CLI for RAG. Start your RAG CLI using the `run_ragcli.py` script
 python3 -m mmore ragcli --config_file /path/to/config.yaml
 ```
 
-You can customize the CLI by defining [a RAG configuration file](/examples/rag/config.yaml) or by setting preferences from withing the CLI.
+You can customize the CLI by defining [a RAG configuration file](/examples/rag/config.yaml) or by setting preferences from within the CLI.
 
 #### LLM
 
