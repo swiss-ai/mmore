@@ -171,7 +171,7 @@ class RagCLI:
     def do_rag(self, query):
         queries = [{"input": query, "collection_name": "my_docs"}]
         results = self.ragPP(queries, return_dict=True)
-        
+
         print(query)
         print(results[0]["answer"].split("<|end_header_id|>")[-1])
         if self.ragConfig.rag.retriever.use_web:
