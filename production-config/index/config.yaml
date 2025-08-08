@@ -1,0 +1,12 @@
+indexer:
+  dense_model:
+    model_name: sentence-transformers/all-MiniLM-L6-v2
+    is_multimodal: false
+  sparse_model:
+    model_name: splade
+    is_multimodal: false
+  db:
+    uri: $ROOT_OUT_DIR/db/proc_demo.db
+    name: my_db
+collection_name: my_docs
+documents_path: '$ROOT_OUT_DIR/postprocessor/outputs/merged/final_pp.jsonl'

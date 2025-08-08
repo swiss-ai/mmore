@@ -7,11 +7,20 @@ The process module enables the extraction and standardization of text and images
 [Setup the project](./installation.md) on each device you want to use using our setup script or looking at what it does and doing it manually.
 
 #### :computer: Running locally
-You have to specify the input folder by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+You have to specify the input folders by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
 
 ```bash
 python3 -m mmore process --config-file examples/process/config.yaml
 ```
+
+📌 **Note:**
+
+ We also support processing documents directly from **Google Drive**.
+
+ To enable this feature, the user must create a [Google service account](https://cloud.google.com/iam/docs/service-accounts-create) and download the corresponding secrets as a JSON file. Name that file `client_secrets.json` put it in `googledrive/` (this folder may need to be created at the root of the mmore repository).
+
+ Make sure your **Google service account** has permission to view the drives you want to process.
+
 The output of the pipeline has the following structure:
 ```
 output_path

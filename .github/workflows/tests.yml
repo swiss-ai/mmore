@@ -29,6 +29,12 @@ jobs:
           pip install -e '.[rag,dev]'  # or custom setup
           pip install pytest  # if not in requirements.txt
 
+      - name: Show installed cohere and langchain-cohere versions
+        run: |
+          pip show cohere || echo "Cohere not installed"
+          pip show langchain-cohere || echo "Langchain-cohere not installed"
+
+
       - name: Run tests
         run: |
           pytest

@@ -74,6 +74,7 @@ dependencies = [
     "pymilvus==2.5.0",
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
+    "cohere==5.15.0",
     "langchain-anthropic==0.3.4",
     "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
@@ -85,15 +86,18 @@ dependencies = [
     "langchain-openai==0.3.7",
     "langchain==0.3.25",
     "langserve[all]==0.3.1",
+    "markdownify==0.13.1",
     "ragas==0.2.6",
     "nltk>=3.9",
     "starlette==0.46",
     "typing_extensions==4.12.2",
     "sympy==1.14.0",
-    "langid",
+    "google-auth==2.39.0",
+    "google-api-python-client==2.173.0",
     "mammoth==1.9.0",
     "argostranslate",
     "sentence-transformers",
+    "langid"
 ]
 
 [project.optional-dependencies]
@@ -106,6 +110,7 @@ cu124 = [
 
 rag = [
   "accelerate",
+  "cohere==5.15.0",
   "langchain-anthropic==0.3.4",
   "langchain-aws",
   "langchain-cohere==0.4.2",
@@ -155,6 +160,10 @@ profile = "black"
 
 [project.scripts]
 mmore = "mmore.cli:main"
+
+[tool.setuptools]
+packages = ["mmore"]
+package-dir = {"" = "src"}
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::Warning"]
