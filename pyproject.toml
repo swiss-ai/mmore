@@ -77,7 +77,7 @@ dependencies = [
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
     "cohere==5.15.0",
-    "langchain-anthropic==0.3.4",
+    "langchain-anthropic==0.3.18",
     "langchain-aws==0.2.30",
     "langchain-cohere==0.4.2",
     "langchain_community==0.3.25",
@@ -113,7 +113,7 @@ cu124 = [
 rag = [
   "accelerate",
   "cohere==5.15.0",
-  "langchain-anthropic==0.3.4",
+  "langchain-anthropic==0.3.18",
   "langchain-aws==0.2.30",
   "langchain-cohere==0.4.2",
   "langchain-huggingface==0.1.2",
