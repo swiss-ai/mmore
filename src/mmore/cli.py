@@ -244,6 +244,7 @@ def websearch(config_file):
     run_websearch(config_file)
 
 
+
 @main.command()
 @click.option(
     "--host",
