@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 import torch
 import uvicorn
+import yaml
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
@@ -27,7 +28,6 @@ torch.backends.cuda.enable_flash_sdp(False)
 torch.backends.cuda.enable_math_sdp(True)
 
 
-
 @dataclass
 class WebsearchInferenceConfig:
     websearch: WebsearchConfig
@@ -39,8 +39,10 @@ class WebsearchInferenceConfig:
 
 
 def run_websearch(config_file):
-    # 1) Load config
-    cfg = load_config(config_file, WebsearchInferenceConfig)
+    with open(config_file, "r") as f:
+        config_dict = yaml.safe_load(f)
+
+    cfg = load_config(config_dict, WebsearchInferenceConfig)
     ws = cfg.websearch
     if ws.mode == "local":
         pipeline = WebsearchPipeline(config=ws)
@@ -67,18 +69,11 @@ class QueryInput(BaseModel):
 
 class WebQuery(BaseModel):
     query: QueryInput = Field(
-        ...,
-        description="Search query with input and optional collection name"
+        ..., description="Search query with input and optional collection name"
     )
-    use_rag: bool = Field(
-        False,
-        description="Include RAG context",
-        example=True
-    )
+    use_rag: bool = Field(False, description="Include RAG context", example=True)
     use_summary: bool = Field(
-        True,
-        description="Enable subquery summary",
-        example=False
+        True, description="Enable subquery summary", example=False
     )
 
 
@@ -101,13 +96,15 @@ This API defines the retriever API of mmore, handling:
     @app.post("/websearch")
     # query = query parameter
     def websearch(query: WebQuery):
-        #charge la pipeline directement depuis rag_pp
-        #changer le config_file avec le config file du rag --> ajouter ce que l'utilisateur demande
+        # charge la pipeline directement depuis rag_pp
+        # changer le config_file avec le config file du rag --> ajouter ce que l'utilisateur demande
         pipeline = WebsearchPipeline(config=config_file.websearch)
 
         if query.use_rag:
             logger.info("Launch RAG")
-            config_rag = load_config(config_file.websearch.rag_config_path, RAGInferenceConfig)
+            config_rag = load_config(
+                config_file.websearch.rag_config_path, RAGInferenceConfig
+            )
             logger.info("Creating the RAG Pipeline...")
             rag_pp = RAGPipeline.from_config(config_rag.rag)
             data = rag_pp([query.query.dict()], return_dict=True)
@@ -121,19 +118,20 @@ This API defines the retriever API of mmore, handling:
         answers = pipeline.run_api(query.use_rag, query.use_summary, data)
         logger.info("Websearch done")
 
-
         return answers
 
     return app
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the Websearch (+ optional RAG) pipeline.")
+    parser = argparse.ArgumentParser(
+        description="Run the Websearch (+ optional RAG) pipeline."
+    )
     parser.add_argument(
         "--config-file",
         type=str,
         required=True,
-        help="Path to the Websearch configuration file (YAML)."
+        help="Path to the Websearch configuration file (YAML).",
     )
     args = parser.parse_args()
     run_websearch(args.config_file)

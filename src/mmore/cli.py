@@ -225,6 +225,7 @@ def index_api(config_file, host, port):
 
     run_api(config_file, host, port)
 
+
 @main.command()
 @click.option(
     "--config-file",
@@ -236,11 +237,12 @@ def websearch(config_file):
     """Run the Websearch (+ optional RAG) pipeline."""
     from .run_websearch import run_websearch
 
-    # Load your YAML configuration and pass it into the runner
-    with open(config_file, "r") as f:
-        config_dict = yaml.safe_load(f)
+    # # Load your YAML configuration and pass it into the runner
+    # with open(config_file, "r") as f:
+    #     config_dict = yaml.safe_load(f)
 
-    run_websearch(config_dict)
+    run_websearch(config_file)
+
 
 @main.command()
 @click.option(

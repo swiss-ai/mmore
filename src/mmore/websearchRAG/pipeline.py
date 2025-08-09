@@ -28,7 +28,6 @@ class ProcessedResponse:
     sources: Dict[str, Any]  # Maps URLs to lists of titles
 
 
-
 class WebsearchPipeline:
     """
     Pipeline for running RAG and iterative websearch loops,
@@ -40,21 +39,23 @@ class WebsearchPipeline:
         self.llm = self._initialize_llm()
         self.rag_results = None
         self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches)
-        self.search = DuckDuckGoSearchResults(api_wrapper=self.wrapper, output_format="list")
-
+        self.search = DuckDuckGoSearchResults(
+            api_wrapper=self.wrapper, output_format="list"
+        )
 
     def _initialize_llm(self) -> LLM:
-        if self.config.use_rag :
+        if self.config.use_rag:
             rag_cfg = self.config.access_rag_config()
             llm_conf = rag_cfg.get("rag", {}).get("llm")
             if llm_conf is None:
-                raise ValueError("Missing 'llm' config under 'rag' in RAG configuration.")
+                raise ValueError(
+                    "Missing 'llm' config under 'rag' in RAG configuration."
+                )
             return LLM.from_config(LLMConfig(**llm_conf))
-        else :
+        else:
             base_conf = self.config.get_llm_config()
             base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
-
 
     def generate_summary(self, rag_answer, query: str):
         """
@@ -72,13 +73,17 @@ class WebsearchPipeline:
         )
 
         messages = [
-            SystemMessage(content="You are a helpful assistant that summarizes text relevant to the question."),
+            SystemMessage(
+                content="You are a helpful assistant that summarizes text relevant to the question."
+            ),
             HumanMessage(content=prompt),
         ]
         response = self.llm.invoke(messages)
         return self._clean_llm_output(response.content)
 
-    def evaluate_subquery_relevance(self, query, current_subqueries, previous_subqueries):
+    def evaluate_subquery_relevance(
+        self, query, current_subqueries, previous_subqueries
+    ):
         prompt = (
             f"Original query:\n{query}\n\n"
             f"Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
@@ -93,11 +98,10 @@ class WebsearchPipeline:
         response = self.llm.invoke(messages)
         response = self._clean_llm_output(response.content)
 
-        if 'no' in response :
+        if "no" in response:
             return False
-        else :
+        else:
             return True
-
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -110,11 +114,8 @@ class WebsearchPipeline:
 
         return cleaned_section
 
-
     def generate_subqueries(
-        self,
-        original_query: str,
-        current_context: Optional[str] = None
+        self, original_query: str, current_context: Optional[str] = None
     ) -> List[str]:
         """
         Generate concise search subqueries
@@ -134,10 +135,11 @@ class WebsearchPipeline:
                 f"---ANSWER ---"
             )
 
-
         prompt = instruction + task
         messages = [
-            SystemMessage(content="You are an assistant specializing in generating search queries."),
+            SystemMessage(
+                content="You are an assistant specializing in generating search queries."
+            ),
             HumanMessage(content=prompt),
         ]
 
@@ -145,9 +147,6 @@ class WebsearchPipeline:
         cleaned_answer = self._clean_llm_output(response.content)
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
         return cleaned_answer
-
-
-
 
     def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
         """
@@ -164,28 +163,33 @@ class WebsearchPipeline:
                 url = r.get("link", "")  # note: it's "link" in LangChain results
                 title = r.get("title", "")
 
-                formatted_results.append({"snippet": snippet, "url": url, "title" : title})
+                formatted_results.append(
+                    {"snippet": snippet, "url": url, "title": title}
+                )
 
             return formatted_results
         except Exception as e:
             logger.error(f"DuckDuckGo search error: {e}")
             return []
 
-
-    def integrate_with_llm( self, original: str, rag_doc: str, web_snippets: List[str]) -> Dict[str, str]:
+    def integrate_with_llm(
+        self, original: str, rag_doc: str, web_snippets: List[str]
+    ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
         sources = "\n".join(web_snippets)
         prompt = (
-        f"Original Query: {original}\n"
-        f"RAG Document Information:\n{rag_doc}\n\n"
-        f"Web Information:\n{sources}\n\n"
-        "Provide the response in the following format:\n"
-        "short answer: <your concise answer>\n"
-        "detailed answer: <your detailed answer>"
-    )
+            f"Original Query: {original}\n"
+            f"RAG Document Information:\n{rag_doc}\n\n"
+            f"Web Information:\n{sources}\n\n"
+            "Provide the response in the following format:\n"
+            "short answer: <your concise answer>\n"
+            "detailed answer: <your detailed answer>"
+        )
 
-
-        msgs = [SystemMessage(content="You are a research assistant."), HumanMessage(content=prompt)]
+        msgs = [
+            SystemMessage(content="You are a research assistant."),
+            HumanMessage(content=prompt),
+        ]
         resp = self.llm.invoke(msgs)
         # parse
         clean_content = self._clean_llm_output(resp.content)
@@ -193,26 +197,23 @@ class WebsearchPipeline:
         sa_matches = re.findall(
             r"short answer:\s*(.*?)(?=detailed answer:)",
             clean_content,
-            flags=re.IGNORECASE|re.DOTALL
+            flags=re.IGNORECASE | re.DOTALL,
         )
         da_matches = re.findall(
-            r"detailed answer:\s*(.*)",
-            clean_content,
-            flags=re.IGNORECASE|re.DOTALL
+            r"detailed answer:\s*(.*)", clean_content, flags=re.IGNORECASE | re.DOTALL
         )
 
         short = sa_matches[-1].strip().rstrip(",") if sa_matches else ""
         detailed = da_matches[-1].strip() if da_matches else ""
         return {"short": short, "detailed": detailed}
 
-
-
     def process_record(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         qr = rec.get("input", "").strip()
         rag_ans = rec.get("answer", "") if self.config.use_rag else ""
         self.rag_results = rag_ans
-        rag_summary = self.generate_summary(rag_ans, qr) if self.config.use_rag else None
-
+        rag_summary = (
+            self.generate_summary(rag_ans, qr) if self.config.use_rag else None
+        )
 
         source_map = {}
         current_context = rag_summary
@@ -221,7 +222,6 @@ class WebsearchPipeline:
 
         web_summaries = []
         previous_sub = []
-
 
         for loop in range(self.config.n_loops):
             if self.config.use_rag:
@@ -232,13 +232,14 @@ class WebsearchPipeline:
             snippets = []
             subquery_summaries = []
 
-
-            if loop > 0 and not self.evaluate_subquery_relevance(qr, subs, previous_sub):
+            if loop > 0 and not self.evaluate_subquery_relevance(
+                qr, subs, previous_sub
+            ):
                 break
 
             for sq in subs:
                 time.sleep(10)
-                res = self.duckduckgo_search(query = sq)
+                res = self.duckduckgo_search(query=sq)
 
                 subquery_snippets = []
 
@@ -253,7 +254,6 @@ class WebsearchPipeline:
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
 
-
                     combined_snippets = "\n".join(subquery_snippets)
 
                     summary = self.generate_summary(combined_snippets, sq)
@@ -261,7 +261,9 @@ class WebsearchPipeline:
 
             previous_sub = subs
 
-            combined_sub_summaries = "\n".join([str(s) if s else "" for s in subquery_summaries])
+            combined_sub_summaries = "\n".join(
+                [str(s) if s else "" for s in subquery_summaries]
+            )
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
@@ -272,7 +274,9 @@ class WebsearchPipeline:
                 # If not summarizing subqueries, use rag summary or current context with snippets
                 context_for_llm = current_context
 
-            combined_web_summaries = "\n".join([str(s) if s else "" for s in web_summaries])
+            combined_web_summaries = "\n".join(
+                [str(s) if s else "" for s in web_summaries]
+            )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
             # Current context, web content  to generate the answer
@@ -282,19 +286,17 @@ class WebsearchPipeline:
             # Prepare context for next search loop
             current_context = final_detailed
 
-        solution =  ProcessedResponse(
-        query=qr,
-        rag_informations=self.rag_results,
-        rag_summary=rag_summary if self.config.use_rag else None,
-        web_summary=web_summary_all,
-        short_answer=final_short,
-        detailed_answer=final_detailed,
-        sources=source_map
+        solution = ProcessedResponse(
+            query=qr,
+            rag_informations=self.rag_results,
+            rag_summary=rag_summary if self.config.use_rag else None,
+            web_summary=web_summary_all,
+            short_answer=final_short,
+            detailed_answer=final_detailed,
+            sources=source_map,
         )
 
         return asdict(solution)
-
-
 
     def run(self):
         # RAG pipeline
@@ -305,29 +307,24 @@ class WebsearchPipeline:
             rag(self.config.rag_config_path)
             rc = self.config.access_rag_config()
             self.config.input_file = rc["mode_args"]["output_file"]
-            with open(self.config.input_file, 'r', encoding='utf-8') as f:
+            with open(self.config.input_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
         else:
             self.config.input_file = self.config.input_queries
             data = []
-            with open(self.config.input_file, 'r', encoding='utf-8') as f:
+            with open(self.config.input_file, "r", encoding="utf-8") as f:
                 for line in f:
                     data.append(json.loads(line.strip()))  # JSONL format
-
 
         outputs = []
         outputs = [self.process_record(rec) for rec in data]
 
-
         # save
         outp = Path(self.config.output_file)
         outp.parent.mkdir(exist_ok=True, parents=True)
-        with open(outp, 'w', encoding='utf-8') as f:
+        with open(outp, "w", encoding="utf-8") as f:
             json.dump(outputs, f, ensure_ascii=False, indent=2)
         logger.info(f"Results saved to {outp}")
-
-
-
 
     def run_api(self, use_rag, use_summary, query):
         """
@@ -348,8 +345,8 @@ class WebsearchPipeline:
         try:
             outputs = []
             # Read from the temporary JSONL file
-            with open(temp_file_path, 'r', encoding='utf-8') as f:
-                if self.config.use_rag :
+            with open(temp_file_path, "r", encoding="utf-8") as f:
+                if self.config.use_rag:
                     for line in f:
                         record = json.loads(line)
                         outputs.append(self.process_record(record))
@@ -365,15 +362,21 @@ class WebsearchPipeline:
             logger.info(f"Deleting temporary file: {temp_file_path}")
         os.remove(temp_file_path)
 
-
     def _save_query_as_json(self, query):
         """Save query to a temporary JSONL file and return the file path."""
-        suffix = '.json' if self.config.use_rag else '.jsonl'
-        with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False) as temp_file:
+        suffix = ".json" if self.config.use_rag else ".jsonl"
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=suffix, delete=False
+        ) as temp_file:
             # Convert Pydantic models to dictionaries if needed
             if isinstance(query, list):
-                temp_file.writelines(json.dumps(q.dict() if hasattr(q, "dict") else q) + '\n' for q in query)
+                temp_file.writelines(
+                    json.dumps(q.dict() if hasattr(q, "dict") else q) + "\n"
+                    for q in query
+                )
             else:
-                temp_file.write(json.dumps(query.dict() if hasattr(query, "dict") else query) + '\n')
+                temp_file.write(
+                    json.dumps(query.dict() if hasattr(query, "dict") else query) + "\n"
+                )
             logger.info(f"Query saved to temporary file: {temp_file.name}")
             return temp_file.name
