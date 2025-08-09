@@ -1,6 +1,7 @@
 from typing import Optional
 
 import click
+import yaml
 
 
 @click.group()
@@ -223,6 +224,25 @@ def index_api(config_file, host, port):
     from .run_index_api import run_api
 
     run_api(config_file, host, port)
+
+
+@main.command()
+@click.option(
+    "--config-file",
+    type=str,
+    required=True,
+    help="Path to the Websearch configuration file (YAML).",
+)
+def websearch(config_file):
+    """Run the Websearch (+ optional RAG) pipeline."""
+    from .run_websearch import run_websearch
+
+    # # Load your YAML configuration and pass it into the runner
+    # with open(config_file, "r") as f:
+    #     config_dict = yaml.safe_load(f)
+
+    run_websearch(config_file)
+
 
 
 @main.command()
