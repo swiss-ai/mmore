@@ -1,7 +1,6 @@
 from typing import Optional
 
 import click
-import yaml
 
 
 @click.group()
@@ -242,7 +241,6 @@ def websearch(config_file):
     #     config_dict = yaml.safe_load(f)
 
     run_websearch(config_file)
-
 
 
 @main.command()
