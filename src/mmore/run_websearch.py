@@ -7,7 +7,6 @@ from typing import Optional, Union
 
 import torch
 import uvicorn
-import yaml
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
@@ -39,10 +38,7 @@ class WebsearchInferenceConfig:
 
 
 def run_websearch(config_file):
-    with open(config_file, "r") as f:
-        config_dict = yaml.safe_load(f)
-
-    cfg = load_config(config_dict, WebsearchInferenceConfig)
+    cfg = load_config(config_file, WebsearchInferenceConfig)
     ws = cfg.websearch
     if ws.mode == "local":
         pipeline = WebsearchPipeline(config=ws)
