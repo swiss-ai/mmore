@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/github/v/release/OpenMeditron/End2End" alt="Release">
+  <img src="https://img.shields.io/github/v/release/swiss-ai/mmore" alt="Release">
 </p>
 
 ####  <center>Massive Multimodal Open RAG & Extraction</center>
