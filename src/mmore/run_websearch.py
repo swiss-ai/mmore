@@ -58,8 +58,8 @@ def run_websearch(config_file):
 
 class QueryInput(BaseModel):
     input: str = Field(..., description="The user query")
-    collection_name: Optional[str] = Field(
-        None, description="The collection to search if use_rag set to True"
+    collection_name: str = Field(
+        "my_docs", description="The collection to search if use_rag set to True"
     )
 
 

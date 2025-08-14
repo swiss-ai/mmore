@@ -36,8 +36,8 @@ class WebsearchConfig:
     n_subqueries: int = 3
     n_loops: int = 2
     max_searches: int = 10
-    llm_config: Dict[str, Any] = field(
-        default_factory=lambda: {"llm_name": "gpt-4", "max_new_tokens": 1200}
+    llm_config: LLMConfig = field(
+        default_factory=lambda: LLMConfig(**{"llm_name": "gpt-4", "max_new_tokens": 1200})
     )
     mode: Literal["local", "api"] = "local"
 
@@ -49,9 +49,9 @@ class WebsearchConfig:
 
     def get_llm_config(self) -> LLMConfig:
         """
-        Convert the nested llm_config dict into an instance of rag.llm.LLMConfig.
+        Return the nested llm_config object.
         """
-        return LLMConfig(**self.llm_config)
+        return self.llm_config
 
     def access_rag_config(self) -> Dict[str, Any]:
         """
