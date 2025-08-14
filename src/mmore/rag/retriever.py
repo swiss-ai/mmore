@@ -291,7 +291,7 @@ class Retriever(BaseRetriever):
             return [parse_result(result, i, offset) for i, result in enumerate(results)]
 
         if self.use_web:
-            web_docs = self._get_web_documents(query["input"], max_results=self.k)
+            web_docs = self._get_web_documents(query_input, max_results=self.k)
             milvus_docs = parse_results(results, len(web_docs))
             return web_docs + milvus_docs
         else:

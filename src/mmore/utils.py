@@ -1,7 +1,6 @@
 import logging
 import os
-from dataclasses import asdict, is_dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
 
 import yaml
 from dacite import from_dict
@@ -55,22 +54,6 @@ def str_presenter(dumper, data):
 
 
 LiteralStringDumper.add_representer(str, str_presenter)
-
-
-def save_config(config: Any, path: str) -> None:
-    if not is_dataclass(config):
-        raise ValueError("Provided config is not a dataclass instance.")
-
-    with open(path, "w") as file:
-        yaml.dump(
-            asdict(config),
-            file,
-            Dumper=LiteralStringDumper,
-            sort_keys=False,
-            default_flow_style=False,
-            allow_unicode=True,
-            width=float("inf"),  # prevents line wrapping
-        )
 
 
 # Cache indexers in memory
