@@ -3,7 +3,7 @@ from typing import Dict
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
-from ..rag.llm import LLM
+from ..rag.llm import LLM, LLMConfig
 
 
 class WebsearchOnly:
@@ -23,11 +23,14 @@ class WebsearchOnly:
 
     def summarize_web_search(self, query: str, web_output: str) -> str:
         """Call LLM to summarize the current web output based on the original query, return a summary of the web search and the source."""
-        llm = LLM()
+        llm = LLM.from_config(
+            LLMConfig(llm_name="OpenMeditron/meditron3-8b", max_new_tokens=1200)
+        )
         prompt = (
             f"Original Query: '{query}'\n"
             f"Web content: '{web_output}'\n"
             "Based on the original query and the web content, can you provide a response to the original query?"
         )
-        response = llm.invoke(prompt)
+        response = llm.invoke(prompt).content
+        assert isinstance(response, str)
         return response.strip()

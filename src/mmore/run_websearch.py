@@ -53,7 +53,7 @@ def run_websearch(config_file):
         uvicorn.run(app, host="0.0.0.0", port=8000)
 
     else:
-        raise ValueError(f"Unknown mode: {cfg.mode!r}. Must be 'local' or 'api'.")
+        raise ValueError(f"Unknown mode: {ws.mode!r}. Must be 'local' or 'api'.")
 
 
 class QueryInput(BaseModel):
@@ -67,13 +67,13 @@ class WebQuery(BaseModel):
     query: QueryInput = Field(
         ..., description="Search query with input and optional collection name"
     )
-    use_rag: bool = Field(False, description="Include RAG context", example=True)
+    use_rag: bool = Field(False, description="Include RAG context", examples=[True])
     use_summary: bool = Field(
-        True, description="Enable subquery summary", example=False
+        True, description="Enable subquery summary", examples=[False]
     )
 
 
-def create_api(config_file: str):
+def create_api(config: WebsearchInferenceConfig):
     app = FastAPI(
         title="mmore Websearch API",
         description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
@@ -92,14 +92,12 @@ This API defines the retriever API of mmore, handling:
     @app.post("/websearch")
     # query = query parameter
     def websearch(query: WebQuery):
-        # charge la pipeline directement depuis rag_pp
-        # changer le config_file avec le config file du rag --> ajouter ce que l'utilisateur demande
-        pipeline = WebsearchPipeline(config=config_file.websearch)
+        pipeline = WebsearchPipeline(config=config.websearch)
 
         if query.use_rag:
             logger.info("Launch RAG")
             config_rag = load_config(
-                config_file.websearch.rag_config_path, RAGInferenceConfig
+                config.websearch.rag_config_path, RAGInferenceConfig
             )
             logger.info("Creating the RAG Pipeline...")
             rag_pp = RAGPipeline.from_config(config_rag.rag)

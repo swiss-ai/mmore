@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from ..rag.llm import LLM, LLMConfig
@@ -21,11 +22,27 @@ from .logging_config import logger
 class ProcessedResponse:
     query: str
     rag_informations: str
-    rag_summary: str
+    rag_summary: str | None
     web_summary: str
     short_answer: str
     detailed_answer: str
     sources: Dict[str, Any]  # Maps URLs to lists of titles
+
+
+def extract_response(content: str | list[str | dict]) -> str:
+    response_content = content
+    if isinstance(response_content, str):
+        response = response_content
+    else:
+        response_tmp = response_content[-1]
+        response_tmp: str | dict[str, str]
+
+        if isinstance(response_tmp, str):
+            response = response_tmp
+        else:
+            response = response_tmp.get("content", "")
+
+    return response
 
 
 class WebsearchPipeline:
@@ -43,10 +60,10 @@ class WebsearchPipeline:
             api_wrapper=self.wrapper, output_format="list"
         )
 
-    def _initialize_llm(self) -> LLM:
+    def _initialize_llm(self) -> BaseChatModel:
         if self.config.use_rag:
             rag_cfg = self.config.access_rag_config()
-            llm_conf = rag_cfg.get("rag", {}).get("llm")
+            llm_conf: Dict[str, Any] = rag_cfg.get("rag", {}).get("llm")
             if llm_conf is None:
                 raise ValueError(
                     "Missing 'llm' config under 'rag' in RAG configuration."
@@ -57,7 +74,7 @@ class WebsearchPipeline:
             base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
 
-    def generate_summary(self, rag_answer, query: str):
+    def generate_summary(self, rag_answer: str | None, query: str):
         """
         Summarize the RAG answer (used when rag_summary=True)
         """
@@ -65,7 +82,7 @@ class WebsearchPipeline:
             "You have only the following context to answer the question, do not use any external knowledge.\n\n"
             f"Question: {query}\n\n"
             "Context:\n"
-            f"{rag_answer}\n\n"
+            f"{rag_answer or 'No context yet'}\n\n"
             "If the context contains the answer or any useful information, respond with that information. \n"
             "If no useful informations are, answer: no useful informations\n"
             "Answer: \n"
@@ -78,8 +95,11 @@ class WebsearchPipeline:
             ),
             HumanMessage(content=prompt),
         ]
-        response = self.llm.invoke(messages)
-        return self._clean_llm_output(response.content)
+
+        response_llm = self.llm.invoke(messages)
+        response = extract_response(response_llm.content)
+
+        return self._clean_llm_output(response)
 
     def evaluate_subquery_relevance(
         self, query, current_subqueries, previous_subqueries
@@ -95,8 +115,9 @@ class WebsearchPipeline:
             SystemMessage(content="You are a helpful assistant"),
             HumanMessage(content=prompt),
         ]
-        response = self.llm.invoke(messages)
-        response = self._clean_llm_output(response.content)
+        response_llm = self.llm.invoke(messages)
+        response_content = extract_response(response_llm.content)
+        response = self._clean_llm_output(response_content)
 
         if "no" in response:
             return False
@@ -143,8 +164,9 @@ class WebsearchPipeline:
             HumanMessage(content=prompt),
         ]
 
-        response = self.llm.invoke(messages)
-        cleaned_answer = self._clean_llm_output(response.content)
+        response_llm = self.llm.invoke(messages)
+        response = extract_response(response_llm.content)
+        cleaned_answer = self._clean_llm_output(response)
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
         return cleaned_answer
 
@@ -173,7 +195,7 @@ class WebsearchPipeline:
             return []
 
     def integrate_with_llm(
-        self, original: str, rag_doc: str, web_snippets: List[str]
+        self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
         sources = "\n".join(web_snippets)
@@ -190,9 +212,10 @@ class WebsearchPipeline:
             SystemMessage(content="You are a research assistant."),
             HumanMessage(content=prompt),
         ]
-        resp = self.llm.invoke(msgs)
+        response_llm = self.llm.invoke(msgs)
+        response = extract_response(response_llm.content)
         # parse
-        clean_content = self._clean_llm_output(resp.content)
+        clean_content = self._clean_llm_output(response)
 
         sa_matches = re.findall(
             r"short answer:\s*(.*?)(?=detailed answer:)",
@@ -219,6 +242,7 @@ class WebsearchPipeline:
         current_context = rag_summary
         final_short, final_detailed = "", ""
         web_summary = ""
+        web_summary_all = ""  # will be reassigned later
 
         web_summaries = []
         previous_sub = []
@@ -307,11 +331,15 @@ class WebsearchPipeline:
             rag(self.config.rag_config_path)
             rc = self.config.access_rag_config()
             self.config.input_file = rc["mode_args"]["output_file"]
+
+            assert self.config.input_file
             with open(self.config.input_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
         else:
             self.config.input_file = self.config.input_queries
             data = []
+
+            assert self.config.input_file
             with open(self.config.input_file, "r", encoding="utf-8") as f:
                 for line in f:
                     data.append(json.loads(line.strip()))  # JSONL format
@@ -360,7 +388,7 @@ class WebsearchPipeline:
         finally:
             # Delete the temporary file
             logger.info(f"Deleting temporary file: {temp_file_path}")
-        os.remove(temp_file_path)
+            os.remove(temp_file_path)
 
     def _save_query_as_json(self, query):
         """Save query to a temporary JSONL file and return the file path."""

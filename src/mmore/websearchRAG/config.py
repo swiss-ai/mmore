@@ -28,16 +28,18 @@ class WebsearchConfig:
     """
 
     rag_config_path: str  # e.g., "../rag/config.yaml"
+    output_file: str
     use_rag: bool = False
     use_summary: bool = False
     input_file: Optional[str] = None
     input_queries: Optional[str] = None
-    output_file: Optional[str] = None
     n_subqueries: int = 3
     n_loops: int = 2
     max_searches: int = 10
     llm_config: LLMConfig = field(
-        default_factory=lambda: LLMConfig(**{"llm_name": "gpt-4", "max_new_tokens": 1200})
+        default_factory=lambda: LLMConfig(
+            **{"llm_name": "gpt-4", "max_new_tokens": 1200}
+        )
     )
     mode: Literal["local", "api"] = "local"
 
