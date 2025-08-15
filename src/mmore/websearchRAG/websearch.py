@@ -21,8 +21,8 @@ class WebsearchOnly:
         web_output = search.run(query)
         return web_output
 
-    def resume_web_search(self, query: str, web_output: str) -> str:
-        """Call LLM to resume the current web output based on the original query, return a summary of the web search and the source."""
+    def summarize_web_search(self, query: str, web_output: str) -> str:
+        """Call LLM to summarize the current web output based on the original query, return a summary of the web search and the source."""
         llm = LLM()
         prompt = (
             f"Original Query: '{query}'\n"
