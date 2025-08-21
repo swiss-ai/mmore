@@ -15,6 +15,7 @@ jobs:
         user:
           - { uid: 1000,    gid: 1000,    tag: "10001000"    }
           - { uid: 272918,  gid: 84257,   tag: "84257272918" }
+          - { uid: 303448,  gid: 84257,   tag: "84257303448" }
 
     steps:
       - name: Checkout
