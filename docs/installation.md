@@ -77,6 +77,8 @@ To build for CPU-only platforms (results in a smaller image size):
 sudo docker build --build-arg PLATFORM=cpu -t mmore .
 ```
 
+*Running on RCP:* you can specify a `USER_UID` and a `USER_GID` variable. Set it to your RCP user ID and group ID to run it there.
+
 ##### Step 3: Start an interactive session
 
 ```bash
