@@ -6,14 +6,15 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
 
 **Important**: You must build your own Docker image with your specific user ID and group ID to avoid permission issues in the production environment.
 
-1. **Check your user ID on the RCP**:
+1. **Check your user and group IDs on the RCP**:
    ```bash
    id -u  # Your user ID
+   id -g  # Your group ID
    ```
 
-2. **Build Docker image with custom IDs**:
+2. **Build Docker image with custom IDs** (replace` <user-id>` and `<group-id>` with your actual IDs):
    ```bash
-   sudo docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=84257 -t mmore .
+   sudo docker build --build-arg USER_UID=<user-id> --build-arg USER_GID=<group-id> -t mmore .
    ```
 
 3. **Login to DockerHub**:
@@ -54,7 +55,7 @@ mkdir -p /lightscratch/users/$GASPAR/mmore-data/in/sample_data/
 
 ### Interactive Development Session
 
-For development, debugging, or manual operations, start an interactive session:
+For development, debugging, or manual operations, start an interactive session (replace `<group-id>` with your actual group ID and `username` with your DockerHub username):
 
 ```bash
 runai submit swissaimmore \
@@ -62,7 +63,7 @@ runai submit swissaimmore \
   --node-pool h100 \
   --pvc light-scratch:/lightscratch \
   --gpu 1 \
-  --run-as-gid 84257 \ # this is the group for us at the LiGHT
+  --run-as-gid <group-id> \
   --preemptible \
   --attach \
   --interactive \
@@ -78,7 +79,7 @@ For production workloads, submit jobs that run specific pipeline stages:
 
 #### 1. Document Processing
 
-Process raw documents and extract multimodal content:
+Process raw documents and extract multimodal content (replace `<group-id>` with your actual group ID and `username` with your DockerHub username):
 
 ```bash
 runai submit \ 
@@ -86,7 +87,7 @@ runai submit \
   --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
-  --run-as-gid 84257 \ 
+  --run-as-gid <group-id> \ 
   --node-pool h100 \ 
   --gpu 1 \ 
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
@@ -104,7 +105,7 @@ runai submit \
   --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
-  --run-as-gid 84257 \ 
+  --run-as-gid <group-id> \ 
   --node-pool h100 \ 
   --gpu 1 \ 
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
@@ -140,7 +141,7 @@ runai submit \
   --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
-  --run-as-gid 84257 \ 
+  --run-as-gid <group-id> \ 
   --node-pool h100 \ 
   --gpu 1 \ 
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
