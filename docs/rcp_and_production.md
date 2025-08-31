@@ -16,7 +16,12 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
    sudo docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=84257 -t mmore .
    ```
 
-3. **Push to registry** (replace `username` with your DockerHub username):
+3. **Login to DockerHub**:
+   ```bash
+   docker login docker.io
+   ```
+
+4. **Push to registry** (replace `username` with your DockerHub username):
    ```bash
    docker tag mmore docker.io/username/mmore:latest
    docker push docker.io/username/mmore:latest
