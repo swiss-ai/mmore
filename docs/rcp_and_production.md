@@ -6,21 +6,20 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
 
 **Important**: You must build your own Docker image with your specific user ID and group ID to avoid permission issues in the production environment.
 
-1. **Check your user and group IDs**:
+1. **Check your user ID on the RCP**:
    ```bash
    id -u  # Your user ID
-   id -g  # Your group ID
    ```
 
 2. **Build Docker image with custom IDs**:
    ```bash
-   sudo docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t mmore .
+   sudo docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=84257 -t mmore .
    ```
 
-3. **Push to registry** (replace with your registry):
+3. **Push to registry** (replace `username` with your DockerHub username):
    ```bash
-   docker tag mmore your-registry/mmore:your-tag
-   docker push your-registry/mmore:your-tag
+   docker tag mmore docker.io/username/mmore:latest
+   docker push docker.io/username/mmore:latest
    ```
 
 For detailed installation instructions, see [Installation Guide](./installation.md).
@@ -54,7 +53,7 @@ For development, debugging, or manual operations, start an interactive session:
 
 ```bash
 runai submit swissaimmore \
-  --image your-registry/mmore:your-tag \
+  --image docker.io/username/mmore:latest \
   --node-pool h100 \
   --pvc light-scratch:/lightscratch \
   --gpu 1 \
@@ -79,7 +78,7 @@ Process raw documents and extract multimodal content:
 ```bash
 runai submit \ 
   --name swissaimmore-process \ 
-  --image your-registry/mmore:your-tag \ 
+  --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid 84257 \ 
@@ -97,7 +96,7 @@ Clean and structure the extracted data:
 ```bash
 runai submit \ 
   --name swissaimmore-postprocess \ 
-  --image your-registry/mmore:your-tag \ 
+  --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid 84257 \ 
@@ -115,7 +114,7 @@ Create searchable vector indexes:
 ```bash
 runai submit \ 
   --name swissaimmore-index \ 
-  --image your-registry/mmore:your-tag \ 
+  --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid 84257 \ 
@@ -133,7 +132,7 @@ Deploy the retrieval API service:
 ```bash
 runai submit \ 
   --name swissaimmore-rag \ 
-  --image your-registry/mmore:your-tag \ 
+  --image docker.io/username/mmore:latest \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid 84257 \ 
