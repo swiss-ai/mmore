@@ -89,8 +89,8 @@ The pipeline provides outputs in the following structure:
 - **Short Answer:** Concise response derived from combined RAG and WebSearch results.
 - **Detailed Answer:** Expanded response with context from both sources.
 - **Sources:** A list of URLs and their respective titles in the format:
-  ```
-  URL: https://example.com, Title {Title 1; Title 2; ...}
+  ```json
+    {"URL": ["Title 1", "Title 2", ...]}
   ```
 
 ### Example Output
