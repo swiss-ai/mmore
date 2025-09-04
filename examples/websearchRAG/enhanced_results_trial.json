@@ -1,0 +1,234 @@
+[
+  {
+    "query": "When was Barack Obama born?",
+    "rag_informations": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nUse the following context to answer the questions.\n\nContext:\n[1]  Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pages 9556–9567, 2024.\n- <span id=\"page-13-12\"></span>[61] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu\n\nJiang, Weiming Ren, Yuxuan Sun, Cong Wei, Botao Yu, Ruibin Yuan, Renliang Sun, Ming Yin, Boyuan Zheng, Zhenzhu Yang, Yibo Liu, Wenhao Huang, Huan Sun, Yu Su, and Wenhu Chen. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. *arXiv preprint arXiv:2311.16502*, 2023.\n\n- <span id=\"page-14-6\"></span>[62] Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas Beyer. Sigmoid loss for language image pre-training. In *Proceedings of the IEEE/CVF International Conference on Computer Vision*, pages 11975–11986, 2023.\n- <span id=\"page-14-5\"></span>[63] Ruohong Zhang, Liangke Gui, Zhiqing Sun, Yihao Feng, Keyang Xu, Yuanhan Zhang, Di Fu, Chunyuan Li, Alexander Hauptmann, Yonatan Bisk, et al. Direct preference optimization of video large multimodal models from language model reward. *arXiv preprint arXiv:2404.01258*, 2024.\n- <span id=\"page-14-0\"></span>[64] Renrui Zhang, Jiaming Han, Aojun Zhou, Xiangfei Hu, Shilin Yan, Pan Lu, Hongsheng Li, Peng Gao, and Yu Qiao. LLaMA-adapter: Efficient fine-tuning of large language models with zero-initialized attention. In *The Twelfth International Conference on Learning Representations*, 2024.\n\n\n[2]  - Skills: Emphasized on emotional intelligence, interpersonal skills, and creativity. - Honors & Awards: Notable achievements include the Golden Globe Award for Best Television Series and the Golden Globe Award for Best Television Special. 2. Steve Jobs: - Professional Experience: Co-founder of Apple Inc., where he led the development of iconic products like the iMac, iPod, and iPhone. - Skills: Highlighted as a thinker with a focus on innovation and problem-solving. - Honors & Awards: Recognized with numerous accolades, including the MacArthur Fellowship and the NeXT Computer Science Award. Please note that these descriptions are based on the information provided in the images and do not include any personal details or specific accomplishments mentioned in the images.\n\nUser Which of them better suits the role of the Congressman of the US? Why?\n\nOurs The first resume, featuring Oprah Winfrey, would better suit the role of a Congressman because it highlights skills and experiences that are relevant to political office, such as leadership, public speaking, and media experience. These qualities are essential for a politician to effectively represent their constituents and engage in legislative processes. The second resume, while it could be suitable for a creative or entrepreneurial role, does not specifically mention skills or experiences that align with the responsibilities of a Congressman.\n\nTable 12. An example of emerging capability: multi-doc VQA.\n\n## References\n\n- <span id=\"page-11-5\"></span>[1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katie Millican, Malcolm Reynolds, et al. Flamingo: a visual language model for few-shot learning. *arXiv preprint*, 2022.\n- <span id=\"page-11-11\"></span>[2] Anas Awadalla, Irena Gao, Josh Gardner, Jack Hessel, Yusuf Hanafy, Wanrong Zhu, Kalyani Marathe, Yonatan Bitton, Samir Gadre, Shiori Sagawa, et al. Openflamingo: An open-source framework for training large autoregressive vision-language models. *arXiv preprint arXiv:2308.01390*, 2023.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen was Barack Obama born?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nBarack Obama was born on August 4, 1961.",
+    "rag_summary": "barack obama was born on august 4, 1961.\n\nif the context contains the answer or any useful information, respond with that information. \nif no useful informations are, answer: no useful informations\nanswer: \n---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nthe provided context does not contain any information about barack obama's birthdate.",
+    "web_summary": "no useful information.",
+    "short_answer": "barack obama was born on august 4, 1961.",
+    "detailed_answer": "<your detailed answer><|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nshort answer: barack obama was born on august 4, 1961.\n\ndetailed answer: barack obama was born on august 4, 1961, in honolulu, hawaii, to barack obama, sr., and stanley ann dunham.",
+    "sources": {
+      "https://www.w3resource.com/sql-exercises/sql-subqueries-exercises.php": [
+        "SQL SUBQUERIES - Exercises, Practice, Solution - w3resource"
+      ],
+      "https://www.geeksforgeeks.org/sql/how-to-use-a-subquery-in-a-select-statement/": [
+        "How to Use a Subquery in a SELECT Statement - GeeksforGeeks"
+      ],
+      "https://www.datacamp.com/tutorial/sql-subquery": [
+        "SQL Subquery: A Comprehensive Guide - DataCamp"
+      ],
+      "https://www.kdnuggets.com/beginners-guide-subqueries-sql": [
+        "Beginner's Guide to Subqueries in SQL - KDnuggets"
+      ],
+      "https://www.britannica.com/biography/Barack-Obama": [
+        "Barack Obama | Biography, Parents, Education, Presidency, Books ..."
+      ],
+      "https://kvia.com/politics/cnn-us-politics/2025/02/05/barack-obama-fast-facts-2/": [
+        "Barack Obama Fast Facts - KVIA"
+      ],
+      "https://chroniclepaths.com/public-figures/biography-of-barack-obama": [
+        "Biography of Barack Obama - chroniclepaths.com"
+      ],
+      "https://www.havefunwithhistory.com/barack-obama-timeline/": [
+        "Barack Obama Timeline - Have Fun With History"
+      ],
+      "https://www.politifact.com/factchecks/2025/jan/13/threads-posts/no-this-isnt-proof-former-president-barack-obama-w/": [
+        "Image shows former President Barack Obama was born in Kenya."
+      ],
+      "https://ohmyfacts.com/celebrities/45-facts-about-barack-obama/": [
+        "45 Facts About Barack Obama - OhMyFacts"
+      ],
+      "https://www.geeksforgeeks.org/nested-queries-in-sql/": [
+        "Nested Queries in SQL - GeeksforGeeks"
+      ],
+      "https://learn.microsoft.com/en-us/sql/relational-databases/performance/subqueries?view=sql-server-ver17": [
+        "Subqueries (SQL Server) - SQL Server | Microsoft Learn"
+      ],
+      "https://factcheckhub.com/false-claim-about-obamas-birthplace-circulates-online/": [
+        "False claim about Obama's birthplace circulates online"
+      ],
+      "https://www.havefunwithhistory.com/facts-about-barack-obama/": [
+        "10 Facts About Barack Obama - Have Fun With History"
+      ],
+      "https://slcl.libguides.com/c.php?g=1426394&p=10653829": [
+        "The U.S. Government for Kids and Teens: Barack Obama"
+      ],
+      "https://en.wikipedia.org/wiki/Early_life_and_career_of_Barack_Obama": [
+        "Early life and career of Barack Obama - Wikipedia"
+      ],
+      "https://www.snopes.com/fact-check/birthing-pains/": [
+        "Kenyan Government Releases Obama's Real Birth Certificate"
+      ],
+      "https://www.obamalibrary.gov/obamas/president-barack-obama": [
+        "President Barack Obama | Barack Obama Presidential Library"
+      ]
+    }
+  },
+  {
+    "query": "Who founded Google?",
+    "rag_informations": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nUse the following context to answer the questions.\n\nContext:\n[1]  - Skills: Emphasized on emotional intelligence, interpersonal skills, and creativity. - Honors & Awards: Notable achievements include the Golden Globe Award for Best Television Series and the Golden Globe Award for Best Television Special. 2. Steve Jobs: - Professional Experience: Co-founder of Apple Inc., where he led the development of iconic products like the iMac, iPod, and iPhone. - Skills: Highlighted as a thinker with a focus on innovation and problem-solving. - Honors & Awards: Recognized with numerous accolades, including the MacArthur Fellowship and the NeXT Computer Science Award. Please note that these descriptions are based on the information provided in the images and do not include any personal details or specific accomplishments mentioned in the images.\n\nUser Which of them better suits the role of the Congressman of the US? Why?\n\nOurs The first resume, featuring Oprah Winfrey, would better suit the role of a Congressman because it highlights skills and experiences that are relevant to political office, such as leadership, public speaking, and media experience. These qualities are essential for a politician to effectively represent their constituents and engage in legislative processes. The second resume, while it could be suitable for a creative or entrepreneurial role, does not specifically mention skills or experiences that align with the responsibilities of a Congressman.\n\nTable 12. An example of emerging capability: multi-doc VQA.\n\n## References\n\n- <span id=\"page-11-5\"></span>[1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katie Millican, Malcolm Reynolds, et al. Flamingo: a visual language model for few-shot learning. *arXiv preprint*, 2022.\n- <span id=\"page-11-11\"></span>[2] Anas Awadalla, Irena Gao, Josh Gardner, Jack Hessel, Yusuf Hanafy, Wanrong Zhu, Kalyani Marathe, Yonatan Bitton, Samir Gadre, Shiori Sagawa, et al. Openflamingo: An open-source framework for training large autoregressive vision-language models. *arXiv preprint arXiv:2308.01390*, 2023.\n\n\n[2] | Jinhua,<br>[44]<br>al.<br>et<br>Zhang   | China              | days<br>1–16                                       | 14                      | 14                                                           | (35.7%)<br>5                                 |                                                                                           |                                                                           | 14                                                         |\n| Shanghai,<br>[45]<br>al.\n\n[3] | Jinhua,<br>[44]<br>al.<br>et<br>Zhang   | China              | days<br>1–16                                       | 14                      | 14                                                           | (35.7%)<br>5                                 |                                                                                           |                                                                           | 14                                                         |\n| Shanghai,<br>[45]<br>al.\n\n[4] 4%)<br>39                                | (23.3%)<br>17                                                                             |                                                                           | 73                                                         |\n| [44]<br>al.<br>et<br>Zhang  | China<br>Jinhua,                | days<br>1–16                                       | 14                      | 14                                                           | (35.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho founded Google?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nGoogle was founded by Larry Page and Sergey Brin in 1998.",
+    "rag_summary": "google was founded by larry page and sergey brin in 1998.\n\nif the context contains the answer or any useful information, respond with that information. \nif no useful informations are, answer: no useful informations\nanswer: \n---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\ngoogle was founded by larry page and sergey brin in 1998.",
+    "web_summary": "no useful information is provided in the context to answer the question about who founded google.",
+    "short_answer": "google was founded by larry page and sergey brin in 1998.",
+    "detailed_answer": "<your detailed answer><|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nshort answer: google was founded by larry page and sergey brin in 1998.\n\ndetailed answer: google was founded on september 4, 1998, by american computer scientists larry page and sergey brin. since then, google has become the go-to search engine for internet users across the globe, from students researching for their term papers to businesses looking to attract more customers. the google search algorithm works by considering a number of factors and signals, such as the search query, content relevance, page useability, user location and source trustworthiness. the factors are then analyzed by the google ranking algorithm formula, which produces the rankings of pages in the google search results.",
+    "sources": {
+      "https://www.datacamp.com/tutorial/sql-subquery": [
+        "SQL Subquery: A Comprehensive Guide - DataCamp"
+      ],
+      "https://www.geeksforgeeks.org/sql/sql-subquery/": [
+        "SQL | Subquery - GeeksforGeeks"
+      ],
+      "https://www.w3resource.com/sql-exercises/sql-subqueries-exercises.php": [
+        "SQL SUBQUERIES - Exercises, Practice, Solution - w3resource"
+      ],
+      "https://dev.to/abhay_yt_52a8e72b213be229/understanding-sql-subqueries-a-complete-guide-with-examples-3jff": [
+        "Understanding SQL Subqueries: A Complete Guide with Examples"
+      ],
+      "https://en.wikipedia.org/wiki/Larry_Page": [
+        "Larry Page - Wikipedia"
+      ],
+      "https://businesssharksmagazine.com/larry-page-and-sergey-brins-google-success/": [
+        "Larry Page and Sergey Brin's Google Success Story"
+      ],
+      "https://press.farm/the-story-behind-google-search-engine/": [
+        "The Story Behind Google - Pressfarm"
+      ],
+      "https://quartr.com/insights/business-philosophy/larry-page-the-mastermind-behind-google": [
+        "Larry Page: The Mastermind Behind Google - Quartr"
+      ],
+      "https://www.britannica.com/money/Google-Inc": [
+        "Google | History & Facts; Products & Services | Britannica Money"
+      ],
+      "https://www.jagranjosh.com/us/explainers/who-is-the-owner-of-google-1860000139": [
+        "Who is the Owner of Google? - Jagran Josh"
+      ],
+      "https://interestingengineering.com/innovation/who-invented-google-and-how-did-it-happen": [
+        "Who Invented Google and How did it Happen? - Interesting Engineering"
+      ],
+      "https://www.link-assistant.com/news/how-old-is-google.html": [
+        "How Old Is Google? The Story Behind the Search Engine"
+      ],
+      "https://www.geeksforgeeks.org/sql/how-to-use-a-subquery-in-a-select-statement/": [
+        "How to Use a Subquery in a SELECT Statement - GeeksforGeeks"
+      ],
+      "https://www.kdnuggets.com/beginners-guide-subqueries-sql": [
+        "Beginner's Guide to Subqueries in SQL - KDnuggets"
+      ],
+      "https://datascienceexplain.com/sql-databases/mastering-sql-subqueries-a-complete-guide-to-writing-efficient-nested-queries/": [
+        "Mastering SQL Subqueries: A Complete Guide to Writing Efficient Nested ..."
+      ],
+      "https://www.semrush.com/blog/google-search-algorithm/": [
+        "How the Google Search Algorithm Works: A Zero-Fluff Guide - Semrush"
+      ],
+      "https://www.theedgesearch.com/2024/10/google-algorithms.html": [
+        "Google algorithms explained: Everything you need to know"
+      ],
+      "https://www.searchenginejournal.com/google-algorithm-history/": [
+        "Google Algorithm Updates & Changes: A Complete History"
+      ],
+      "https://www.searchlogistics.com/glossary/google-algorithm/": [
+        "What Is The Google Algorithm? - SearchLogistics"
+      ]
+    }
+  },
+  {
+    "query": "Where is the Eiffel Tower located?",
+    "rag_informations": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nUse the following context to answer the questions.\n\nContext:\n[1] |---------------------|----------------------|------|------------------------|-------------------------|------------------|---------|--|\n| In-the-front        | Interleaved          | 52.9 | 36.8                   | 30.5                    | 70.1             | 74.0    |  |\n|                     | In-the-front         | 54.3 | 36.6                   | 32.8                    | 74.7             | 75.3    |  |\n| Interleaved         | Interleaved          | 55.4 | 37.8                   | 32.9                    | 76.2             | 76.0    |  |\n|                     | In-the-front         | 52.4 | 36.1                   | 29.0                    | 72.9             | 71.8    |  |\n| Mixed               | Interleaved          | 57.0 | 38.\n\n[2] |---------------------|----------------------|------|------------------------|-------------------------|------------------|---------|--|\n| In-the-front        | Interleaved          | 52.9 | 36.8                   | 30.5                    | 70.1             | 74.0    |  |\n|                     | In-the-front         | 54.3 | 36.6                   | 32.8                    | 74.7             | 75.3    |  |\n| Interleaved         | Interleaved          | 55.4 | 37.8                   | 32.9                    | 76.2             | 76.0    |  |\n|                     | In-the-front         | 52.4 | 36.1                   | 29.0                    | 72.9             | 71.8    |  |\n| Mixed               | Interleaved          | 57.0 | 38.\n\n[3] | Jinhua,<br>[44]<br>al.<br>et<br>Zhang   | China              | days<br>1–16                                       | 14                      | 14                                                           | (35.7%)<br>5                                 |                                                                                           |                                                                           | 14                                                         |\n| Shanghai,<br>[45]<br>al.\n\n[4] | Jinhua,<br>[44]<br>al.<br>et<br>Zhang   | China              | days<br>1–16                                       | 14                      | 14                                                           | (35.7%)<br>5                                 |                                                                                           |                                                                           | 14                                                         |\n| Shanghai,<br>[45]<br>al.\n\n[5] 7%)<br>5                                 |                                                                                           |                                                                           | 14                                                         |\n| [45]<br>al.<br>et<br>Ling   | China<br>Shanghai,              | days<br>22                                         | 66                      | 66                                                           | 66                                           | (88.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhere is the Eiffel Tower located?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nThe Eiffel Tower is located in Paris, France.",
+    "rag_summary": "the eiffel tower is located in paris, france.\n\nif the context contains the answer or any useful information, respond with that information. \nif no useful informations are, answer: no useful informations\nanswer: \n---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nno useful information",
+    "web_summary": "no useful information.",
+    "short_answer": "the eiffel tower is located in paris, france.",
+    "detailed_answer": "<your detailed answer><|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nshort answer: the eiffel tower is located in paris, france.\ndetailed answer: the eiffel tower is a wrought-iron structure in paris, france that is one of the most famous landmarks in the world. it is also a technological masterpiece in building-construction history. it was designed and built (1887-89) by gustave eiffel and named in his honor. the tower drew almost two million visitors during the world's fair, proving its immediate popularity despite earlier opposition. while initially intended as a temporary structure, to be dismantled after 20 years, eiffel had the foresight to propose scientific uses for the tower, which ensured its survival. today, it remains one of the tallest and most recognizable structures in the world, drawing millions of visitors annually, with viewing platforms offering stunning panoramic views of paris.",
+    "sources": {
+      "https://learnsql.com/blog/sql-subquery-practice/": [
+        "SQL Subquery Practice: 15 Exercises with Solutions"
+      ],
+      "https://www.dataquest.io/blog/sql-subqueries-for-beginners/": [
+        "SQL Subqueries: A Beginner's Guide (with Code Examples) - Dataquest"
+      ],
+      "https://w3schools.tech/tutorial/sql/sql-sub-queries": [
+        "Sub Queries - Advanced SQL - W3schools"
+      ],
+      "https://www.geeksforgeeks.org/sql/sql-subquery/": [
+        "SQL | Subquery - GeeksforGeeks"
+      ],
+      "https://www.britannica.com/topic/Eiffel-Tower-Paris-France": [
+        "Eiffel Tower | History, Height, & Facts | Britannica"
+      ],
+      "https://heightandsize.com/eiffel-tower-height/": [
+        "How Tall is the Eiffel Tower? - heightandsize.com"
+      ],
+      "https://www.architecturaldigest.com/story/eiffel-tower-everything-you-need-to-know": [
+        "Eiffel Tower: Everything You Need to Know - Architectural Digest"
+      ],
+      "https://gosta.media/en/society/tourism/what-height-eiffel-tower-15-interesting-facts-you-may-not-know/": [
+        "15 Interesting Facts About The Eiffel Tower That You May Not Know"
+      ],
+      "https://travelpander.com/does-the-eiffel-tower-have-a-purpose/": [
+        "Eiffel Tower: Purpose, History, Facts, and Practical Uses Explained"
+      ],
+      "https://www.travelandleisure.com/attractions/landmarks-monuments/eiffel-tower-facts": [
+        "16 Eiffel Tower Facts: History, Science, and Secrets - Travel"
+      ],
+      "https://1worldplace.com/what-is-the-purpose-of-the-eiffel-tower/": [
+        "What is the Purpose of the Eiffel Tower: Discover remarkable"
+      ],
+      "https://www.w3resource.com/sql-exercises/sql-subqueries-exercises.php": [
+        "SQL SUBQUERIES - Exercises, Practice, Solution - w3resource"
+      ],
+      "https://www.dannydutch.com/post/the-eiffel-tower-from-controversy-to-icon-the-opening-that-changed-paris-forever": [
+        "The Eiffel Tower: From Controversy to Icon - The Opening That Changed ..."
+      ],
+      "https://worldofhistorycheatsheet.com/history-of-the-eiffel-tower/": [
+        "History of the Eiffel Tower | World of History"
+      ],
+      "https://worldhistoryjournal.com/2025/01/11/the-eiffel-tower-engineering-marvel-and-cultural-landmark/": [
+        "The History of the Eiffel Tower: an Engineering and Cultural Landmark"
+      ]
+    }
+  },
+  {
+    "query": "When will the artificial intelligence conference be held?",
+    "rag_informations": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nUse the following context to answer the questions.\n\nContext:\n[1]  Q-bench: A benchmark for general-purpose foundation models on low-level vision. *arXiv preprint arXiv:2309.14181*, 2023.\n- <span id=\"page-13-14\"></span>[57] Junbin Xiao, Xindi Shang, Angela Yao, and Tat-Seng Chua. Next-qa: Next phase of question-answering to explaining temporal actions. In *Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*, pages 9777–9786, 2021.\n- <span id=\"page-13-7\"></span>[58] Runsen Xu, Xiaolong Wang, Tai Wang, Yilun Chen, Jiangmiao Pang, and Dahua Lin. Pointllm: Empowering large language models to understand point clouds. *arXiv preprint arXiv:2308.16911*, 2023.\n- <span id=\"page-13-19\"></span>[59] Zhou Yu, Dejing Xu, Jun Yu, Ting Yu, Zhou Zhao, Yueting Zhuang, and Dacheng Tao. Activitynet-qa: A dataset for understanding complex web videos via question answering. In *Proceedings of the AAAI Conference on Artificial Intelligence*, volume 33, pages 9127–9134, 2019.\n- <span id=\"page-13-18\"></span>[60] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, et al. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. In *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition*, pages 9556–9567, 2024.\n- <span id=\"page-13-12\"></span>[61] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu\n\n\n\n[2] Applied Data Analysis (CS401)\n<attachment>\nLecture 1\nIntro to ADA\n11 Sep 2024\nMaria Brbić / Robert West\n‹#›\nImportant websites\n<attachment>\nhttp://ada.epfl.ch\nYour main entry point. All materials linked from there.\nhttps://go.epfl.ch/ada2024-ed\nMain communication channel. Sign in with your EPFL email address (or simply access via Moodle).\n<attachment>\nhttps://github.com/epfl-ada/2024\nUsed for exercises, homework, project, and final exam.\n‹#›\nPrevious instructor\nRobert West\nOn sabbatical in Microsoft Research, Seattle\n<attachment>\n‹#›\nAbout your instructor this year\n~1500 people\n~ 3.850.000 people\n<attachment>\n<attachment>\n<attachment>\nBorn in Tučepi, Croatia\nEducation:\nUniversity of Zagreb, Croatia\nUniversity of Tokyo\nStanford University, USA\nAssistant Professor at EPFL since Sep '22\nMachine Learning for Biomedicine (MLBio) lab\n‹#›\nOur research @ MLBio\nMethods\nMy Research\nBiomedicine\nMLBio\nLab\nMachine\nLearning\nChallenges\n‹#›\nOur research @ MLBio\nDevelop new AI methods\nUnsupervised learning, generative models, open-world learning etc\nCollaborate with biologists and medical researchers and have new \"untouched datasets\" or collect datasets\nGain new insights from these datasets 🡪 what are interesting questions that need new AI algorithms to be answered?\nApply AI algorithms we develop to advance biomedical research and drive new discoveries in biology and medicine\n‹#›\nOur research @ MLBio\n‹#›\nData analysis\n<attachment>\n\"... the process of inspecting, cleaning, transforming, and modeling data with the goal of discovering useful information, suggesting conclusions, and supporting decision-making.\"\n\n\n[3] Applied Data Analysis (CS401)\n<attachment>\nLecture 1\nIntro to ADA\n11 Sep 2024\nMaria Brbić / Robert West\n‹#›\nImportant websites\n<attachment>\nhttp://ada.epfl.ch\nYour main entry point. All materials linked from there.\nhttps://go.epfl.ch/ada2024-ed\nMain communication channel. Sign in with your EPFL email address (or simply access via Moodle).\n<attachment>\nhttps://github.com/epfl-ada/2024\nUsed for exercises, homework, project, and final exam.\n‹#›\nPrevious instructor\nRobert West\nOn sabbatical in Microsoft Research, Seattle\n<attachment>\n‹#›\nAbout your instructor this year\n~1500 people\n~ 3.850.000 people\n<attachment>\n<attachment>\n<attachment>\nBorn in Tučepi, Croatia\nEducation:\nUniversity of Zagreb, Croatia\nUniversity of Tokyo\nStanford University, USA\nAssistant Professor at EPFL since Sep '22\nMachine Learning for Biomedicine (MLBio) lab\n‹#›\nOur research @ MLBio\nMethods\nMy Research\nBiomedicine\nMLBio\nLab\nMachine\nLearning\nChallenges\n‹#›\nOur research @ MLBio\nDevelop new AI methods\nUnsupervised learning, generative models, open-world learning etc\nCollaborate with biologists and medical researchers and have new \"untouched datasets\" or collect datasets\nGain new insights from these datasets 🡪 what are interesting questions that need new AI algorithms to be answered?\nApply AI algorithms we develop to advance biomedical research and drive new discoveries in biology and medicine\n‹#›\nOur research @ MLBio\n‹#›\nData analysis\n<attachment>\n\"... the process of inspecting, cleaning, transforming, and modeling data with the goal of discovering useful information, suggesting conclusions, and supporting decision-making.\"\n\"Data analysis has multiple facets and approaches, encompassing diverse techniques under a variety of names, in different business, science, and social science domains.\"\n‹#›\nApplied data analysis\nThis course is about breadth, not depth\n\"What methods, principles, and tools are out there?\", rather than \"How can I become an expert in deep learning for computer vision applied to images of cats?\"\nData science is a fast-paced, shifting field\nObsessing on one tool or technique won't pay off in a few years\nBe ready to explore and keep learning on your own\nComplementary courses:\nMachine learning\nNLP\nDIS\nData viz\nGoal of this class: Enable you to conduct a\nfull-fledged data science project from start to finish\nThat being said, depth matters too…\n‹#›\nLet's abbreviate this course as Ada, not A-D-A, in honor of Ada Lovelace, \"the world's first computer programmer.\"\nhttps://en.wikipedia.org/wiki/Ada_Lovelace\n<attachment>\n‹#›\n<attachment>\n‹#›\nSyllabus\nHandling data\n\"Slicing and dicing\": obtaining, preparing, juggling data\nVisualizing data\nExploration of data, communication of results\nDescribing data\nHow to support (and be suspicious of) claims about data\nRegression analysis for disentangling data\nHow to disentangle datasets with correlated variables\nCausal analysis of observational data\nHow to deal with \"found data\"\nCorrelation != causation\n‹#›\nSyllabus (cont'd)\nLearning from data\nSupervised learning\nUnsupervised learning\nApplied aspects of machine learning\nHandling specific types of data\nHandling text data\nHandling network data\nScaling to massive data\n‹#›\nGrading\n35% Homework assignments (2)\nInvolving skills required from data scientists\nGroups of 5 students\nHomework of 2017, 2018, 2019, 2020, 2021, 2022, 2023\n35% Final exam\nMini data analysis project\nDone on laptop, individually, on campus\nFinal exams of 2017, 2018, 2019, 2020, 2021, 2022, 2023\n30% Project (more details soon)\nYour own freestyle data analysis\nDone in groups of 5 students (same as for homework)\nMilestones spread throughout the semester\nProjects of 2017, 2018, 2019, 2020, 2021, 2022, 2023\n‹#›\nGrading\n35% Homework assignments (2)\nInvolving skills required from data scientists\nGroups of 5 students\nHomework of 2017, 2018, 2019, 2020, 2021, 2022, 2023\n35% Final exam (date TBD)\nMini data analysis project\nDone on laptop, individually, on campus\nFinal exams of 2017, 2018, 2019, 2020, 2021, 2022, 2023\n30% Project (more details soon)\nYour own freestyle data analysis\nDone in groups of 5 students (same as for homework)\nMilestones spread throughout the semester\nProjects of 2017, 2018, 2019, 2020, 2021, 2022, 2023\nThis class will be hard work,\nbut it will get you a job.\n‹#›\nGrading (cont'd)\nTo obtain a meaningful grade distribution, scaling/shifting will be applied to each of {homework, project, exam, quizzes} before taking weighted average (standard practice at EPFL)\nWhile intermediate grades are a good indication of where you stand, remember there might be some wiggle\n→ Don't rely on intermediate grades to decide whether you can afford to skip the exam etc.\n‹#›\nDeadlines\nHomeworks\nHomework 1\nRelease Oct 4th 2024\nDue Oct 18th 2024\nHomework 2\nRelease Nov 15th 2024\nDue Nov 29th 2024\nFinal exam\nDate TBD\nProject deliverables\nProject milestone P1\nDue Oct 4th 2024\nProject milestone P2\nDue Nov 15th 2024\nProject milestone P3\nDue Dec 20th 2024\nAll deadlines are 23:59 CET\n‹#›\nMeeting logistics: Lectures\nWednesdays 8:15–10:00\nIf you want to see it live, come to class! (No live streaming)\nLectures are also recorded and made available after class\n‹#›\nMeeting logistics: Lab sessions\nFridays 13:15–14:45\nIn person only:\nCO 1\nCM 1 120\nCM 1 121\nLabs are complementary to lectures, not simply more detail on same\nYou solve exercises that we make available the day before, can ask questions and get help from assistants\nIn certain weeks: homework/project office hours (probably on Zoom, in parallel to exercises)\n‹#›\nWeekly quizzes\nAvailable online on Moodle after every lecture\n5 questions, to be answered within 10 minutes of starting\nQuiz 1: no real questions, just to let you get familiar with the setup\nQuiz 2: the first quiz with lecture material questions\nQuiz i is about lecture material of week i\nGoal:\nEngage continuously with course material\nThink (not just find right slide)\nNot graded, for you to recap lecture materials\n‹#›\nProject\nWe'll provide a number of datasets\nYou need to form and pitch a crisp project idea\nFree to combine with other datasets (at your own risk)\nGoal: not a loose collection of results – tell a story with the data!\nData stories of 2017, 2018, 2019, 2020, 2021, 2022, 2023\nNice example data story\n‹#›\n<attachment>\nHomework and projects: GitHub\nDe-facto standard for managing and sharing code\nAll students in this class need a GitHub account\nHomework and project submissions done via GitHub\nADA Github repository:\nhttps://github.com/epfl-ada/2024\n‹#›\nMain communication channel:\nClass forum, available via Moodle\nAlso accessible directly, outside of Moodle:https://go.epfl.ch/ada2024-ed (sign in using the same email address as for Moodle)\nCentral place to ask all class-related questions\nDon't send us email\nMandatory! We'll send important announcements on Ed only\nHelp each other (without cheating, of course)\n‹#›\nWatch-at-home videos\nThroughout the semester, we'll release videos with supplemental information; e.g.,\nIntro to lab sessions (already available!)\nProject instructions\nHomework 1 postmortem\nHomework 2 postmortem\n‹#›\nGeneral note on communication\nMultiple platforms used in ADA for various tasks (as in real life): Ed, GitHub, Google docs, ADA website\nTo avoid confusion,\nfamiliarize yourself with communication guidelines\nall materials will be linked from the website as a central point of entry: https://ada.epfl.ch\nall discussions will take place on Ed\n‹#›\nCommercial break\nADA students: sharp like teeth!\n‹#›\nGroup registration\nMust form teams within 2 weeks, starting now (in time for release of Homework 1)!\nGet started immediately to find 4 other teammates\nBy Fri 27 Sep 23:59, complete the registration form (to be done by each team member individually):https://go.epfl.ch/ada2024-team-registration\nCan change team after Homework 1 (but try to avoid it)\n‹#›\nPrerequisites\nBasics of\nprobabilities and stats\ndatabases\nprogramming\nYou won't survive if you can't program\nHomework, exam: Python required\nProject: up to you, but we support only Python\nBrush up your Python skills (many great online courses out there)\n‹#›\nPython environments\nHomeworks and exams to be done as Jupyter Notebooks\nYou will submit a pre-executed .ipynb file\nWe don't care how you produce it\nOption 1: local Python installation (e.g., Anaconda + JupyterLab)\nOption 2: Google Colab = notebook hosted by Google\nOption 3: noto = notebook hosted by EPFL\nTo get started: come to Friday's lab session (\"Exercise 0\")\n\"Homework 0\": do it yourself at home after lab session (optional, not graded)\nDoing Homework 0 is the best way of making sure you're set up correctly for later homework, project, exam\n‹#›\nPython++\n‹#›\nPOLLING TIME\n\"What is your prior experience with Python?\"\nScan QR code or go tohttps://app.sli.do/event/iPMVwwrojFn9EaNp6iiDDx\n<attachment>\n<attachment>\n‹#›\nInstructor\nTAs: Teaching assistants (PhD students)\nHead TAs\n<attachment>\n<attachment>\n<attachment>\n<attachment>\nTimDavidson\nSepideh\nMamooler\nAoxiangFan\nMaria Brbić\nMarija Šakota\nSaibo Geng\n<attachment>\n<attachment>\n<attachment>\n<attachment>\nIvan\nZakazov\nBettina\nMessmer\nShuqi\nWang\nShawn Fan\nShuangqi\nLi\nYist\nYu\nYulun\nJiang\nArtyomGadetsky\nSAs: Student assistants (Master students)\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\n<attachment>\nStefan\nKrsteski\nXi\nLei\nMatea\nTashkovska\nElisa\nBillard\nPablo\nMenéndez\nJiaming Jiang\nJakhongir Saydaliev\nAllocio\nJeanne\nYannis Laaroussi\nSebastien\nChahoud\nYagiz\nGençer\nTianhao\nDai\nTugba\nTümer\n<attachment>\nHelp each other on Ed\nParticipate actively in classes and labs\nGive us feedback\n‹#›\nFeedback\nGive us feedback on this lecture here: https://go.epfl.ch/ada2024-lec1-feedback\nFeedback form available for each lecture and lab session\nWhat did you (not) like about this lecture?\nWhat was (not) well explained?\nOn what would you like more (fewer) details?\n…\n‹#›\nQuestions?\n<attachment>\n‹#›\nWhat is data science?\n‹#›\nWhy now?\nI WISH I HAD BECOME A DATA SCIENTIST BACK IN 2023…\n‹#›\n\"Data science\"\nMost science is (or should be) based on data, per definitionem\nSo how is \"data science\" different from plain old \"science\"?\n‹#›\nData volume explodes\n\"Between the dawn of civilization and 2003, we only created five exabytes of information; now [in 2010] we're creating that amount every two days.\"\nEric Schmidt, Google (2010)\n‹#›\nData variety explodes\nText (indexed Web pages, email), networks (Web graph, knowledge graph), images, maps, logs (search logs, server logs, GPS logs), speech, …\n<attachment>\n‹#›\nNeeded: A method to the madness\n<attachment>\nScientific method 1.0:- Focused on \"Model the data\"- Scientist has hypothesis prior to analyzing the data\nScientific method 2.0:\n- Data-driven science - Systematic cycle (see diagram) - \"Explore the data\" becomes increasingly important\nData as a first-class citizen\n‹#›\nScientist 2.0\n‹#›\n\"A data scientist is someone who can obtain, scrub, explore, model, and interpret data, blending hacking, statistics, and machine learning. Data scientists not only are adept at working with data, but appreciate data itself as a first-class product.\"\nHilary Mason, chief scientist at bit.ly\n‹#›\nJosh Wills, Data Scientist at Slack\n‹#›\n‹#›\n‹#›\nMore data often beats better algorithms\n<attachment>\n<attachment>\nhttp://www.incompleteideas.net/IncIdeas/BitterLesson.html\n‹#›\n21st-century politics\n<attachment>\n<attachment>\n<attachment>\n<attachment>\nWe ask: Do these subjective impressions reflect the true state of US political discourse?\n<attachment>\nADA will teach you the tools to answer such questions using data (see next slides)\nhttps://www.pewresearch.org/politics/wp-content/uploads/sites/4/2019/06/PP_2019.06.19_Political-Discourse_FINAL.pdf\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\nData: https://github.com/epfl-dlab/Quotebank\nWeb interface: https://quotebank.dlab.tools/\n‹#›\nSyllabus, revisited\n<attachment>\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\n‹#›\nSyllabus, revisited\n\"Is the effect real, or could it have been produced by chance?\"\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\n<attachment>\n<attachment>\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\n\"What caused the observed increase in negativity?\"\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\nQuotes were attributed to speakers by a machine learning algorithm\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\nResearch question (\"Did political discourse become more negative?\") is a question about language == text\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\n\"Who speaks about whom in what way?\" → Construct \"who-mentions-whom\" network\n‹#›\nSyllabus, revisited\nHandling data\nVisualizing data\nDescribing data\nRegression analysis for disentangling data\nCausal analysis of observational data\nLearning from data\nHandling text data\nHandling network data\nScaling to massive data\nExtracting 235 million quotes from 127 million news articles (about 1 terabyte of raw text) spanning 12 years requires big-data tools (e.g., Spark)\n‹#›\nCurious to learn more?\nFull paper available at https://www.nature.com/articles/s41598-023-36839-1\n<attachment>\n‹#›\nTODO before Friday's lab session\nSign up for Ed here and familiarize yourself with it\nIf you're not on GitHub yet, sign up for GitHub\nStart looking for 4 teammates\nYou may use \"Group formation\" category on Ed\nCheck out Google Colab and noto (to see if you want to use either of them)\nCheck out Exercise 0 here (in prep for Fri lab session)\n‹#›\nAny feedback? -- Let us know!\nGive us feedback on this lecture here: https://go.epfl.ch/ada2024-lec1-feedback\nFeedback form available for each lecture and lab session\nWhat did you (not) like about this lecture?\nWhat was (not) well explained?\nOn what would you like more details?\nWhat would you like the instructor to wear next time?\n…\n‹#›<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWhen will the artificial intelligence conference be held?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nI don't have access to specific event schedules. However, you can check the conference website or contact the organizers for more information about the conference schedule.",
+    "rag_summary": "i don't have access to specific event schedules. however, you can check the conference website or contact the organizers for more information about the conference schedule.\n\nif the context contains the answer or any useful information, respond with that information. \nif no useful informations are, answer: no useful informations\nanswer: \n---------------------------<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nno useful information",
+    "web_summary": "no useful information is provided in the context to determine the date of the artificial intelligence conference.",
+    "short_answer": "no useful information",
+    "detailed_answer": "<your detailed answer><|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nshort answer: no useful information\ndetailed answer: no useful information is provided to determine the date of the artificial intelligence conference.",
+    "sources": {
+      "https://www.w3resource.com/sql-exercises/sql-subqueries-exercises.php": [
+        "SQL SUBQUERIES - Exercises, Practice, Solution - w3resource"
+      ],
+      "https://www.geeksforgeeks.org/sql/how-to-use-a-subquery-in-a-select-statement/": [
+        "How to Use a Subquery in a SELECT Statement - GeeksforGeeks"
+      ],
+      "https://www.datacamp.com/tutorial/sql-subquery": [
+        "SQL Subquery: A Comprehensive Guide - DataCamp"
+      ],
+      "https://www.kdnuggets.com/beginners-guide-subqueries-sql": [
+        "Beginner's Guide to Subqueries in SQL - KDnuggets"
+      ],
+      "https://aaai.org/conference/aaai/aaai-25/": [
+        "The 39th Annual AAAI Conference on Artificial Intelligence"
+      ],
+      "https://engine.com/business-travel-guide/biggest-ai-expos-events-conferences-2025": [
+        "The Biggest AI Conferences & Events Happening in 2025"
+      ],
+      "https://www.techtarget.com/whatis/feature/Top-AI-conferences-and-virtual-events": [
+        "12 AI conferences to attend in 2025 - TechTarget"
+      ],
+      "https://www.analyticsinsight.net/artificial-intelligence/top-ai-conferences-to-watch-out-for-in-2025": [
+        "Top AI Conferences to Watch Out for in 2025 - Analytics Insight"
+      ],
+      "https://datascienceexplain.com/sql-databases/mastering-sql-subqueries-a-complete-guide-to-writing-efficient-nested-queries/": [
+        "Mastering SQL Subqueries: A Complete Guide to Writing Efficient Nested ..."
+      ],
+      "https://aaai.org/conference/aaai/aaai-25/program-overview/": [
+        "The 39th Annual AAAI Conference on Artificial Intelligence"
+      ],
+      "https://www.datacamp.com/blog/top-ai-conferences": [
+        "Top 10 AI Conferences for 2025 - DataCamp"
+      ],
+      "https://www.nimblework.com/blog/ai-conferences-and-events-2025/": [
+        "Top AI Conferences And Events Of 2025 - nimblework.com"
+      ]
+    }
+  }
+]

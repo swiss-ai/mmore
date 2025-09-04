@@ -2,8 +2,9 @@ import os
 from dataclasses import dataclass
 
 # from getpass import getpass
-from typing import Optional, cast
+from typing import ClassVar, Optional, cast
 
+import torch
 from langchain_anthropic import ChatAnthropic
 from langchain_cohere import ChatCohere
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -107,6 +108,11 @@ class LLMConfig:
 class LLM(BaseChatModel):
     """Class parsing the model name and arguments to load the correct LangChain model"""
 
+    device_count: ClassVar[int] = 0
+    nb_devices: ClassVar[int] = (
+        torch.cuda.device_count() if torch.cuda.is_available() else 1
+    )
+
     @staticmethod
     def _check_key(org):
         if f"{org}_API_KEY" not in os.environ:
@@ -122,11 +128,14 @@ class LLM(BaseChatModel):
             config = load_config(config, LLMConfig)
 
         if config.organization == "HF":
+            cls.device_count = (cls.device_count + 1) % (
+                cls.nb_devices + 1
+            )  # rotate devices, +1 for accounting the -1 below
             return ChatHuggingFace(
                 llm=HuggingFacePipeline.from_model_id(
                     config.llm_name,
                     task="text-generation",
-                    device_map="auto",
+                    device=cls.device_count - 1,
                     pipeline_kwargs=config.generation_kwargs,
                 )
             )
