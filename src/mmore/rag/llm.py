@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 # from getpass import getpass
 from typing import ClassVar, Optional, cast
-import torch
 
+import torch
 from langchain_anthropic import ChatAnthropic
 from langchain_cohere import ChatCohere
 from langchain_core.language_models.chat_models import BaseChatModel
