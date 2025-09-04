@@ -1,8 +1,5 @@
 # WebSearch Integration in RAG Pipeline
 
-
-
-
 ## Implementation
 
 ### Overview
@@ -19,15 +16,12 @@ Based on the implementation of the `RAG` module, the `Websearch` module enables 
  
 You can customize various parts of the pipeline by defining [an inference Websearch configuration file](/examples/websearchRAG/config_api.yaml).
 
-
 Users can adjust the pipeline according to their [requirements](/examples/websearchRAG/config.yaml) through the following parameters:
 
 - `use_rag`: Enables or disables RAG retrieval.
 - `use_summary`: Activates summarization of retrieved web snippets.
 - `n_loops`: Defines the number of search iterations to refine results.
 - `n_subqueries`: Specifies the number of subqueries generated for each input query.
-
-
 
 ### Workflow
 
@@ -43,11 +37,6 @@ Users can adjust the pipeline according to their [requirements](/examples/websea
    - WebSearch results are combined with RAG outputs to generate the current knowledge
 5. **Start again:**
     - We loop again from step 1 with the updated current knowledge
-
-
-
-
-
 
 ## Minimal Example
 
@@ -80,7 +69,6 @@ Here is a example to create a Websearch pipeline hosted through [LangServe](http
 
     For both mode, if we want to use the RAG pipeline, it is necessay to provide the path to the rag configuration file.
 
-
 ## Results and Outputs
 
 ### Output Format
@@ -107,4 +95,3 @@ The pipeline provides outputs in the following structure:
         "https://example2.com" : ["Advancements in AI; AI Trends"],
     }
 }
-
