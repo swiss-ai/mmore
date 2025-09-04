@@ -107,7 +107,7 @@ class Retriever(BaseRetriever):
         """
         Retrieve top-k similar documents for a given query.
 
-        This method computes dense and sparse query embeddings and builds two seperate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
+        This method computes dense and sparse query embeddings and builds two separate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
 
         Args:
             query: Search query string

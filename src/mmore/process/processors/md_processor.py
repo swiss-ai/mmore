@@ -90,7 +90,7 @@ class MarkdownProcessor(Processor):
         extract_images: bool = True,
     ) -> Tuple[str, list[Image.Image]]:
         """
-        The actual proccessing logic for Markdown files.
+        The actual processing logic for Markdown files.
 
         Args:
             content (str): The content of the Markdown file.

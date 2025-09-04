@@ -49,7 +49,7 @@ class DispatcherConfig:
     A configuration class for the dispatcher.
 
     Save the results to the output path.
-    Following sturcture is used:
+    Following structure is used:
 
     output_path
     ├── processors

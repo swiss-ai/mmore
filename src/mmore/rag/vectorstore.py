@@ -41,7 +41,7 @@ class VectorStoreMilvus:
         dense_model = cls._init_dense_model(config.dense_model_name)
         # sparse_model = cls._init_sparse_model(config.sparse_model_name)
 
-        # Instatiate the VectorStore
+        # Instantiate the VectorStore
         milvus = Milvus(
             embedding_function=dense_model,
             # vector_field=['dense', 'sparse'],
