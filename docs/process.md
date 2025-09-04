@@ -61,7 +61,7 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distribued` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distributed` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
 ### :wrench: File type parameters tuning
 
