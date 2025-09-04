@@ -109,7 +109,9 @@ class LLM(BaseChatModel):
     """Class parsing the model name and arguments to load the correct LangChain model"""
 
     device_count: ClassVar[int] = 0
-    nb_devices: ClassVar[int] = torch.cuda.device_count() if torch.cuda.is_available() else 1
+    nb_devices: ClassVar[int] = (
+        torch.cuda.device_count() if torch.cuda.is_available() else 1
+    )
 
     @staticmethod
     def _check_key(org):
@@ -126,12 +128,14 @@ class LLM(BaseChatModel):
             config = load_config(config, LLMConfig)
 
         if config.organization == "HF":
-            cls.device_count = (cls.device_count + 1) % (nb_devices + 1) # rotate devices, +1 for accounting the -1 below
+            cls.device_count = (cls.device_count + 1) % (
+                nb_devices + 1
+            )  # rotate devices, +1 for accounting the -1 below
             return ChatHuggingFace(
                 llm=HuggingFacePipeline.from_model_id(
                     config.llm_name,
                     task="text-generation",
-                    device=cls.device_count-1,
+                    device=cls.device_count - 1,
                     pipeline_kwargs=config.generation_kwargs,
                 )
             )
