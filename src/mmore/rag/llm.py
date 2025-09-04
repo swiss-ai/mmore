@@ -129,7 +129,7 @@ class LLM(BaseChatModel):
 
         if config.organization == "HF":
             cls.device_count = (cls.device_count + 1) % (
-                nb_devices + 1
+                cls.nb_devices + 1
             )  # rotate devices, +1 for accounting the -1 below
             return ChatHuggingFace(
                 llm=HuggingFacePipeline.from_model_id(
