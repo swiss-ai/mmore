@@ -4,18 +4,19 @@
 
 </h1>
 
-
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
   <img src="https://img.shields.io/github/v/release/swiss-ai/mmore" alt="Release">
+  <a href="https://openreview.net/forum?id=6j1HjfIdKn">
+    <img src="https://img.shields.io/badge/paper-OpenReview-9cf" alt="Paper">
+  </a>
 </p>
 
-####  <center>Massive Multimodal Open RAG & Extraction</center>
+####  Massive Multimodal Open RAG & Extraction
 
-A scalable multimodal pipeline for processing, indexing, and querying multimodal documents
+MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs). 
 
-Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
-Well, MMORE is here to help you!
+👉 Read the paper for more details (OpenReview): [MMORE: Massive Multimodal Open RAG & Extraction](https://openreview.net/forum?id=6j1HjfIdKn)
 
 ## :bulb: Quickstart
 
@@ -147,3 +148,14 @@ We also use `pyright` to type-check the code base, please make sure your Pull Re
 ## License
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
+
+## Cite MMORE
+
+If you use MMORE in your research, please cite the paper:
+```
+@inproceedings{sallinenm,
+  title={M (M) ORE: Massive Multimodal Open RAG \& Extraction},
+  author={Sallinen, Alexandre and Krsteski, Stefan and Teiletche, Paul and Marc-Antoine, Allard and Lecoeur, Baptiste and Zhang, Michael and Nemo, Fabrice and Kalajdzic, David and Meyer, Matthias and Hartley, Mary-Anne},
+  booktitle={Championing Open-source DEvelopment in ML Workshop@ ICML25}
+}
+```
