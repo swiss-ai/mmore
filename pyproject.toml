@@ -37,7 +37,7 @@ dependencies = [
     "dask[distributed]>=2025.2.0",
     "pytest>=8.3.4",
     "validators==0.35.0",
-    "httpx==0.27.2",
+    "httpx==0.28.1",
     "Pillow",
     "PyMuPDF",
     "beautifulsoup4==4.13.4",
