@@ -10,14 +10,6 @@
   <a href="https://openreview.net/forum?id=6j1HjfIdKn">
     <img src="https://img.shields.io/badge/paper-OpenReview-9cf" alt="Paper">
   </a>
-  <br/>
-  <a href="https://www.star-history.com/#swiss-ai/mmore&Date">
-     <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date&theme=dark" />
-     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
-     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
-   </picture>
-  </a>
 </p>
 
 ####  Massive Multimodal Open RAG & Extraction
@@ -167,3 +159,13 @@ If you use MMORE in your research, please cite the paper:
   booktitle={Championing Open-source DEvelopment in ML Workshop@ ICML25}
 }
 ```
+
+<p align="center">
+  <a href="https://www.star-history.com/#swiss-ai/mmore&Date">
+     <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date&theme=dark" />
+     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
+     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
+   </picture>
+  </a>
+</p>
