@@ -1,6 +1,6 @@
 <h1 align="center">
 
-![image](https://github.com/user-attachments/assets/502e2c7e-1200-498a-9ebd-10a27ed48ab6)
+![image](./mmore_logo.jpg)
 
 </h1>
 
