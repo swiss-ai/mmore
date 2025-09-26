@@ -16,7 +16,7 @@ authors = [
     { name = "Michael Zhang", email = "michael.zhang@epfl.ch" },
     { name = "Matthias Meyer", email = "matthias.meyer@sdsc.ethz.ch" },
     { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
-    { name = "Charlotte Meyer", email = "Charlotte.meyer@epfl.ch" },
+    { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
@@ -24,8 +24,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==1.26.3; python_version < '3.12'",
-    "numpy==2.2.6; python_version >= '3.12'",
+    "numpy==1.26.4",
     "pandas==2.3.0",
     "datasets==4.0.0",
     "transformers==4.52.4",
@@ -62,8 +61,7 @@ dependencies = [
     "chonkie==0.2.1.post1",
     "langdetect>=1.0.9",
     "trafilatura==2.0.0",
-    "datatrove==0.3.0; python_version < '3.12'",
-    "datatrove==0.6.0; python_version >= '3.12'",
+    "datatrove==0.3.0",
     "validators==0.35.0",
     "bokeh",
     "motor==3.7.1",
@@ -78,7 +76,7 @@ dependencies = [
     "accelerate==1.7.0",
     "cohere==5.15.0",
     "langchain-anthropic==0.3.4",
-    "langchain-aws==0.2.30",
+    "langchain-aws==0.2.22",
     "langchain-cohere==0.4.2",
     "langchain_community==0.3.25",
     "langchain-huggingface==0.1.2",
@@ -114,7 +112,7 @@ rag = [
   "accelerate",
   "cohere==5.15.0",
   "langchain-anthropic==0.3.4",
-  "langchain-aws==0.2.30",
+  "langchain-aws==0.2.22",
   "langchain-cohere==0.4.2",
   "langchain-huggingface==0.1.2",
   "langchain-milvus==0.1.8",
