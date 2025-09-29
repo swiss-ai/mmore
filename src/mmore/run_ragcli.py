@@ -192,8 +192,8 @@ class RagCLI:
         if self.ragConfig.rag.retriever.use_web:
             print("\nSources: \n")
             for i in range(self.ragConfig.rag.retriever.k):
-                url = results[0]["docs"][i]["metadata"]["url"] # pyright: ignore
-                title = results[0]["docs"][i]["metadata"]["title"] # pyright: ignore
+                url = results[0]["docs"][i]["metadata"]["url"]  # pyright: ignore
+                title = results[0]["docs"][i]["metadata"]["title"]  # pyright: ignore
                 print(f"{title} : {url}")
 
 
