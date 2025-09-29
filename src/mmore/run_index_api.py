@@ -319,7 +319,7 @@ def make_router(config_path: str) -> APIRouter:
                     uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                 )
                 delete_result = client.delete(
-                    collection_name=COLLECTION_NAME, filter=f"document_id == {fileId}"
+                    collection_name=COLLECTION_NAME, filter=f"document_id == '{fileId}'"
                 )
                 logger.info(f"Deleted document from vector DB: {delete_result}")
             except Exception as db_error:
