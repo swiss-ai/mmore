@@ -1,6 +1,6 @@
 <h1 align="center">
 
-![image](./mmore_logo.jpg)
+![image](https://raw.githubusercontent.com/swiss-ai/mmore/master/mmore_logo.jpg)
 
 </h1>
 
