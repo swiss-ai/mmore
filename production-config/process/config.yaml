@@ -1,0 +1,37 @@
+data_path: $ROOT_IN_DIR/sample_data/ #put absolute path!
+dispatcher_config:
+  output_path: $ROOT_OUT_DIR/process/outputs/ #put absolute path!
+  use_fast_processors: false
+  distributed: false
+  dashboard_backend_url: null
+  extract_images: true
+  scheduler_file: $ROOT_OUT_DIR/scheduler-file.json #put absolute path!
+  process_batch_sizes:
+    - URLProcessor: 40
+    - DOCXProcessor: 100
+    - PDFProcessor: 4000
+    - MediaProcessor: 40
+    - SpreadsheetProcessor: 100
+    - TXTProcessor: 100
+    - PPTXProcessor: 100
+    - MarkdownProcessor: 100
+    - EMLProcessor: 100
+    - HTMLProcessor: 100
+  processor_config:
+    MediaProcessor:
+      - normal_model: "openai/whisper-large-v3-turbo"
+      - fast_model: "openai/whisper-tiny"
+      - type: "automatic-speech-recognition"
+      - sample_rate: 10
+      - batch_size: 4
+
+    PDFProcessor:
+      - PDFTEXT_CPU_WORKERS: 0
+      - DETECTOR_BATCH_SIZE: 1
+      - DETECTOR_POSTPROCESSING_CPU_WORKERS: 0
+      - RECOGNITION_BATCH_SIZE: 1
+      - OCR_PARALLEL_WORKERS: 0
+      - TEXIFY_BATCH_SIZE: 1
+      - LAYOUT_BATCH_SIZE: 1
+      - ORDER_BATCH_SIZE: 1
+      - TABLE_REC_BATCH_SIZE: 1

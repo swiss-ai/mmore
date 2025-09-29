@@ -1,24 +1,4 @@
 {"input": "When was Barack Obama born?", "collection_name": "my_docs"}
-{"input": "Where was Barack Obama born?", "collection_name": "my_docs"}
-{"input": "Who founded Google LLC?", "collection_name": "my_docs"}
-{"input": "Where is Google LLC headquartered?", "collection_name": "my_docs"}
-{"input": "What is the location of the Eiffel Tower?", "collection_name": "my_docs"}
+{"input": "Who founded Google?", "collection_name": "my_docs"}
 {"input": "Where is the Eiffel Tower located?", "collection_name": "my_docs"}
 {"input": "When will the artificial intelligence conference be held?", "collection_name": "my_docs"}
-{"input": "Where will the artificial intelligence conference take place?", "collection_name": "my_docs"}
-{"input": "Where was the package shipped from by Amazon?", "collection_name": "my_docs"}
-{"input": "Where did Amazon ship the package to?", "collection_name": "my_docs"}
-{"input": "Who announced the next SpaceX rocket launch?", "collection_name": "my_docs"}
-{"input": "When will SpaceX launch its next rocket?", "collection_name": "my_docs"}
-{"input": "Where will SpaceX launch its next rocket from?", "collection_name": "my_docs"}
-{"input": "When was François Hollande born?", "collection_name": "my_docs"}
-{"input": "Where was François Hollande born?", "collection_name": "my_docs"}
-{"input": "Who founded Google LLC?", "collection_name": "my_docs"}
-{"input": "Where is the headquarters of Google LLC?", "collection_name": "my_docs"}
-{"input": "Where is the Tour Eiffel located?", "collection_name": "my_docs"}
-{"input": "When will the conference on intelligence artificielle take place?", "collection_name": "my_docs"}
-{"input": "Where will the intelligence artificielle conference be held?", "collection_name": "my_docs"}
-{"input": "Who announced the next campaign for LVMH?", "collection_name": "my_docs"}
-{"input": "When will LVMH launch its next campaign for the Paris 2024 Olympics?", "collection_name": "my_docs"}
-{"input": "Where was the package shipped from by La Poste?", "collection_name": "my_docs"}
-{"input": "Where did La Poste send the package to?", "collection_name": "my_docs"}

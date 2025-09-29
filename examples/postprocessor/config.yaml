@@ -1,0 +1,23 @@
+pp_modules:
+  - type: file_namer
+  - type: chunker
+    args:
+      chunking_strategy: sentence
+  - type: translator
+    args:
+      target_language: en
+      attachment_tag: <attachment>
+      confidence_threshold: 0.7
+      constrained_languages: 
+        - fr
+        - en
+  - type: metafuse
+    args:
+      metadata_keys:
+        - file_name
+      content_template: Content from {file_name}
+      position: beginning
+
+output:
+  output_path: examples/postprocessor/outputs/merged/
+  save_each_step: True

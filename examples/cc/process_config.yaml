@@ -1,0 +1,20 @@
+dispatcher_config:
+  output_path: examples/mmore_output_fast/
+  use_fast_processors: true
+  distributed: false
+  extract_images: true
+  scheduler_file: scheduler-file.json
+  process_batch_sizes:
+    - PDFProcessor: 4000
+  processor_config:
+    PDFProcessor:
+      - PDFTEXT_CPU_WORKERS: 0
+      - DETECTOR_BATCH_SIZE: 1
+      - DETECTOR_POSTPROCESSING_CPU_WORKERS: 0
+      - RECOGNITION_BATCH_SIZE: 1
+      - OCR_PARALLEL_WORKERS: 0
+      - TEXIFY_BATCH_SIZE: 1
+      - LAYOUT_BATCH_SIZE: 1
+      - ORDER_BATCH_SIZE: 1
+      - TABLE_REC_BATCH_SIZE: 1
+data_path: examples/sample_data

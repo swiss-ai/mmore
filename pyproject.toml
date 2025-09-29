@@ -1,30 +1,103 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mmore"
-version = "1.0.0"
+version = "1.1.1"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
+    { name = "Alexandre Sallinen", email = "alexandre.sallinen@epfl.ch" },
     { name = "Paul Teiletche", email = "paul.teiletche@epfl.ch" },
-    { name = "Marc-Antoine Dilmi JR Allard", email = "marc-antoine.allard@epfl.ch" }
+    { name = "Marc-Antoine Allard", email = "marc-antoine.allard@epfl.ch" },
+    { name = "Stefan Krsteski", email = "stefan.krsteski@epfl.ch" },
+    { name = "David Kalajdzic", email = "david.kalajdzic@epfl.ch" },
+    { name = "Michael Zhang", email = "michael.zhang@epfl.ch" },
+    { name = "Matthias Meyer", email = "matthias.meyer@sdsc.ethz.ch" },
+    { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
+    { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
+    { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
+    { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==1.26.3",
-    "pandas==2.2.3",
-    "datasets==2.19.1",
-    "transformers==4.47.0",
-    "fastapi[standard]",
-    "fastapi==0.115.5",
-    "uvicorn==0.32.1",
+    "numpy==1.26.4; python_version < '3.12'",
+    "numpy==2.2.6; python_version >= '3.12'",
+    "pandas==2.3.0",
+    "datasets==4.0.0",
+    "transformers==4.52.4",
+    "fasteners==0.19",
+    "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
     "dacite==1.8.1",
     "click>=8.1.7",
-    "dask-cuda>=24.10.0",
-    "cuda-python>=12.6.2",
-    "ucx-py-cu12>=0.40.0",
+    "dask[distributed]>=2025.2.0",
     "pytest>=8.3.4",
-    "validators==0.34.0",
-    "httpx==0.27.2",
+    "httpx==0.28.1",
+    "Pillow",
+    "PyMuPDF",
+    "beautifulsoup4==4.13.4",
+    "Unidecode",
+    "clean-text",
+    "docx2pdf",
+    "lxml_html_clean",
+    "python-docx",
+    "python-pptx",
+    "clean-text",
+    "requests==2.32.4",
+    "selenium==4.34.2",
+    "surya-ocr>=0.8.3",
+    "xlrd==2.0.1",
+    "py7zr==0.22.0",
+    "rarfile==4.2",
+    "markdown==3.7",
+    "markdownify==0.13.1",
+    "marker-pdf==1.7.5",
+    "moviepy==2.1.1",
+    "openpyxl==3.1.5",
+    "chonkie==0.2.1.post1",
+    "langdetect>=1.0.9",
+    "trafilatura==2.0.0",
+    "datatrove==0.3.0; python_version < '3.12'",
+    "datatrove==0.6.0; python_version >= '3.12'",
+    "validators==0.35.0",
+    "bokeh",
+    "motor==3.7.1",
+    "mpmath==1.3.0",
+    "networkx==3.4.2",
+    "fastapi[standard]",
+    "fastapi==0.115.13",
+    "pydantic==2.11.7",
+    "pymongo==4.13.2",
+    "pymilvus==2.5.0",
+    "milvus-model==0.2.12",
+    "accelerate==1.7.0",
+    "cohere==5.15.0",
+    "langchain-anthropic==0.3.4",
+    "langchain-aws==0.2.30",
+    "langchain-cohere==0.4.2",
+    "langchain_community==0.3.25",
+    "langchain-huggingface==0.1.2",
+    "langchain-milvus==0.1.8",
+    "langchain-mistralai==0.2.7",
+    "langchain-nvidia-ai-endpoints",
+    "langchain-openai==0.3.28",
+    "langchain==0.3.27",
+    "markdownify==0.13.1",
+    "ragas==0.3.1",
+    "nltk>=3.9",
+    "starlette==0.46",
+    "typing_extensions==4.14.1",
+    "sympy==1.14.0",
+    "google-auth==2.39.0",
+    "google-api-python-client==2.173.0",
+    "mammoth==1.9.0",
+    "argostranslate",
+    "sentence-transformers",
+    "langid"
 ]
 
 [project.optional-dependencies]
@@ -35,104 +108,26 @@ cu124 = [
     "torch>=2.5.1",
 ]
 
-process = [
-    "Pillow",
-    "PyMuPDF",
-    "Unidecode",
-    "clean-text",
-    "docx2pdf",
-    "lxml_html_clean",
-    "python-docx",
-    "python-pptx",
-    "clean-text",
-    "requests==2.28.1",
-    "selenium==4.27.1",
-    "surya-ocr>=0.8.3",
-    "xlrd==2.0.1",
-    "py7zr==0.22.0",
-    "rarfile==4.2",
-    "markdown==3.7",
-    "markdownify==0.13.1",
-    "marker-pdf==1.6.0",
-    "moviepy==2.1.1",
-    "openpyxl==3.1.5",
-    "chonkie==0.2.1.post1",
-    "langdetect>=1.0.9",
-    "trafilatura==1.4.0",
-    "datatrove[processing]",
-    "validators==0.34.0",
-    "bokeh",
-    "motor==3.6.0",
-    "fastapi[standard]",
-    "fastapi==0.115.5",
-    "pydantic== 2.10.4",
-    "pymongo==4.9.2"
-]
-
 rag = [
   "accelerate",
+  "cohere==5.15.0",
   "langchain-anthropic==0.3.4",
-  "langchain-aws",
+  "langchain-aws==0.2.30",
   "langchain-cohere==0.4.2",
   "langchain-huggingface==0.1.2",
   "langchain-milvus==0.1.8",
   "langchain-mistralai==0.2.7",
   "langchain-nvidia-ai-endpoints",
-  "langchain-openai==0.3.7",
-  "langchain==0.3.20",
+  "langchain-openai==0.3.28",
+  "langchain==0.3.27",
   "langdetect>=1.0.9",
-  "langserve[all]==0.3.1",
-  "pymilvus[model]==2.5.0",
-  "ragas==0.2.6",
+  "pymilvus==2.5.0",
+  "milvus-model==0.2.12",
+  "ragas==0.3.1",
   "nltk>=3.9",
 ]
 
-all = [
-  "accelerate",
-  "Pillow",
-  "PyMuPDF",
-  "Unidecode",
-  "bokeh",
-  "chonkie==0.2.1.post1",
-  "clean-text",
-  "datatrove[processing]",
-  "docx2pdf",
-  "fastapi==0.115.5",
-  "fastapi[standard]",
-  "langchain-anthropic==0.3.4",
-  "langchain-aws",
-  "langchain-cohere==0.4.2",
-  "langchain-huggingface==0.1.2",
-  "langchain-milvus==0.1.8",
-  "langchain-mistralai==0.2.7",
-  "langchain-nvidia-ai-endpoints",
-  "langchain-openai==0.3.7",
-  "langchain==0.3.20",
-  "langdetect>=1.0.9",
-  "langserve[all]==0.3.1",
-  "lxml_html_clean",
-  "markdown==3.7",
-  "markdownify==0.13.1",
-  "marker-pdf==1.6.0",
-  "motor==3.6.0",
-  "moviepy==2.1.1",
-  "nltk>=3.9",
-  "openpyxl==3.1.5",
-  "py7zr==0.22.0",
-  "pydantic== 2.10.4",
-  "pymilvus[model]==2.5.0",
-  "pymongo==4.9.2",
-  "python-docx",
-  "python-pptx",
-  "ragas==0.2.6",
-  "rarfile==4.2",
-  "requests==2.28.1",
-  "selenium==4.27.1",
-  "surya-ocr>=0.8.3",
-  "trafilatura==1.4.0",
-  "validators==0.34.0",
-  "xlrd==2.0.1",
-]
+dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
 
 [tool.uv]
 conflicts = [
@@ -159,9 +154,31 @@ name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
-[project.scripts]
-mmore = "mmore:__main__"
+[tool.isort]
+profile = "black"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[project.scripts]
+mmore = "mmore.cli:main"
+
+[tool.setuptools]
+packages = ["mmore"]
+package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::Warning"]
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is fixed
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) and Module level import not at top of file (`E402`)
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"run_index_api.py" = ["N803", "N806"]
+
+[tool.codespell]
+ignore-words-list = "ore,revered"
+skip = "./examples/*,*.pdf"

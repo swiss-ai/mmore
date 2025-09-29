@@ -1,0 +1,10 @@
+data_path: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/merged/merged_results.jsonl
+pipeline:
+  pp_modules:
+    - type: chunker 
+      args:
+        chunking_strategy: semantic
+    - type: lang_detector
+  output:
+    output_path: /mnt/mlo/scratch/homes/mmore/datasets/who_guidelines/processed/extraction_results_47k/chunk-semantic
+    save_each_step: True

@@ -1,0 +1,22 @@
+# RAG Config
+rag: 
+  # LLM Config
+  llm: 
+    llm_name: Qwen/Qwen3-8B # "epfl-llm/meditron-70b" # "gpt-4o-mini" # Anything supported
+    max_new_tokens: 1200
+    temperature: 0.8
+  # Retriever Config
+  retriever:
+    db:
+      uri: ./proc_demo.db
+      name: my_db
+    hybrid_search_weight: 0.5
+    k: 5
+  # Prompt Args
+  system_prompt: "Answer the question using the context.\n\nContext: {context}"
+# Mode Config
+mode: api
+mode_args:
+  endpoint: '/rag'
+  port: 8000
+  host: 'localhost'

@@ -1,13 +1,16 @@
+import io
 import logging
+import os
+import tempfile
+from typing import Optional, Tuple
+
 import markdown
 import markdownify
-from src.mmore.type import FileDescriptor, MultimodalSample
-from .base import Processor, ProcessorConfig
-import tempfile
-from PIL import Image
-import os
-import io
 import requests
+from PIL import Image
+
+from ...type import FileDescriptor, MultimodalSample
+from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +21,11 @@ class MarkdownProcessor(Processor):
 
     Attributes:
         files (List[FileDescriptor]): List of Markdown files to be processed.
-        config (ProcessorConfig): Configuration for the processor, including options such as the 
+        config (ProcessorConfig): Configuration for the processor, including options such as the
                                    placeholder tag for embedded images (e.g., "<attachment>").
         md (markdown.Markdown): Instance of the Markdown parser used to convert content to HTML.
     """
+
     def __init__(self, config=None):
         """
         Args:
@@ -32,7 +36,7 @@ class MarkdownProcessor(Processor):
         self.md = markdown.Markdown()
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -67,18 +71,26 @@ class MarkdownProcessor(Processor):
             return self.create_sample([], [], file_path)
 
         try:
-            all_text, embedded_images = self.process_md(content, file_path, self.config.attachment_tag, self.config.custom_config.get("extract_images", True))
+            all_text, embedded_images = MarkdownProcessor._process_md(
+                content,
+                file_path,
+                self.config.attachment_tag,
+                self.config.custom_config.get("extract_images", True),
+            )
             return self.create_sample([all_text], embedded_images, file_path)
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")
             return self.create_sample([], [], file_path)
 
-
-
     @staticmethod
-    def process_md(content: str, file_path: str, attachment_tag: str = None, extract_images: bool = True) -> (str, list[Image.Image]):
+    def _process_md(
+        content: str,
+        file_path: str,
+        attachment_tag: Optional[str] = None,
+        extract_images: bool = True,
+    ) -> Tuple[str, list[Image.Image]]:
         """
-        The actual proccessing logic for Markdown files. 
+        The actual processing logic for Markdown files.
 
         Args:
             content (str): The content of the Markdown file.
@@ -105,7 +117,7 @@ class MarkdownProcessor(Processor):
             try:
                 # Check if the URL is valid
                 src_path = os.path.join(os.path.dirname(file_path), src)
-                if src.startswith(('http://', 'https://')):
+                if src.startswith(("http://", "https://")):
                     # Download remote image with custom headers to mimic a real browser (helps bypass servers that block non-browser requests)
                     headers = {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
@@ -118,13 +130,17 @@ class MarkdownProcessor(Processor):
 
                         def save_temp_image(image: Image.Image, base_path: str) -> str:
                             os.makedirs(base_path, exist_ok=True)
-                            with tempfile.NamedTemporaryFile(mode='w', delete=True, dir=base_path, suffix='.png') as tmp:
+                            with tempfile.NamedTemporaryFile(
+                                mode="w", delete=True, dir=base_path, suffix=".png"
+                            ) as tmp:
                                 image.save(tmp.name)
                             return tmp.name
-                        path = save_temp_image(image, base_path=os.path.join(os.getcwd(), 'tmp'))
-                        embedded_images.append(path)
+
+                        embedded_images.append(image)
                     else:
-                        logger.error(f"Failed to download image from {src}. Status code: {response.status_code}")
+                        logger.error(
+                            f"Failed to download image from {src}. Status code: {response.status_code}"
+                        )
                         html = html.replace(tag, "")
                         continue
 
@@ -143,5 +159,7 @@ class MarkdownProcessor(Processor):
             html = html.replace(tag, "#attachment")
 
         content = markdownify.markdownify(html)
-        content = content.replace("#attachment", attachment_tag if attachment_tag else "<attachment>")
+        content = content.replace(
+            "#attachment", attachment_tag if attachment_tag else "<attachment>"
+        )
         return content, embedded_images

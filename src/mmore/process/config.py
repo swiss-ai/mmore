@@ -1,7 +1,8 @@
+import os
+from pathlib import Path
+
 import click
 import yaml
-from pathlib import Path
-import os
 
 default_config = {
     "processor": {
@@ -32,6 +33,7 @@ default_config = {
             {"PPTXProcessor": 100},
             {"MarkdownProcessor": 100},
             {"EMLProcessor": 100},
+            {"HTMLProcessor": 100},
         ]
     },
 }
@@ -48,7 +50,7 @@ def get_config_path():
         app_dir.mkdir(parents=True, exist_ok=True)
     except PermissionError as e:
         click.echo(f"Error creating config directory: {e}", err=True)
-        raise
+        raise e
     return app_dir / "config.yaml"
 
 

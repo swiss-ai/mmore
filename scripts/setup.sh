@@ -12,4 +12,5 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 libgconf-2-4
 # Install UV
 curl -LsSf https://astral.sh/uv/install.sh | sh
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrcuv sync
+uv venv
 source .venv/bin/activate
