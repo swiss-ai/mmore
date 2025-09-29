@@ -3,21 +3,19 @@ import io
 import logging
 import os
 import re
-import requests
-
+from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Manager, Process, set_start_method
 from typing import List, Optional
 
 import fitz  # PyMuPDF
+import requests
 import torch
-from concurrent.futures import ThreadPoolExecutor
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
-from transformers import AutoProcessor, AutoModelForVision2Seq
-
 from PIL import Image, UnidentifiedImageError
+from transformers import AutoModelForVision2Seq, AutoProcessor
 
 from ...type import FileDescriptor, MultimodalSample
 from ..utils import clean_image, clean_text
@@ -34,12 +32,14 @@ class PDFProcessor(Processor):
         self.converter = None
         self.image_analyzer = None
         self.analyze_images = self.config.custom_config.get("analyze_images", False)
-        self.image_analyzer_type = self.config.custom_config.get("image_analyzer_type", "smoldocling")
-        
+        self.image_analyzer_type = self.config.custom_config.get(
+            "image_analyzer_type", "smoldocling"
+        )
+
         # Initialize image analyzer if needed
         if self.analyze_images:
             self._init_image_analyzer()
-    
+
     def _init_image_analyzer(self):
         """Initialize the appropriate image analyzer based on configuration"""
         if self.image_analyzer_type == "smoldocling" and self.analyze_images:
@@ -47,7 +47,9 @@ class PDFProcessor(Processor):
         elif self.image_analyzer_type == "mistral" and self.analyze_images:
             api_key = os.environ.get("MISTRAL_API_KEY")
             if not api_key:
-                logging.warning("MISTRAL_API_KEY environment variable not set. MistralOCR will not work.")
+                logging.warning(
+                    "MISTRAL_API_KEY environment variable not set. MistralOCR will not work."
+                )
             self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
         else:
             self.image_analyzer = None
@@ -166,7 +168,7 @@ class PDFProcessor(Processor):
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
-        
+
         # If image analysis is enabled, analyze the images
         if self.analyze_images and self.image_analyzer and images:
             image_texts = self._analyze_images(images.values())
@@ -174,14 +176,14 @@ class PDFProcessor(Processor):
             for img_text in image_texts:
                 if img_text and img_text.strip():
                     text += f"\n\nImage content: {img_text}"
-        
+
         return self.create_sample([text], list(images.values()), file_path)
-    
+
     def _analyze_images(self, images):
         """Analyze images using the configured image analyzer"""
         if not self.image_analyzer:
             return []
-            
+
         return self.image_analyzer.analyze_batch(images)
 
     def process_fast(self, file_path: str) -> MultimodalSample:
@@ -229,7 +231,7 @@ class PDFProcessor(Processor):
                         embedded_images.append(image)
                         page_images.append(image)
                         all_text.append(self.config.attachment_tag)
-                
+
                 # If image analysis is enabled, analyze the images
                 if self.analyze_images and self.image_analyzer and page_images:
                     image_texts = self._analyze_images(page_images)
@@ -266,8 +268,10 @@ class PDFProcessor(Processor):
 
             # Pass along the image analysis configuration
             analyze_images = config_custom.get("analyze_images", False)
-            image_analyzer_type = config_custom.get("image_analyzer_type", "smoldocling")
-            
+            image_analyzer_type = config_custom.get(
+                "image_analyzer_type", "smoldocling"
+            )
+
             if PDFProcessor.artifact_dict is None:
                 PDFProcessor.artifact_dict = create_model_dict()
 
@@ -286,11 +290,13 @@ class PDFProcessor(Processor):
                 artifact_dict=PDFProcessor.artifact_dict,
                 config=config_parser.generate_config_dict(),
             )
-            
+
             # Initialize image analyzer if needed
             if analyze_images:
                 if image_analyzer_type == "smoldocling":
-                    self.image_analyzer = SmolDoclingImageAnalyzer(device=f"cuda:{gpu_id}")
+                    self.image_analyzer = SmolDoclingImageAnalyzer(
+                        device=f"cuda:{gpu_id}"
+                    )
                 elif image_analyzer_type == "mistral":
                     api_key = os.environ.get("MISTRAL_API_KEY")
                     self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
@@ -315,124 +321,124 @@ class PDFProcessor(Processor):
             raise e
         finally:
             torch.cuda.empty_cache()
-            if hasattr(self, 'converter'):
+            if hasattr(self, "converter"):
                 del self.converter
-            if hasattr(self, 'image_analyzer'):
+            if hasattr(self, "image_analyzer"):
                 del self.image_analyzer
 
 
 class SmolDoclingImageAnalyzer:
     """Image analyzer using SmolDocling for OCR and image understanding"""
-    
+
     def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
         self.device = device
         self.model = None
         self.processor = None
         self._load_model()
-    
+
     def _load_model(self):
         """Load the SmolDocling model"""
         try:
             self.processor = AutoProcessor.from_pretrained("google/smoldocling")
-            self.model = AutoModelForVision2Seq.from_pretrained("google/smoldocling").to(self.device)
+            self.model = AutoModelForVision2Seq.from_pretrained(
+                "google/smoldocling"
+            ).to(self.device)
             logging.info("SmolDocling model loaded successfully")
         except Exception as e:
             logging.error(f"Failed to load SmolDocling model: {str(e)}")
             self.model = None
             self.processor = None
-    
+
     def analyze(self, image) -> str:
         """Analyze a single image and return the extracted text"""
         if self.model is None or self.processor is None:
             logging.error("SmolDocling model not loaded")
             return ""
-        
+
         try:
             # Prepare the image for the model
             inputs = self.processor(images=image, return_tensors="pt").to(self.device)
-            
+
             # Generate text from the image
             generated_ids = self.model.generate(
-                **inputs,
-                max_length=512,
-                num_beams=4,
-                early_stopping=True
+                **inputs, max_length=512, num_beams=4, early_stopping=True
             )
-            
+
             # Decode the generated text
-            generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            generated_text = self.processor.batch_decode(
+                generated_ids, skip_special_tokens=True
+            )[0]
             return generated_text
         except Exception as e:
             logging.error(f"Error analyzing image with SmolDocling: {str(e)}")
             return ""
-    
+
     def analyze_batch(self, images) -> List[str]:
         """Analyze a batch of images and return the extracted text for each"""
         results = []
-        
+
         # Process images in parallel using ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=min(len(images), 4)) as executor:
             results = list(executor.map(self.analyze, images))
-            
+
         return results
 
 
 class MistralOCRImageAnalyzer:
     """Image analyzer using MistralOCR API"""
-    
+
     def __init__(self, api_key=None):
         self.api_key = api_key
         self.api_url = "https://api.mistral.ai/v1/ocr"
-        
+
         if not api_key:
             logging.warning("MistralOCR API key not provided. API calls will fail.")
-    
+
     def analyze(self, image) -> str:
         """Analyze a single image using MistralOCR API"""
         if not self.api_key:
             logging.error("MistralOCR API key not provided")
             return ""
-        
+
         try:
             # Convert PIL image to bytes
             img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='PNG')
+            image.save(img_byte_arr, format="PNG")
             img_byte_arr = img_byte_arr.getvalue()
-            
+
             # Encode image to base64
-            encoded_image = base64.b64encode(img_byte_arr).decode('utf-8')
-            
+            encoded_image = base64.b64encode(img_byte_arr).decode("utf-8")
+
             # Prepare the request
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
-            
-            payload = {
-                "image": encoded_image,
-                "model": "mistral-ocr"
-            }
-            
+
+            payload = {"image": encoded_image, "model": "mistral-ocr"}
+
             # Make the API request
             response = requests.post(self.api_url, headers=headers, json=payload)
-            
+
             if response.status_code == 200:
                 result = response.json()
                 return result.get("text", "")
             else:
-                logging.error(f"MistralOCR API error: {response.status_code} - {response.text}")
+                logging.error(
+                    f"MistralOCR API error: {response.status_code} - {response.text}"
+                )
                 return ""
-                
+
         except Exception as e:
             logging.error(f"Error analyzing image with MistralOCR: {str(e)}")
             return ""
-    
+
     def analyze_batch(self, images) -> List[str]:
         """Analyze a batch of images using MistralOCR API"""
         results = []
-        
+
         # Process images sequentially to avoid API rate limits
         for image in images:
             results.append(self.analyze(image))
-            
+
         return results

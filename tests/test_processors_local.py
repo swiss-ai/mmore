@@ -1,15 +1,19 @@
 import os
-import pytest
-from PIL import Image
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from marker.output import MarkdownOutput
+from PIL import Image
 
 from mmore.process.processors.base import ProcessorConfig
 from mmore.process.processors.docx_processor import DOCXProcessor
 from mmore.process.processors.eml_processor import EMLProcessor
 from mmore.process.processors.md_processor import MarkdownProcessor
-from mmore.process.processors.media_processor import MediaProcessor, MistralOCRImageAnalyzer, SmolDoclingImageAnalyzer
+from mmore.process.processors.media_processor import (
+    MediaProcessor,
+    MistralOCRImageAnalyzer,
+    SmolDoclingImageAnalyzer,
+)
 from mmore.process.processors.pdf_processor import PDFProcessor
 from mmore.process.processors.pptx_processor import PPTXProcessor
 from mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
@@ -350,106 +354,128 @@ def test_pdf_process_fast():
 
     # ------------------ Text Processor Tests ------------------
 
+
 def test_pdf_image_analysis_smoldocling():
     """Test that the PDF processor correctly analyzes images using SmolDocling"""
+    from unittest.mock import MagicMock, patch
+
     import pytest
-    from unittest.mock import patch, MagicMock
     from PIL import Image
-    
+
     # Skip if running in CI or without dependencies
     try:
-        from transformers import AutoProcessor, AutoModelForVision2Seq
+        from transformers import AutoModelForVision2Seq, AutoProcessor
     except ImportError:
         pytest.skip("transformers not installed")
-    
+
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
-    
+
     # Configure processor with image analysis enabled
-    config = ProcessorConfig(custom_config={
-        "analyze_images": True,
-        "image_analyzer_type": "smoldocling",
-        "output_path": "tmp"
-    })
-    
+    config = ProcessorConfig(
+        custom_config={
+            "analyze_images": True,
+            "image_analyzer_type": "smoldocling",
+            "output_path": "tmp",
+        }
+    )
+
     # Create a test image
-    test_image = Image.new('RGB', (100, 100), color='white')
-    
+    test_image = Image.new("RGB", (100, 100), color="white")
+
     # Mock SmolDoclingImageAnalyzer
-    with patch('mmore.process.processors.pdf_processor.SmolDoclingImageAnalyzer') as mock_analyzer_class:
+    with patch(
+        "mmore.process.processors.pdf_processor.SmolDoclingImageAnalyzer"
+    ) as mock_analyzer_class:
         mock_analyzer = MagicMock()
         mock_analyzer.analyze_batch.return_value = ["Test image content"]
         mock_analyzer_class.return_value = mock_analyzer
-        
+
         processor = PDFProcessor(config=config)
-        
+
         # Mock the process method directly to avoid complex mocking
-        with patch.object(processor, 'process', autospec=True) as mock_process:
+        with patch.object(processor, "process", autospec=True) as mock_process:
             # Set up the mock to return a sample with expected values
             mock_process.return_value = MultimodalSample(
-                text="Sample PDF text\n\nImage content: Test image content", 
+                text="Sample PDF text\n\nImage content: Test image content",
                 modalities=[MagicMock()],
-                metadata={}
+                metadata={},
             )
-            
+
             result = processor.process(sample_file)
-            
+
             # Verify the result
             assert "Sample PDF text" in result.text, "Original text should be in result"
-            assert "Image content: Test image content" in result.text, "Image analysis result should be in text"
-            
+            assert "Image content: Test image content" in result.text, (
+                "Image analysis result should be in text"
+            )
+
             # Verify that process was called
             mock_process.assert_called_once()
 
+
 def test_pdf_image_analysis_mistral():
     """Test that the PDF processor correctly analyzes images using MistralOCR"""
-    import pytest
-    from unittest.mock import patch, MagicMock
     import os
+    from unittest.mock import MagicMock, patch
+
+    import pytest
     from PIL import Image
-    
+
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
-    
+
     # Configure processor with image analysis enabled using MistralOCR
-    config = ProcessorConfig(custom_config={
-        "analyze_images": True,
-        "image_analyzer_type": "mistral",
-        "output_path": "tmp"
-    })
-    
+    config = ProcessorConfig(
+        custom_config={
+            "analyze_images": True,
+            "image_analyzer_type": "mistral",
+            "output_path": "tmp",
+        }
+    )
+
     # Create a test image
-    test_image = Image.new('RGB', (100, 100), color='white')
-    
+    test_image = Image.new("RGB", (100, 100), color="white")
+
     # Mock environment variable
-    with patch.dict('os.environ', {"MISTRAL_API_KEY": "test-api-key"}):
+    with patch.dict("os.environ", {"MISTRAL_API_KEY": "test-api-key"}):
         # Mock MistralOCRImageAnalyzer
-        with patch('mmore.process.processors.pdf_processor.MistralOCRImageAnalyzer') as mock_analyzer_class:
+        with patch(
+            "mmore.process.processors.pdf_processor.MistralOCRImageAnalyzer"
+        ) as mock_analyzer_class:
             mock_analyzer = MagicMock()
             mock_analyzer.analyze_batch.return_value = ["Mistral OCR result"]
             mock_analyzer_class.return_value = mock_analyzer
-            
+
             processor = PDFProcessor(config=config)
-            
+
             # Mock the process_fast method directly to avoid complex mocking
-            with patch.object(processor, 'process_fast', autospec=True) as mock_process_fast:
+            with patch.object(
+                processor, "process_fast", autospec=True
+            ) as mock_process_fast:
                 # Set up the mock to return a sample with expected values
                 mock_process_fast.return_value = MultimodalSample(
-                    text="Sample PDF text\nImage content: Mistral OCR result", 
+                    text="Sample PDF text\nImage content: Mistral OCR result",
                     modalities=[MagicMock()],
-                    metadata={}
+                    metadata={},
                 )
-                
+
                 result = processor.process_fast(sample_file)
-                
+
                 # Verify the result
-                assert "Sample PDF text" in result.text, "Original text should be in result"
-                assert "Mistral OCR result" in result.text, "Mistral OCR result should be in text"
-                
+                assert "Sample PDF text" in result.text, (
+                    "Original text should be in result"
+                )
+                assert "Mistral OCR result" in result.text, (
+                    "Mistral OCR result should be in text"
+                )
+
                 # Verify that process_fast was called
                 mock_process_fast.assert_called_once()
 
     # ------------------ Text Processor Tests ------------------
+
+
 def test_text_process_standard():
     sample_file = os.path.join(SAMPLES_DIR, "txt", "test.txt")
     # Assert that the text sample file exists.
@@ -468,7 +494,7 @@ def test_text_process_standard():
 def test_url_process_standard():
     sample_url = "http://example.com"
     config = ProcessorConfig(
-    custom_config={
+        custom_config={
             "extract_images": False,
             "output_path": "tmp",
             "attachment_tag": "<attachment>",
@@ -503,94 +529,125 @@ def test_url_process_invalid():
         "Expected no modalities for invalid URL"
     )
 
+
 # ------------------ Image Analyzer Tests ------------------
 def test_smoldocling_analyzer():
     """Test the SmolDoclingImageAnalyzer class"""
+    from unittest.mock import MagicMock, patch
+
     import pytest
-    from unittest.mock import patch, MagicMock
     from PIL import Image
+
     from mmore.process.processors.pdf_processor import SmolDoclingImageAnalyzer
-    
+
     # Skip if running in CI or without dependencies
     try:
-        from transformers import AutoProcessor, AutoModelForVision2Seq
+        from transformers import AutoModelForVision2Seq, AutoProcessor
     except ImportError:
         pytest.skip("transformers not installed")
-    
+
     # Create a test image
-    test_image = Image.new('RGB', (100, 100), color='white')
-    
+    test_image = Image.new("RGB", (100, 100), color="white")
+
     # Mock the transformers components
-    with patch('mmore.process.processors.pdf_processor.AutoProcessor') as mock_processor_class:
-        with patch('mmore.process.processors.pdf_processor.AutoModelForVision2Seq') as mock_model_class:
-            with patch('mmore.process.processors.pdf_processor.torch') as mock_torch:
+    with patch(
+        "mmore.process.processors.pdf_processor.AutoProcessor"
+    ) as mock_processor_class:
+        with patch(
+            "mmore.process.processors.pdf_processor.AutoModelForVision2Seq"
+        ) as mock_model_class:
+            with patch("mmore.process.processors.pdf_processor.torch") as mock_torch:
                 # Configure mocks
                 mock_processor = MagicMock()
                 mock_processor.batch_decode.return_value = ["Decoded text from image"]
                 mock_processor.return_value = {"pixel_values": MagicMock()}
                 mock_processor_class.from_pretrained.return_value = mock_processor
-                
+
                 mock_model = MagicMock()
                 mock_model.generate.return_value = MagicMock()
                 mock_model.to.return_value = mock_model
                 mock_model_class.from_pretrained.return_value = mock_model
-                
+
                 # Mock torch.device
                 mock_torch.device.return_value = "cpu"
-                
+
                 # Create a mock analyzer with overridden analyze method
                 analyzer = SmolDoclingImageAnalyzer(device="cpu")
-                
+
                 # Patch the analyze method directly
-                with patch.object(analyzer, 'analyze', return_value="Decoded text from image"):
+                with patch.object(
+                    analyzer, "analyze", return_value="Decoded text from image"
+                ):
                     result = analyzer.analyze(test_image)
-                    
+
                     # Verify results
-                    assert result == "Decoded text from image", "Analyzer should return the decoded text"
-                    
+                    assert result == "Decoded text from image", (
+                        "Analyzer should return the decoded text"
+                    )
+
                     # Test batch processing with direct patching
-                    with patch.object(analyzer, 'analyze_batch', return_value=["Decoded text from image", "Decoded text from image"]):
+                    with patch.object(
+                        analyzer,
+                        "analyze_batch",
+                        return_value=[
+                            "Decoded text from image",
+                            "Decoded text from image",
+                        ],
+                    ):
                         batch_results = analyzer.analyze_batch([test_image, test_image])
-                        assert len(batch_results) == 2, "Should return results for each image"
-                        assert batch_results[0] == "Decoded text from image", "First result should match expected output"
+                        assert len(batch_results) == 2, (
+                            "Should return results for each image"
+                        )
+                        assert batch_results[0] == "Decoded text from image", (
+                            "First result should match expected output"
+                        )
+
 
 def test_mistral_ocr_analyzer():
     """Test the MistralOCRImageAnalyzer class"""
+    from unittest.mock import MagicMock, patch
+
     import pytest
-    from unittest.mock import patch, MagicMock
     from PIL import Image
+
     from mmore.process.processors.pdf_processor import MistralOCRImageAnalyzer
-    
+
     # Create a test image
-    test_image = Image.new('RGB', (100, 100), color='white')
-    
+    test_image = Image.new("RGB", (100, 100), color="white")
+
     # Mock requests.post
-    with patch('mmore.process.processors.pdf_processor.requests.post') as mock_post:
+    with patch("mmore.process.processors.pdf_processor.requests.post") as mock_post:
         # Configure mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"text": "OCR text from Mistral"}
         mock_post.return_value = mock_response
-        
+
         # Create analyzer and test
         analyzer = MistralOCRImageAnalyzer(api_key="test-api-key")
         result = analyzer.analyze(test_image)
-        
+
         # Verify results
-        assert result == "OCR text from Mistral", "Analyzer should return the OCR text from API"
+        assert result == "OCR text from Mistral", (
+            "Analyzer should return the OCR text from API"
+        )
         mock_post.assert_called_once()
-        
+
         # Verify API call parameters
         args, kwargs = mock_post.call_args
-        assert kwargs["headers"]["Authorization"] == "Bearer test-api-key", "API key should be in headers"
+        assert kwargs["headers"]["Authorization"] == "Bearer test-api-key", (
+            "API key should be in headers"
+        )
         assert "image" in kwargs["json"], "Image should be in request payload"
         assert kwargs["json"]["model"] == "mistral-ocr", "Model should be mistral-ocr"
-        
+
         # Test batch processing
         mock_post.reset_mock()
         mock_post.return_value = mock_response
-        
+
         batch_results = analyzer.analyze_batch([test_image, test_image])
         assert len(batch_results) == 2, "Should return results for each image"
-        assert batch_results[0] == "OCR text from Mistral", "First result should match expected output"
+        assert batch_results[0] == "OCR text from Mistral", (
+            "First result should match expected output"
+        )
         assert mock_post.call_count == 2, "API should be called once per image"
