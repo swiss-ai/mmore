@@ -1,34 +1,22 @@
 import os
-from unittest.mock import MagicMock, patch
 
-import pytest
 from marker.output import MarkdownOutput
-from PIL import Image
 
 from mmore.process.processors.base import ProcessorConfig
 from mmore.process.processors.docx_processor import DOCXProcessor
 from mmore.process.processors.eml_processor import EMLProcessor
 from mmore.process.processors.md_processor import MarkdownProcessor
-from mmore.process.processors.media_processor import (
-    MediaProcessor,
-    MistralOCRImageAnalyzer,
-    SmolDoclingImageAnalyzer,
-)
+from mmore.process.processors.media_processor import MediaProcessor
 from mmore.process.processors.pdf_processor import PDFProcessor
 from mmore.process.processors.pptx_processor import PPTXProcessor
 from mmore.process.processors.spreadsheet_processor import SpreadsheetProcessor
 from mmore.process.processors.txt_processor import TextProcessor
 from mmore.process.processors.url_processor import URLProcessor
-from mmore.type import FileDescriptor, MultimodalRawInput, MultimodalSample
+from mmore.type import FileDescriptor, MultimodalSample
 
 """
 If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.  
-This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "src.mmore..." imports.
-"""
-
-"""
-If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.
-This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "src.mmore..." imports.
+This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "mmore..." imports.
 """
 
 SAMPLES_DIR = "examples/sample_data/"
