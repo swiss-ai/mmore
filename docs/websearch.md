@@ -40,7 +40,7 @@ Users can adjust the pipeline according to their [requirements](/examples/websea
 
 ## Minimal Example
 
-Here is a example to create a Websearch pipeline hosted through [LangServe](https://python.langchain.com/docs/langserve/) servers.
+Here is a example to create a Websearch pipeline hosted through [LangGraph](https://python.langchain.com/docs/langgraph/) servers.
 
 1. Create your RAG Inference config file based on the [local example](/examples/websearch/config.yaml) or the [API example](/examples/websearch/config_api.yaml).
 
@@ -49,7 +49,7 @@ Here is a example to create a Websearch pipeline hosted through [LangServe](http
     python3 -m mmore websearch --config_file /path/to/config.yaml
     ```
 
-3. In API mode, query the server like any other LangServe server:
+3. In API mode, query the server like any other LangGraph server:
     ```bash
     curl --location --request POST http://localhost:8000/websearch/ \
     -H 'Content-Type: application/json' \
