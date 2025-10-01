@@ -20,7 +20,6 @@ from ..utils import load_config
 from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
 
-# Imports for re ranker
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
@@ -45,7 +44,8 @@ class Retriever(BaseRetriever):
     hybrid_search_weight: float
     k: int
     use_web: bool
-    
+    reranker_model: Any
+    reranker_tokenizer: Any
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -80,11 +80,11 @@ class Retriever(BaseRetriever):
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
-        
-        # Load reranker from Hugging Face 
+        # Load BGE reranker from Hugging Face  (https://huggingface.co/BAAI/bge-reranker-base)
         reranker_model_name = "BAAI/bge-reranker-base"
         reranker_tokenizer = AutoTokenizer.from_pretrained(reranker_model_name)
         reranker_model = AutoModelForSequenceClassification.from_pretrained(reranker_model_name).to("cuda")
+        logger.info(f"Loaded reranker model: {reranker_model_name}")
 
         return cls(
             dense_model=dense_model,
@@ -96,8 +96,6 @@ class Retriever(BaseRetriever):
             reranker_model=reranker_model,
             reranker_tokenizer=reranker_tokenizer,
         )
-
-
 
 
 
@@ -256,31 +254,20 @@ class Retriever(BaseRetriever):
         return all_results
 
     def rerank(self, query, docs):
-        # Debug: Check how many docs we received
-        logger.info(f"[DEBUG] Reranker received {len(docs)} docs for query: {query}")
-
-        if not docs:
-            logger.info("[DEBUG] No documents to rerank.")
-            return docs
-
+        """Re-rank documents using a pre-trained re-ranker model."""
+        
         scores = []
         for i, doc in enumerate(docs):
-            logger.info(f"[DEBUG] Doc {i} sample: {doc.page_content[:200]!r}")  # logger.info first 200 chars
             inputs = self.reranker_tokenizer(
                 query, doc.page_content,
                 return_tensors="pt", truncation=True
             ).to("cuda")
             with torch.no_grad():
                 score = self.reranker_model(**inputs).logits.squeeze().item()
-            logger.info(f"[DEBUG] Doc {i} score: {score:.4f}")
             scores.append((doc, score))
 
         reranked = [doc for doc, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
-        logger.info(f"[DEBUG] Reranker finished. Top doc: {reranked[0].page_content[:200]!r}" if reranked else "[DEBUG] No docs after rerank.")
         return reranked
-
-
-
 
 
     def _get_relevant_documents(
@@ -340,13 +327,7 @@ class Retriever(BaseRetriever):
         else:
             docs = parse_results(results)
 
-
-        # Debug: check what retriever got before reranker
-        logger.info(f"[DEBUG] Docs before reranker: {len(docs)}")
-        for d in docs[:3]:
-            logger.info("[DEBUG] Doc sample: %s", d.page_content[:200])
-
-        # Apply re-ranker before returning
+        # Apply re-ranker before returning docs
         docs = self.rerank(query_input, docs)
         return docs
 
