@@ -1,8 +1,9 @@
 import argparse
 import logging
+from typing import Optional
 
 from huggingface_hub import model_info
-from huggingface_hub.utils import HfHubHTTPError
+from huggingface_hub.errors import HfHubHTTPError
 
 RAG_EMOJI = "🧠🧠🧠🧠🧠"
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ from .utils import load_config
 
 class RagCLI:
     def __init__(self, config_file: str):
-        self.ragConfig = None
+        self.ragConfig: Optional[RAGInferenceConfig] = None
         self.ragPP = None
         self.modified: bool = (
             False  # flag to indicate if the configuration has been modified
@@ -87,6 +88,8 @@ class RagCLI:
 
                 elif cmd == "config":
                     self.init_config()
+                    assert self.ragConfig is not None
+
                     confrag = self.ragConfig.rag
                     print(
                         f"k: {str_in_color(confrag.retriever.k, 'blue')} \nmodel: {str_in_color(confrag.llm.llm_name, 'blue')} \nuse web for rag: {str_in_color(confrag.retriever.use_web, 'blue')}"
@@ -101,6 +104,8 @@ class RagCLI:
                         if k > 0:
                             print(k)
                             self.init_config()
+                            assert self.ragConfig is not None
+
                             self.ragConfig.rag.retriever.k = k
                             self.modified = True
                         else:
@@ -114,6 +119,8 @@ class RagCLI:
                     if valid:
                         print(message)
                         self.init_config()
+                        assert self.ragConfig is not None
+
                         self.ragConfig.rag.llm.llm_name = new_model
                         self.modified = True
                     else:
@@ -123,6 +130,8 @@ class RagCLI:
                     res = cmd.split(" ", 1)[1].lower()
                     if res in ["true", "false"]:
                         self.init_config()
+                        assert self.ragConfig is not None
+
                         old = self.ragConfig.rag.retriever.use_web
                         self.ragConfig.rag.retriever.use_web = (
                             True if res == "true" else False
@@ -165,20 +174,26 @@ class RagCLI:
 
     def initialize_ragpp(self):
         logger.info("Creating the RAG Pipeline...")
+        # called only right after init_config
+        assert self.ragConfig is not None
         self.ragPP = RAGPipeline.from_config(self.ragConfig.rag)
         logger.info("RAG pipeline initialized!")
 
     def do_rag(self, query):
         queries = [{"input": query, "collection_name": "my_docs"}]
+        # called only after init_config and initialize_ragpp
+        assert self.ragConfig is not None
+        assert self.ragPP is not None
+
         results = self.ragPP(queries, return_dict=True)
 
         print(query)
-        print(results[0]["answer"].split("<|end_header_id|>")[-1])
+        print(results[0]["answer"][-1].split("<|end_header_id|>")[-1])
         if self.ragConfig.rag.retriever.use_web:
             print("\nSources: \n")
             for i in range(self.ragConfig.rag.retriever.k):
-                url = results[0]["docs"][i]["metadata"]["url"]
-                title = results[0]["docs"][i]["metadata"]["title"]
+                url = results[0]["docs"][i]["metadata"]["url"]  # pyright: ignore
+                title = results[0]["docs"][i]["metadata"]["title"]  # pyright: ignore
                 print(f"{title} : {url}")
 
 
@@ -193,7 +208,7 @@ def is_valid_model_path(model_path: str):
         )
 
 
-def str_in_color(to_print: str, color: str, bold: bool = False) -> str:
+def str_in_color(to_print: str | int, color: str, bold: bool = False) -> str:
     colors = {
         "reset": "\033[0m",
         "bold": "\033[1m",
@@ -208,7 +223,7 @@ def str_in_color(to_print: str, color: str, bold: bool = False) -> str:
     return f"{style}{to_print}{colors['reset']}"
 
 
-def print_in_color(to_print: str, color: str, bold: bool = False) -> None:
+def print_in_color(to_print: str | int, color: str, bold: bool = False) -> None:
     print(str_in_color(to_print, color, bold))
 
 
