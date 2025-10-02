@@ -93,10 +93,32 @@ The project supports multiple file types and utilizes various AI-based tools for
 | **TXT**                               | [python built-in library](https://docs.python.org/3/library/functions.html#open)                                                 | N/A                                                                                                                         |
 | **EML**                               | [python built-in library](https://docs.python.org/3/library/email.html) | N/A                                                                                                                         |
 | **MP4, MOV, AVI, MKV, MP3, WAV, AAC** | [moviepy](https://pypi.org/project/moviepy/) for video frame extraction; [whisper-large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) for transcription | [whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                  |
-| **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction                                      | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
+| **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction; Optional image analysis with [SmolDocling](https://huggingface.co/google/smoldocling) (open-source) or [MistralOCR](https://docs.mistral.ai/api/ocr/) (API-based) | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
 | **HTML**                         | [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to navigate the webpage, extract content and content extraction; [requests](https://docs.python-requests.org/en/master/) for images | N/A
 ---
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
+
+### :mag: PDF Image Analysis
+
+The PDF processor now includes advanced image analysis capabilities to extract text and information from images embedded within PDF files. This feature is especially useful for scanned documents, diagrams, charts, and other visual content in PDFs.
+
+Two image analysis options are available:
+
+1. **SmolDocling** (Open Source): Uses Google's SmolDocling model to analyze images and extract text and structured information. This option works locally without requiring external API calls.
+
+2. **MistralOCR** (API-based): Uses Mistral's OCR API for high-quality text extraction from images. This option requires a Mistral API key set as the `MISTRAL_API_KEY` environment variable.
+
+To enable PDF image analysis, set the following options in your configuration file:
+
+```yaml
+dispatcher_config:
+  processor_config:
+    PDFProcessor:
+      - analyze_images: true  # Enable image analysis
+      - image_analyzer_type: "smoldocling"  # Options: "smoldocling" or "mistral"
+```
+
+The image analysis results will be appended to the extracted text with clear indicators of which content came from images.
 
 ## :wrench: Customization
 The system is designed to be extensible, allowing you to register custom processors for handling new file types or specialized processing. To implement a new processor you need to inherit the `Processor` class and implement only two methods:
