@@ -56,7 +56,7 @@ python -m mmore process --config-file examples/process/config.yaml
 python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-python -m mmore index --config-file examples/index/config.yaml --documents-path examples/process/outputs/merged/final_pp.jsonl
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/final_pp.jsonl
 
 # Run RAG
 python -m mmore rag --config-file examples/rag/config.yaml
