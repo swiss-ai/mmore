@@ -16,7 +16,7 @@ from mmore.process.processors.url_processor import URLProcessor
 from mmore.type import FileDescriptor, MultimodalSample
 
 """
-If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.  
+If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_processors_local.py.
 This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "mmore..." imports.
 """
 
@@ -368,7 +368,7 @@ def test_pdf_image_analysis_smoldocling():
     )
 
     # Create a test image
-    test_image = Image.new("RGB", (100, 100), color="white")
+    # test_image = Image.new("RGB", (100, 100), color="white")
 
     # Mock SmolDoclingImageAnalyzer
     with patch(
@@ -421,7 +421,7 @@ def test_pdf_image_analysis_mistral():
     )
 
     # Create a test image
-    test_image = Image.new("RGB", (100, 100), color="white")
+    # test_image = Image.new("RGB", (100, 100), color="white")
 
     # Mock environment variable
     with patch.dict("os.environ", {"MISTRAL_API_KEY": "test-api-key"}):
