@@ -349,7 +349,7 @@ def test_pdf_image_analysis_smoldocling():
     from unittest.mock import MagicMock, patch
 
     import pytest
-    from PIL import Image
+    # from PIL import Image
 
     # Skip if running in CI or without dependencies
     if importlib.util.find_spec("transformers") is None:
@@ -406,7 +406,7 @@ def test_pdf_image_analysis_mistral():
     import os
     from unittest.mock import MagicMock, patch
 
-    from PIL import Image
+    # from PIL import Image
 
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
