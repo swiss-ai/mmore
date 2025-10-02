@@ -1,3 +1,4 @@
+import importlib.util
 import os
 
 from marker.output import MarkdownOutput
@@ -351,9 +352,7 @@ def test_pdf_image_analysis_smoldocling():
     from PIL import Image
 
     # Skip if running in CI or without dependencies
-    try:
-        from transformers import AutoModelForVision2Seq, AutoProcessor
-    except ImportError:
+    if importlib.util.find_spec("transformers") is None:
         pytest.skip("transformers not installed")
 
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
@@ -407,7 +406,6 @@ def test_pdf_image_analysis_mistral():
     import os
     from unittest.mock import MagicMock, patch
 
-    import pytest
     from PIL import Image
 
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
@@ -529,9 +527,7 @@ def test_smoldocling_analyzer():
     from mmore.process.processors.pdf_processor import SmolDoclingImageAnalyzer
 
     # Skip if running in CI or without dependencies
-    try:
-        from transformers import AutoModelForVision2Seq, AutoProcessor
-    except ImportError:
+    if importlib.util.find_spec("transformers") is None:
         pytest.skip("transformers not installed")
 
     # Create a test image
@@ -595,7 +591,6 @@ def test_mistral_ocr_analyzer():
     """Test the MistralOCRImageAnalyzer class"""
     from unittest.mock import MagicMock, patch
 
-    import pytest
     from PIL import Image
 
     from mmore.process.processors.pdf_processor import MistralOCRImageAnalyzer
