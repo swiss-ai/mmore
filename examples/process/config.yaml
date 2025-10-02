@@ -36,3 +36,6 @@ dispatcher_config:
       - LAYOUT_BATCH_SIZE: 1
       - ORDER_BATCH_SIZE: 1
       - TABLE_REC_BATCH_SIZE: 1
+      - analyze_images: false  # Set to true to enable image analysis in PDFs
+      - image_analyzer_type: "smoldocling"  # Options: "smoldocling" or "mistral"
+data_path: examples/sample_data/ #put absolute path!
