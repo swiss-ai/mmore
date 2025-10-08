@@ -34,7 +34,7 @@ class RetrieverConfig:
     k: int = 1
     collection_name: str = "my_docs"
     use_web: bool = False
-    reranker_model_name: str = "BAAI/bge-reranker-base"
+    reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
 
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
@@ -45,8 +45,8 @@ class Retriever(BaseRetriever):
     hybrid_search_weight: float
     k: int
     use_web: bool
-    reranker_model: PreTrainedModel
-    reranker_tokenizer: PreTrainedTokenizerBase
+    reranker_model: Optional[PreTrainedModel]
+    reranker_tokenizer: Optional[PreTrainedTokenizerBase]
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -81,13 +81,16 @@ class Retriever(BaseRetriever):
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
-       # Load reranker from Hugging Face
-        reranker_tokenizer = AutoTokenizer.from_pretrained(config.reranker_model_name)
-        reranker_model = AutoModelForSequenceClassification.from_pretrained(
-            config.reranker_model_name
-        ).to("cuda")
+        # Load reranker from Hugging Face
+        if config.reranker_model_name:
+            reranker_tokenizer = AutoTokenizer.from_pretrained(config.reranker_model_name)
+            reranker_model = AutoModelForSequenceClassification.from_pretrained(
+                config.reranker_model_name
+            ).to("cuda")
 
-        logger.info(f"Loaded reranker model: {config.reranker_model_name}")
+            logger.info(f"Loaded reranker model: {config.reranker_model_name}")
+        else:
+            reranker_model = reranker_tokenizer = None
 
         return cls(
             dense_model=dense_model,
@@ -351,7 +354,9 @@ class Retriever(BaseRetriever):
             docs = parse_results(results)
 
         # Apply reranker
-        docs = self.rerank(query_input, docs)
+        if self.reranker_model:
+            docs = self.rerank(query_input, docs)
+
         return docs
 
 
