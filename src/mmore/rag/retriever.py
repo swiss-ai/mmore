@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
+import torch
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -14,15 +15,17 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+)
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
 from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
-
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from transformers import PreTrainedTokenizerBase, PreTrainedModel
-import torch
 
 logger = logging.getLogger(__name__)
 
