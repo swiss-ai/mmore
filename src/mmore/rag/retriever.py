@@ -36,6 +36,7 @@ class RetrieverConfig:
     use_web: bool = False
     reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
 
+
 class Retriever(BaseRetriever):
     """Handles similarity-based document retrieval from Milvus."""
 
@@ -83,7 +84,9 @@ class Retriever(BaseRetriever):
 
         # Load reranker from Hugging Face
         if config.reranker_model_name:
-            reranker_tokenizer = AutoTokenizer.from_pretrained(config.reranker_model_name)
+            reranker_tokenizer = AutoTokenizer.from_pretrained(
+                config.reranker_model_name
+            )
             reranker_model = AutoModelForSequenceClassification.from_pretrained(
                 config.reranker_model_name
             ).to("cuda")
@@ -102,7 +105,6 @@ class Retriever(BaseRetriever):
             reranker_model=reranker_model,
             reranker_tokenizer=reranker_tokenizer,
         )
-
 
     def compute_query_embeddings(
         self, query: str
@@ -258,8 +260,9 @@ class Retriever(BaseRetriever):
             all_results.append(results)
         return all_results
 
-    
-    def rerank(self, query: str, docs: List[Document], batch_size: int = 32) -> List[Document]:
+    def rerank(
+        self, query: str, docs: List[Document], batch_size: int = 32
+    ) -> List[Document]:
         """Re-rank documents using the reranker model in efficient batches."""
 
         if not docs:
@@ -269,7 +272,7 @@ class Retriever(BaseRetriever):
 
         # Process documents in batches
         for i in range(0, len(docs), batch_size):
-            batch_docs = docs[i:i + batch_size]
+            batch_docs = docs[i : i + batch_size]
 
             # Prepare query-doc pairs for the batch
             inputs = self.reranker_tokenizer(
@@ -282,7 +285,9 @@ class Retriever(BaseRetriever):
 
             # Forward pass on the batch
             with torch.no_grad():
-                logits = self.reranker_model(**inputs).logits.squeeze(-1)  # shape: (batch,)
+                logits = self.reranker_model(**inputs).logits.squeeze(
+                    -1
+                )  # shape: (batch,)
 
             # Collect scores for this batch
             scores.extend((doc, score.item()) for doc, score in zip(batch_docs, logits))
@@ -290,9 +295,6 @@ class Retriever(BaseRetriever):
         # Sort docs by score in descending order
         reranked = [doc for doc, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
         return reranked
-
-
-
 
     def _get_relevant_documents(
         self,
@@ -348,7 +350,7 @@ class Retriever(BaseRetriever):
 
         if self.use_web:
             web_docs = self._get_web_documents(query_input, max_results=self.k)
-            milvus_docs = parse_results(results, len(web_docs))  
+            milvus_docs = parse_results(results, len(web_docs))
             docs = web_docs + milvus_docs
         else:
             docs = parse_results(results)
@@ -358,8 +360,6 @@ class Retriever(BaseRetriever):
             docs = self.rerank(query_input, docs)
 
         return docs
-
-
 
     def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
         """Fetch additional context from the web via DuckDuckGo."""
