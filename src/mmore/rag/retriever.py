@@ -267,6 +267,8 @@ class Retriever(BaseRetriever):
         self, query: str, docs: List[Document], batch_size: int = 32
     ) -> List[Document]:
         """Re-rank documents using the reranker model in efficient batches."""
+        assert self.reranker_tokenizer is not None
+        assert self.reranker_model is not None
 
         if not docs:
             return []
