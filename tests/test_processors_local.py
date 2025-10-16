@@ -373,8 +373,8 @@ def test_url_process_standard():
         " ".join(result.text) if isinstance(result.text, list) else result.text
     )
     # Expect that the text from example.com contains "illustrative examples".
-    assert "illustrative examples" in combined_text, (
-        "Expected 'illustrative examples' in extracted text from http://example.com"
+    assert "Example Domain" in combined_text, (
+        "Expected 'Example Domain' in extracted text from http://example.com"
     )
     assert isinstance(result.modalities, list), "Modalities should be a list"
 
