@@ -7,7 +7,7 @@ import torch
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from PIL import Image
-from transformers import pipeline as pipeline_t
+from transformers.pipelines import pipeline as pipeline_t
 
 from ...type import FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig

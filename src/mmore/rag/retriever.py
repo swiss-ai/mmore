@@ -15,12 +15,9 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
-from transformers import (
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
-)
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
