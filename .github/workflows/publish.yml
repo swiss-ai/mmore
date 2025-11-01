@@ -33,7 +33,7 @@ jobs:
       url: https://pypi.org/p/mmore
     steps:
       - name: Retrieve release distributions
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: release-dists
           path: dist/
