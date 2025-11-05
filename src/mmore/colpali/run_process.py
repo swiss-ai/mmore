@@ -15,6 +15,7 @@ import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 from ..utils import load_config
+from ..process.crawler import CrawlerConfig, Crawler
 
 from colpali_engine.models import ColPali, ColPaliProcessor
 from colpali_engine.utils.torch_utils import ListDataset, get_torch_device
@@ -244,4 +245,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process PDFs and store page embeddings in Parquet.")
     parser.add_argument("--config_file", required=True, help="Path to YAML config file.")
     args = parser.parse_args()
-    process(args.config_file)
+    run_process(args.config_file)
