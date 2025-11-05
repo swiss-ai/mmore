@@ -19,7 +19,7 @@ logging.basicConfig(
 class MilvusColpaliManager:
     """
     Handles all Milvus operations for ColPali embeddings (both indexing and retrieval).
-    Uses a local Milvus storage path via `local://`.
+    Uses a local Milvus storage by default.
     """
 
     def __init__(

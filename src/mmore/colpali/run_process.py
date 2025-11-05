@@ -100,7 +100,7 @@ class ColPaliEmbedder:
             ds.extend(list(torch.unbind(embeddings_doc.to(self.device))))
         ds_np = [d.float().cpu().numpy() for d in ds]
         return ds_np
-    
+"""
 def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
     if isinstance(data_paths, str):
         data_paths = [data_paths]
@@ -112,7 +112,6 @@ def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
         logger.info(f"Found {len(pdf_files)} PDF(s) in {root_dir}")
         all_pdfs.extend(pdf_files)
     return all_pdfs
-
 """
 def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
     if isinstance(data_paths, str):
@@ -126,7 +125,6 @@ def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
     crawler = Crawler(config=config)
     result = crawler.crawl() 
     return [Path(file_desc.file_path) for file_desc in result()]
-"""
 
 def process_single_pdf(pdf_path: Path, model: ColPaliEmbedder, converter: PDFConverter) -> List[dict]:
     try:

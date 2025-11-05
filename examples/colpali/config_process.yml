@@ -1,5 +1,5 @@
 data_path:
-  - "/mloscratch/users/zablocki/clicolpali/pdfs"
+  - 'examples/sample_data/pdf'
 
 output_path: "./output"
 
