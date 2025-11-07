@@ -15,12 +15,9 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
-from transformers import (
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
-)
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
@@ -267,6 +264,8 @@ class Retriever(BaseRetriever):
         self, query: str, docs: List[Document], batch_size: int = 32
     ) -> List[Document]:
         """Re-rank documents using the reranker model in efficient batches."""
+        assert self.reranker_tokenizer is not None
+        assert self.reranker_model is not None
 
         if not docs:
             return []
