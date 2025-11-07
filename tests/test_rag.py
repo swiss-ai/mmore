@@ -2,14 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
-import torch.nn as nn
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-from mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.rag.retriever import Retriever
 
 # Mock Classes
 
