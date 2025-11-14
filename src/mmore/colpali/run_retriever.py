@@ -17,7 +17,7 @@ from colpali_engine.models import ColPali, ColPaliProcessor
 from colpali_engine.utils.torch_utils import ListDataset
 from torch.utils.data import DataLoader
 
-from milvuscolpali import MilvusColpaliManager
+from .milvuscolpali import MilvusColpaliManager
 
 RETRIEVER_EMOJI = "🔍"
 logger = logging.getLogger(__name__)
