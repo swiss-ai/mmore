@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
 import torch
