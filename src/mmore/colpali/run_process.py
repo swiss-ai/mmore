@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import click
 import fitz
