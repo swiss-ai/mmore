@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Union
 from tqdm import tqdm
 import concurrent.futures
 
