@@ -18,7 +18,7 @@ from ..utils import load_config
 from ..process.crawler import CrawlerConfig, Crawler
 
 from colpali_engine.models import ColPali, ColPaliProcessor
-from colpali_engine.utils.torch_utils import ListDataset, get_torch_device
+from colpali_engine.utils.torch_utils import ListDataset
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
