@@ -45,18 +45,6 @@ def load_config(config_path: Union[str, Path]) -> IndexConfig:
     )
 
 
-def load_model(model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
-    """
-    Load ColPali model and processor.
-    """
-    logger.info(f"Loading model: {model_name}")
-    model = ColPali.from_pretrained(
-        model_name,
-        torch_dtype=torch.bfloat16,
-        device_map=device
-    ).eval()
-    processor = ColPaliProcessor.from_pretrained(model_name)
-    return model, processor
 
 
 def index(config_file: Union[IndexConfig, str]):
