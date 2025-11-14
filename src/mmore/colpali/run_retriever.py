@@ -40,6 +40,7 @@ class RetrieverConfig:
     query: Optional[str] = None
     top_k: int = 3
     dim: int = 128
+    max_workers = 4
     metric_type: str = "IP"
 
 def get_device() -> str:
@@ -85,12 +86,13 @@ def query_indexer(
     manager: MilvusColpaliManager,
     config: RetrieverConfig,
     top_k: int = 3,
+    max_workers : int = 4,
 ):
     """
     Embed the query using ColPali and search the local Milvus database.
     """
     vecs = embed_queries([query], model, processor)[0]
-    results = manager.search_embeddings(vecs, top_k=top_k)
+    results = manager.search_embeddings(vecs, top_k=top_k, max_workers=max_workers)
     return results
 
 class RetrieverQuery(BaseModel):
@@ -103,7 +105,7 @@ def make_router(model, processor, manager, config):
 
     @router.post("/v1/retrieve", tags=["Retrieval"])
     def retrieve_docs(request: RetrieverQuery):
-        matches = query_indexer(request.query, model, processor, manager, config, top_k=request.top_k)
+        matches = query_indexer(request.query, model, processor, manager, config, top_k=request.top_k, max_workers = config.max_workers)
         return {"query": request.query, "results": matches}
 
     return router
@@ -165,7 +167,7 @@ def run_batch(config: RetrieverConfig):
     start = time.time()
 
     for query in queries:
-        matches = query_indexer(query, model, processor, manager, config, top_k=config.top_k)
+        matches = query_indexer(query, model, processor, manager, config, top_k=config.top_k, max_workers = config.max_workers)
         all_results.append({"query": query, "results": matches})
 
     elapsed = time.time() - start
@@ -185,7 +187,7 @@ def run_single_query(config: RetrieverConfig):
         create_collection=False,
     )
 
-    results = query_indexer(config.query, model, processor, manager, config, top_k=config.top_k)
+    results = query_indexer(config.query, model, processor, manager, config, top_k=config.top_k, max_workers = config.max_workers)
     for r in results:
         print(f"{r['rank']}. {r['pdf_name']} (page {r['page_number']}) — score={r['score']:.4f}")
 

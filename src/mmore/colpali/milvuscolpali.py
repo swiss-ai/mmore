@@ -66,7 +66,6 @@ class MilvusColpaliManager:
         schema.add_field("pdf_name", DataType.VARCHAR, max_length=255)
         schema.add_field("page_number", DataType.INT64)
         schema.add_field("pdf_path", DataType.VARCHAR, max_length=1024)
-        schema.add_field("text", DataType.VARCHAR, max_length=2048)
         schema.add_field("embedding", DataType.FLOAT_VECTOR, dim=self.dim)
 
         self.client.create_collection(collection_name=self.collection_name, schema=schema)
@@ -113,7 +112,7 @@ class MilvusColpaliManager:
         """
         Insert all subvectors from each row of the DataFrame into Milvus in batches.
         """
-        required_cols = {"pdf_name", "page_number", "pdf_path", "text", "embedding"}
+        required_cols = {"pdf_name", "page_number", "pdf_path", "embedding"}
         if not required_cols <= set(df.columns):
             raise ValueError(f"DataFrame missing required columns: {required_cols - set(df.columns)}")
 
@@ -138,7 +137,6 @@ class MilvusColpaliManager:
                         "pdf_name": row["pdf_name"],
                         "page_number": int(row["page_number"]),
                         "pdf_path": row["pdf_path"],
-                        "text": row["text"],
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
@@ -164,7 +162,7 @@ class MilvusColpaliManager:
 
         logger.info(f"✅ Insert complete — {total_vecs} vectors inserted.")
 
-    def search_embeddings(self, query_embeddings, top_k=3):
+    def search_embeddings(self, query_embeddings, top_k=3, max_workers = 4):
         """
         Search for similar embeddings using vector similarity search.
         """
@@ -180,8 +178,10 @@ class MilvusColpaliManager:
             collection_name=self.collection_name,
             data=arr,
             anns_field="embedding",
-            limit=top_k * 5,  # Get more candidates for reranking
-            output_fields=["pdf_name", "page_number", "pdf_path", "text"],
+            limit=top_k * 5,  
+            # As each page is embedded as a multi vector, each page is represented multiple time inside milvus, each with on column of the multi vector
+            # Thus there can be duplicate in the ids, and top_k * 5 allow to ensure the retrieval of top_k distinct pages
+            output_fields=["pdf_name", "page_number", "pdf_path"],
             search_params={"metric_type": self.metric_type, "params": {}},
         )
 
@@ -200,7 +200,7 @@ class MilvusColpaliManager:
             docs = self.client.query(
                 collection_name=self.collection_name,
                 filter=f'pdf_name == "{pdf_name}" and page_number == {page_number}',
-                output_fields=["embedding", "text", "pdf_path"],
+                output_fields=["embedding", "pdf_path"],
                 limit=10000,
             )
             if not docs:
@@ -210,9 +210,8 @@ class MilvusColpaliManager:
             score = np.dot(query_vecs, doc_vecs.T).max(1).sum()
             return (score, pdf_name, page_number)
 
-        # Run reranking in parallel
         reranked = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=64) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers = max_workers) as executor:
             futures = [
                 executor.submit(rerank_page, pdf_name, page_number, arr)
                 for (pdf_name, page_number) in candidates

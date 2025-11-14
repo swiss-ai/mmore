@@ -7,8 +7,9 @@ import pandas as pd
 import torch
 import yaml
 
+from ..utils import load_config
 from colpali_engine.models import ColPali, ColPaliProcessor
-from milvuscolpali import MilvusColpaliManager
+from .milvuscolpali import MilvusColpaliManager
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -31,28 +32,12 @@ class IndexConfig:
     milvus: MilvusConfig
     parquet_path: str
 
-def load_config(config_path: Union[str, Path]) -> IndexConfig:
-    """
-    Load YAML config file and return IndexConfig.
-    """
-    with open(config_path, "r") as f:
-        raw_cfg = yaml.safe_load(f)
-
-    milvus_cfg = MilvusConfig(**raw_cfg.get("milvus", {}))
-    return IndexConfig(
-        milvus=milvus_cfg,
-        parquet_path=raw_cfg["parquet_path"],
-    )
-
-
-
-
 def index(config_file: Union[IndexConfig, str]):
     """
     Main indexing function.
     Loads embeddings from parquet and inserts them into Milvus local DB.
     """
-    config: IndexConfig = load_config(config_file)
+    config = load_config(config_file, IndexConfig)
 
     parquet_path = config.parquet_path
     df = pd.read_parquet(parquet_path)

@@ -101,19 +101,7 @@ class ColPaliEmbedder:
             ds.extend(list(torch.unbind(embeddings_doc.to(self.device))))
         ds_np = [d.float().cpu().numpy() for d in ds]
         return ds_np
-"""
-def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
-    if isinstance(data_paths, str):
-        data_paths = [data_paths]
 
-    all_pdfs = []
-    for root_dir in data_paths:
-        root_path = Path(root_dir)
-        pdf_files = list(root_path.glob("*.pdf"))
-        logger.info(f"Found {len(pdf_files)} PDF(s) in {root_dir}")
-        all_pdfs.extend(pdf_files)
-    return all_pdfs
-"""
 def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
     if isinstance(data_paths, str):
         data_paths = [data_paths]
@@ -135,13 +123,10 @@ def process_single_pdf(pdf_path: Path, model: ColPaliEmbedder, converter: PDFCon
         doc = fitz.open(pdf_path)
         page_records = []
         for page_num, embedding in enumerate(image_embeddings):
-            text = doc[page_num].get_text("text").strip()
             page_records.append({
                 "pdf_name": pdf_path.name,
                 "pdf_path": str(pdf_path),
                 "page_number": page_num + 1,
-                "text": text,
-                "images": [],
                 "embedding": embedding.astype("float32"),
             })
         doc.close()
