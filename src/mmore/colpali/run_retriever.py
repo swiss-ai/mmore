@@ -1,5 +1,4 @@
 import argparse
-import concurrent.futures
 from dataclasses import dataclass
 import json
 import logging
