@@ -85,7 +85,7 @@ class ColPaliEmbedder:
     def get_images(self, paths: list[str]) -> List[Image.Image]:
         return [Image.open(path) for path in paths]
 
-    def embed_images(self, image_paths:list[str], batch_size = 5):    
+    def embed_images(self, image_paths: list[str], batch_size: int = 5):    
         images = self.get_images(image_paths)
         dataloader = DataLoader(
             dataset=ListDataset[str](images),
