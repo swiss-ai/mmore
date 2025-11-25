@@ -2,7 +2,7 @@
 
 ## Overview
 
-This module provides a complete pipeline for processing PDF documents using ColPali embeddings, storing them in Milvus vector database, and performing semantic search. It's designed for efficient document retrieval and RAG applications.
+This module provides a complete pipeline for processing PDF documents using ColPali embeddings, storing them in a Milvus vector database, and performing semantic search. It is designed for efficient document retrieval and RAG applications.
 
 ## Architecture
 
@@ -15,10 +15,10 @@ The system consists of three main components:
 ## File Structure
 
 ```
-milvuscolpali.py      # Milvus database management
-run_index.py          # Indexing pipeline
-run_process.py        # PDF processing pipeline  
-run_retriever.py      # Search and retrieval API
+src/mmore/colopali/milvuscolpali.py      # Milvus database management
+src/mmore/colopali/run_index.py          # Indexing pipeline
+src/mmore/colopali/run_process.py        # PDF processing pipeline  
+src/mmore/colopali/run_retriever.py      # Search and retrieval API
 ```
 
 ## Quick Start
@@ -92,7 +92,7 @@ mode: "single"
 db_path: "./milvus_data"
 collection_name: "pdf_pages"
 model_name: "vidore/colpali-v1.3"
-query: "What may lead to dysbiosis and inflammation"
+query: "What may lead to dysbiosis and inflammation?"
 top_k: 5
 ```
 
