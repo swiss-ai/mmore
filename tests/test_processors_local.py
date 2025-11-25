@@ -374,7 +374,7 @@ def test_url_process_standard():
     )
     # Expect that the text from example.com contains "illustrative examples".
     assert "This domain" in combined_text, (
-        "Expected 'This Ddmain' in extracted text from http://example.com"
+        "Expected 'This domain' in extracted text from http://example.com"
     )
     assert isinstance(result.modalities, list), "Modalities should be a list"
 
