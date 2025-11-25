@@ -8,7 +8,6 @@ import torch
 import yaml
 
 from ..utils import load_config
-from colpali_engine.models import ColPali, ColPaliProcessor
 from .milvuscolpali import MilvusColpaliManager
 
 INDEX_EMOJI = "🗂️"

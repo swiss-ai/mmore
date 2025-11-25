@@ -1,23 +1,18 @@
 import argparse
-from dataclasses import dataclass
 import json
 import logging
 import time
 from pathlib import Path
 from typing import List, Optional
 
-import numpy as np
-import torch
-from fastapi import FastAPI, APIRouter
-from pydantic import BaseModel, Field
 import uvicorn
+from fastapi import APIRouter, FastAPI
+from langchain_core.documents import Document
+from pydantic import BaseModel, Field
+from tqdm import tqdm
 
 from ..utils import load_config
-from colpali_engine.models import ColPali, ColPaliProcessor
-from colpali_engine.utils.torch_utils import ListDataset
-from torch.utils.data import DataLoader
-
-from .milvuscolpali import MilvusColpaliManager
+from .retriever import ColPaliRetriever, ColPaliRetrieverConfig
 
 RETRIEVER_EMOJI = "🔍"
 logger = logging.getLogger(__name__)
@@ -27,182 +22,170 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-@dataclass
-class RetrieverConfig:
-    db_path: str = "./milvus_data"
-    collection_name: str = "pdf_pages"
-    model_name: str = "vidore/colpali-v1.3"
-    mode: str = "api" # "api", "batch", or "single"
-    host: str = "0.0.0.0"
-    port: int = 8001
-    input_file: Optional[str] = None
-    output_file: Optional[str] = None
-    query: Optional[str] = None
-    top_k: int = 3
-    dim: int = 128
-    max_workers = 4
-    metric_type: str = "IP"
 
-def get_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda:0"
-    if torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
+def read_queries(input_file: Path) -> List[str]:
+    with open(input_file, "r") as f:
+        return [json.loads(line) for line in f]
 
 
-def load_model(model_name: str, device: str):
-    logger.info(f"Loading ColPali model: {model_name}")
-    model = ColPali.from_pretrained(
-        model_name,
-        torch_dtype=torch.bfloat16,
-        device_map=device,
-    ).eval()
-    processor = ColPaliProcessor.from_pretrained(model_name)
-    return model, processor
+def save_results(results: List[List[Document]], queries: List[str], output_file: Path):
+    """Save retrieval results to a JSON file."""
+    formatted_results = [
+        {
+            "query": query,
+            "context": [
+                {"page_content": doc.page_content, "metadata": doc.metadata}
+                for doc in docs
+            ],
+        }
+        for query, docs in zip(queries, results)
+    ]
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(formatted_results, f, indent=2, ensure_ascii=False)
+    logger.info(f"Saved results to {output_file}")
 
 
-def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:
-    dataloader = DataLoader(
-        dataset=ListDataset[str](texts),
-        batch_size=1,
-        shuffle=False,
-        collate_fn=lambda x: processor.process_queries(x),
-    )
+def retrieve(config_file: str, input_file: str, output_file: str):
+    """Retrieve documents for specified queries via ColPali-based similarity search."""
+    # Load the config file
+    config = load_config(config_file, ColPaliRetrieverConfig)
 
-    vectors = []
-    for batch_query in dataloader:
-        with torch.no_grad():
-            batch_query = {k: v.to(model.device) for k, v in batch_query.items()}
-            emb = model(**batch_query)
-            vectors.extend(list(torch.unbind(emb.to("cpu"))))
-    return [v.float().numpy() for v in vectors]
+    logger.info("Running ColPali retriever...")
+    retriever = ColPaliRetriever.from_config(config)
+    logger.info("Retriever loaded!")
 
+    queries = read_queries(Path(input_file))
+    logger.info(f"Loaded {len(queries)} queries from {input_file}")
 
-def query_indexer(
-    query: str,
-    model,
-    processor,
-    manager: MilvusColpaliManager,
-    config: RetrieverConfig,
-    top_k: int = 3,
-    max_workers : int = 4,
-):
-    """
-    Embed the query using ColPali and search the local Milvus database.
-    """
-    vecs = embed_queries([query], model, processor)[0]
-    results = manager.search_embeddings(vecs, top_k=top_k, max_workers=max_workers)
-    return results
+    logger.info("Starting document retrieval...")
+    start_time = time.time()
+
+    retrieved_docs_for_all_queries = []
+
+    # Call invoke for each query
+    for query in tqdm(queries, desc="Retrieving documents", unit="query"):
+        docs_for_query = retriever.invoke(query, k=config.top_k)
+        retrieved_docs_for_all_queries.append(docs_for_query)
+
+    end_time = time.time()
+    time_taken = end_time - start_time
+    logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
+    logger.info("Retrieved documents!")
+
+    # Save results to output file
+    save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
+    logger.info(f"Done! Results saved to {output_file}")
+
 
 class RetrieverQuery(BaseModel):
     query: str = Field(..., description="Search query text")
-    top_k: int = Field(3, description="Number of top matches to return")
+    top_k: int = Field(
+        default=3, ge=1, description="Number of top results to return"
+    )
 
 
-def make_router(model, processor, manager, config):
+def make_router(config_file: str) -> APIRouter:
+    """Create API router with retriever endpoint."""
     router = APIRouter()
 
+    # Load the config file
+    config = load_config(config_file, ColPaliRetrieverConfig)
+
+    logger.info("Running ColPali retriever...")
+    retriever_obj = ColPaliRetriever.from_config(config)
+    logger.info("Retriever loaded!")
+
     @router.post("/v1/retrieve", tags=["Retrieval"])
-    def retrieve_docs(request: RetrieverQuery):
-        matches = query_indexer(request.query, model, processor, manager, config, top_k=request.top_k, max_workers = config.max_workers)
-        return {"query": request.query, "results": matches}
+    def retriever(query: RetrieverQuery):
+        """Query the ColPali retriever."""
+        docs_for_query = retriever_obj.invoke(query.query, k=query.top_k)
+
+        docs_info = []
+        for doc in docs_for_query:
+            meta = doc.metadata
+            pdf_path = meta.get("pdf_path", "")
+            pdf_name = Path(pdf_path).name if pdf_path else ""
+            docs_info.append(
+                {
+                    "pdf_name": pdf_name,
+                    "pdf_path": pdf_path,
+                    "page_number": meta.get("page_number"),
+                    "content": doc.page_content,
+                    "similarity": meta.get("similarity", 0.0),
+                    "rank": meta.get("rank", 0),
+                }
+            )
+
+        return {"query": query.query, "results": docs_info}
 
     return router
 
-def read_queries_from_file(input_file: Path) -> List[str]:
-    with open(input_file, "r", encoding="utf-8") as f:
-        content = f.read().strip()
-        if content.startswith("["):
-            queries = json.loads(content)
-        else:
-            queries = [json.loads(line) for line in content.splitlines()]
-    if isinstance(queries[0], dict) and "query" in queries[0]:
-        queries = [q["query"] for q in queries]
-    return queries
 
-
-def save_results_to_file(results: List[dict], output_file: Path):
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-    logger.info(f"Saved results to {output_file}")
-
-def run_api(config: RetrieverConfig):
-    device = get_device()
-    model, processor = load_model(config.model_name, device)
-
-    manager = MilvusColpaliManager(
-        db_path=config.db_path,
-        collection_name=config.collection_name,
-        dim=config.dim,
-        metric_type=config.metric_type,
-        create_collection=False,
-    )
+def run_api(config_file: str, host: str, port: int):
+    """Run the ColPali retriever API server."""
+    router = make_router(config_file)
 
     app = FastAPI(
-        title="ColPali Retriever API (Local Milvus)",
-        description="Retrieve documents using ColPali embeddings stored locally in Milvus.",
+        title="ColPali Retriever API",
+        description="""This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+
+    ## Overview
+
+    This API defines the ColPali retriever API of mmore, handling:
+
+    1. **Document Retrieval** - Semantic search using ColPali embeddings stored in Milvus.
+    2. **PDF Page Search** - Retrieve relevant PDF pages based on query similarity.""",
         version="1.0.0",
     )
-    app.include_router(make_router(model, processor, manager, config))
-    uvicorn.run(app, host=config.host, port=config.port)
+    app.include_router(router)
 
+    uvicorn.run(app, host=host, port=port)
 
-def run_batch(config: RetrieverConfig):
-    device = get_device()
-    model, processor = load_model(config.model_name, device)
-
-    manager = MilvusColpaliManager(
-        db_path=config.db_path,
-        collection_name=config.collection_name,
-        dim=config.dim,
-        metric_type=config.metric_type,
-        create_collection=False,
-    )
-
-    queries = read_queries_from_file(Path(config.input_file))
-    logger.info(f"Loaded {len(queries)} queries from {config.input_file}")
-
-    all_results = []
-    start = time.time()
-
-    for query in queries:
-        matches = query_indexer(query, model, processor, manager, config, top_k=config.top_k, max_workers = config.max_workers)
-        all_results.append({"query": query, "results": matches})
-
-    elapsed = time.time() - start
-    logger.info(f"Processed {len(queries)} queries in {elapsed:.2f} seconds.")
-    save_results_to_file(all_results, Path(config.output_file))
-
-
-def run_single_query(config: RetrieverConfig):
-    device = get_device()
-    model, processor = load_model(config.model_name, device)
-
-    manager = MilvusColpaliManager(
-        db_path=config.db_path,
-        collection_name=config.collection_name,
-        dim=config.dim,
-        metric_type=config.metric_type,
-        create_collection=False,
-    )
-
-    results = query_indexer(config.query, model, processor, manager, config, top_k=config.top_k, max_workers = config.max_workers)
-    for r in results:
-        print(f"{r['rank']}. {r['pdf_name']} (page {r['page_number']}) — score={r['score']:.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Retrieve documents from local Milvus database using ColPali embeddings."
     )
-    parser.add_argument("--config_file", type=str, required=True, help="Path to YAML config file.")
+    parser.add_argument(
+        "--config-file",
+        required=True,
+        help="Path to the retriever configuration file.",
+    )
+    parser.add_argument(
+        "--input-file",
+        required=False,
+        type=str,
+        default=None,
+        help="Path to the input file of queries. If not provided, the retriever is run in API mode.",
+    )
+    parser.add_argument(
+        "--output-file",
+        required=False,
+        type=str,
+        default=None,
+        help="Path to the output file of selected documents. Must be provided together with --input-file.",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host on which the API should be run.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8001,
+        help="Port on which the API should be run.",
+    )
     args = parser.parse_args()
 
-    config = load_config(args.config_file, RetrieverConfig)
+    if (args.input_file is None) != (args.output_file is None):
+        parser.error(
+            "Both --input-file and --output-file must be provided together or not at all."
+        )
 
-    if config.mode == "batch":
-        run_batch(config)
-    elif config.mode == "single":
-        run_single_query(config)
+    if args.input_file:  # an input file is provided
+        retrieve(args.config_file, args.input_file, args.output_file)
     else:
-        run_api(config)
+        run_api(args.config_file, args.host, args.port)

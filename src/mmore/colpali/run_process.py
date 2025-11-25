@@ -85,7 +85,7 @@ class ColPaliEmbedder:
     def get_images(self, paths: list[str]) -> List[Image.Image]:
         return [Image.open(path) for path in paths]
 
-    def embed_images(self, image_paths:list[str], batch_size = 5):    
+    def embed_images(self, image_paths: list[str], batch_size: int = 5):    
         images = self.get_images(image_paths)
         dataloader = DataLoader(
             dataset=ListDataset[str](images),
@@ -115,57 +115,94 @@ def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
     result = crawler.crawl() 
     return [Path(file_desc.file_path) for file_desc in result()]
 
-def process_single_pdf(pdf_path: Path, model: ColPaliEmbedder, converter: PDFConverter) -> List[dict]:
+def process_single_pdf(pdf_path: Path, model: ColPaliEmbedder, converter: PDFConverter) -> tuple[List[dict], List[dict]]:
     try:
         png_paths = converter.convert_to_pngs(pdf_path)
         image_embeddings = model.embed_images(png_paths)
 
         doc = fitz.open(pdf_path)
         page_records = []
+        text_records = []
         for page_num, embedding in enumerate(image_embeddings):
+            page = doc[page_num]
+            page_text = page.get_text()
+            
             page_records.append({
-                "pdf_name": pdf_path.name,
                 "pdf_path": str(pdf_path),
                 "page_number": page_num + 1,
                 "embedding": embedding.astype("float32"),
             })
+            
+            text_records.append({
+                "pdf_path": str(pdf_path),
+                "page_number": page_num + 1,
+                "text": page_text,
+            })
         doc.close()
-        return page_records
+        return page_records, text_records
     except Exception as e:
         logger.error(f"❌ Failed to process {pdf_path.name}: {e}")
-        return []
+        return [], []
 
 
-def save_results(records: List[dict], output_path: Path):
+def save_results(records: List[dict], text_records: List[dict], output_path: Path, existing_df: pd.DataFrame = None, existing_text_df: pd.DataFrame = None):
     df = pd.DataFrame(records)
     df["embedding"] = df["embedding"].apply(lambda x: x.tolist())
     parquet_path = output_path / "pdf_page_objects.parquet"
+
+    if existing_df is not None and not existing_df.empty:
+        logger.info(f"Merging {len(df)} new records with {len(existing_df)} existing records")
+        df = pd.concat([existing_df, df], ignore_index=True)
+        # Remove duplicates based on pdf_path and page_number (keep the new ones)
+        df = df.drop_duplicates(subset=["pdf_path", "page_number"], keep="last")
+        logger.info(f"After merging: {len(df)} total records")
 
     logger.info(f"Saving {len(df)} records to {parquet_path}")
     try:
         df.to_parquet(parquet_path, index=False, compression="zstd")
     except Exception as e:
         logger.error(f"Failed to write Parquet: {e}")
+
+    if text_records:
+        text_df = pd.DataFrame(text_records)
+        text_parquet_path = output_path / "pdf_page_text.parquet"
+    
+        if existing_text_df is not None and not existing_text_df.empty:
+            logger.info(f"Merging {len(text_df)} new text records with {len(existing_text_df)} existing text records")
+            text_df = pd.concat([existing_text_df, text_df], ignore_index=True)
+            # Remove duplicates based on pdf_path and page_number (keep the new ones)
+            text_df = text_df.drop_duplicates(subset=["pdf_path", "page_number"], keep="last")
+            logger.info(f"After merging: {len(text_df)} total text records")
+        
+        logger.info(f"Saving {len(text_df)} text records to {text_parquet_path}")
+        try:
+            text_df.to_parquet(text_parquet_path, index=False, compression="zstd")
+        except Exception as e:
+            logger.error(f"Failed to write text Parquet: {e}")
+    
     return parquet_path
 
-def process_pdf_batch(batch_pdfs: List[Path], config: PDFProcessConfig) -> List[dict]:
+def process_pdf_batch(batch_pdfs: List[Path], config: PDFProcessConfig) -> tuple[List[dict], List[dict]]:
     try:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
         model = ColPaliEmbedder(config.model_name, device=device)
         converter = PDFConverter()
         batch_records = []
+        batch_text_records = []
 
         for pdf_path in tqdm(batch_pdfs, desc=f"Batch on {device}", ncols=100):
-            batch_records.extend(process_single_pdf(pdf_path, model, converter))
+            page_records, text_records = process_single_pdf(pdf_path, model, converter)
+            batch_records.extend(page_records)
+            batch_text_records.extend(text_records)
 
         converter.cleanup()
         del model
         torch.cuda.empty_cache()
 
-        return batch_records
+        return batch_records, batch_text_records
     except Exception as e:
         logger.error(f"❌ Batch failed: {e}")
-        return []
+        return [], []
 
 def run_process(config_file: str):
     click.echo(f"Processing configuration file path: {config_file}")
@@ -176,19 +213,29 @@ def run_process(config_file: str):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     parquet_path = output_dir / "pdf_page_objects.parquet"
+    text_parquet_path = output_dir / "pdf_page_text.parquet"
     already_processed_pdfs = set()
+    existing_df = None
+    existing_text_df = None
 
     if config.skip_already_processed and parquet_path.exists():
         logger.info(f"Skip mode enabled — loading existing {parquet_path}")
         try:
-            df_existing = pd.read_parquet(parquet_path, columns=["pdf_name"])
-            already_processed_pdfs = set(df_existing["pdf_name"].unique())
-            logger.info(f"Found {len(already_processed_pdfs)} processed PDFs.")
+            existing_df = pd.read_parquet(parquet_path)
+            already_processed_pdfs = set(existing_df["pdf_path"].unique())
+            logger.info(f"Found {len(already_processed_pdfs)} processed PDFs with {len(existing_df)} page records.")
         except Exception as e:
             logger.warning(f"Could not read existing parquet: {e}")
 
+    if config.skip_already_processed and text_parquet_path.exists():
+        try:
+            existing_text_df = pd.read_parquet(text_parquet_path)
+            logger.info(f"Found {len(existing_text_df)} existing text records.")
+        except Exception as e:
+            logger.warning(f"Could not read existing text parquet: {e}")
+
     pdf_files = crawl_pdfs(config.data_path)
-    pdf_files = [p for p in pdf_files if p.name not in already_processed_pdfs]
+    pdf_files = [p for p in pdf_files if str(p) not in already_processed_pdfs]
 
     if not pdf_files:
         logger.info("No new PDFs to process.")
@@ -198,6 +245,7 @@ def run_process(config_file: str):
 
     batches = [pdf_files[i:i + config.batch_size] for i in range(0, len(pdf_files), config.batch_size)]
     all_page_records = []
+    all_text_records = []
 
     with ThreadPoolExecutor(max_workers=config.num_workers) as executor:
         futures = {
@@ -206,19 +254,12 @@ def run_process(config_file: str):
         }
 
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing batches", ncols=100):
-            batch_result = future.result()
+            batch_result, batch_text_result = future.result()
             all_page_records.extend(batch_result)
+            all_text_records.extend(batch_text_result)
 
     if all_page_records:
-        if parquet_path.exists():
-            logger.info("Merging new results with existing parquet...")
-            old_df = pd.read_parquet(parquet_path)
-            new_df = pd.DataFrame(all_page_records)
-            new_df["embedding"] = new_df["embedding"].apply(lambda x: x.tolist())
-            merged_df = pd.concat([old_df, new_df], ignore_index=True)
-            merged_df.to_parquet(parquet_path, index=False, compression="zstd")
-        else:
-            save_results(all_page_records, output_dir)
+        save_results(all_page_records, all_text_records, output_dir, existing_df, existing_text_df)
     else:
         logger.info("No new PDFs to process.")
 

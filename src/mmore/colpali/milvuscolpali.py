@@ -63,9 +63,8 @@ class MilvusColpaliManager:
 
         schema = self.client.create_schema(auto_id=True)
         schema.add_field("pk", DataType.INT64, is_primary=True)
-        schema.add_field("pdf_name", DataType.VARCHAR, max_length=255)
-        schema.add_field("page_number", DataType.INT64)
         schema.add_field("pdf_path", DataType.VARCHAR, max_length=1024)
+        schema.add_field("page_number", DataType.INT64)
         schema.add_field("embedding", DataType.FLOAT_VECTOR, dim=self.dim)
 
         self.client.create_collection(collection_name=self.collection_name, schema=schema)
@@ -112,7 +111,7 @@ class MilvusColpaliManager:
         """
         Insert all subvectors from each row of the DataFrame into Milvus in batches.
         """
-        required_cols = {"pdf_name", "page_number", "pdf_path", "embedding"}
+        required_cols = {"pdf_path", "page_number", "embedding"}
         if not required_cols <= set(df.columns):
             raise ValueError(f"DataFrame missing required columns: {required_cols - set(df.columns)}")
 
@@ -134,9 +133,8 @@ class MilvusColpaliManager:
             for vec in emb:
                 data.append(
                     {
-                        "pdf_name": row["pdf_name"],
-                        "page_number": int(row["page_number"]),
                         "pdf_path": row["pdf_path"],
+                        "page_number": int(row["page_number"]),
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
@@ -181,7 +179,7 @@ class MilvusColpaliManager:
             limit=top_k * 5,  
             # As each page is embedded as a multi vector, each page is represented multiple time inside milvus, each with on column of the multi vector
             # Thus there can be duplicate in the ids, and top_k * 5 allow to ensure the retrieval of top_k distinct pages
-            output_fields=["pdf_name", "page_number", "pdf_path"],
+            output_fields=["pdf_path", "page_number"],
             search_params={"metric_type": self.metric_type, "params": {}},
         )
 
@@ -189,38 +187,38 @@ class MilvusColpaliManager:
         candidates = set()
         for hits in results:
             for hit in hits:
-                entity = hit.entity
-                key = (entity.get("pdf_name"), entity.get("page_number"))
+                entity_dict = hit.get('entity', {})
+                key = (entity_dict.get("pdf_path"), entity_dict.get("page_number"))
                 candidates.add(key)
 
         logger.info(f"Found {len(candidates)} candidate pages for reranking.")
 
-        def rerank_page(pdf_name, page_number, query_vecs):
+        def rerank_page(pdf_path, page_number, query_vecs):
             # Get all subvectors for this page
             docs = self.client.query(
                 collection_name=self.collection_name,
-                filter=f'pdf_name == "{pdf_name}" and page_number == {page_number}',
+                filter=f'pdf_path == "{pdf_path}" and page_number == {page_number}',
                 output_fields=["embedding", "pdf_path"],
                 limit=10000,
             )
             if not docs:
-                return (None, pdf_name, page_number)
+                return (None, pdf_path, page_number)
 
             doc_vecs = np.vstack([d["embedding"] for d in docs]).astype(np.float32)
             score = np.dot(query_vecs, doc_vecs.T).max(1).sum()
-            return (score, pdf_name, page_number)
+            return (score, pdf_path, page_number)
 
         reranked = []
         with concurrent.futures.ThreadPoolExecutor(max_workers = max_workers) as executor:
             futures = [
-                executor.submit(rerank_page, pdf_name, page_number, arr)
-                for (pdf_name, page_number) in candidates
+                executor.submit(rerank_page, pdf_path, page_number, arr)
+                for (pdf_path, page_number) in candidates
             ]
             for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="🔁 Reranking"):
                 try:
-                    score, pdf_name, page_number = f.result()
+                    score, pdf_path, page_number = f.result()
                     if score is not None:
-                        reranked.append({"pdf_name": pdf_name, "page_number": page_number, "score": score})
+                        reranked.append({"pdf_path": pdf_path, "page_number": page_number, "score": score})
                 except Exception as e:
                     logger.error(f"Rerank failed: {e}")
 

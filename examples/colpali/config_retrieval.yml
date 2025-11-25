@@ -7,5 +7,5 @@ top_k: 3
 dim: 128
 metric_type: "IP"
 max_workers: 16
+text_parquet_path: "./output/pdf_page_text.parquet"
 
-query: "What may lead to dysbiosis and inflammation"

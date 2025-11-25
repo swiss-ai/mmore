@@ -28,7 +28,7 @@ dependencies = [
     "numpy==2.2.6; python_version >= '3.12'",
     "pandas==2.3.0",
     "datasets==4.0.0",
-    "transformers==4.52.4",
+    "transformers==4.53.3",
     "fasteners==0.19",
     "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
@@ -97,14 +97,15 @@ dependencies = [
     "mammoth==1.9.0",
     "argostranslate",
     "sentence-transformers",
-    "langid"
+    "langid",
+    "colpali-engine==0.3.11"
 ]
 
 [project.optional-dependencies]
 cpu = [
     "torch>=2.5.1",
 ]
-cu124 = [
+cu126 = [
     "torch>=2.5.1",
 ]
 
@@ -133,15 +134,15 @@ dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
 conflicts = [
   [
     { extra = "cpu" },
-    { extra = "cu124" },
+    { extra = "cu126" },
   ],
 ]
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
-  { index = "pytorch-cu124", extra="cu124", marker = "platform_machine != 'aarch64'"},
-  # { url = "https://download.pytorch.org/whl/cu124/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu124",  marker = "platform_machine == 'aarch64'" },
+  { index = "pytorch-cu126", extra="cu126", marker = "platform_machine != 'aarch64'"},
+  # { url = "https://download.pytorch.org/whl/cu126/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu126",  marker = "platform_machine == 'aarch64'" },
 ]
 
 [[tool.uv.index]]
@@ -150,8 +151,8 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.isort]
