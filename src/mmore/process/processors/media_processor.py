@@ -97,7 +97,7 @@ class MediaProcessor(Processor):
         else:
             images = []
 
-        return self.create_sample([all_text], images, file_path)
+        return self.create_sample([all_text], images, {"file_path" : file_path})
 
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         if not self.pipelines:
@@ -112,7 +112,7 @@ class MediaProcessor(Processor):
             if self.config.custom_config.get("extract_images", True)
             else []
         )
-        return self.create_sample([all_text], images, file_path)
+        return self.create_sample([all_text], images, {"file_path" : file_path})
 
     def _extract_text(self, file_path: str, pipeline, fast_mode=False) -> str:
         def _prepare_audio_file(file_path: str, ext: str, temp_audio):
