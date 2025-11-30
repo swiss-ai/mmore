@@ -18,8 +18,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Install uv
-        run: pipx install uv
+      - name: Install uv and create venv
+        run: |
+          pipx install uv
+          uv venv .venv
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -28,13 +30,16 @@ jobs:
 
       - name: Install dependencies (using uv)
         run: |
+          source .venv/bin/activate
           uv pip install -e .[rag,dev]
 
       - name: Show installed cohere and langchain-cohere versions
         run: |
+          source .venv/bin/activate
           uv pip show cohere || echo "Cohere not installed"
           uv pip show langchain-cohere || echo "Langchain-cohere not installed"
 
       - name: Run tests
         run: |
+          source .venv/bin/activate
           pytest
