@@ -19,7 +19,9 @@ authors = [
     { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
-    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
+    { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
+    { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" }
 
 ]
 requires-python = ">=3.10"
