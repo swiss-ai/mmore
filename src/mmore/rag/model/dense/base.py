@@ -6,7 +6,6 @@ from langchain_community.embeddings import FakeEmbeddings
 from langchain_core.embeddings import Embeddings
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
 from .multimodal import MultimodalEmbeddings
@@ -27,8 +26,6 @@ _COHERE_MODELS = [
 
 _MISTRAL_MODELS = ["mistral-textembedding-7B-v1", "mistral-textembedding-13B-v1"]
 
-_NVIDIA_MODELS = ["nvidia-clarity-text-embedding-v1", "nvidia-megatron-embedding-530B"]
-
 _AWS_MODELS = ["amazon-titan-embedding-xlarge", "amazon-titan-embedding-light"]
 
 
@@ -37,7 +34,6 @@ loaders = {
     # 'GOOGLE': VertexAIEmbeddings,
     "COHERE": CohereEmbeddings,
     "MISTRAL": MistralAIEmbeddings,
-    "NVIDIA": NVIDIAEmbeddings,
     "AWS": BedrockEmbeddings,
     "HF": lambda model, **kwargs: HuggingFaceEmbeddings(
         model_name=model, model_kwargs={"trust_remote_code": True}, **kwargs
@@ -63,8 +59,6 @@ class DenseModelConfig:
             return "COHERE"
         elif self.model_name in _MISTRAL_MODELS:
             return "MISTRAL"
-        elif self.model_name in _NVIDIA_MODELS:
-            return "NVIDIA"
         elif self.model_name in _AWS_MODELS:
             return "AWS"
         elif self.model_name == "debug":
