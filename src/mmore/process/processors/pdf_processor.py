@@ -141,7 +141,7 @@ class PDFProcessor(Processor):
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
         images = list(images.values())
-        return self.create_sample([text], images, {"file_path" : file_path})
+        return self.create_sample([text], images, {"file_path": file_path})
 
     def process_fast(self, file_path: str) -> MultimodalSample:
         pdf_doc = fitz.open(file_path)
@@ -177,10 +177,9 @@ class PDFProcessor(Processor):
                 return None
 
         for page_num, page in enumerate(pdf_doc):
-            
             page_starts.append((current_position, page_num))
             text = clean_text(page.get_text())  # type: ignore[attr-defined]
-            
+
             if text.strip():
                 all_text_parts.append(text)
                 current_position += len(text)
@@ -201,9 +200,9 @@ class PDFProcessor(Processor):
         metadata = {
             "file_path": file_path,
             "page_starts": page_starts,
-            "document_type": "pdf"
+            "document_type": "pdf",
         }
-        
+
         full_text = "".join(all_text_parts)
         return self.create_sample([full_text], embedded_images, metadata)
 
