@@ -204,7 +204,10 @@ class Processor(ABC):
         return 1
 
     def create_sample(
-        self, texts: List[str], images: List[Image.Image], metadata: Optional[Dict[str, Any]] = None
+        self,
+        texts: List[str],
+        images: List[Image.Image],
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> MultimodalSample:
         """
         Create a sample dictionary containing text, images, and optional metadata.
