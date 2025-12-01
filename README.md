@@ -38,13 +38,18 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 
 #### Step 1 – Install MMORE
 
-To install the package simply run:
+To install the latest release of the package, simply run:
 
 ```bash
 uv pip install mmore
 ```
 
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
+To install the package for development, simply run:
+```bash
+uv pip install -e .
+```
+
+> :warning: This package requires many big dependencies and requires a dependency override, so it has to be installed with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 ### Minimal Example
 
