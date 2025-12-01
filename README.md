@@ -41,7 +41,7 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 To install the package simply run:
 
 ```bash
-pip install mmore
+uv pip install mmore
 ```
 
 > :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
@@ -133,7 +133,7 @@ Don't hesitate to star the project :star: if you find it interesting! (you would
 
 1. Install pre-commit if you haven't already
 
-`pip install pre-commit`
+`uv pip install pre-commit`
 
 2. Set up the git hook scripts
 
