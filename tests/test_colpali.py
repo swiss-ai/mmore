@@ -20,8 +20,8 @@ from mmore.colpali.run_process import (
 )
 
 """
-If you get an error when running tests with pytest, Run tests with: PYTHONPATH=$(pwd) pytest tests/test_colpali.py.
-This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves "src.mmore..." imports.
+If you get an error when running tests with pytest, run tests with: PYTHONPATH=$(pwd) pytest tests/test_colpali.py.
+This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves imports like "from mmore.colpali...".
 """
 
 SAMPLES_DIR = "examples/sample_data/"

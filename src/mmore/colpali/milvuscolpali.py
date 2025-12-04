@@ -185,8 +185,8 @@ class MilvusColpaliManager:
             data=arr,
             anns_field="embedding",
             limit=top_k * 5,
-            # As each page is embedded as a multi vector, each page is represented multiple time inside milvus, each with on column of the multi vector
-            # Thus there can be duplicate in the ids, and top_k * 5 allow to ensure the retrieval of top_k distinct pages
+            # As each page is embedded as a multi vector, each page is represented multiple times inside Milvus, each with one column of the multi vector
+            # Thus there can be duplicates in the ids, and top_k * 5 allows us to ensure the retrieval of top_k distinct pages
             output_fields=["pdf_path", "page_number"],
             search_params={"metric_type": self.metric_type, "params": {}},
         )
@@ -205,9 +205,10 @@ class MilvusColpaliManager:
             # Get all subvectors for this page
             docs = self.client.query(
                 collection_name=self.collection_name,
-                filter=f'pdf_path == "{pdf_path}" and page_number == {page_number}',
+                filter='pdf_path == $pdf_path and page_number == $page_number',
                 output_fields=["embedding", "pdf_path"],
                 limit=10000,
+                params={"pdf_path": pdf_path, "page_number": page_number},
             )
             if not docs:
                 return (None, pdf_path, page_number)

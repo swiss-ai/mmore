@@ -392,7 +392,8 @@ def colpali_retrieve(
     from .colpali.run_retriever import run_api as run_colpali_api
 
     if input_file:
-        assert isinstance(output_file, str)
+        if not isinstance(output_file, str):
+            raise ValueError("output_file must be provided with input_file and must be a string")
         run_colpali_retrieve(config_file, input_file, output_file)
     else:
         run_colpali_api(config_file, host, port)

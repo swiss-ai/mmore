@@ -69,9 +69,11 @@ class PDFConverter:
         import shutil
 
         if self.tmp_root.exists():
-            shutil.rmtree(self.tmp_root, ignore_errors=True)
-            logger.debug(f"Cleaned temporary directory {self.tmp_root}")
-
+            try:
+                shutil.rmtree(self.tmp_root)
+                logger.debug(f"Cleaned temporary directory {self.tmp_root}")
+            except Exception as e:
+                logger.warning(f"Failed to clean temporary directory {self.tmp_root}: {e}")
 
 class ColPaliEmbedder:
     def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
@@ -88,7 +90,7 @@ class ColPaliEmbedder:
     def embed_images(self, image_paths: list[str], batch_size: int = 5):
         images = self.get_images(image_paths)
         dataloader = DataLoader(
-            dataset=ListDataset[str](images),
+            dataset=ListDataset(images),
             batch_size=batch_size,
             shuffle=False,
             collate_fn=lambda x: self.processor.process_images(x),
@@ -157,7 +159,7 @@ def save_results(
     existing_df: pd.DataFrame = None,
     existing_text_df: pd.DataFrame = None,
 ):
-    df = pd.DataFrame(records)
+    df = pd.DataFrame(records).copy()
     df["embedding"] = df["embedding"].apply(lambda x: x.tolist())
     parquet_path = output_path / "pdf_page_objects.parquet"
 

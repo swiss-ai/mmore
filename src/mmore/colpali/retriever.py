@@ -57,7 +57,7 @@ def load_model(model_name: str, device: str):
 
 def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:
     dataloader = DataLoader(
-        dataset=ListDataset[str](texts),
+        dataset=ListDataset(texts),
         batch_size=1,
         shuffle=False,
         collate_fn=lambda x: processor.process_queries(x),
@@ -96,7 +96,7 @@ def load_text_mapping(text_parquet_path: Optional[str]) -> Optional[Dict[tuple, 
         return text_map
     except Exception as e:
         logger.error(f"Failed to load text mapping: {e}")
-        return None
+        raise
 
 
 class ColPaliRetriever(BaseRetriever):
