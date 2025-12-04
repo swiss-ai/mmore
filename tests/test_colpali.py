@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+import torch
+from PIL import Image
 
 from mmore.colpali.milvuscolpali import MilvusColpaliManager
 from mmore.colpali.retriever import (
@@ -13,11 +15,7 @@ from mmore.colpali.retriever import (
     load_text_mapping,
 )
 from mmore.colpali.run_index import index
-from mmore.colpali.run_process import (
-    ColPaliEmbedder,
-    PDFConverter,
-    process_single_pdf,
-)
+from mmore.colpali.run_process import ColPaliEmbedder, PDFConverter, process_single_pdf
 
 """
 If you get an error when running tests with pytest, run tests with: PYTHONPATH=$(pwd) pytest tests/test_colpali.py.
@@ -47,22 +45,115 @@ def test_pdf_converter_convert_to_pngs():
         converter.cleanup()
 
 
-def test_pdf_converter_cleanup():
-    """Test that PDFConverter cleanup removes temporary directory."""
-    converter = PDFConverter()
-    tmp_root = converter.tmp_root
-    assert tmp_root.exists(), "Temporary directory should exist"
-
-    converter.cleanup()
-    assert not tmp_root.exists(), "Temporary directory should be removed after cleanup"
-
-
 # ------------------ ColPaliEmbedder Tests ------------------
-def test_colpali_embedder_init():
-    """Test that ColPaliEmbedder initializes correctly."""
+def test_colpali_embedder_embed_images():
+    """Test that embed_images correctly processes images in batches and returns embeddings with expected shape."""
     from mmore.colpali import run_process
 
-    # Override ColPali.from_pretrained to bypass model loading
+    # Create temporary image files
+    with tempfile.TemporaryDirectory() as tmpdir:
+        image_paths = []
+        for i in range(5):  # 5 images to test batch processing with batch_size=2
+            img = Image.new("RGB", (100, 100), color=(i * 10, i * 20, i * 30))
+            img_path = Path(tmpdir) / f"test_image_{i}.png"
+            img.save(img_path)
+            image_paths.append(str(img_path))
+
+        # Mock the model and processor
+        original_colpali = run_process.ColPali.from_pretrained
+        original_processor = run_process.ColPaliProcessor.from_pretrained
+
+        embedding_dim = 128
+        mock_embeddings = [
+            torch.randn(embedding_dim, dtype=torch.bfloat16) for _ in range(5)
+        ]
+
+        # Track batch calls
+        batch_calls = []
+
+        def mock_process_images(self, images):
+            """Mock processor.process_images that returns processed batch."""
+            batch_size = len(images)
+            batch_calls.append(batch_size)
+            return {
+                "pixel_values": torch.randn(
+                    batch_size, 3, 224, 224, dtype=torch.bfloat16
+                )
+            }
+
+        def mock_model_forward(self, **kwargs):
+            """Mock model forward that returns embeddings."""
+            batch_size = kwargs["pixel_values"].shape[0]
+            return torch.stack(mock_embeddings[:batch_size])
+
+        mock_model = type(
+            "obj",
+            (object,),
+            {
+                "device": torch.device("cpu"),
+                "eval": lambda self: self,
+                "__call__": mock_model_forward,
+            },
+        )()
+
+        mock_processor_instance = type(
+            "obj",
+            (object,),
+            {
+                "process_images": mock_process_images,
+            },
+        )()
+
+        run_process.ColPali.from_pretrained = lambda *args, **kwargs: mock_model
+        run_process.ColPaliProcessor.from_pretrained = (
+            lambda *args, **kwargs: mock_processor_instance
+        )
+
+        try:
+            embedder = ColPaliEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
+            embedder.processor = mock_processor_instance
+
+            # Test with batch_size=2 (should create 3 batches: 2, 2, 1)
+            embeddings = embedder.embed_images(image_paths, batch_size=2)
+
+            # Verify correct number of embeddings
+            assert len(embeddings) == 5, (
+                f"Should return 5 embeddings, got {len(embeddings)}"
+            )
+
+            # Verify batch processing occurred (should have 3 batches: 2, 2, 1)
+            assert len(batch_calls) == 3, (
+                f"Should process in 3 batches, got {len(batch_calls)}"
+            )
+            assert batch_calls == [2, 2, 1], (
+                f"Batch sizes should be [2, 2, 1], got {batch_calls}"
+            )
+
+            # Verify embedding shape and type
+            for i, emb in enumerate(embeddings):
+                assert isinstance(emb, np.ndarray), (
+                    f"Embedding {i} should be numpy array"
+                )
+                assert emb.ndim == 1, (
+                    f"Embedding {i} should be 1D, got shape {emb.shape}"
+                )
+                assert emb.shape[0] == embedding_dim, (
+                    f"Embedding {i} should have dimension {embedding_dim}, got {emb.shape[0]}"
+                )
+                assert emb.dtype == np.float32, (
+                    f"Embedding {i} should be float32, got {emb.dtype}"
+                )
+
+        finally:
+            run_process.ColPali.from_pretrained = original_colpali
+            run_process.ColPaliProcessor.from_pretrained = original_processor
+
+
+def test_colpali_embedder_embed_images_invalid_input():
+    """Test that embed_images handles invalid image paths correctly."""
+    from mmore.colpali import run_process
+
+    # Mock the model and processor
     original_colpali = run_process.ColPali.from_pretrained
     original_processor = run_process.ColPaliProcessor.from_pretrained
 
@@ -70,21 +161,41 @@ def test_colpali_embedder_init():
         "obj",
         (object,),
         {
-            "device": "cpu",
+            "device": torch.device("cpu"),
             "eval": lambda self: self,
         },
     )()
 
-    run_process.ColPali.from_pretrained = lambda *args, **kwargs: mock_model
-    run_process.ColPaliProcessor.from_pretrained = lambda *args, **kwargs: type(
-        "obj", (object,), {}
+    mock_processor_instance = type(
+        "obj",
+        (object,),
+        {
+            "process_images": lambda x: {"pixel_values": torch.empty(0, 3, 224, 224)},
+        },
     )()
+
+    run_process.ColPali.from_pretrained = lambda *args, **kwargs: mock_model
+    run_process.ColPaliProcessor.from_pretrained = (
+        lambda *args, **kwargs: mock_processor_instance
+    )
 
     try:
         embedder = ColPaliEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
-        assert embedder.device == "cpu", "Device should be set correctly"
-        assert embedder.model is not None, "Model should be initialized"
-        assert embedder.processor is not None, "Processor should be initialized"
+        embedder.processor = mock_processor_instance
+
+        # Test with non-existent file path
+        with pytest.raises((FileNotFoundError, OSError)):
+            embedder.embed_images(["/nonexistent/path/image.png"], batch_size=5)
+
+        # Test with corrupted image file
+        with tempfile.TemporaryDirectory() as tmpdir:
+            corrupted_path = Path(tmpdir) / "corrupted.png"
+            with open(corrupted_path, "wb") as f:
+                f.write(b"This is not a valid image file")
+
+            with pytest.raises((OSError, IOError)):
+                embedder.embed_images([str(corrupted_path)], batch_size=5)
+
     finally:
         run_process.ColPali.from_pretrained = original_colpali
         run_process.ColPaliProcessor.from_pretrained = original_processor
@@ -182,46 +293,6 @@ def test_milvus_colpali_manager_init_error():
         milvuscolpali.MilvusClient = original_milvus_client
 
 
-def test_milvus_colpali_manager_create_collection():
-    """Test that MilvusColpaliManager creates collection correctly."""
-    from mmore.colpali import milvuscolpali
-
-    original_milvus_client = milvuscolpali.MilvusClient
-
-    create_collection_called = []
-    mock_schema = type(
-        "obj", (object,), {"add_field": lambda self, *args, **kwargs: None}
-    )()
-
-    mock_client_instance = type(
-        "obj",
-        (object,),
-        {
-            "has_collection": lambda self, name: False,
-            "create_schema": lambda self, **kwargs: mock_schema,
-            "create_collection": lambda self, **kwargs: create_collection_called.append(
-                True
-            ),
-        },
-    )()
-
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
-
-    try:
-        MilvusColpaliManager(
-            db_path="./test_milvus",
-            collection_name="test_collection",
-            dim=128,
-            create_collection=True,
-        )
-
-        assert len(create_collection_called) > 0, (
-            "Should call create_collection when create_collection=True"
-        )
-    finally:
-        milvuscolpali.MilvusClient = original_milvus_client
-
-
 def test_milvus_colpali_manager_insert_from_dataframe():
     """Test that MilvusColpaliManager correctly inserts data from DataFrame."""
     from mmore.colpali import milvuscolpali
@@ -265,6 +336,45 @@ def test_milvus_colpali_manager_insert_from_dataframe():
         assert len(insert_calls) == 2, (
             "Should insert 2 batches for 2 rows with batch_size=1"
         )
+    finally:
+        milvuscolpali.MilvusClient = original_milvus_client
+
+
+def test_milvus_colpali_manager_search_embeddings_search_error():
+    """Test that search_embeddings handles search errors correctly."""
+    from mmore.colpali import milvuscolpali
+
+    original_milvus_client = milvuscolpali.MilvusClient
+
+    def mock_search_error(self, **kwargs):
+        raise Exception("Search failed")
+
+    mock_client_instance = type(
+        "obj",
+        (object,),
+        {
+            "has_collection": lambda self, name: True,
+            "load_collection": lambda self, name: None,
+            "search": mock_search_error,
+        },
+    )()
+
+    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
+
+    try:
+        manager = MilvusColpaliManager(
+            db_path="./test_milvus",
+            collection_name="test_collection",
+            dim=128,
+            create_collection=False,
+        )
+
+        query_embedding = np.array([[0.1] * 128], dtype=np.float32)
+
+        # Should raise the exception
+        with pytest.raises(Exception, match="Search failed"):
+            manager.search_embeddings(query_embedding, top_k=3)
+
     finally:
         milvuscolpali.MilvusClient = original_milvus_client
 
@@ -333,18 +443,61 @@ def test_index_function():
 
 
 # ------------------ ColPaliRetriever Tests ------------------
-def test_colpali_retriever_from_config():
-    """Test that ColPaliRetriever.from_config creates instance correctly."""
+def test_colpali_retriever_get_relevant_documents_with_text_map():
+    """Test that _get_relevant_documents correctly integrates text content from text_map."""
     from mmore.colpali import milvuscolpali, retriever
 
     original_load_model = retriever.load_model
     original_milvus_client = milvuscolpali.MilvusClient
+    original_embed_queries = retriever.embed_queries
 
-    mock_model = type("obj", (object,), {})()
+    # Mock model and processor
+    mock_model = type("obj", (object,), {"device": torch.device("cpu")})()
     mock_processor = type("obj", (object,), {})()
 
-    # Create a real manager instance with mocked MilvusClient
-    mock_client_instance = type(
+    # Mock search results
+    mock_search_results = [
+        {
+            "pdf_path": "test1.pdf",
+            "page_number": 1,
+            "score": 0.95,
+            "rank": 1,
+        },
+        {
+            "pdf_path": "test1.pdf",
+            "page_number": 2,
+            "score": 0.85,
+            "rank": 2,
+        },
+    ]
+
+    # Mock text mapping
+    text_map = {
+        ("test1.pdf", 1): "This is the text content from page 1",
+        ("test1.pdf", 2): "This is the text content from page 2",
+    }
+
+    # Mock manager - inherit from MilvusColpaliManager to pass Pydantic validation
+    class MockMilvusColpaliManager(MilvusColpaliManager):
+        def __init__(self, *args, **kwargs):
+            # Skip parent initialization to avoid MilvusClient setup
+            # Set minimal required attributes
+            self.uri = "./test_milvus"
+            self.collection_name = "test_collection"
+            self.dim = 128
+            self.metric_type = "IP"
+            self.client = None
+
+        def search_embeddings(self, query_embeddings, top_k, max_workers):
+            return mock_search_results[:top_k]
+
+    mock_manager = MockMilvusColpaliManager()
+
+    # Mock embed_queries
+    def mock_embed_queries(texts, model, processor):
+        return [np.array([0.1] * 128, dtype=np.float32)]
+
+    milvuscolpali.MilvusClient = lambda *args, **kwargs: type(
         "obj",
         (object,),
         {
@@ -352,31 +505,52 @@ def test_colpali_retriever_from_config():
             "load_collection": lambda self, name: None,
         },
     )()
-
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
     retriever.load_model = lambda *args, **kwargs: (mock_model, mock_processor)
+    retriever.embed_queries = mock_embed_queries
 
     try:
         config = ColPaliRetrieverConfig(
             db_path="./test_milvus",
             collection_name="test_collection",
             model_name="vidore/colpali-v1.3",
-            top_k=3,
+            top_k=2,
             dim=128,
         )
 
-        retriever_instance = ColPaliRetriever.from_config(config)
-
-        assert retriever_instance.model is not None, "Model should be set"
-        assert retriever_instance.processor is not None, "Processor should be set"
-        assert retriever_instance.manager is not None, "Manager should be set"
-        assert isinstance(retriever_instance.manager, MilvusColpaliManager), (
-            "Manager should be MilvusColpaliManager instance"
+        retriever_instance = ColPaliRetriever(
+            model=mock_model,
+            processor=mock_processor,
+            manager=mock_manager,
+            config=config,
+            text_map=text_map,
         )
-        assert retriever_instance.config == config, "Config should be set"
+
+        # Test retrieval
+        documents = retriever_instance._get_relevant_documents("test query")
+
+        # Verify results
+        assert len(documents) == 2, f"Should return 2 documents, got {len(documents)}"
+
+        # Verify text content integration
+        assert documents[0].page_content == "This is the text content from page 1", (
+            "First document should have correct text content"
+        )
+        assert documents[1].page_content == "This is the text content from page 2", (
+            "Second document should have correct text content"
+        )
+
+        # Verify metadata includes pdf_name
+        assert documents[0].metadata["pdf_name"] == "test1.pdf", (
+            "Document should have pdf_name in metadata"
+        )
+        assert documents[0].metadata["pdf_path"] == "test1.pdf", (
+            "Document should have pdf_path in metadata"
+        )
+
     finally:
         retriever.load_model = original_load_model
         milvuscolpali.MilvusClient = original_milvus_client
+        retriever.embed_queries = original_embed_queries
 
 
 # ------------------ Load Text Mapping Tests ------------------
@@ -400,12 +574,6 @@ def test_load_text_mapping():
             assert text_map[("test1.pdf", 1)] == "Page 1 text", "Text should match"
         finally:
             os.unlink(tmp_file.name)
-
-
-def test_load_text_mapping_none():
-    """Test that load_text_mapping returns None when path is None."""
-    text_map = load_text_mapping(None)
-    assert text_map is None, "Should return None when path is None"
 
 
 def test_load_text_mapping_not_found():

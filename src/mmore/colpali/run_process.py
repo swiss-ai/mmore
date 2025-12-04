@@ -53,16 +53,15 @@ class PDFConverter:
         png_paths = []
         out_dir = self.tmp_root / pdf_file.stem
         out_dir.mkdir(parents=True, exist_ok=True)
-        doc = fitz.open(pdf_file)
 
-        for page_num in range(len(doc)):
-            out_path = out_dir / f"page_{page_num + 1}.png"
-            page = doc[page_num]
-            pix = page.get_pixmap(dpi=self.dpi)
-            pix.save(out_path)
-            png_paths.append(out_path)
+        with fitz.open(pdf_file) as doc:
+            for page_num in range(len(doc)):
+                out_path = out_dir / f"page_{page_num + 1}.png"
+                page = doc[page_num]
+                pix = page.get_pixmap(dpi=self.dpi)
+                pix.save(out_path)
+                png_paths.append(out_path)
 
-        doc.close()
         return png_paths
 
     def cleanup(self):
@@ -73,7 +72,10 @@ class PDFConverter:
                 shutil.rmtree(self.tmp_root)
                 logger.debug(f"Cleaned temporary directory {self.tmp_root}")
             except Exception as e:
-                logger.warning(f"Failed to clean temporary directory {self.tmp_root}: {e}")
+                logger.warning(
+                    f"Failed to clean temporary directory {self.tmp_root}: {e}"
+                )
+
 
 class ColPaliEmbedder:
     def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
@@ -123,29 +125,28 @@ def process_single_pdf(
         png_paths = converter.convert_to_pngs(pdf_path)
         image_embeddings = model.embed_images(png_paths)
 
-        doc = fitz.open(pdf_path)
-        page_records = []
-        text_records = []
-        for page_num, embedding in enumerate(image_embeddings):
-            page = doc[page_num]
-            page_text = page.get_text()
+        with fitz.open(pdf_path) as doc:
+            page_records = []
+            text_records = []
+            for page_num, embedding in enumerate(image_embeddings):
+                page = doc[page_num]
+                page_text = page.get_text()
 
-            page_records.append(
-                {
-                    "pdf_path": str(pdf_path),
-                    "page_number": page_num + 1,
-                    "embedding": embedding.astype("float32"),
-                }
-            )
+                page_records.append(
+                    {
+                        "pdf_path": str(pdf_path),
+                        "page_number": page_num + 1,
+                        "embedding": embedding.astype("float32"),
+                    }
+                )
 
-            text_records.append(
-                {
-                    "pdf_path": str(pdf_path),
-                    "page_number": page_num + 1,
-                    "text": page_text,
-                }
-            )
-        doc.close()
+                text_records.append(
+                    {
+                        "pdf_path": str(pdf_path),
+                        "page_number": page_num + 1,
+                        "text": page_text,
+                    }
+                )
         return page_records, text_records
     except Exception as e:
         logger.error(f"❌ Failed to process {pdf_path.name}: {e}")
@@ -177,6 +178,7 @@ def save_results(
         df.to_parquet(parquet_path, index=False, compression="zstd")
     except Exception as e:
         logger.error(f"Failed to write Parquet: {e}")
+        raise
 
     if text_records:
         text_df = pd.DataFrame(text_records)
@@ -198,6 +200,7 @@ def save_results(
             text_df.to_parquet(text_parquet_path, index=False, compression="zstd")
         except Exception as e:
             logger.error(f"Failed to write text Parquet: {e}")
+            raise
 
     return parquet_path
 

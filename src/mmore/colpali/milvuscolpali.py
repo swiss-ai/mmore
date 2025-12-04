@@ -205,7 +205,7 @@ class MilvusColpaliManager:
             # Get all subvectors for this page
             docs = self.client.query(
                 collection_name=self.collection_name,
-                filter='pdf_path == $pdf_path and page_number == $page_number',
+                filter="pdf_path == $pdf_path and page_number == $page_number",
                 output_fields=["embedding", "pdf_path"],
                 limit=10000,
                 params={"pdf_path": pdf_path, "page_number": page_number},
