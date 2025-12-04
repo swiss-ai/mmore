@@ -16,7 +16,6 @@ from mmore.colpali.run_index import index
 from mmore.colpali.run_process import (
     ColPaliEmbedder,
     PDFConverter,
-    crawl_pdfs,
     process_single_pdf,
 )
 
@@ -209,7 +208,7 @@ def test_milvus_colpali_manager_create_collection():
     milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
 
     try:
-        manager = MilvusColpaliManager(
+        MilvusColpaliManager(
             db_path="./test_milvus",
             collection_name="test_collection",
             dim=128,

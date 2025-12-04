@@ -296,14 +296,14 @@ def colpali():
     pass
 
 
-@colpali.command()
+@colpali.command(name="process")
 @click.option(
     "--config-file",
     type=str,
     required=True,
     help="Path to the ColPali process configuration file.",
 )
-def process(config_file: str):
+def colpali_process(config_file: str):
     """Process PDFs and generate page embeddings using ColPali.
 
     Args:
@@ -316,8 +316,7 @@ def process(config_file: str):
 
     run_process(config_file)
 
-
-@colpali.command()
+@colpali.command(name="index")
 @click.option(
     "--config-file",
     "-c",
@@ -325,7 +324,7 @@ def process(config_file: str):
     required=True,
     help="Path to the ColPali index configuration file.",
 )
-def index(config_file: str):
+def colpali_index(config_file: str):
     """Index ColPali embeddings into a Milvus database.
 
     Args:
@@ -338,8 +337,7 @@ def index(config_file: str):
 
     run_colpali_index(config_file)
 
-
-@colpali.command()
+@colpali.command(name="retrieve")
 @click.option(
     "--config-file",
     "-c",
@@ -369,7 +367,7 @@ def index(config_file: str):
 @click.option(
     "--port", type=int, default=8001, help="Port on which the API should be run."
 )
-def retrieve(
+def colpali_retrieve(
     config_file: str,
     input_file: Optional[str],
     output_file: Optional[str],

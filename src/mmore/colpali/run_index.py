@@ -1,12 +1,9 @@
 import argparse
 import logging
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Union
 
 import pandas as pd
-import torch
-import yaml
 
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager
