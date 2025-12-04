@@ -19,13 +19,15 @@ authors = [
     { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
-    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
+    { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
+    { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" }
 
 ]
 requires-python = ">=3.10"
 dependencies = [
     "numpy==1.26.4; python_version < '3.12'",
-    "numpy==2.2.6; python_version >= '3.12'",
+    "numpy==2.3.2; python_version >= '3.12'",
     "pandas==2.3.0",
     "datasets==4.0.0",
     "transformers==4.53.3",
@@ -47,7 +49,7 @@ dependencies = [
     "python-docx",
     "python-pptx",
     "clean-text",
-    "requests==2.32.4",
+    "requests==2.32.5",
     "selenium==4.34.2",
     "surya-ocr>=0.8.3",
     "xlrd==2.0.1",
@@ -72,57 +74,59 @@ dependencies = [
     "fastapi==0.115.13",
     "pydantic==2.11.7",
     "pymongo==4.13.2",
-    "pymilvus==2.5.0",
+    "pymilvus==2.6.3",
+    "pymilvus[milvus-lite]==2.6.3",
+    "pymilvus.model==0.3.2",
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
-    "cohere==5.15.0",
-    "langchain-anthropic==0.3.4",
-    "langchain-aws==0.2.30",
-    "langchain-cohere==0.4.2",
-    "langchain_community==0.3.25",
-    "langchain-huggingface==0.1.2",
-    "langchain-milvus==0.1.8",
-    "langchain-mistralai==0.2.7",
-    "langchain-nvidia-ai-endpoints",
-    "langchain-openai==0.3.28",
-    "langchain==0.3.27",
-    "markdownify==0.13.1",
+    "cohere==5.20.0",
+    "langchain==1.1.0",
+    "langchain-anthropic==1.2.0",
+    "langchain-aws==1.1.0",
+    "langchain-cohere==0.5.0",
+    "langchain-community==0.4.1",
+    "langchain-huggingface==1.1.0",
+    "langchain-milvus==0.3.0",
+    "langchain-mistralai==1.1.0",
+    "langchain-openai==1.1.0",
     "ragas==0.3.1",
     "nltk>=3.9",
     "starlette==0.46",
     "typing_extensions==4.14.1",
-    "sympy==1.14.0",
+    "sympy>=1.13.1",
     "google-auth==2.39.0",
     "google-api-python-client==2.173.0",
     "mammoth==1.9.0",
     "argostranslate",
     "sentence-transformers",
     "langid",
-    "colpali-engine==0.3.11"
+    "colpali-engine==0.3.13"
 ]
 
 [project.optional-dependencies]
 cpu = [
-    "torch>=2.5.1",
+    "torch>=2.7.0",
 ]
 cu126 = [
-    "torch>=2.5.1",
+    "torch>=2.7.0",
 ]
 
 rag = [
   "accelerate",
-  "cohere==5.15.0",
-  "langchain-anthropic==0.3.4",
-  "langchain-aws==0.2.30",
-  "langchain-cohere==0.4.2",
-  "langchain-huggingface==0.1.2",
-  "langchain-milvus==0.1.8",
-  "langchain-mistralai==0.2.7",
-  "langchain-nvidia-ai-endpoints",
-  "langchain-openai==0.3.28",
-  "langchain==0.3.27",
+  "cohere==5.20.0",
+  "langchain==1.1.0",
+  "langchain-anthropic==1.2.0",
+  "langchain-aws==1.1.0",
+  "langchain-cohere==0.5.0",
+  "langchain-community==0.4.1",
+  "langchain-huggingface==1.1.0",
+  "langchain-milvus==0.3.0",
+  "langchain-mistralai==1.1.0",
+  "langchain-openai==1.1.0",
   "langdetect>=1.0.9",
-  "pymilvus==2.5.0",
+  "pymilvus==2.6.3",
+  "pymilvus[milvus-lite]==2.6.3",
+  "pymilvus.model==0.3.2",
   "milvus-model==0.2.12",
   "ragas==0.3.1",
   "nltk>=3.9",
@@ -137,6 +141,8 @@ conflicts = [
     { extra = "cu126" },
   ],
 ]
+
+override-dependencies = ["anthropic==0.73.0"]
 
 [tool.uv.sources]
 torch = [
