@@ -316,6 +316,7 @@ def process(config_file: str):
 
     run_process(config_file)
 
+
 @colpali.command()
 @click.option(
     "--config-file",
@@ -336,7 +337,8 @@ def index(config_file: str):
     from .colpali.run_index import index as run_colpali_index
 
     run_colpali_index(config_file)
-    
+
+
 @colpali.command()
 @click.option(
     "--config-file",

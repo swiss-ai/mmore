@@ -10,21 +10,22 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 import torch
+from colpali_engine.models import ColPali, ColPaliProcessor
+from colpali_engine.utils.torch_utils import ListDataset
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from torch.utils.data import DataLoader
 
-from colpali_engine.models import ColPali, ColPaliProcessor
-from colpali_engine.utils.torch_utils import ListDataset
-
 from .milvuscolpali import MilvusColpaliManager
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ColPaliRetrieverConfig:
     """Configuration for ColPali retriever."""
+
     db_path: str = "./milvus_data"
     collection_name: str = "pdf_pages"
     model_name: str = "vidore/colpali-v1.3"
@@ -33,6 +34,7 @@ class ColPaliRetrieverConfig:
     max_workers: int = 4
     metric_type: str = "IP"
     text_parquet_path: Optional[str] = None
+
 
 def get_device() -> str:
     if torch.cuda.is_available():
@@ -95,6 +97,7 @@ def load_text_mapping(text_parquet_path: Optional[str]) -> Optional[Dict[tuple, 
     except Exception as e:
         logger.error(f"Failed to load text mapping: {e}")
         return None
+
 
 class ColPaliRetriever(BaseRetriever):
     """
@@ -218,4 +221,3 @@ class ColPaliRetriever(BaseRetriever):
             config=config,
             text_map=text_map,
         )
-

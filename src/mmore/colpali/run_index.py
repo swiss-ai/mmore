@@ -1,8 +1,9 @@
 import argparse
 import logging
 from dataclasses import dataclass
-from typing import Union
 from pathlib import Path
+from typing import Union
+
 import pandas as pd
 import torch
 import yaml
@@ -18,6 +19,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+
 @dataclass
 class MilvusConfig:
     db_path: str = "./milvus_data"
@@ -26,10 +28,12 @@ class MilvusConfig:
     create_collection: bool = False
     metric_type: str = "IP"
 
+
 @dataclass
 class IndexConfig:
     milvus: MilvusConfig
     parquet_path: str
+
 
 def index(config_file: Union[IndexConfig, str]):
     """
@@ -52,11 +56,14 @@ def index(config_file: Union[IndexConfig, str]):
     manager.insert_from_dataframe(df)
     manager.create_index()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Index ColPali PDF embeddings into a local Milvus database."
     )
-    parser.add_argument("--config_file", required=True, help="Path to the YAML config file.")
+    parser.add_argument(
+        "--config_file", required=True, help="Path to the YAML config file."
+    )
     args = parser.parse_args()
 
     index(args.config_file)

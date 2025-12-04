@@ -1,12 +1,12 @@
+import concurrent.futures
 import logging
 from pathlib import Path
 from typing import Union
-from tqdm import tqdm
-import concurrent.futures
 
 import numpy as np
 import pandas as pd
-from pymilvus import MilvusClient, DataType
+from pymilvus import DataType, MilvusClient
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -67,7 +67,9 @@ class MilvusColpaliManager:
         schema.add_field("page_number", DataType.INT64)
         schema.add_field("embedding", DataType.FLOAT_VECTOR, dim=self.dim)
 
-        self.client.create_collection(collection_name=self.collection_name, schema=schema)
+        self.client.create_collection(
+            collection_name=self.collection_name, schema=schema
+        )
         logger.info(f"Created collection schema for '{self.collection_name}'")
 
     def create_index(self):
@@ -85,16 +87,16 @@ class MilvusColpaliManager:
             logger.warning(f"Could not check existing indexes: {e}")
 
         logger.info("Creating vector index on 'embedding' field...")
-        
+
         # Create index parameters
         index_params = self.client.prepare_index_params()
         index_params.add_index(
             field_name="embedding",
-            index_name="embedding_index", 
+            index_name="embedding_index",
             index_type="FLAT",
             metric_type=self.metric_type,
         )
-        
+
         # Create index
         try:
             self.client.create_index(
@@ -113,12 +115,16 @@ class MilvusColpaliManager:
         """
         required_cols = {"pdf_path", "page_number", "embedding"}
         if not required_cols <= set(df.columns):
-            raise ValueError(f"DataFrame missing required columns: {required_cols - set(df.columns)}")
+            raise ValueError(
+                f"DataFrame missing required columns: {required_cols - set(df.columns)}"
+            )
 
         logger.info(f"Preparing {len(df)} pages...")
-        
+
         data = []
-        for _, row in tqdm(df.iterrows(), total=len(df), desc="Preparing vectors", ncols=100):
+        for _, row in tqdm(
+            df.iterrows(), total=len(df), desc="Preparing vectors", ncols=100
+        ):
             emb = row["embedding"]
 
             if isinstance(emb, np.ndarray) and emb.dtype == object:
@@ -138,7 +144,7 @@ class MilvusColpaliManager:
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
-                
+
         # Validate embedding dimensions
         for i, row in enumerate(data[:5]):
             vlen = len(row["embedding"])
@@ -149,18 +155,20 @@ class MilvusColpaliManager:
 
         total_vecs = len(data)
         logger.info(f"Inserting {total_vecs} vectors in batches of {batch_size}...")
-        
-        for i in tqdm(range(0, total_vecs, batch_size), desc="Inserting into Milvus", ncols=100):
+
+        for i in tqdm(
+            range(0, total_vecs, batch_size), desc="Inserting into Milvus", ncols=100
+        ):
             batch = data[i : i + batch_size]
             try:
                 self.client.insert(self.collection_name, batch)
             except Exception as e:
-                logger.error(f"Failed to insert batch {i//batch_size}: {e}")
+                logger.error(f"Failed to insert batch {i // batch_size}: {e}")
                 raise
 
         logger.info(f"✅ Insert complete — {total_vecs} vectors inserted.")
 
-    def search_embeddings(self, query_embeddings, top_k=3, max_workers = 4):
+    def search_embeddings(self, query_embeddings, top_k=3, max_workers=4):
         """
         Search for similar embeddings using vector similarity search.
         """
@@ -176,7 +184,7 @@ class MilvusColpaliManager:
             collection_name=self.collection_name,
             data=arr,
             anns_field="embedding",
-            limit=top_k * 5,  
+            limit=top_k * 5,
             # As each page is embedded as a multi vector, each page is represented multiple time inside milvus, each with on column of the multi vector
             # Thus there can be duplicate in the ids, and top_k * 5 allow to ensure the retrieval of top_k distinct pages
             output_fields=["pdf_path", "page_number"],
@@ -187,7 +195,7 @@ class MilvusColpaliManager:
         candidates = set()
         for hits in results:
             for hit in hits:
-                entity_dict = hit.get('entity', {})
+                entity_dict = hit.get("entity", {})
                 key = (entity_dict.get("pdf_path"), entity_dict.get("page_number"))
                 candidates.add(key)
 
@@ -209,16 +217,26 @@ class MilvusColpaliManager:
             return (score, pdf_path, page_number)
 
         reranked = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers = max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
                 executor.submit(rerank_page, pdf_path, page_number, arr)
                 for (pdf_path, page_number) in candidates
             ]
-            for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="🔁 Reranking"):
+            for f in tqdm(
+                concurrent.futures.as_completed(futures),
+                total=len(futures),
+                desc="🔁 Reranking",
+            ):
                 try:
                     score, pdf_path, page_number = f.result()
                     if score is not None:
-                        reranked.append({"pdf_path": pdf_path, "page_number": page_number, "score": score})
+                        reranked.append(
+                            {
+                                "pdf_path": pdf_path,
+                                "page_number": page_number,
+                                "score": score,
+                            }
+                        )
                 except Exception as e:
                     logger.error(f"Rerank failed: {e}")
 
@@ -236,6 +254,6 @@ class MilvusColpaliManager:
             logger.warning(f"Collection '{self.collection_name}' not found.")
 
     def close(self):
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             self.client.close()
             logger.info("Closed Milvus client connection")
