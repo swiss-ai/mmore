@@ -1,21 +1,22 @@
 <h1 align="center">
 
-![image](https://github.com/user-attachments/assets/502e2c7e-1200-498a-9ebd-10a27ed48ab6)
+![image](https://raw.githubusercontent.com/swiss-ai/mmore/master/mmore_logo.jpg)
 
 </h1>
-
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
   <img src="https://img.shields.io/github/v/release/swiss-ai/mmore" alt="Release">
+  <a href="https://openreview.net/forum?id=6j1HjfIdKn">
+    <img src="https://img.shields.io/badge/paper-OpenReview-9cf" alt="Paper">
+  </a>
 </p>
 
-####  <center>Massive Multimodal Open RAG & Extraction</center>
+####  Massive Multimodal Open RAG & Extraction
 
-A scalable multimodal pipeline for processing, indexing, and querying multimodal documents
+MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs). 
 
-Ever needed to take 8000 PDFs, 2000 videos, and 500 spreadsheets and feed them to an LLM as a knowledge base?
-Well, MMORE is here to help you!
+👉 Read the paper for more details (OpenReview): [MMORE: Massive Multimodal Open RAG & Extraction](https://openreview.net/forum?id=6j1HjfIdKn)
 
 ## :bulb: Quickstart
 
@@ -37,13 +38,18 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 
 #### Step 1 – Install MMORE
 
-To install the package simply run:
+To install the latest release of the package, simply run:
 
 ```bash
-pip install mmore
+uv pip install mmore
 ```
 
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
+To install the package for development, simply run:
+```bash
+uv pip install -e .
+```
+
+> :warning: This package requires many big dependencies and requires a dependency override, so it has to be installed with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 ### Minimal Example
 
@@ -55,7 +61,7 @@ python -m mmore process --config-file examples/process/config.yaml
 python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-python -m mmore index --config-file examples/index/config.yaml --documents-path examples/process/outputs/merged/final_pp.jsonl
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/final_pp.jsonl
 
 # Run RAG
 python -m mmore rag --config-file examples/rag/config.yaml
@@ -84,7 +90,7 @@ MultimodalSample.to_jsonl(out_file, result_pdf)
 
 To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
-![The MMORE pipelines archicture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
+![The MMORE pipelines architecture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
 
 
 1. **:page_facing_up: Input Documents**
@@ -132,7 +138,7 @@ Don't hesitate to star the project :star: if you find it interesting! (you would
 
 1. Install pre-commit if you haven't already
 
-`pip install pre-commit`
+`uv pip install pre-commit`
 
 2. Set up the git hook scripts
 
@@ -147,3 +153,24 @@ We also use `pyright` to type-check the code base, please make sure your Pull Re
 ## License
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
+
+## Cite MMORE
+
+If you use MMORE in your research, please cite the paper:
+```
+@inproceedings{sallinenm,
+  title={M (M) ORE: Massive Multimodal Open RAG \& Extraction},
+  author={Sallinen, Alexandre and Krsteski, Stefan and Teiletche, Paul and Marc-Antoine, Allard and Lecoeur, Baptiste and Zhang, Michael and Nemo, Fabrice and Kalajdzic, David and Meyer, Matthias and Hartley, Mary-Anne},
+  booktitle={Championing Open-source DEvelopment in ML Workshop@ ICML25}
+}
+```
+
+<p align="center">
+  <a href="https://www.star-history.com/#swiss-ai/mmore&Date">
+     <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date&theme=dark" />
+     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
+     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
+   </picture>
+  </a>
+</p>

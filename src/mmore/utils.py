@@ -214,7 +214,7 @@ def process_files_default(
     # crawling
     crawler_config = CrawlerConfig(
         root_dirs=[temp_dir],
-        # For more effecient processing give only the extensions needed
+        # For more efficient processing give only the extensions needed
         supported_extensions=extensions,
         output_path=output_path,
     )

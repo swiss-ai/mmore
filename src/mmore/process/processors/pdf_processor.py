@@ -141,12 +141,14 @@ class PDFProcessor(Processor):
         text, _, images = text_from_rendered(rendered)
         text = re.sub(IMG_REGEX, "<attachment>", text)
         images = list(images.values())
-        return self.create_sample([text], images, file_path)
+        return self.create_sample([text], images, {"file_path": file_path})
 
     def process_fast(self, file_path: str) -> MultimodalSample:
         pdf_doc = fitz.open(file_path)
-        all_text = []
+        all_text_parts = []
         embedded_images = []
+        page_starts = []
+        current_position = 0
 
         def _extract_images(pdf_doc, xref) -> Optional[Image.Image]:
             try:
@@ -174,10 +176,13 @@ class PDFProcessor(Processor):
                 )
                 return None
 
-        for page in pdf_doc:
+        for page_num, page in enumerate(pdf_doc):
+            page_starts.append((current_position, page_num))
             text = clean_text(page.get_text())  # type: ignore[attr-defined]
+
             if text.strip():
-                all_text.append(text)
+                all_text_parts.append(text)
+                current_position += len(text)
 
             if self.config.custom_config.get("extract_images", True):
                 for img_info in page.get_images(full=False):
@@ -185,11 +190,21 @@ class PDFProcessor(Processor):
                     if image and clean_image(image):
                         # clean image filters images below size 512x512 and variance below 100, these are defaults and can be changed
                         embedded_images.append(image)
-                        all_text.append(self.config.attachment_tag)
+                        attachment_text = self.config.attachment_tag
+                        all_text_parts.append(attachment_text)
+                        current_position += len(attachment_text)
             else:
                 embedded_images = []
 
-        return self.create_sample(all_text, embedded_images, file_path)
+        page_starts.append((current_position, len(pdf_doc)))
+        metadata = {
+            "file_path": file_path,
+            "page_starts": page_starts,
+            "document_type": "pdf",
+        }
+
+        full_text = "".join(all_text_parts)
+        return self.create_sample([full_text], embedded_images, metadata)
 
     # Functions for parallelizing across GPUs
     def _split_files(self, files_paths, num_batches):

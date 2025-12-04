@@ -67,6 +67,7 @@ class MultimodalChunker(BasePostProcessor):
         if not sample.text or not sample.text.strip():
             logger.warning(f"Empty text in sample {sample.id}. Skipping chunking.")
             return []
+
         try:
             # Chunk using the text chunker
             text_chunks = self.text_chunker.chunk(sample.text)
@@ -75,20 +76,54 @@ class MultimodalChunker(BasePostProcessor):
                 f"Chunking error on sample with length: {len(sample.text): {e}} "
             )
             return []
+
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
+        page_info_chunks = self._assign_page_numbers(sample, text_chunks)
 
         chunks = []
-        for i, (chunk, mods) in enumerate(zip(text_chunks, modalities_chunks)):
+        for i, (chunk, mods, page_info) in enumerate(
+            zip(text_chunks, modalities_chunks, page_info_chunks)
+        ):
+            chunk_metadata = sample.metadata.copy()
+            chunk_metadata.update(page_info)
+            chunk_metadata.pop("page_starts", None)
+
             s = MultimodalSample(
                 text=chunk.text,
                 modalities=mods,
-                metadata=sample.metadata,
+                metadata=chunk_metadata,
                 id=f"{sample.id}+{i}",
             )
             chunks.append(s)
 
         return chunks
+
+    def _assign_page_numbers(
+        self, sample: MultimodalSample, text_chunks: List[Chunk]
+    ) -> List[Dict[str, Any]]:
+        """Assign page numbers using page start positions."""
+        page_info_chunks = []
+        page_starts = sample.metadata.get("page_starts", [])
+
+        if len(page_starts) == 0:
+            for chunk in text_chunks:
+                page_info_chunks.append({})
+            return page_info_chunks
+
+        for chunk in text_chunks:
+            chunk_page_numbers = set()
+
+            for i in range(len(page_starts) - 1):
+                page_start, page_num = page_starts[i]
+                next_start, _ = page_starts[i + 1]
+                if chunk.start_index < next_start and chunk.end_index > page_start:
+                    chunk_page_numbers.add(page_num)
+
+            sorted_pages = sorted(chunk_page_numbers)
+            page_info_chunks.append({"page_numbers": sorted_pages})
+
+        return page_info_chunks
 
 
 def _text_index_to_chunk_index(index: int, chunks: List[Chunk]) -> Optional[int]:

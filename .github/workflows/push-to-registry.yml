@@ -12,13 +12,13 @@ jobs:
 
     strategy:
       matrix:
+        platform: [cpu, gpu]
         user:
           - { uid: 1000,    gid: 1000,    tag: "10001000"    }
-          - { uid: 272918,  gid: 84257,   tag: "84257272918" }
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -41,16 +41,16 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      - name: Build & push variant ${{ matrix.user.tag }}
+      - name: Build & push ${{ matrix.platform }} variant ${{ matrix.user.tag }}
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.meta.outputs.tags }}-${{ matrix.user.tag }}
+            ${{ steps.meta.outputs.tags }}-${{ matrix.platform }}-${{ matrix.user.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            PLATFORM=gpu
+            PLATFORM=${{ matrix.platform }}
             USER_UID=${{ matrix.user.uid }}
             USER_GID=${{ matrix.user.gid }}
           cache-from: type=gha

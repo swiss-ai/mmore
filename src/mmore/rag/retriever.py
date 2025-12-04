@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
+import torch
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -14,6 +15,9 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
@@ -30,6 +34,7 @@ class RetrieverConfig:
     k: int = 1
     collection_name: str = "my_docs"
     use_web: bool = False
+    reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
 
 
 class Retriever(BaseRetriever):
@@ -41,6 +46,8 @@ class Retriever(BaseRetriever):
     hybrid_search_weight: float
     k: int
     use_web: bool
+    reranker_model: Optional[PreTrainedModel]
+    reranker_tokenizer: Optional[PreTrainedTokenizerBase]
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -75,6 +82,19 @@ class Retriever(BaseRetriever):
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
+        # Load reranker from Hugging Face
+        if config.reranker_model_name:
+            reranker_tokenizer = AutoTokenizer.from_pretrained(
+                config.reranker_model_name
+            )
+            reranker_model = AutoModelForSequenceClassification.from_pretrained(
+                config.reranker_model_name
+            ).to("cuda")
+
+            logger.info(f"Loaded reranker model: {config.reranker_model_name}")
+        else:
+            reranker_model = reranker_tokenizer = None
+
         return cls(
             dense_model=dense_model,
             sparse_model=sparse_model,
@@ -82,6 +102,8 @@ class Retriever(BaseRetriever):
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
             use_web=config.use_web,
+            reranker_model=reranker_model,
+            reranker_tokenizer=reranker_tokenizer,
         )
 
     def compute_query_embeddings(
@@ -107,7 +129,7 @@ class Retriever(BaseRetriever):
         """
         Retrieve top-k similar documents for a given query.
 
-        This method computes dense and sparse query embeddings and builds two seperate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
+        This method computes dense and sparse query embeddings and builds two separate search requests (one for dense and one for sparse). If candidate document IDs are provided, a filter expression is attacked to both search requests to restrict the search to those documents only.
 
         Args:
             query: Search query string
@@ -238,6 +260,44 @@ class Retriever(BaseRetriever):
             all_results.append(results)
         return all_results
 
+    def rerank(
+        self, query: str, docs: List[Document], batch_size: int = 32
+    ) -> List[Document]:
+        """Re-rank documents using the reranker model in efficient batches."""
+        assert self.reranker_tokenizer is not None
+        assert self.reranker_model is not None
+
+        if not docs:
+            return []
+
+        scores = []
+
+        # Process documents in batches
+        for i in range(0, len(docs), batch_size):
+            batch_docs = docs[i : i + batch_size]
+
+            # Prepare query-doc pairs for the batch
+            inputs = self.reranker_tokenizer(
+                [query] * len(batch_docs),
+                [doc.page_content for doc in batch_docs],
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            ).to("cuda")
+
+            # Forward pass on the batch
+            with torch.no_grad():
+                logits = self.reranker_model(**inputs).logits.squeeze(
+                    -1
+                )  # shape: (batch,)
+
+            # Collect scores for this batch
+            scores.extend((doc, score.item()) for doc, score in zip(batch_docs, logits))
+
+        # Sort docs by score in descending order
+        reranked = [doc for doc, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
+        return reranked
+
     def _get_relevant_documents(
         self,
         query: str | Dict[str, Any],
@@ -293,10 +353,15 @@ class Retriever(BaseRetriever):
         if self.use_web:
             web_docs = self._get_web_documents(query_input, max_results=self.k)
             milvus_docs = parse_results(results, len(web_docs))
-            return web_docs + milvus_docs
+            docs = web_docs + milvus_docs
         else:
-            milvus_docs = parse_results(results)
-            return milvus_docs
+            docs = parse_results(results)
+
+        # Apply reranker
+        if self.reranker_model:
+            docs = self.rerank(query_input, docs)
+
+        return docs
 
     def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
         """Fetch additional context from the web via DuckDuckGo."""

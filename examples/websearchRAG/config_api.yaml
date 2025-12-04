@@ -1,0 +1,15 @@
+websearch:
+  rag_config_path: examples/rag/config_api.yaml
+  n_subqueries : 3
+  n_loops: 2
+  max_searches: 10
+  mode: api
+  llm_config:
+    llm_name: OpenMeditron/meditron3-8b
+    max_new_tokens: 1200
+
+# Mode Config
+mode_args:
+  endpoint: '/rag'
+  port: 8000
+  host: 'localhost'

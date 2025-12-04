@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.0.1"
+version = "1.1.1"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -16,18 +16,20 @@ authors = [
     { name = "Michael Zhang", email = "michael.zhang@epfl.ch" },
     { name = "Matthias Meyer", email = "matthias.meyer@sdsc.ethz.ch" },
     { name = "Fabrice Nemo", email = "fabrice.nemo@epfl.ch" },
-    { name = "Charlotte Meyer", email = "Charlotte.meyer@epfl.ch" },
+    { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
-    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" }
+    { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
+    { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
+    { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" }
 
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==1.26.3; python_version < '3.12'",
-    "numpy==2.2.6; python_version >= '3.12'",
+    "numpy==1.26.4; python_version < '3.12'",
+    "numpy==2.3.2; python_version >= '3.12'",
     "pandas==2.3.0",
-    "datasets==2.19.1",
+    "datasets==4.0.0",
     "transformers==4.52.4",
     "fasteners==0.19",
     "uvicorn==0.34.3",
@@ -36,8 +38,7 @@ dependencies = [
     "click>=8.1.7",
     "dask[distributed]>=2025.2.0",
     "pytest>=8.3.4",
-    "validators==0.35.0",
-    "httpx==0.27.2",
+    "httpx==0.28.1",
     "Pillow",
     "PyMuPDF",
     "beautifulsoup4==4.13.4",
@@ -48,7 +49,7 @@ dependencies = [
     "python-docx",
     "python-pptx",
     "clean-text",
-    "requests==2.32.4",
+    "requests==2.32.5",
     "selenium==4.34.2",
     "surya-ocr>=0.8.3",
     "xlrd==2.0.1",
@@ -73,27 +74,26 @@ dependencies = [
     "fastapi==0.115.13",
     "pydantic==2.11.7",
     "pymongo==4.13.2",
-    "pymilvus==2.5.0",
+    "pymilvus==2.6.3",
+    "pymilvus[milvus-lite]==2.6.3",
+    "pymilvus.model==0.3.2",
     "milvus-model==0.2.12",
     "accelerate==1.7.0",
-    "cohere==5.15.0",
-    "langchain-anthropic==0.3.4",
-    "langchain-aws==0.2.30",
-    "langchain-cohere==0.4.2",
-    "langchain_community==0.3.25",
-    "langchain-huggingface==0.1.2",
-    "langchain-milvus==0.1.8",
-    "langchain-mistralai==0.2.7",
-    "langchain-nvidia-ai-endpoints",
-    "langchain-openai==0.3.28",
-    "langchain==0.3.27",
-    "langserve[all]==0.3.1",
-    "markdownify==0.13.1",
+    "cohere==5.20.0",
+    "langchain==1.1.0",
+    "langchain-anthropic==1.2.0",
+    "langchain-aws==1.1.0",
+    "langchain-cohere==0.5.0",
+    "langchain-community==0.4.1",
+    "langchain-huggingface==1.1.0",
+    "langchain-milvus==0.3.0",
+    "langchain-mistralai==1.1.0",
+    "langchain-openai==1.1.0",
     "ragas==0.3.1",
     "nltk>=3.9",
     "starlette==0.46",
     "typing_extensions==4.14.1",
-    "sympy==1.14.0",
+    "sympy>=1.13.1",
     "google-auth==2.39.0",
     "google-api-python-client==2.173.0",
     "mammoth==1.9.0",
@@ -104,27 +104,28 @@ dependencies = [
 
 [project.optional-dependencies]
 cpu = [
-    "torch>=2.5.1",
+    "torch>=2.7.0",
 ]
-cu124 = [
-    "torch>=2.5.1",
+cu126 = [
+    "torch>=2.7.0",
 ]
 
 rag = [
   "accelerate",
-  "cohere==5.15.0",
-  "langchain-anthropic==0.3.4",
-  "langchain-aws==0.2.30",
-  "langchain-cohere==0.4.2",
-  "langchain-huggingface==0.1.2",
-  "langchain-milvus==0.1.8",
-  "langchain-mistralai==0.2.7",
-  "langchain-nvidia-ai-endpoints",
-  "langchain-openai==0.3.28",
-  "langchain==0.3.27",
+  "cohere==5.20.0",
+  "langchain==1.1.0",
+  "langchain-anthropic==1.2.0",
+  "langchain-aws==1.1.0",
+  "langchain-cohere==0.5.0",
+  "langchain-community==0.4.1",
+  "langchain-huggingface==1.1.0",
+  "langchain-milvus==0.3.0",
+  "langchain-mistralai==1.1.0",
+  "langchain-openai==1.1.0",
   "langdetect>=1.0.9",
-  "langserve[all]==0.3.1",
-  "pymilvus==2.5.0",
+  "pymilvus==2.6.3",
+  "pymilvus[milvus-lite]==2.6.3",
+  "pymilvus.model==0.3.2",
   "milvus-model==0.2.12",
   "ragas==0.3.1",
   "nltk>=3.9",
@@ -136,15 +137,17 @@ dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
 conflicts = [
   [
     { extra = "cpu" },
-    { extra = "cu124" },
+    { extra = "cu126" },
   ],
 ]
+
+override-dependencies = ["anthropic==0.73.0"]
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
-  { index = "pytorch-cu124", extra="cu124", marker = "platform_machine != 'aarch64'"},
-  # { url = "https://download.pytorch.org/whl/cu124/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu124",  marker = "platform_machine == 'aarch64'" },
+  { index = "pytorch-cu126", extra="cu126", marker = "platform_machine != 'aarch64'"},
+  # { url = "https://download.pytorch.org/whl/cu126/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu126",  marker = "platform_machine == 'aarch64'" },
 ]
 
 [[tool.uv.index]]
@@ -153,8 +156,8 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.isort]
@@ -181,3 +184,7 @@ ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) an
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "run_index_api.py" = ["N803", "N806"]
+
+[tool.codespell]
+ignore-words-list = "ore,revered"
+skip = "./examples/*,*.pdf"
