@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from PIL import Image
 import torch
 from langchain_core.documents import Document
+from PIL import Image
 
 from mmore.colpali.milvuscolpali import MilvusColpaliManager
 from mmore.colpali.retriever import (
@@ -16,11 +16,7 @@ from mmore.colpali.retriever import (
     load_text_mapping,
 )
 from mmore.colpali.run_index import index
-from mmore.colpali.run_process import (
-    ColPaliEmbedder,
-    PDFConverter,
-    process_single_pdf,
-)
+from mmore.colpali.run_process import ColPaliEmbedder, PDFConverter, process_single_pdf
 
 """
 If you get an error when running tests with pytest, run tests with: PYTHONPATH=$(pwd) pytest tests/test_colpali.py.
@@ -81,7 +77,9 @@ def test_colpali_embedder_embed_images():
             batch_size = len(images)
             batch_calls.append(batch_size)
             return {
-                "pixel_values": torch.randn(batch_size, 3, 224, 224, dtype=torch.bfloat16)
+                "pixel_values": torch.randn(
+                    batch_size, 3, 224, 224, dtype=torch.bfloat16
+                )
             }
 
         def mock_model_forward(self, **kwargs):
@@ -492,10 +490,10 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
             self.dim = 128
             self.metric_type = "IP"
             self.client = None
-        
+
         def search_embeddings(self, query_embeddings, top_k, max_workers):
             return mock_search_results[:top_k]
-    
+
     mock_manager = MockMilvusColpaliManager()
 
     # Mock embed_queries
