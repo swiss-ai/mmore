@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
-from langchain_core.documents import Document
 from PIL import Image
 
 from mmore.colpali.milvuscolpali import MilvusColpaliManager
