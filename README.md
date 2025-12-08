@@ -46,6 +46,8 @@ uv pip install mmore
 
 To install the package for development, simply run:
 ```bash
+uv venv .venv
+source .venv/bin/activate
 uv pip install -e .
 ```
 
