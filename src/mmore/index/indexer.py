@@ -258,13 +258,13 @@ def get_model_from_index(
         index_config = client.describe_index(collection_name, index_name)
         return DenseModelConfig(
             model_name=index_config["model_name"],
-            is_multimodal=index_config["is_multimodal"] == "True",
+            is_multimodal=index_config.get("is_multimodal") == "True",
         )
     elif index_name == "sparse_embedding":
         index_config = client.describe_index(collection_name, index_name)
         return SparseModelConfig(
             model_name=index_config["model_name"],
-            is_multimodal=index_config["is_multimodal"] == "True",
+            is_multimodal=index_config.get("is_multimodal") == "True",
         )
     else:
         raise ValueError(
