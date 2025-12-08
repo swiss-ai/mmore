@@ -50,7 +50,7 @@ dependencies = [
     "python-pptx",
     "clean-text",
     "requests==2.32.5",
-    "selenium==4.34.2",
+    "selenium==4.39.0",
     "surya-ocr>=0.8.3",
     "xlrd==2.0.1",
     "py7zr==0.22.0",
