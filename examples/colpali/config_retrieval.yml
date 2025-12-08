@@ -2,7 +2,6 @@ db_path: ./output/milvus_data.db
 collection_name: "pdf_pages"
 
 model_name: "vidore/colpali-v1.3"
-mode: "single"
 top_k: 3
 dim: 128
 metric_type: "IP"
