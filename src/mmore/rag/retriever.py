@@ -84,12 +84,13 @@ class Retriever(BaseRetriever):
 
         # Load reranker from Hugging Face
         if config.reranker_model_name:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             reranker_tokenizer = AutoTokenizer.from_pretrained(
                 config.reranker_model_name
             )
             reranker_model = AutoModelForSequenceClassification.from_pretrained(
                 config.reranker_model_name
-            ).to("cuda")
+            ).to(device)
 
             logger.info(f"Loaded reranker model: {config.reranker_model_name}")
         else:
