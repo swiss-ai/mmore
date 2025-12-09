@@ -129,7 +129,7 @@ class MilvusColpaliManager:
 
             if isinstance(emb, np.ndarray) and emb.dtype == object:
                 emb = np.stack(emb)
-            elif isinstance(emb, list) and isinstance(emb[0], np.ndarray):
+            elif isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], np.ndarray):
                 emb = np.stack(emb)
             elif isinstance(emb, list):
                 emb = np.array(emb, dtype=np.float32)
