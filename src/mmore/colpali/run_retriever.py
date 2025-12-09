@@ -16,11 +16,13 @@ from .retriever import ColPaliRetriever, ColPaliRetrieverConfig
 
 RETRIEVER_EMOJI = "🔍"
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format=f"[RETRIEVER {RETRIEVER_EMOJI} -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter(
+    f"[RETRIEVER {RETRIEVER_EMOJI} -- %(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+))
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def read_queries(input_file: Path) -> List[str]:
