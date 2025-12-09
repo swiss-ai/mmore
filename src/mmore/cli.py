@@ -392,9 +392,9 @@ def colpali_retrieve(
     from .colpali.run_retriever import run_api as run_colpali_api
 
     if input_file:
-        if not isinstance(output_file, str):
+        if output_file is None:
             raise ValueError(
-                "output_file must be provided with input_file and must be a string"
+                "Both --input-file and --output-file must be provided together."
             )
         run_colpali_retrieve(config_file, input_file, output_file)
     else:
