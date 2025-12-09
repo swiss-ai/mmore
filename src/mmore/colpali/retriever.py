@@ -88,10 +88,10 @@ def load_text_mapping(text_parquet_path: Optional[str]) -> Optional[Dict[tuple, 
     try:
         df = pd.read_parquet(text_path)
         # Create a mapping from (pdf_path, page_number) to text
-        text_map = {}
-        for _, row in df.iterrows():
-            key = (row["pdf_path"], int(row["page_number"]))
-            text_map[key] = row["text"]
+        text_map = dict(zip(
+            zip(df["pdf_path"], df["page_number"].astype(int)),
+            df["text"]
+        ))
         logger.info(f"Loaded text mapping for {len(text_map)} pages")
         return text_map
     except Exception as e:
