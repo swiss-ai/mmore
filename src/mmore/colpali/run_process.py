@@ -22,11 +22,15 @@ from ..utils import load_config
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format=f"[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+if not logger.hasHandlers():
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        fmt=f"[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 torch.backends.cuda.enable_mem_efficient_sdp(False)
 torch.backends.cuda.enable_flash_sdp(False)
