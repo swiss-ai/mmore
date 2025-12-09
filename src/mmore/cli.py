@@ -104,7 +104,7 @@ def index(config_file: str, documents_path: str, collection_name: str):
 @click.option(
     "--input-file",
     "-f",
-    type=Optional[str],
+    type=str,
     required=False,
     default=None,
     help="Path to the JSONL file of the input queries.",
@@ -112,7 +112,7 @@ def index(config_file: str, documents_path: str, collection_name: str):
 @click.option(
     "--output-file",
     "-o",
-    type=Optional[str],
+    type=str,
     required=False,
     default=None,
     help="Path to which save the results of the retriever as a JSON.",
@@ -288,6 +288,117 @@ def ragcli(config_file: str):
 
     my_rag_cli = RagCLI(config_file)
     my_rag_cli.launch_cli()
+
+
+@main.group()
+def colpali():
+    """ColPali pipeline commands for PDF processing, indexing, and retrieval."""
+    pass
+
+
+@colpali.command(name="process")
+@click.option(
+    "--config-file",
+    type=str,
+    required=True,
+    help="Path to the ColPali process configuration file.",
+)
+def colpali_process(config_file: str):
+    """Process PDFs and generate page embeddings using ColPali.
+
+    Args:
+      config_file: Path to the ColPali process configuration file.
+
+    Returns:
+
+    """
+    from .colpali.run_process import run_process
+
+    run_process(config_file)
+
+
+@colpali.command(name="index")
+@click.option(
+    "--config-file",
+    "-c",
+    type=str,
+    required=True,
+    help="Path to the ColPali index configuration file.",
+)
+def colpali_index(config_file: str):
+    """Index ColPali embeddings into a Milvus database.
+
+    Args:
+      config_file: Path to the ColPali index configuration file.
+
+    Returns:
+
+    """
+    from .colpali.run_index import index as run_colpali_index
+
+    run_colpali_index(config_file)
+
+
+@colpali.command(name="retrieve")
+@click.option(
+    "--config-file",
+    "-c",
+    type=str,
+    required=True,
+    help="Path to the ColPali retriever configuration file.",
+)
+@click.option(
+    "--input-file",
+    "-f",
+    type=str,
+    required=False,
+    default=None,
+    help="Path to the JSONL file of the input queries.",
+)
+@click.option(
+    "--output-file",
+    "-o",
+    type=str,
+    required=False,
+    default=None,
+    help="Path to which save the results of the retriever as a JSON.",
+)
+@click.option(
+    "--host", type=str, default="0.0.0.0", help="Host on which the API should be run."
+)
+@click.option(
+    "--port", type=int, default=8001, help="Port on which the API should be run."
+)
+def colpali_retrieve(
+    config_file: str,
+    input_file: Optional[str],
+    output_file: Optional[str],
+    host: str,
+    port: int,
+):
+    """Retrieve documents using ColPali embeddings.
+
+    Args:
+      config_file: Path to the ColPali retriever configuration file.
+      input_file: Path to the JSONL file of the input queries.
+      output_file: Path to which save the results of the retriever as a JSON.
+      host: Host on which the API should be run.
+      port: Port on which the API should be run.
+
+    Returns:
+
+    """
+    from .colpali.run_retriever import retrieve as run_colpali_retrieve
+    from .colpali.run_retriever import run_api as run_colpali_api
+
+    if input_file:
+        if output_file is None:
+            raise ValueError(
+                "Both --input-file and --output-file must be provided together."
+            )
+        run_colpali_retrieve(config_file, input_file, output_file)
+    else:
+        run_colpali_api(config_file, host, port)
 
 
 if __name__ == "__main__":
