@@ -9,11 +9,16 @@ from pymilvus import DataType, MilvusClient
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="[MilvusColpaliManager 🧠 -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Module-specific logger configuration to avoid global side effects
+if not logger.hasHandlers():
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "[MilvusColpaliManager 🧠 -- %(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 class MilvusColpaliManager:
