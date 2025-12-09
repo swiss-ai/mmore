@@ -81,8 +81,8 @@ def retrieve(config_file: str, input_file: str, output_file: str):
 
 
 class RetrieverQuery(BaseModel):
-    query: str = Field(..., description="Search query text")
-    top_k: int = Field(default=3, ge=1, description="Number of top results to return")
+    query: str = Field(..., description="Search query text", max_length=1000)
+    top_k: int = Field(default=3, ge=1, le=100, description="Number of top results to return")
 
 
 def make_router(config_file: str) -> APIRouter:
