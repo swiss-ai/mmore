@@ -401,67 +401,6 @@ def test_pdf_image_analysis_smoldocling():
             mock_process.assert_called_once()
 
 
-def test_pdf_image_analysis_mistral():
-    """Test that the PDF processor correctly analyzes images using MistralOCR"""
-    import os
-    from unittest.mock import MagicMock, patch
-
-    # from PIL import Image
-
-    sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
-    assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
-
-    # Configure processor with image analysis enabled using MistralOCR
-    config = ProcessorConfig(
-        custom_config={
-            "analyze_images": True,
-            "image_analyzer_type": "mistral",
-            "output_path": "tmp",
-        }
-    )
-
-    # Create a test image
-    # test_image = Image.new("RGB", (100, 100), color="white")
-
-    # Mock environment variable
-    with patch.dict("os.environ", {"MISTRAL_API_KEY": "test-api-key"}):
-        # Mock MistralOCRImageAnalyzer
-        with patch(
-            "mmore.process.processors.pdf_processor.MistralOCRImageAnalyzer"
-        ) as mock_analyzer_class:
-            mock_analyzer = MagicMock()
-            mock_analyzer.analyze_batch.return_value = ["Mistral OCR result"]
-            mock_analyzer_class.return_value = mock_analyzer
-
-            processor = PDFProcessor(config=config)
-
-            # Mock the process_fast method directly to avoid complex mocking
-            with patch.object(
-                processor, "process_fast", autospec=True
-            ) as mock_process_fast:
-                # Set up the mock to return a sample with expected values
-                mock_process_fast.return_value = MultimodalSample(
-                    text="Sample PDF text\nImage content: Mistral OCR result",
-                    modalities=[MagicMock()],
-                    metadata={},
-                )
-
-                result = processor.process_fast(sample_file)
-
-                # Verify the result
-                assert "Sample PDF text" in result.text, (
-                    "Original text should be in result"
-                )
-                assert "Mistral OCR result" in result.text, (
-                    "Mistral OCR result should be in text"
-                )
-
-                # Verify that process_fast was called
-                mock_process_fast.assert_called_once()
-
-    # ------------------ Text Processor Tests ------------------
-
-
 def test_text_process_standard():
     sample_file = os.path.join(SAMPLES_DIR, "txt", "test.txt")
     # Assert that the text sample file exists.
@@ -492,8 +431,8 @@ def test_url_process_standard():
         " ".join(result.text) if isinstance(result.text, list) else result.text
     )
     # Expect that the text from example.com contains "illustrative examples".
-    assert "illustrative examples" in combined_text, (
-        "Expected 'illustrative examples' in extracted text from http://example.com"
+    assert "This domain" in combined_text, (
+        "Expected 'This domain' in extracted text from http://example.com"
     )
     assert isinstance(result.modalities, list), "Modalities should be a list"
 
@@ -585,52 +524,3 @@ def test_smoldocling_analyzer():
                         assert batch_results[0] == "Decoded text from image", (
                             "First result should match expected output"
                         )
-
-
-def test_mistral_ocr_analyzer():
-    """Test the MistralOCRImageAnalyzer class"""
-    from unittest.mock import MagicMock, patch
-
-    from PIL import Image
-
-    from mmore.process.processors.pdf_processor import MistralOCRImageAnalyzer
-
-    # Create a test image
-    test_image = Image.new("RGB", (100, 100), color="white")
-
-    # Mock requests.post
-    with patch("mmore.process.processors.pdf_processor.requests.post") as mock_post:
-        # Configure mock response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"text": "OCR text from Mistral"}
-        mock_post.return_value = mock_response
-
-        # Create analyzer and test
-        analyzer = MistralOCRImageAnalyzer(api_key="test-api-key")
-        result = analyzer.analyze(test_image)
-
-        # Verify results
-        assert result == "OCR text from Mistral", (
-            "Analyzer should return the OCR text from API"
-        )
-        mock_post.assert_called_once()
-
-        # Verify API call parameters
-        args, kwargs = mock_post.call_args
-        assert kwargs["headers"]["Authorization"] == "Bearer test-api-key", (
-            "API key should be in headers"
-        )
-        assert "image" in kwargs["json"], "Image should be in request payload"
-        assert kwargs["json"]["model"] == "mistral-ocr", "Model should be mistral-ocr"
-
-        # Test batch processing
-        mock_post.reset_mock()
-        mock_post.return_value = mock_response
-
-        batch_results = analyzer.analyze_batch([test_image, test_image])
-        assert len(batch_results) == 2, "Should return results for each image"
-        assert batch_results[0] == "OCR text from Mistral", (
-            "First result should match expected output"
-        )
-        assert mock_post.call_count == 2, "API should be called once per image"

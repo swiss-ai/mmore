@@ -8,7 +8,6 @@ from multiprocessing import Manager, Process, set_start_method
 from typing import List, Optional
 
 import fitz  # PyMuPDF
-import requests
 import torch
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
@@ -44,13 +43,6 @@ class PDFProcessor(Processor):
         """Initialize the appropriate image analyzer based on configuration"""
         if self.image_analyzer_type == "smoldocling" and self.analyze_images:
             self.image_analyzer = SmolDoclingImageAnalyzer()
-        elif self.image_analyzer_type == "mistral" and self.analyze_images:
-            api_key = os.environ.get("MISTRAL_API_KEY")
-            if not api_key:
-                logging.warning(
-                    "MISTRAL_API_KEY environment variable not set. MistralOCR will not work."
-                )
-            self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
         else:
             self.image_analyzer = None
 
@@ -297,9 +289,6 @@ class PDFProcessor(Processor):
                     self.image_analyzer = SmolDoclingImageAnalyzer(
                         device=f"cuda:{gpu_id}"
                     )
-                elif image_analyzer_type == "mistral":
-                    api_key = os.environ.get("MISTRAL_API_KEY")
-                    self.image_analyzer = MistralOCRImageAnalyzer(api_key=api_key)
                 else:
                     self.image_analyzer = None
             else:
@@ -380,65 +369,5 @@ class SmolDoclingImageAnalyzer:
         # Process images in parallel using ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=min(len(images), 4)) as executor:
             results = list(executor.map(self.analyze, images))
-
-        return results
-
-
-class MistralOCRImageAnalyzer:
-    """Image analyzer using MistralOCR API"""
-
-    def __init__(self, api_key=None):
-        self.api_key = api_key
-        self.api_url = "https://api.mistral.ai/v1/ocr"
-
-        if not api_key:
-            logging.warning("MistralOCR API key not provided. API calls will fail.")
-
-    def analyze(self, image) -> str:
-        """Analyze a single image using MistralOCR API"""
-        if not self.api_key:
-            logging.error("MistralOCR API key not provided")
-            return ""
-
-        try:
-            # Convert PIL image to bytes
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format="PNG")
-            img_byte_arr = img_byte_arr.getvalue()
-
-            # Encode image to base64
-            encoded_image = base64.b64encode(img_byte_arr).decode("utf-8")
-
-            # Prepare the request
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            }
-
-            payload = {"image": encoded_image, "model": "mistral-ocr"}
-
-            # Make the API request
-            response = requests.post(self.api_url, headers=headers, json=payload)
-
-            if response.status_code == 200:
-                result = response.json()
-                return result.get("text", "")
-            else:
-                logging.error(
-                    f"MistralOCR API error: {response.status_code} - {response.text}"
-                )
-                return ""
-
-        except Exception as e:
-            logging.error(f"Error analyzing image with MistralOCR: {str(e)}")
-            return ""
-
-    def analyze_batch(self, images) -> List[str]:
-        """Analyze a batch of images using MistralOCR API"""
-        results = []
-
-        # Process images sequentially to avoid API rate limits
-        for image in images:
-            results.append(self.analyze(image))
 
         return results
