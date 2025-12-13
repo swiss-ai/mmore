@@ -129,6 +129,13 @@ def make_router(config_file: str) -> APIRouter:
     retriever_obj = Retriever.from_config(config)
     logger.info("Retriever loaded!")
 
+    # NEW BLOCK
+    @router.get("/files", tags=["Files"])
+    def list_files():
+        """List all files currently in the database."""
+        return retriever_obj.list_files()
+    #EOB
+
     @router.post("/v1/retrieve", tags=["Retrieval"])
     def retriever(query: RetrieverQuery):
         """Query the retriever"""

@@ -427,3 +427,39 @@ class Retriever(BaseRetriever):
             Document(page_content=row["text"], metadata={"id": row["id"]})
             for row in results
         ]
+    
+    def list_files(
+        self,
+        collection_name: str = "my_docs",
+        limit: int = 16000
+    ) -> List[Dict[str, Any]]:
+        """
+        List all unique files currently stored in the database.
+        """
+        try:
+            # the idea is to query for allchunks but only fetch metdata
+            results = self.client.query(
+                collection_name=collection_name,
+                filter='id != ""', 
+                output_fields=["document_id", "filename"],
+                limit=limit
+            )
+
+            # Deduplicate chunks to get unique files
+            unique_files = {}
+            for res in results:
+                # Milvus results might be nested in 'entity' or flat depending on version
+                doc_id = res.get("document_id") or res.get("entity", {}).get("document_id")
+                fname = res.get("filename") or res.get("entity", {}).get("filename", "Unknown")
+                
+                if doc_id and doc_id not in unique_files:
+                    unique_files[doc_id] = {
+                        "id": doc_id,
+                        "filename": fname
+                    }
+            
+            return list(unique_files.values())
+
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            return []
