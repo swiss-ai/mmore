@@ -437,7 +437,6 @@ class Retriever(BaseRetriever):
         List all unique files currently stored in the database.
         """
         try:
-            # the idea is to query for allchunks but only fetch metdata
             results = self.client.query(
                 collection_name=collection_name,
                 filter='id != ""', 
@@ -445,20 +444,24 @@ class Retriever(BaseRetriever):
                 limit=limit
             )
 
-            # Deduplicate chunks to get unique files
-            unique_files = {}
+            # Primary change, as requested 
+            id_to_filename = {}
             for res in results:
-                # Milvus results might be nested in 'entity' or flat depending on version
                 doc_id = res.get("document_id") or res.get("entity", {}).get("document_id")
                 fname = res.get("filename") or res.get("entity", {}).get("filename", "Unknown")
                 
-                if doc_id and doc_id not in unique_files:
-                    unique_files[doc_id] = {
-                        "id": doc_id,
-                        "filename": fname
-                    }
+                if doc_id:
+                    id_to_filename[doc_id] = fname
             
-            return list(unique_files.values())
+            # list of dictionaries for the APi
+            return [
+                {"id": doc_id, "filename": fname}
+                for doc_id, fname in id_to_filename.items()
+            ]
+
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            return []
 
         except Exception as e:
             logger.error(f"Error listing files: {e}")
