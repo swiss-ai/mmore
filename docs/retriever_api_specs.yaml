@@ -55,6 +55,31 @@ paths:
       responses:
         '201':
           description: File successfully uploaded
+    get:
+      tags:
+        - Files
+      summary: List all files
+      description: Retrieve a list of all files stored in the system
+      parameters:
+        - name: collection_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    filename:
+                      type: string
 
   /files/{fileId}:
     put:
