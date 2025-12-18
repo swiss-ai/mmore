@@ -131,9 +131,9 @@ def make_router(config_file: str) -> APIRouter:
 
     # NEW BLOCK
     @router.get("/files", tags=["Files"])
-    def list_files():
-        """List all files currently in the database"""
-        return retriever_obj.list_files()
+    def list_files(collection_name: Optional[str] = None, limit: int = 16000):
+        """List all files currently in the database."""
+        return retriever_obj.list_files(collection_name=collection_name, limit=limit)
     #EOB
 
     @router.post("/v1/retrieve", tags=["Retrieval"])
