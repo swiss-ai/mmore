@@ -63,9 +63,16 @@ paths:
       parameters:
         - name: collection_name
           in: path
-          required: true
+          required: false
           schema:
             type: string
+            default: null
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 16000
       responses:
         '200':
           description: A list of files
