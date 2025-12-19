@@ -3,6 +3,7 @@ import os
 from marker.output import MarkdownOutput
 
 from mmore.process.processors.base import ProcessorConfig
+from mmore.process.processors.cloud_pdf_processor import CloudPDFProcessor
 from mmore.process.processors.docx_processor import DOCXProcessor
 from mmore.process.processors.eml_processor import EMLProcessor
 from mmore.process.processors.md_processor import MarkdownProcessor
@@ -395,3 +396,129 @@ def test_url_process_invalid():
     assert isinstance(result.modalities, list) and len(result.modalities) == 0, (
         "Expected no modalities for invalid URL"
     )
+
+
+# ------------------ Cloud PDF Processor Tests ------------------
+def test_cloud_pdf_accepts():
+    """Test that CloudPDFProcessor accepts PDF files correctly"""
+    # Test with existing PDF file
+    pdf_file = get_file_descriptor(os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf"))
+    assert CloudPDFProcessor.accepts(pdf_file), "Should accept PDF files"
+    
+    # Test with existing non-PDF file
+    txt_file = get_file_descriptor(os.path.join(SAMPLES_DIR, "txt", "test.txt"))
+    assert not CloudPDFProcessor.accepts(txt_file), "Should not accept non-PDF files"
+    
+    # Test with uppercase extension (create a temporary file descriptor)
+    pdf_file_upper = FileDescriptor(
+        file_path="test.PDF",
+        file_name="test.PDF", 
+        file_size=100,
+        created_at="2023-01-01T00:00:00",
+        modified_at="2023-01-01T00:00:00",
+        file_extension=".pdf"
+    )
+    assert CloudPDFProcessor.accepts(pdf_file_upper), "Should accept PDF files with uppercase extension"
+
+
+def test_cloud_pdf_process_standard():
+    """Test basic PDF processing with mocked API response"""
+    sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
+    # Assert that the file exists before attempting to process it
+    assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
+    
+    config = ProcessorConfig(
+        custom_config={
+            "MISTRAL_API_KEY": "test_key",
+            "mistral_model": "mistral-ocr-latest",
+            "output_path": "tmp",
+            "attachment_tag": "<attachment>",
+        }
+    )
+    processor = CloudPDFProcessor(config=config)
+    
+    # Mock the Mistral API response
+    mock_response = {
+        "pages": [
+            {
+                "markdown": "Sample PDF content with ![](image1.jpg) and some text",
+                "images": [
+                    {
+                        "id": "image1.jpg",
+                        "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                    }
+                ]
+            }
+        ]
+    }
+    
+    # Mock the API call
+    processor.mistral_client.ocr.process = lambda **kwargs: mock_response
+    
+    # Process file
+    result = processor.process(sample_file)
+    assert result.text, "Text should not be empty"
+    assert isinstance(result.text, str), "Text should be a string"
+    assert isinstance(result.modalities, list), "Modalities should be a list"
+    assert len(result.modalities) == 1, "Should extract one image"
+    
+    # Check that attachment tag replaced image reference
+    assert "<attachment>" in result.text, "Should contain attachment tag"
+    assert "![](image1.jpg)" not in result.text, "Should not contain original image reference"
+
+
+def test_cloud_pdf_process_batch():
+    """Test batch processing with mocked API response"""
+    sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
+    assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
+    
+    files = [sample_file, sample_file]  # Process same file twice
+    
+    config = ProcessorConfig(
+        custom_config={
+            "MISTRAL_API_KEY": "test_key",
+            "mistral_model": "mistral-ocr-latest",
+            "output_path": "tmp",
+            "attachment_tag": "<attachment>",
+            "max_api_call_per_second": 10,  # Higher rate for testing
+        }
+    )
+    processor = CloudPDFProcessor(config=config)
+    
+    # Mock the Mistral API response
+    mock_response = {
+        "pages": [
+            {
+                "markdown": "Sample PDF content with ![](image1.jpg)",
+                "images": [
+                    {
+                        "id": "image1.jpg",
+                        "image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                    }
+                ]
+            }
+        ]
+    }
+    
+    # Mock the API call
+    processor.mistral_client.ocr.process = lambda **kwargs: mock_response
+    
+    # Process batch
+    results = processor.process_batch(files, fast_mode=False, num_workers=1)
+    
+    # Verify results
+    assert len(results) == len(files), "Number of results should match number of files"
+    for result in results:
+        assert result is not None, "Result should not be None"
+        assert result.text, "Text should not be empty"
+        assert isinstance(result.text, str), "Text should be a string"
+        assert isinstance(result.modalities, list), "Modalities should be a list"
+
+def test_cloud_pdf_process_real_api():
+    if os.getenv("MISTRAL_API_KEY") is None:
+        raise ValueError("MISTRAL_API_KEY is not set")
+    processor = CloudPDFProcessor(
+        config=ProcessorConfig(custom_config={"output_path": "tmp", "MISTRAL_API_KEY": os.getenv("MISTRAL_API_KEY")}))
+    result = processor.process(os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf"))
+    assert result.text, "Text should not be empty"
+    assert isinstance(result.modalities, list), "Modalities should be a list"
