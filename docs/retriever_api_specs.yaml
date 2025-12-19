@@ -55,6 +55,8 @@ paths:
       responses:
         '201':
           description: File successfully uploaded
+
+  /list_files:
     get:
       tags:
         - Files
@@ -62,8 +64,8 @@ paths:
       description: Retrieve a list of all files stored in the system
       parameters:
         - name: collection_name
-          in: path
-          required: false
+          in: query
+          required: true
           schema:
             type: string
             default: null

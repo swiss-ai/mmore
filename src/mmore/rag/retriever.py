@@ -429,7 +429,7 @@ class Retriever(BaseRetriever):
         ]
 
     def list_files(
-        self, collection_name: Optional[str] = None, limit: int = 16000
+        self, collection_name: str, limit: int = 16000
     ) -> List[Dict[str, Any]]:
         """
         List up to ``limit`` unique files currently stored in the database.
@@ -443,9 +443,6 @@ class Retriever(BaseRetriever):
             collection_name: Name of the Milvus collection to query.
             limit: Maximum number of records to retrieve from the collection.
         """
-
-        if collection_name is None:
-            collection_name = self.config.collection_name
 
         try:
             results = self.client.query(
