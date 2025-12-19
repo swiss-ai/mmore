@@ -84,12 +84,13 @@ class Retriever(BaseRetriever):
 
         # Load reranker from Hugging Face
         if config.reranker_model_name:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             reranker_tokenizer = AutoTokenizer.from_pretrained(
                 config.reranker_model_name
             )
             reranker_model = AutoModelForSequenceClassification.from_pretrained(
                 config.reranker_model_name
-            ).to("cuda")
+            ).to(device)
 
             logger.info(f"Loaded reranker model: {config.reranker_model_name}")
         else:
@@ -426,3 +427,50 @@ class Retriever(BaseRetriever):
             Document(page_content=row["text"], metadata={"id": row["id"]})
             for row in results
         ]
+
+    def list_files(
+        self, collection_name: str, limit: int = 16000
+    ) -> List[Dict[str, Any]]:
+        """
+        List up to ``limit`` unique files currently stored in the database.
+
+        Note:
+            By default, ``limit`` is 16000. If there are more files than this in the
+            collection, the result will be truncated to at most ``limit`` entries.
+            Callers can provide a larger ``limit`` value (or implement pagination at a
+            higher level) if they need to enumerate more files.
+        Args:
+            collection_name: Name of the Milvus collection to query.
+            limit: Maximum number of records to retrieve from the collection.
+        """
+
+        try:
+            results = self.client.query(
+                collection_name=collection_name,
+                filter='document_id != ""',
+                output_fields=["document_id", "filename"],
+                limit=limit,
+            )
+
+            # Primary change, as requested
+            id_to_filename = {}
+            for res in results:
+                doc_id = res.get("document_id") or res.get("entity", {}).get(
+                    "document_id"
+                )
+                fname = res.get("filename") or res.get("entity", {}).get(
+                    "filename", "Unknown"
+                )
+
+                if doc_id:
+                    id_to_filename[doc_id] = fname
+
+            # list of dictionaries for the API
+            return [
+                {"id": doc_id, "filename": fname}
+                for doc_id, fname in id_to_filename.items()
+            ]
+
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            raise e

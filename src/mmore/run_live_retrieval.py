@@ -25,7 +25,7 @@ if __name__ == "__main__":
         "--host", default="0.0.0.0", help="Host on which the API should be run."
     )
     parser.add_argument(
-        "--port", default=8000, help="Port on which the API should be run."
+        "--port", type=int, default=8000, help="Port on which the API should be run."
     )
     args = parser.parse_args()
 
