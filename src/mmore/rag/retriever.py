@@ -476,4 +476,4 @@ class Retriever(BaseRetriever):
 
         except Exception as e:
             logger.error(f"Error listing files: {e}")
-            return []
+            raise e

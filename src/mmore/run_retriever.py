@@ -12,7 +12,7 @@ from typing import List, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Query
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
@@ -130,7 +130,7 @@ def make_router(config_file: str) -> APIRouter:
     logger.info("Retriever loaded!")
 
     @router.get("/files", tags=["Files"])
-    def list_files(collection_name: Optional[str] = None, limit: int = 16000):
+    def list_files(collection_name: Optional[str] = None, limit: int = Query(default=16000, ge=1, le=100000)):
         """List all files currently in the database."""
         return retriever_obj.list_files(collection_name=collection_name, limit=limit)
 
