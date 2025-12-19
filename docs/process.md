@@ -94,7 +94,7 @@ The project supports multiple file types and utilizes various AI-based tools for
 | **EML**                               | [python built-in library](https://docs.python.org/3/library/email.html) | N/A                                                                                                                         |
 | **MP4, MOV, AVI, MKV, MP3, WAV, AAC** | [moviepy](https://pypi.org/project/moviepy/) for video frame extraction; [whisper-large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) for transcription | [whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                  |
 | **PDF**                               | [marker-pdf](https://github.com/VikParuchuri/marker) for OCR and structured data extraction                                      | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) for text and image extraction                                                 |
-| **HTML**                         | [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to navigate the webpage, extract content and content extraction; [requests](https://docs.python-requests.org/en/master/) for images | N/A
+| **HTML**                         | [markdownify](https://pypi.org/project/markdownify/) to convert HTML to MD; [requests](https://docs.python-requests.org/en/master/) for images | N/A
 ---
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
 
