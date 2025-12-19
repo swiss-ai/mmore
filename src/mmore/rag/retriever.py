@@ -450,7 +450,7 @@ class Retriever(BaseRetriever):
         try:
             results = self.client.query(
                 collection_name=collection_name,
-                filter='id != ""',
+                filter='document_id != ""',
                 output_fields=["document_id", "filename"],
                 limit=limit,
             )
