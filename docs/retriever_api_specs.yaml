@@ -56,6 +56,40 @@ paths:
         '201':
           description: File successfully uploaded
 
+  /list_files:
+    get:
+      tags:
+        - Files
+      summary: List all files
+      description: Retrieve a list of all files stored in the system
+      parameters:
+        - name: collection_name
+          in: query
+          required: true
+          schema:
+            type: string
+            default: null
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 16000
+      responses:
+        '200':
+          description: A list of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    filename:
+                      type: string
+
   /files/{fileId}:
     put:
       tags:
