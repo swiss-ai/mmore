@@ -34,7 +34,7 @@ dependencies = [
     "fasteners==0.19",
     "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
-    "dacite==1.8.1",
+    "dacite==1.9.2",
     "click>=8.1.7",
     "dask[distributed]>=2025.2.0",
     "pytest>=8.3.4",
