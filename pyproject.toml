@@ -89,7 +89,7 @@ dependencies = [
     "langchain-milvus==0.3.1",
     "langchain-mistralai==1.1.0",
     "langchain-openai==1.1.0",
-    "ragas==0.3.1",
+    "ragas==0.4.1",
     "nltk>=3.9",
     "starlette==0.50.0",
     "typing_extensions>=4.15.0,<5.0",
@@ -127,7 +127,7 @@ rag = [
   "pymilvus[milvus-lite]==2.6.3",
   "pymilvus.model==0.3.2",
   "milvus-model==0.2.12",
-  "ragas==0.3.1",
+  "ragas==0.4.1",
   "nltk>=3.9",
 ]
 
