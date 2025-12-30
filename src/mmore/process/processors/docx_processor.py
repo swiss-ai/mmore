@@ -115,7 +115,7 @@ class DOCXProcessor(Processor):
 
         except Exception as e:
             logger.warning(f"Failed to convert {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
         markdown = markdownify(result.value)
 

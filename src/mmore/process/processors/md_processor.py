@@ -65,10 +65,10 @@ class MarkdownProcessor(Processor):
                 content = f.read()
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error reading file {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
         except IOError as e:
             logger.error(f"IO error reading file {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
         try:
             all_text, embedded_images = MarkdownProcessor._process_md(
@@ -77,10 +77,12 @@ class MarkdownProcessor(Processor):
                 self.config.attachment_tag,
                 self.config.custom_config.get("extract_images", True),
             )
-            return self.create_sample([all_text], embedded_images, file_path)
+            return self.create_sample(
+                [all_text], embedded_images, {"file_path": file_path}
+            )
         except Exception as e:
             logger.error(f"[MD Processor] Error processing markdown content: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
     @staticmethod
     def _process_md(

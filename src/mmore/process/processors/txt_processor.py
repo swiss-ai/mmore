@@ -50,10 +50,10 @@ class TextProcessor(Processor):
                 all_text = f.read()
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Failed to read file {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
         except UnicodeDecodeError as e:
             logger.error(f"Encoding error in file {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
         all_text = clean_text(all_text)
-        return self.create_sample([all_text], [], file_path)
+        return self.create_sample([all_text], [], {"file_path": file_path})
