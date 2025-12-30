@@ -127,14 +127,21 @@ class MilvusColpaliManager:
         logger.info(f"Preparing {len(df)} pages...")
 
         data = []
-        for _, row in tqdm(
-            df.iterrows(), total=len(df), desc="Preparing vectors", ncols=100
+        for row in tqdm(
+            df.itertuples(index=False),
+            total=len(df),
+            desc="Preparing vectors",
+            ncols=100,
         ):
-            emb = row["embedding"]
+            emb = row.embedding
 
             if isinstance(emb, np.ndarray) and emb.dtype == object:
                 emb = np.stack(emb)
-            elif isinstance(emb, list) and len(emb) > 0 and isinstance(emb[0], np.ndarray):
+            elif (
+                isinstance(emb, list)
+                and len(emb) > 0
+                and isinstance(emb[0], np.ndarray)
+            ):
                 emb = np.stack(emb)
             elif isinstance(emb, list):
                 emb = np.array(emb, dtype=np.float32)
@@ -144,19 +151,18 @@ class MilvusColpaliManager:
             for vec in emb:
                 data.append(
                     {
-                        "pdf_path": row["pdf_path"],
-                        "page_number": int(row["page_number"]),
+                        "pdf_path": row.pdf_path,
+                        "page_number": int(row.page_number),
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
 
         # Validate embedding dimensions
-        for i, row in enumerate(data[:5]):
+        for i, row in enumerate(data):
             vlen = len(row["embedding"])
-            if vlen != self.dim:
-                logger.error(f"Row {i}: got embedding len={vlen}, expected {self.dim}")
-            else:
-                logger.debug(f"Row {i}: embedding dimension ok ({vlen})")
+            assert vlen == self.dim, (
+                f"Row {i}: got embedding len={vlen}, expected {self.dim}"
+            )
 
         total_vecs = len(data)
         logger.info(f"Inserting {total_vecs} vectors in batches of {batch_size}...")
@@ -258,6 +264,13 @@ class MilvusColpaliManager:
             logger.info(f"Dropped collection '{self.collection_name}'")
         else:
             logger.warning(f"Collection '{self.collection_name}' not found.")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
 
     def close(self):
         if hasattr(self, "client"):

@@ -17,10 +17,12 @@ from .retriever import ColPaliRetriever, ColPaliRetrieverConfig
 RETRIEVER_EMOJI = "🔍"
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(
-    f"[RETRIEVER {RETRIEVER_EMOJI} -- %(asctime)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-))
+handler.setFormatter(
+    logging.Formatter(
+        f"[RETRIEVER {RETRIEVER_EMOJI} -- %(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
@@ -82,7 +84,9 @@ def retrieve(config_file: str, input_file: str, output_file: str):
 
 class RetrieverQuery(BaseModel):
     query: str = Field(..., description="Search query text", max_length=1000)
-    top_k: int = Field(default=3, ge=1, le=100, description="Number of top results to return")
+    top_k: int = Field(
+        default=3, ge=1, le=100, description="Number of top results to return"
+    )
 
 
 def make_router(config_file: str) -> APIRouter:
@@ -104,13 +108,8 @@ def make_router(config_file: str) -> APIRouter:
         docs_info = []
         for doc in docs_for_query:
             meta = doc.metadata
-            pdf_path = meta.get("pdf_path", "")
-            pdf_name = Path(pdf_path).name if pdf_path else ""
             docs_info.append(
                 {
-                    "pdf_name": pdf_name,
-                    "pdf_path": pdf_path,
-                    "page_number": meta.get("page_number"),
                     "content": doc.page_content,
                     "similarity": meta.get("similarity", 0.0),
                     "rank": meta.get("rank", 0),

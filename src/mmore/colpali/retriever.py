@@ -37,6 +37,12 @@ class ColPaliRetrieverConfig:
 
 
 def get_device() -> str:
+    """
+    Select the available device for model inference.
+
+    Returns:
+        Device string (e.g., "cuda:0", "mps", "cpu")
+    """
     if torch.cuda.is_available():
         return "cuda:0"
     if torch.backends.mps.is_available():
@@ -45,6 +51,16 @@ def get_device() -> str:
 
 
 def load_model(model_name: str, device: str):
+    """
+    Load ColPali model and processor for embedding generation.
+
+    Args:
+        model_name: HuggingFace model identifier (e.g., "vidore/colpali-v1.3")
+        device: Target device for model ("cuda:0", "mps", or "cpu")
+
+    Returns:
+        Tuple of (model, processor) ready for inference
+    """
     logger.info(f"Loading ColPali model: {model_name}")
     model = ColPali.from_pretrained(
         model_name,
@@ -56,6 +72,17 @@ def load_model(model_name: str, device: str):
 
 
 def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:
+    """
+    Generate ColPali embeddings for text queries.
+
+    Args:
+        texts: List of query strings to embed
+        model: ColPali model instance
+        processor: ColPali processor instance
+
+    Returns:
+        List of numpy arrays containing query embeddings
+    """
     dataloader = DataLoader(
         dataset=ListDataset(texts),
         batch_size=1,
@@ -88,10 +115,9 @@ def load_text_mapping(text_parquet_path: Optional[str]) -> Optional[Dict[tuple, 
     try:
         df = pd.read_parquet(text_path)
         # Create a mapping from (pdf_path, page_number) to text
-        text_map = dict(zip(
-            zip(df["pdf_path"], df["page_number"].astype(int)),
-            df["text"]
-        ))
+        text_map = dict(
+            zip(zip(df["pdf_path"], df["page_number"].astype(int)), df["text"])
+        )
         logger.info(f"Loaded text mapping for {len(text_map)} pages")
         return text_map
     except Exception as e:
