@@ -322,7 +322,7 @@ if __name__ == "__main__":
         description="Process PDFs and store page embeddings in Parquet."
     )
     parser.add_argument(
-        "--config_file", required=True, help="Path to YAML config file."
+        "--config-file", required=True, help="Path to YAML config file."
     )
     args = parser.parse_args()
     run_process(args.config_file)
