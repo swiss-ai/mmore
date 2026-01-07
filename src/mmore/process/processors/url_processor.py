@@ -65,10 +65,12 @@ class URLProcessor(Processor):
                     logger.error(f"Failed to process image {image}: {e}")
 
             all_text = [clean_text(all_text)]
-            return self.create_sample(all_text, embedded_images, file_path)
+            return self.create_sample(
+                all_text, embedded_images, {"file_path": file_path}
+            )
         except Exception as e:
             logger.error(f"Failed to process URL {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         return self.process_fast(file_path)

@@ -59,7 +59,7 @@ if __name__ == "__main__":
         description="Index ColPali PDF embeddings into a local Milvus database."
     )
     parser.add_argument(
-        "--config_file", required=True, help="Path to the YAML config file."
+        "--config-file", required=True, help="Path to the YAML config file."
     )
     args = parser.parse_args()
 

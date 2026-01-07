@@ -209,6 +209,7 @@ class ColPaliRetriever(BaseRetriever):
                     "pdf_path": pdf_path,
                     "page_number": result.get("page_number"),
                     "rank": result.get("rank", i + 1),
+                    "similarity": result.get("score"),
                 },
             )
             documents.append(doc)

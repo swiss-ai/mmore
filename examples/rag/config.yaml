@@ -9,6 +9,7 @@ rag:
     hybrid_search_weight: 0.5
     k: 5
     use_web: false
+    reranker_model_name: BAAI/bge-reranker-base   
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
 mode: local
 mode_args:
