@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Sequence, Union, cast
 
 import click
 import fitz
@@ -90,16 +90,20 @@ class ColPaliEmbedder:
         ).eval()
         self.processor = ColPaliProcessor.from_pretrained(model_name)
 
-    def get_images(self, paths: list[str]) -> List[Image.Image]:
+    def get_images(self, paths: list[Union[str, Path]]) -> List[Image.Image]:
         return [Image.open(path) for path in paths]
 
-    def embed_images(self, image_paths: list[str], batch_size: int = 5):
-        images = self.get_images(image_paths)
+    def embed_images(
+        self, image_paths: Sequence[Union[str, Path]], batch_size: int = 5
+    ):
+        images = self.get_images(list(image_paths))
         dataloader = DataLoader(
             dataset=ListDataset(images),
             batch_size=batch_size,
             shuffle=False,
-            collate_fn=lambda x: self.processor.process_images(x),
+            collate_fn=lambda x: cast(ColPaliProcessor, self.processor).process_images(
+                x
+            ),
         )
         ds: List[torch.Tensor] = []
         for batch_doc in tqdm(dataloader):
@@ -161,8 +165,8 @@ def save_results(
     records: List[dict],
     text_records: List[dict],
     output_path: Path,
-    existing_df: pd.DataFrame = None,
-    existing_text_df: pd.DataFrame = None,
+    existing_df: Optional[pd.DataFrame] = None,
+    existing_text_df: Optional[pd.DataFrame] = None,
 ):
     df = pd.DataFrame(records).copy()
     df["embedding"] = df["embedding"].apply(lambda x: x.tolist())

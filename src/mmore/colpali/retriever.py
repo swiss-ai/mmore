@@ -147,11 +147,13 @@ class ColPaliRetriever(BaseRetriever):
     ):
         """Initialize ColPaliRetriever. Use from_config() to create instances."""
         super().__init__(
-            model=model,
-            processor=processor,
-            manager=manager,
-            config=config,
-            text_map=text_map,
+            **{
+                "model": model,
+                "processor": processor,
+                "manager": manager,
+                "config": config,
+                "text_map": text_map,
+            }
         )
 
     def _get_relevant_documents(

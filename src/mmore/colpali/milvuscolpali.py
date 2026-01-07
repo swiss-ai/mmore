@@ -1,7 +1,7 @@
 import concurrent.futures
 import logging
 from pathlib import Path
-from typing import Union
+from typing import Any, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -133,10 +133,10 @@ class MilvusColpaliManager:
             desc="Preparing vectors",
             ncols=100,
         ):
-            emb = row.embedding
+            emb = getattr(row, "embedding")
 
             if isinstance(emb, np.ndarray) and emb.dtype == object:
-                emb = np.stack(emb)
+                emb = np.stack(cast(Any, emb))
             elif (
                 isinstance(emb, list)
                 and len(emb) > 0
@@ -151,8 +151,8 @@ class MilvusColpaliManager:
             for vec in emb:
                 data.append(
                     {
-                        "pdf_path": row.pdf_path,
-                        "page_number": int(row.page_number),
+                        "pdf_path": getattr(row, "pdf_path"),
+                        "page_number": int(getattr(row, "page_number")),
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
@@ -193,7 +193,7 @@ class MilvusColpaliManager:
         # Perform initial vector search
         results = self.client.search(
             collection_name=self.collection_name,
-            data=arr,
+            data=arr.tolist(),
             anns_field="embedding",
             limit=top_k * 5,
             # As each page is embedded as a multi vector, each page is represented multiple times inside Milvus, each with one column of the multi vector

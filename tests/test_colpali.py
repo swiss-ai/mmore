@@ -48,6 +48,7 @@ def test_pdf_converter_convert_to_pngs():
 # ------------------ ColPaliEmbedder Tests ------------------
 def test_colpali_embedder_embed_images():
     """Test that embed_images correctly processes images in batches and returns embeddings with expected shape."""
+    from unittest.mock import MagicMock
     from mmore.colpali import run_process
 
     # Create temporary image files
@@ -71,7 +72,7 @@ def test_colpali_embedder_embed_images():
         # Track batch calls
         batch_calls = []
 
-        def mock_process_images(self, images):
+        def mock_process_images(images):
             """Mock processor.process_images that returns processed batch."""
             batch_size = len(images)
             batch_calls.append(batch_size)
@@ -81,32 +82,24 @@ def test_colpali_embedder_embed_images():
                 )
             }
 
-        def mock_model_forward(self, **kwargs):
+        def mock_model_forward(**kwargs):
             """Mock model forward that returns embeddings."""
             batch_size = kwargs["pixel_values"].shape[0]
             return torch.stack(mock_embeddings[:batch_size])
 
-        mock_model = type(
-            "obj",
-            (object,),
-            {
-                "device": torch.device("cpu"),
-                "eval": lambda self: self,
-                "__call__": mock_model_forward,
-            },
-        )()
+        # Use MagicMock for the model
+        mock_model = MagicMock()
+        mock_model.device = torch.device("cpu")
+        mock_model.eval.return_value = mock_model
+        mock_model.side_effect = mock_model_forward
 
-        mock_processor_instance = type(
-            "obj",
-            (object,),
-            {
-                "process_images": mock_process_images,
-            },
-        )()
+        # Use MagicMock for the processor
+        mock_processor_instance = MagicMock()
+        mock_processor_instance.process_images.side_effect = mock_process_images
 
-        run_process.ColPali.from_pretrained = lambda *args, **kwargs: mock_model
-        run_process.ColPaliProcessor.from_pretrained = (
-            lambda *args, **kwargs: mock_processor_instance
+        run_process.ColPali.from_pretrained = MagicMock(return_value=mock_model)
+        run_process.ColPaliProcessor.from_pretrained = MagicMock(
+            return_value=mock_processor_instance
         )
 
         try:
@@ -151,32 +144,25 @@ def test_colpali_embedder_embed_images():
 
 def test_colpali_embedder_embed_images_invalid_input():
     """Test that embed_images handles invalid image paths correctly."""
+    from unittest.mock import MagicMock
     from mmore.colpali import run_process
 
     # Mock the model and processor
     original_colpali = run_process.ColPali.from_pretrained
     original_processor = run_process.ColPaliProcessor.from_pretrained
 
-    mock_model = type(
-        "obj",
-        (object,),
-        {
-            "device": torch.device("cpu"),
-            "eval": lambda self: self,
-        },
-    )()
+    mock_model = MagicMock()
+    mock_model.device = torch.device("cpu")
+    mock_model.eval.return_value = mock_model
 
-    mock_processor_instance = type(
-        "obj",
-        (object,),
-        {
-            "process_images": lambda x: {"pixel_values": torch.empty(0, 3, 224, 224)},
-        },
-    )()
+    mock_processor_instance = MagicMock()
+    mock_processor_instance.process_images.return_value = {
+        "pixel_values": torch.empty(0, 3, 224, 224)
+    }
 
-    run_process.ColPali.from_pretrained = lambda *args, **kwargs: mock_model
-    run_process.ColPaliProcessor.from_pretrained = (
-        lambda *args, **kwargs: mock_processor_instance
+    run_process.ColPali.from_pretrained = MagicMock(return_value=mock_model)
+    run_process.ColPaliProcessor.from_pretrained = MagicMock(
+        return_value=mock_processor_instance
     )
 
     try:
@@ -204,47 +190,42 @@ def test_colpali_embedder_embed_images_invalid_input():
 # ------------------ Process Single PDF Tests ------------------
 def test_process_single_pdf_success():
     """Test that process_single_pdf correctly processes a PDF file."""
+    from unittest.mock import MagicMock
+    
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
 
     converter = PDFConverter()
-    converter.convert_to_pngs = lambda pdf_path: [
+    converter.convert_to_pngs = lambda pdf_file: [
         Path("page_1.png"),
         Path("page_2.png"),
     ]
 
     # Override embed_images to bypass model loading
-    mock_embedder = type(
-        "obj",
-        (object,),
-        {
-            "embed_images": lambda self, paths, batch_size=5: [
-                np.array([0.1] * 128, dtype=np.float32),
-                np.array([0.2] * 128, dtype=np.float32),
-            ]
-        },
-    )()
+    mock_embedder = MagicMock()
+    mock_embedder.embed_images.return_value = [
+        np.array([0.1] * 128, dtype=np.float32),
+        np.array([0.2] * 128, dtype=np.float32),
+    ]
 
     # Override fitz.open to return a mock document
     from mmore.colpali import run_process
 
     original_fitz_open = run_process.fitz.open
 
-    mock_page1 = type("obj", (object,), {"get_text": lambda self: "Page 1 text"})()
-    mock_page2 = type("obj", (object,), {"get_text": lambda self: "Page 2 text"})()
-    mock_doc = type(
-        "obj",
-        (object,),
-        {
-            "__len__": lambda self: 2,
-            "__getitem__": lambda self, idx: [mock_page1, mock_page2][idx],
-            "close": lambda self: None,
-            "__enter__": lambda self: self,
-            "__exit__": lambda self, exc_type, exc_val, exc_tb: None,
-        },
-    )()
+    mock_page1 = MagicMock()
+    mock_page1.get_text.return_value = "Page 1 text"
+    
+    mock_page2 = MagicMock()
+    mock_page2.get_text.return_value = "Page 2 text"
+    
+    mock_doc = MagicMock()
+    mock_doc.__len__.return_value = 2
+    mock_doc.__getitem__.side_effect = lambda idx: [mock_page1, mock_page2][idx]
+    mock_doc.__enter__.return_value = mock_doc
+    mock_doc.__exit__.return_value = None
 
-    run_process.fitz.open = lambda *args, **kwargs: mock_doc
+    run_process.fitz.open = MagicMock(return_value=mock_doc)
 
     try:
         page_records, text_records = process_single_pdf(
@@ -490,7 +471,7 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
             self.metric_type = "IP"
             self.client = None
 
-        def search_embeddings(self, query_embeddings, top_k, max_workers):
+        def search_embeddings(self, query_embeddings, top_k=3, max_workers=4):
             return mock_search_results[:top_k]
 
     mock_manager = MockMilvusColpaliManager()
