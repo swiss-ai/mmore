@@ -5,7 +5,7 @@ Supports multimodal documents with chunking capabilities.
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, cast
 
 import scipy
 from langchain_core.embeddings import Embeddings
@@ -253,7 +253,7 @@ def get_model_from_index(
     index_name: Literal["dense_embedding", "sparse_embedding"],
     collection_name: Optional[str] = None,
 ) -> DenseModelConfig | SparseModelConfig:
-    collection_name = collection_name or client.list_collections()[0]
+    collection_name = collection_name or cast(List[str], client.list_collections())[0]
     if index_name == "dense_embedding":
         index_config = client.describe_index(collection_name, index_name)
         return DenseModelConfig(

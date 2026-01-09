@@ -2,9 +2,9 @@ import io
 import logging
 import re
 from multiprocessing import Manager, Process, set_start_method
-from typing import List, Optional
+from typing import List, Optional, Tuple, cast
 
-import fitz  # PyMuPDF
+import pymupdf
 import torch
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
@@ -139,15 +139,15 @@ class PDFProcessor(Processor):
 
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
-        text = re.sub(IMG_REGEX, "<attachment>", text)
+        text = re.sub(str(IMG_REGEX), "<attachment>", cast(str, text))
         images = list(images.values())
         return self.create_sample([text], images, {"file_path": file_path})
 
     def process_fast(self, file_path: str) -> MultimodalSample:
-        pdf_doc = fitz.open(file_path)
+        pdf_doc = pymupdf.Document(file_path)
         all_text_parts = []
         embedded_images = []
-        page_starts = []
+        page_starts: List[Tuple[int, int]] = []
         current_position = 0
 
         def _extract_images(pdf_doc, xref) -> Optional[Image.Image]:
