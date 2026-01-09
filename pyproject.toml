@@ -60,7 +60,7 @@ dependencies = [
     "marker-pdf==1.7.5",
     "moviepy==2.1.1",
     "openpyxl==3.1.5",
-    "chonkie==0.2.1.post1",
+    "chonkie==1.5.1",
     "langdetect>=1.0.9",
     "trafilatura==2.0.0",
     "datatrove==0.3.0; python_version < '3.12'",
