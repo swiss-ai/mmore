@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
+import torch
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -14,6 +15,9 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 from ..index.indexer import DBConfig, get_model_from_index
 from ..utils import load_config
@@ -30,6 +34,7 @@ class RetrieverConfig:
     k: int = 1
     collection_name: str = "my_docs"
     use_web: bool = False
+    reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
 
 
 class Retriever(BaseRetriever):
@@ -41,6 +46,8 @@ class Retriever(BaseRetriever):
     hybrid_search_weight: float
     k: int
     use_web: bool
+    reranker_model: Optional[PreTrainedModel]
+    reranker_tokenizer: Optional[PreTrainedTokenizerBase]
 
     _search_types = Literal["dense", "sparse", "hybrid"]
 
@@ -75,6 +82,20 @@ class Retriever(BaseRetriever):
         sparse_model = SparseModel.from_config(sparse_model_config)
         logger.info(f"Loaded sparse model: {sparse_model_config}")
 
+        # Load reranker from Hugging Face
+        if config.reranker_model_name:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            reranker_tokenizer = AutoTokenizer.from_pretrained(
+                config.reranker_model_name
+            )
+            reranker_model = AutoModelForSequenceClassification.from_pretrained(
+                config.reranker_model_name
+            ).to(device)
+
+            logger.info(f"Loaded reranker model: {config.reranker_model_name}")
+        else:
+            reranker_model = reranker_tokenizer = None
+
         return cls(
             dense_model=dense_model,
             sparse_model=sparse_model,
@@ -82,6 +103,8 @@ class Retriever(BaseRetriever):
             hybrid_search_weight=config.hybrid_search_weight,
             k=config.k,
             use_web=config.use_web,
+            reranker_model=reranker_model,
+            reranker_tokenizer=reranker_tokenizer,
         )
 
     def compute_query_embeddings(
@@ -238,6 +261,44 @@ class Retriever(BaseRetriever):
             all_results.append(results)
         return all_results
 
+    def rerank(
+        self, query: str, docs: List[Document], batch_size: int = 32
+    ) -> List[Document]:
+        """Re-rank documents using the reranker model in efficient batches."""
+        assert self.reranker_tokenizer is not None
+        assert self.reranker_model is not None
+
+        if not docs:
+            return []
+
+        scores = []
+
+        # Process documents in batches
+        for i in range(0, len(docs), batch_size):
+            batch_docs = docs[i : i + batch_size]
+
+            # Prepare query-doc pairs for the batch
+            inputs = self.reranker_tokenizer(
+                [query] * len(batch_docs),
+                [doc.page_content for doc in batch_docs],
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            ).to("cuda")
+
+            # Forward pass on the batch
+            with torch.no_grad():
+                logits = self.reranker_model(**inputs).logits.squeeze(
+                    -1
+                )  # shape: (batch,)
+
+            # Collect scores for this batch
+            scores.extend((doc, score.item()) for doc, score in zip(batch_docs, logits))
+
+        # Sort docs by score in descending order
+        reranked = [doc for doc, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
+        return reranked
+
     def _get_relevant_documents(
         self,
         query: str | Dict[str, Any],
@@ -293,10 +354,15 @@ class Retriever(BaseRetriever):
         if self.use_web:
             web_docs = self._get_web_documents(query_input, max_results=self.k)
             milvus_docs = parse_results(results, len(web_docs))
-            return web_docs + milvus_docs
+            docs = web_docs + milvus_docs
         else:
-            milvus_docs = parse_results(results)
-            return milvus_docs
+            docs = parse_results(results)
+
+        # Apply reranker
+        if self.reranker_model:
+            docs = self.rerank(query_input, docs)
+
+        return docs
 
     def _get_web_documents(self, query: str, max_results: int = 5) -> List[Document]:
         """Fetch additional context from the web via DuckDuckGo."""
@@ -361,3 +427,50 @@ class Retriever(BaseRetriever):
             Document(page_content=row["text"], metadata={"id": row["id"]})
             for row in results
         ]
+
+    def list_files(
+        self, collection_name: str, limit: int = 16000
+    ) -> List[Dict[str, Any]]:
+        """
+        List up to ``limit`` unique files currently stored in the database.
+
+        Note:
+            By default, ``limit`` is 16000. If there are more files than this in the
+            collection, the result will be truncated to at most ``limit`` entries.
+            Callers can provide a larger ``limit`` value (or implement pagination at a
+            higher level) if they need to enumerate more files.
+        Args:
+            collection_name: Name of the Milvus collection to query.
+            limit: Maximum number of records to retrieve from the collection.
+        """
+
+        try:
+            results = self.client.query(
+                collection_name=collection_name,
+                filter='document_id != ""',
+                output_fields=["document_id", "filename"],
+                limit=limit,
+            )
+
+            # Primary change, as requested
+            id_to_filename = {}
+            for res in results:
+                doc_id = res.get("document_id") or res.get("entity", {}).get(
+                    "document_id"
+                )
+                fname = res.get("filename") or res.get("entity", {}).get(
+                    "filename", "Unknown"
+                )
+
+                if doc_id:
+                    id_to_filename[doc_id] = fname
+
+            # list of dictionaries for the API
+            return [
+                {"id": doc_id, "filename": fname}
+                for doc_id, fname in id_to_filename.items()
+            ]
+
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            raise e

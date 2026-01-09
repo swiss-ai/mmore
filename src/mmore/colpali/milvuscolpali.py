@@ -1,19 +1,24 @@
+import concurrent.futures
 import logging
 from pathlib import Path
-from typing import Union
-from tqdm import tqdm
-import concurrent.futures
+from typing import Any, Sequence, Union, cast
 
 import numpy as np
 import pandas as pd
-from pymilvus import MilvusClient, DataType
+from pymilvus import DataType, MilvusClient
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="[MilvusColpaliManager 🧠 -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Module-specific logger configuration to avoid global side effects
+if not logger.hasHandlers():
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "[MilvusColpaliManager 🧠 -- %(asctime)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 class MilvusColpaliManager:
@@ -63,12 +68,13 @@ class MilvusColpaliManager:
 
         schema = self.client.create_schema(auto_id=True)
         schema.add_field("pk", DataType.INT64, is_primary=True)
-        schema.add_field("pdf_name", DataType.VARCHAR, max_length=255)
-        schema.add_field("page_number", DataType.INT64)
         schema.add_field("pdf_path", DataType.VARCHAR, max_length=1024)
+        schema.add_field("page_number", DataType.INT64)
         schema.add_field("embedding", DataType.FLOAT_VECTOR, dim=self.dim)
 
-        self.client.create_collection(collection_name=self.collection_name, schema=schema)
+        self.client.create_collection(
+            collection_name=self.collection_name, schema=schema
+        )
         logger.info(f"Created collection schema for '{self.collection_name}'")
 
     def create_index(self):
@@ -86,16 +92,16 @@ class MilvusColpaliManager:
             logger.warning(f"Could not check existing indexes: {e}")
 
         logger.info("Creating vector index on 'embedding' field...")
-        
+
         # Create index parameters
         index_params = self.client.prepare_index_params()
         index_params.add_index(
             field_name="embedding",
-            index_name="embedding_index", 
+            index_name="embedding_index",
             index_type="FLAT",
             metric_type=self.metric_type,
         )
-        
+
         # Create index
         try:
             self.client.create_index(
@@ -112,19 +118,30 @@ class MilvusColpaliManager:
         """
         Insert all subvectors from each row of the DataFrame into Milvus in batches.
         """
-        required_cols = {"pdf_name", "page_number", "pdf_path", "embedding"}
+        required_cols = {"pdf_path", "page_number", "embedding"}
         if not required_cols <= set(df.columns):
-            raise ValueError(f"DataFrame missing required columns: {required_cols - set(df.columns)}")
+            raise ValueError(
+                f"DataFrame missing required columns: {required_cols - set(df.columns)}"
+            )
 
         logger.info(f"Preparing {len(df)} pages...")
-        
+
         data = []
-        for _, row in tqdm(df.iterrows(), total=len(df), desc="Preparing vectors", ncols=100):
-            emb = row["embedding"]
+        for row in tqdm(
+            df.itertuples(index=False),
+            total=len(df),
+            desc="Preparing vectors",
+            ncols=100,
+        ):
+            emb = getattr(row, "embedding")
 
             if isinstance(emb, np.ndarray) and emb.dtype == object:
-                emb = np.stack(emb)
-            elif isinstance(emb, list) and isinstance(emb[0], np.ndarray):
+                emb = np.stack(cast(Any, emb))
+            elif (
+                isinstance(emb, list)
+                and len(emb) > 0
+                and isinstance(emb[0], np.ndarray)
+            ):
                 emb = np.stack(emb)
             elif isinstance(emb, list):
                 emb = np.array(emb, dtype=np.float32)
@@ -134,35 +151,35 @@ class MilvusColpaliManager:
             for vec in emb:
                 data.append(
                     {
-                        "pdf_name": row["pdf_name"],
-                        "page_number": int(row["page_number"]),
-                        "pdf_path": row["pdf_path"],
+                        "pdf_path": getattr(row, "pdf_path"),
+                        "page_number": int(getattr(row, "page_number")),
                         "embedding": np.asarray(vec, dtype=np.float32).tolist(),
                     }
                 )
-                
+
         # Validate embedding dimensions
-        for i, row in enumerate(data[:5]):
+        for i, row in enumerate(data):
             vlen = len(row["embedding"])
-            if vlen != self.dim:
-                logger.error(f"Row {i}: got embedding len={vlen}, expected {self.dim}")
-            else:
-                logger.debug(f"Row {i}: embedding dimension ok ({vlen})")
+            assert vlen == self.dim, (
+                f"Row {i}: got embedding len={vlen}, expected {self.dim}"
+            )
 
         total_vecs = len(data)
         logger.info(f"Inserting {total_vecs} vectors in batches of {batch_size}...")
-        
-        for i in tqdm(range(0, total_vecs, batch_size), desc="Inserting into Milvus", ncols=100):
+
+        for i in tqdm(
+            range(0, total_vecs, batch_size), desc="Inserting into Milvus", ncols=100
+        ):
             batch = data[i : i + batch_size]
             try:
                 self.client.insert(self.collection_name, batch)
             except Exception as e:
-                logger.error(f"Failed to insert batch {i//batch_size}: {e}")
+                logger.error(f"Failed to insert batch {i // batch_size}: {e}")
                 raise
 
         logger.info(f"✅ Insert complete — {total_vecs} vectors inserted.")
 
-    def search_embeddings(self, query_embeddings, top_k=3, max_workers = 4):
+    def search_embeddings(self, query_embeddings, top_k=3, max_workers=4):
         """
         Search for similar embeddings using vector similarity search.
         """
@@ -176,12 +193,12 @@ class MilvusColpaliManager:
         # Perform initial vector search
         results = self.client.search(
             collection_name=self.collection_name,
-            data=arr,
+            data=arr.tolist(),
             anns_field="embedding",
-            limit=top_k * 5,  
-            # As each page is embedded as a multi vector, each page is represented multiple time inside milvus, each with on column of the multi vector
-            # Thus there can be duplicate in the ids, and top_k * 5 allow to ensure the retrieval of top_k distinct pages
-            output_fields=["pdf_name", "page_number", "pdf_path"],
+            limit=top_k * 5,
+            # As each page is embedded as a multi vector, each page is represented multiple times inside Milvus, each with one column of the multi vector
+            # Thus there can be duplicates in the ids, and top_k * 5 allows us to ensure the retrieval of top_k distinct pages
+            output_fields=["pdf_path", "page_number"],
             search_params={"metric_type": self.metric_type, "params": {}},
         )
 
@@ -189,38 +206,49 @@ class MilvusColpaliManager:
         candidates = set()
         for hits in results:
             for hit in hits:
-                entity = hit.entity
-                key = (entity.get("pdf_name"), entity.get("page_number"))
+                entity_dict = hit.get("entity", {})
+                key = (entity_dict.get("pdf_path"), entity_dict.get("page_number"))
                 candidates.add(key)
 
         logger.info(f"Found {len(candidates)} candidate pages for reranking.")
 
-        def rerank_page(pdf_name, page_number, query_vecs):
+        def rerank_page(pdf_path, page_number, query_vecs):
             # Get all subvectors for this page
             docs = self.client.query(
                 collection_name=self.collection_name,
-                filter=f'pdf_name == "{pdf_name}" and page_number == {page_number}',
+                filter="pdf_path == $pdf_path and page_number == $page_number",
                 output_fields=["embedding", "pdf_path"],
                 limit=10000,
+                params={"pdf_path": pdf_path, "page_number": page_number},
             )
             if not docs:
-                return (None, pdf_name, page_number)
+                return (None, pdf_path, page_number)
 
             doc_vecs = np.vstack([d["embedding"] for d in docs]).astype(np.float32)
             score = np.dot(query_vecs, doc_vecs.T).max(1).sum()
-            return (score, pdf_name, page_number)
+            return (score, pdf_path, page_number)
 
         reranked = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers = max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
-                executor.submit(rerank_page, pdf_name, page_number, arr)
-                for (pdf_name, page_number) in candidates
+                executor.submit(rerank_page, pdf_path, page_number, arr)
+                for (pdf_path, page_number) in candidates
             ]
-            for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="🔁 Reranking"):
+            for f in tqdm(
+                concurrent.futures.as_completed(futures),
+                total=len(futures),
+                desc="🔁 Reranking",
+            ):
                 try:
-                    score, pdf_name, page_number = f.result()
+                    score, pdf_path, page_number = f.result()
                     if score is not None:
-                        reranked.append({"pdf_name": pdf_name, "page_number": page_number, "score": score})
+                        reranked.append(
+                            {
+                                "pdf_path": pdf_path,
+                                "page_number": page_number,
+                                "score": score,
+                            }
+                        )
                 except Exception as e:
                     logger.error(f"Rerank failed: {e}")
 
@@ -237,7 +265,14 @@ class MilvusColpaliManager:
         else:
             logger.warning(f"Collection '{self.collection_name}' not found.")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
     def close(self):
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             self.client.close()
             logger.info("Closed Milvus client connection")

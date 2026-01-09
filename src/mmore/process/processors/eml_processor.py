@@ -60,7 +60,7 @@ class EMLProcessor(Processor):
                 msg = email.message_from_bytes(f.read(), policy=policy.default)
         except Exception as e:
             logger.error(f"Failed to open EML file {file_path}: {e}")
-            return self.create_sample([], [], file_path)
+            return self.create_sample([], [], {"file_path": file_path})
 
         all_text = []
         embedded_images = []
@@ -105,4 +105,4 @@ class EMLProcessor(Processor):
                 else:
                     embedded_images = []
 
-        return self.create_sample(all_text, embedded_images, file_path)
+        return self.create_sample(all_text, embedded_images, {"file_path": file_path})

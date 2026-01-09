@@ -24,7 +24,7 @@ MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retr
 
 #### (Step 0 – Install system dependencies)
 
-Our package requires system dependencies. This snippet will take care of installing them!
+Our package requires system dependencies. This snippet will take care of installing them for Linux!
 
 ```bash
 sudo apt update
@@ -36,15 +36,39 @@ sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
 
 :warning: **On Ubuntu 24.04, replace `libasound2` with `libasound2t64`. You may also need to add the repository for Ubuntu 20.04 focal to have access to a few of the sources (e.g. create `/etc/apt/sources.list.d/mmore.list` with the contents `deb http://cz.archive.ubuntu.com/ubuntu focal main universe`).**
 
-#### Step 1 – Install MMORE
-
-To install the package simply run:
+For MacOS, use instead:
 
 ```bash
-pip install mmore
+brew update
+brew install ffmpeg chromium gtk+3 pango cairo \
+  gobject-introspection libffi pkg-config libx11 libxi \
+  libxrandr libxcomposite libxcursor libxdamage libxext \
+  libxrender libasound2 atk libreoffice weasyprint
 ```
 
-> :warning: This is a big package with a lot of dependencies, so we recommend to use `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
+If `weasyprint` fails to find GTK or Cairo, also run:
+
+```bash
+brew install cairo pango gdk-pixbuf libffi
+pip install weasyprint
+```
+
+#### Step 1 – Install MMORE
+
+To install the latest release of the package, simply run:
+
+```bash
+uv pip install mmore
+```
+
+To install the package for development, simply run:
+```bash
+uv venv .venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+> :warning: This package requires many big dependencies and requires a dependency override, so it has to be installed with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 ### Minimal Example
 
@@ -133,7 +157,7 @@ Don't hesitate to star the project :star: if you find it interesting! (you would
 
 1. Install pre-commit if you haven't already
 
-`pip install pre-commit`
+`uv pip install pre-commit`
 
 2. Set up the git hook scripts
 

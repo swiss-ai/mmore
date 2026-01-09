@@ -204,7 +204,10 @@ class Processor(ABC):
         return 1
 
     def create_sample(
-        self, texts: List[str], images: List[Image.Image], file_path
+        self,
+        texts: List[str],
+        images: List[Image.Image],
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> MultimodalSample:
         """
         Create a sample dictionary containing text, images, and optional metadata.
@@ -213,7 +216,7 @@ class Processor(ABC):
         Args:
             texts (List[str]): List of text strings.
             images (List[Image.Image]): List of images.
-            path (str, optional): Path for metadata. Defaults to None.
+            metadata (Dict[str, Any], optional): Additional metadata for the sample. Defaults to None.
 
         Returns:
             dict: Sample dictionary with text, image modalities, and metadata.
@@ -261,7 +264,7 @@ class Processor(ABC):
                 for img in images
                 if (tmp_path := _save_temp_image(img, base_path=image_base_path))
             ],
-            {"file_path": file_path} if file_path is not None else dict(),
+            metadata if metadata is not None else {},
         )
         return sample
 
