@@ -161,9 +161,6 @@ name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
-[tool.isort]
-profile = "black"
-
 [project.scripts]
 mmore = "mmore.cli:main"
 
@@ -180,6 +177,7 @@ exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is f
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
+fixable = ["ALL"]
 ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) and Module level import not at top of file (`E402`)
 
 [tool.ruff.lint.per-file-ignores]
