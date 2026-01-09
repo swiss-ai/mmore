@@ -6,9 +6,13 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
-from transformers import PreTrainedModel, PreTrainedTokenizerBase
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils_base import BatchEncoding, PreTrainedTokenizerBase
+from typing import ParamSpec
 
 from mmore.rag.retriever import Retriever
+
+P = ParamSpec("P")
 
 # Mock Classes
 
@@ -22,7 +26,7 @@ class MockEmbeddings(Embeddings):
 
 
 class MockSparse(BaseSparseEmbedding):
-    def embed_query(self, text):
+    def embed_query(self, query):
         return {0: 1.0}
 
     def embed_documents(self, texts):
@@ -36,7 +40,7 @@ class MockMilvus(MilvusClient):
 
 class MockModel(PreTrainedModel):
     def __init__(self):
-        from transformers import PretrainedConfig
+        from transformers.configuration_utils import PretrainedConfig
 
         config = PretrainedConfig()
         super().__init__(config)
@@ -50,7 +54,7 @@ class MockModel(PreTrainedModel):
         return Output(self.logits)
 
 
-class MockBatch:
+class MockBatch(BatchEncoding):
     def __init__(self, data):
         self.data = data
 
@@ -62,7 +66,7 @@ class MockBatch:
 
 
 class MockTokenizer(PreTrainedTokenizerBase):
-    def __call__(self, queries, docs, **kwargs):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs):
         return MockBatch(
             {
                 "input_ids": torch.tensor([[1, 2], [3, 4]]),
