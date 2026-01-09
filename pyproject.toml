@@ -30,7 +30,7 @@ dependencies = [
     "numpy==2.3.2; python_version >= '3.12'",
     "pandas==2.3.0",
     "datasets==4.0.0",
-    "transformers==4.52.4",
+    "transformers==4.53.3",
     "fasteners==0.19",
     "uvicorn==0.34.3",
     "python-dotenv==1.0.1",
@@ -99,7 +99,8 @@ dependencies = [
     "mammoth==1.9.0",
     "argostranslate",
     "sentence-transformers",
-    "langid"
+    "langid",
+    "colpali-engine==0.3.13"
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,7 @@
+parquet_path: ./output/pdf_page_objects.parquet
+milvus:
+    db_path: ./output/milvus_data.db
+    collection_name: pdf_pages
+    create_collection: true
+    dim: 128
+    metric_type: IP
