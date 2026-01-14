@@ -1,3 +1,4 @@
+from typing import Union
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,11 +9,8 @@ from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils_base import BatchEncoding, PreTrainedTokenizerBase
-from typing import ParamSpec
 
 from mmore.rag.retriever import Retriever
-
-P = ParamSpec("P")
 
 # Mock Classes
 
@@ -58,7 +56,7 @@ class MockBatch(BatchEncoding):
     def __init__(self, data):
         self.data = data
 
-    def to(self, device):
+    def to(self, device: Union[str, "torch.device"], *, non_blocking: bool = False):
         return self
 
     def __getitem__(self, k):
@@ -66,7 +64,30 @@ class MockBatch(BatchEncoding):
 
 
 class MockTokenizer(PreTrainedTokenizerBase):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs):
+    def __call__(
+        self,
+        text=None,
+        text_pair=None,
+        text_target=None,
+        text_pair_target=None,
+        add_special_tokens=True,
+        padding=False,
+        truncation=None,
+        max_length=None,
+        stride=0,
+        is_split_into_words=False,
+        pad_to_multiple_of=None,
+        padding_side=None,
+        return_tensors=None,
+        return_token_type_ids=None,
+        return_attention_mask=None,
+        return_overflowing_tokens=False,
+        return_special_tokens_mask=False,
+        return_offsets_mapping=False,
+        return_length=False,
+        verbose=True,
+        **kwargs,
+    ):
         return MockBatch(
             {
                 "input_ids": torch.tensor([[1, 2], [3, 4]]),

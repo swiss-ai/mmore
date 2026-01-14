@@ -1,7 +1,7 @@
 import concurrent.futures
 import logging
 from pathlib import Path
-from typing import Any, Sequence, Union, cast
+from typing import Any, Union, cast
 
 import numpy as np
 import pandas as pd

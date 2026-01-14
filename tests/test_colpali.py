@@ -49,6 +49,7 @@ def test_pdf_converter_convert_to_pngs():
 def test_colpali_embedder_embed_images():
     """Test that embed_images correctly processes images in batches and returns embeddings with expected shape."""
     from unittest.mock import MagicMock
+
     from mmore.colpali import run_process
 
     # Create temporary image files
@@ -145,6 +146,7 @@ def test_colpali_embedder_embed_images():
 def test_colpali_embedder_embed_images_invalid_input():
     """Test that embed_images handles invalid image paths correctly."""
     from unittest.mock import MagicMock
+
     from mmore.colpali import run_process
 
     # Mock the model and processor
@@ -191,7 +193,7 @@ def test_colpali_embedder_embed_images_invalid_input():
 def test_process_single_pdf_success():
     """Test that process_single_pdf correctly processes a PDF file."""
     from unittest.mock import MagicMock
-    
+
     sample_file = os.path.join(SAMPLES_DIR, "pdf", "calendar.pdf")
     assert os.path.exists(sample_file), f"Sample file not found: {sample_file}"
 
@@ -215,10 +217,10 @@ def test_process_single_pdf_success():
 
     mock_page1 = MagicMock()
     mock_page1.get_text.return_value = "Page 1 text"
-    
+
     mock_page2 = MagicMock()
     mock_page2.get_text.return_value = "Page 2 text"
-    
+
     mock_doc = MagicMock()
     mock_doc.__len__.return_value = 2
     mock_doc.__getitem__.side_effect = lambda idx: [mock_page1, mock_page2][idx]

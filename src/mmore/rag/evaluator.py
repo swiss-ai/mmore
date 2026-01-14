@@ -5,6 +5,7 @@ from datasets import Dataset, load_dataset
 from langchain_huggingface import HuggingFaceEmbeddings
 from ragas import EvaluationDataset, evaluate
 from ragas.embeddings import BaseRagasEmbeddings
+from ragas.executor import Executor
 from ragas.llms import BaseRagasLLM
 
 # Metrics
@@ -182,10 +183,17 @@ class RAGEvaluator:
         # Update the dataset with RAG outputs
         eval_dataset = self._get_eval_dataset(rag_outputs)
 
-        return evaluate(
+        evaluation_result = evaluate(
             dataset=EvaluationDataset.from_hf_dataset(eval_dataset),
             metrics=self.metrics,
             llm=self.evaluator_llm,
             embeddings=self.embeddings,
             batch_size=4,
-        ).to_pandas()
+        )
+
+        if isinstance(evaluation_result, Executor):
+            raise AttributeError(
+                "The evaluation result does not have a 'to_pandas' method."
+            )
+        else:
+            return evaluation_result.to_pandas()
