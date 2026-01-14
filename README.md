@@ -50,7 +50,7 @@ If `weasyprint` fails to find GTK or Cairo, also run:
 
 ```bash
 brew install cairo pango gdk-pixbuf libffi
-pip install weasyprint
+uv pip install weasyprint
 ```
 
 #### Step 1 – Install MMORE
@@ -61,14 +61,9 @@ To install the latest release of the package, simply run:
 uv pip install mmore
 ```
 
-To install the package for development, simply run:
-```bash
-uv venv .venv
-source .venv/bin/activate
-uv pip install -e .
-```
-
 > :warning: This package requires many big dependencies and requires a dependency override, so it has to be installed with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
+
+> :warning: **Check the instructions for contributors directly at [`docs/for_devs.md`](./docs/for_devs.md)**
 
 ### Minimal Example
 
@@ -141,33 +136,6 @@ See [the `/docs` directory](https://github.com/swiss-ai/mmore/blob/master/docs) 
 | **PDFs**           | PDF                                     | GPU/CPU                  | :white_check_mark:
 | **Media Files**    | MP4, MOV, AVI, MKV, MP3, WAV, AAC       | GPU/CPU                  | :white_check_mark:
 | **Web Content**    | HTML                                    | CPU                      | :x:
-
-
-## Contributing
-
-We welcome contributions to improve the current state of the pipeline, feel free to:
-
-- Open an issue to report a bug or ask for a new feature
-- Open a pull request to fix a bug or add a new feature
-- You can find ongoing new features and bugs in the [Issues]
-
-Don't hesitate to star the project :star: if you find it interesting! (you would be our star).
-
-### To make sure your code is pretty, this repo has a `pre-commit` configuration file that runs linters (`isort`, `black`)
-
-1. Install pre-commit if you haven't already
-
-`uv pip install pre-commit`
-
-2. Set up the git hook scripts
-
-`pre-commit install`
-
-3. Run the checks manually (optional but good before first commit)
-
-`pre-commit run --all-files`
-
-We also use `pyright` to type-check the code base, please make sure your Pull Requests are type-checked.
 
 ## License
 
