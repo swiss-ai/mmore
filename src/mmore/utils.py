@@ -115,7 +115,7 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
     try:
         client = MilvusClient(uri=uri, db_name=db_name, enable_sparse=True)
 
-        collections = client.list_collections()
+        collections = cast(List[str], client.list_collections())
 
         if collection_name not in collections:
             return create_new_indexer(collection_name, uri, db_name)

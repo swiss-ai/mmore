@@ -3,10 +3,9 @@ repos:
     rev: v0.12.11
     hooks:
       - id: ruff
-        args: ["check", "--fix", "."]
+        args: ["--fix"]
 
       - id: ruff-format
-        args: ["."]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
