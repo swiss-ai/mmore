@@ -182,9 +182,9 @@ class Dispatcher:
         """
         ExecutionState.initialize(distributed_mode=False)
         processor_configs = self.config.processor_config or {}
-        
+
         instantiated_processors: Dict[Type[Processor], Processor] = {}
-        
+
         num_workers = os.cpu_count() or 1
         logger.info(f"🚀 Initializing Shared Global Pool with {num_workers} workers...")
         global_pool = mp.Pool(processes=num_workers)
@@ -192,8 +192,10 @@ class Dispatcher:
         try:
             for processor_type, files in task_lists:
                 if processor_type not in instantiated_processors:
-                    processor_config = processor_configs.get(processor_type.__name__, [])
-                    
+                    processor_config = processor_configs.get(
+                        processor_type.__name__, []
+                    )
+
                     # Might need to check that the list isnt empty
                     processor_config = {
                         list(d.keys())[0]: list(d.values())[0] for d in processor_config
@@ -206,18 +208,18 @@ class Dispatcher:
                         dashboard_backend_url=self.config.dashboard_backend_url,
                         custom_config=processor_config,
                     )
-                    
+
                     logger.info(f"Initializing processor: {processor_type.__name__}")
                     new_proc_instance = processor_type(full_config)
                     new_proc_instance.set_shared_pool(global_pool)
                     instantiated_processors[processor_type] = new_proc_instance
-                
+
                 proc_instance = instantiated_processors[processor_type]
-                
+
                 logger.info(
                     f"Processing batch of {len(files)} files with {proc_instance.__class__.__name__}"
                 )
-                
+
                 res = proc_instance(
                     cast(List[Union[FileDescriptor, URLDescriptor]], files),
                     self.config.use_fast_processors,
@@ -278,7 +280,7 @@ class Dispatcher:
                     proc_instance = processor_class(processor_config)
                     proc_instance.set_shared_pool(task_pool)
                     results = proc_instance(files, use_fast)
-                    
+
                     return results, processor_name
 
                 finally:
@@ -287,16 +289,18 @@ class Dispatcher:
 
             try:
                 future = client.submit(
-                    process_files, 
-                    files, 
-                    processor_config, 
+                    process_files,
+                    files,
+                    processor_config,
                     processor_type.__name__,
                     processor_type,
-                    self.config.use_fast_processors
+                    self.config.use_fast_processors,
                 )
                 futures.append(future)
             except Exception as e:
-                logger.error(f"Error dispatching task to {processor_type.__name__}: {e}")
+                logger.error(
+                    f"Error dispatching task to {processor_type.__name__}: {e}"
+                )
 
         results = []
         for future, (result, processor_name) in tqdm(

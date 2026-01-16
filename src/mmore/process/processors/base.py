@@ -106,7 +106,7 @@ class Processor(ABC):
             config (ProcessorConfig): Configuration for the processor.
         """
 
-        self.config = config        
+        self.config = config
         self._pool = None
         self._owns_pool = False
 
@@ -166,7 +166,7 @@ class Processor(ABC):
         new_state = self.ping_dashboard(files_paths)
         ExecutionState.set_should_stop_execution(new_state)
         return res
-    
+
     def set_shared_pool(self, pool):
         """
         Injects a shared pool into the processor.
@@ -199,17 +199,17 @@ class Processor(ABC):
                 logger.error(f"Error during pool execution: {e}")
                 raise e
         else:
-            logger.info(f"⚠️ No shared pool found. Creating temporary pool with {num_workers} workers...")
+            logger.info(
+                f"⚠️ No shared pool found. Creating temporary pool with {num_workers} workers..."
+            )
             with mp.Pool(processes=num_workers) as temp_pool:
                 return temp_pool.map(process_func, files_paths)
-    
-        
-    
+
     def __del__(self):
-        if hasattr(self, '_owns_pool') and self._owns_pool and self._pool:
+        if hasattr(self, "_owns_pool") and self._owns_pool and self._pool:
             self._pool.close()
             self._pool.join()
-            
+
     def __getstate__(self):
         """
         Called when the object is being pickled (sent to a worker).
@@ -217,8 +217,8 @@ class Processor(ABC):
         """
         state = self.__dict__.copy()
         # Remove the pool from the state to be pickled
-        if '_pool' in state:
-            del state['_pool']
+        if "_pool" in state:
+            del state["_pool"]
         return state
 
     def __setstate__(self, state):
