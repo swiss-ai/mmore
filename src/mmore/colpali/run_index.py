@@ -5,9 +5,10 @@ from typing import Union
 
 import pandas as pd
 
+from profiler import enable_profiling_from_env, profile_function
+
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager
-from profiler import enable_profiling_from_env, profile_function
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)

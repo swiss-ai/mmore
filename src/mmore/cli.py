@@ -1,6 +1,7 @@
 from typing import Optional
 
 import click
+
 from profiler import enable_profiling_from_env
 
 

@@ -11,9 +11,10 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
+from profiler import enable_profiling_from_env, profile_function
+
 from ..utils import load_config
 from .retriever import ColPaliRetriever, ColPaliRetrieverConfig
-from profiler import enable_profiling_from_env, profile_function
 
 RETRIEVER_EMOJI = "🔍"
 logger = logging.getLogger(__name__)

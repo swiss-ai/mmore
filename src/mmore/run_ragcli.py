@@ -13,10 +13,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+from profiler import enable_profiling_from_env, profile_function
+
 from .rag.pipeline import RAGPipeline
 from .run_rag import RAGInferenceConfig
 from .utils import load_config
-from profiler import enable_profiling_from_env, profile_function
 
 
 class RagCLI:

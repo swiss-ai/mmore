@@ -9,7 +9,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,9 @@ class Profiler:
         self.start_time = time.time()
         logger.info("Profiling started")
 
-    def stop(self, name: str = "session", sort_by: str = "cumulative", max_results: int = 50):
+    def stop(
+        self, name: str = "session", sort_by: str = "cumulative", max_results: int = 50
+    ):
         """Stop profiling and save results.
 
         Args:
@@ -327,4 +329,3 @@ def enable_profiling_from_env():
         sort_by=sort_by,
         max_results=max_results,
     )
-

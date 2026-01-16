@@ -17,9 +17,10 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from profiler import enable_profiling_from_env, profile_function
+
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config
-from profiler import enable_profiling_from_env, profile_function
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)

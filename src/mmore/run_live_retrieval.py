@@ -3,9 +3,10 @@ import argparse
 import uvicorn
 from fastapi import FastAPI
 
+from profiler import enable_profiling_from_env, profile_function
+
 from .run_index_api import make_router as index_router
 from .run_retriever import make_router as retriever_router
-from profiler import enable_profiling_from_env, profile_function
 
 
 @profile_function()

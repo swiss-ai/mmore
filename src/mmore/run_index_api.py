@@ -19,10 +19,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+from profiler import enable_profiling_from_env
+
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
 from .utils import get_indexer, load_config, process_files_default
-from profiler import enable_profiling_from_env, profile_function
 
 UPLOAD_DIR: str = "./uploads"
 

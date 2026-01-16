@@ -11,13 +11,14 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from profiler import enable_profiling_from_env, profile_function
+
 from .rag.pipeline import RAGPipeline
 from .run_rag import APIConfig, LocalConfig, RAGInferenceConfig
 from .utils import load_config
 from .websearchRAG.config import WebsearchConfig
 from .websearchRAG.logging_config import logger
 from .websearchRAG.pipeline import WebsearchPipeline
-from profiler import enable_profiling_from_env, profile_function
 
 load_dotenv()
 
