@@ -17,6 +17,7 @@ from .utils import load_config
 from .websearchRAG.config import WebsearchConfig
 from .websearchRAG.logging_config import logger
 from .websearchRAG.pipeline import WebsearchPipeline
+from profiler import enable_profiling_from_env, profile_function
 
 load_dotenv()
 
@@ -37,6 +38,7 @@ class WebsearchInferenceConfig:
             self.mode_args = APIConfig()
 
 
+@profile_function()
 def run_websearch(config_file):
     cfg = load_config(config_file, WebsearchInferenceConfig)
     ws = cfg.websearch
@@ -118,6 +120,7 @@ This API defines the retriever API of mmore, handling:
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(
         description="Run the Websearch (+ optional RAG) pipeline."
     )

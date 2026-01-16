@@ -5,8 +5,10 @@ from fastapi import FastAPI
 
 from .run_index_api import make_router as index_router
 from .run_retriever import make_router as retriever_router
+from profiler import enable_profiling_from_env, profile_function
 
 
+@profile_function()
 def run(config_file: str, host: str, port: int):
     app = FastAPI(title="Live Indexing & Retrieval API")
 
@@ -17,6 +19,7 @@ def run(config_file: str, host: str, port: int):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the retriever configuration file."

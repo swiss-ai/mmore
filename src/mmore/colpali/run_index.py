@@ -7,6 +7,7 @@ import pandas as pd
 
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager
+from profiler import enable_profiling_from_env, profile_function
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class IndexConfig:
     parquet_path: str
 
 
+@profile_function()
 def index(config_file: Union[IndexConfig, str]):
     """
     Main indexing function.
@@ -55,6 +57,7 @@ def index(config_file: Union[IndexConfig, str]):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(
         description="Index ColPali PDF embeddings into a local Milvus database."
     )
