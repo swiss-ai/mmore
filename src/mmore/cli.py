@@ -1,11 +1,13 @@
 from typing import Optional
 
 import click
+from profiler import enable_profiling_from_env
 
 
 @click.group()
 def main():
     """CLI for mmore commands."""
+    enable_profiling_from_env()
     pass
 
 
