@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
+from profiler import enable_profiling_from_env, profile_function
 
 RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ def create_api(rag: RAGPipeline, endpoint: str):
     return app
 
 
+@profile_function()
 def rag(config_file):
     """Run RAG in local or API"""
     config = load_config(config_file, RAGInferenceConfig)
@@ -124,6 +126,7 @@ def rag(config_file):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the rag configuration file."
