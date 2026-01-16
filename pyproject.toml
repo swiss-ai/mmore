@@ -101,9 +101,6 @@ dependencies = [
     "sentence-transformers",
     "langid",
     "colpali-engine==0.3.13",
-    "isort",
-    "ruff>=0.4.0",
-    "pyright"
 ]
 
 [project.optional-dependencies]
@@ -135,7 +132,7 @@ rag = [
   "nltk>=3.9",
 ]
 
-dev = ["pytest>=8.3.4", "ruff>=0.4.0"]
+dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
 
 [tool.uv]
 conflicts = [

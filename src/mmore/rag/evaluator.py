@@ -193,7 +193,7 @@ class RAGEvaluator:
 
         if isinstance(evaluation_result, Executor):
             raise AttributeError(
-                "The evaluation result does not have a 'to_pandas' method."
+                "Evaluation failed: expected an evaluation result of type EvaluationResult, got Executor instead."
             )
         else:
             return evaluation_result.to_pandas()

@@ -79,6 +79,7 @@ cd mmore
 uv venv .venv
 source .venv/bin/activate
 uv pip install -e .
+uv pip install .[dev]
 ```
 
 > **Important:** This package requires many big dependencies and requires a dependency override, so it must be installed with `uv` to handle `pip` installations. Check our [tutorial on uv](./uv.md) for more information.
@@ -108,15 +109,12 @@ pre-commit install
 **3. Run the checks manually** (optional but recommended before your first commit):
 
 ```bash
-pre-comit run --all-files
+pre-commit run --all-files
 ```
 
 **Configured Hooks**
 
-The pre-commit configuration runs:
-
-- `isort`: Sorts and organizes imports
-- `ruff`: Code formatter for consistent style
+The pre-commit configuration runs `ruff`, a code formatter for consistent style
 
 #### Type Checking
 
