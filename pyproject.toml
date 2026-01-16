@@ -183,7 +183,3 @@ ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) an
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "run_index_api.py" = ["N803", "N806"]
-
-[tool.codespell]
-ignore-words-list = "ore,revered"
-skip = "./examples/*,*.pdf"
