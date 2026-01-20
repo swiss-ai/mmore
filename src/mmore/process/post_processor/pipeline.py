@@ -1,10 +1,10 @@
-import json
 import logging
 import os
 from dataclasses import dataclass
 from typing import List, Optional
 
 from ...type import MultimodalSample
+from ..utils import save_samples
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,9 @@ class OutputConfig:
     save_each_step: bool = False
 
     def __post_init__(self):
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+        dirname = os.path.dirname(self.output_path)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
 
 
 @dataclass
@@ -76,7 +77,14 @@ class PPPipeline:
             List[MultimodalSample]: Post-processed multimodal samples.
         """
         for i, processor in enumerate(self.post_processors):
-            samples = processor.batch_process(samples)
+            tmp_save_path = None
+            if self.output_config.save_each_step:
+                tmp_save_path = os.path.join(
+                    os.path.dirname(self.output_config.output_path),
+                    f"{i + 1}___{processor.name}.jsonl",
+                )
+
+            samples = processor.batch_process(samples, tmp_save_path=tmp_save_path)
             if self.output_config.save_each_step:
                 self.save_results(samples, f"{i + 1}___{processor.name}.jsonl")
         self.save_results(samples, "final_pp.jsonl")
@@ -90,8 +98,5 @@ class PPPipeline:
             samples (List[MultimodalSample]): List of multimodal samples.
             output_path (str): Path to save the samples.
         """
-        output_path = os.path.join(self.output_config.output_path, filename)
-        with open(output_path, "w") as f:
-            for result in samples:
-                f.write(json.dumps(result.to_dict()) + "\n")
-        logger.info(f"Results saved to {output_path}!")
+
+        save_samples(samples, os.path.join(self.output_config.output_path, filename))

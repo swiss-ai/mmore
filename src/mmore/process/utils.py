@@ -4,11 +4,16 @@ These functions can be used across various processors for data extraction,
 cleaning, splitting, and aggregation.
 """
 
+import json
 import logging
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 from cleantext import clean
 from PIL import Image
+
+if TYPE_CHECKING:
+    from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
@@ -79,3 +84,18 @@ def clean_image(
         return False
 
     return True
+
+
+def save_samples(samples: List[MultimodalSample], path: str) -> None:
+    """
+    Save multimodal samples to a JSONL file.
+
+    Args:
+        samples (List[MultimodalSample]): List of multimodal samples.
+        output_path (str): Path to save the samples.
+    """
+    with open(path, "w") as f:
+        for result in samples:
+            f.write(json.dumps(result.to_dict()) + "\n")
+
+    logger.info(f"Results saved to {path}!")
