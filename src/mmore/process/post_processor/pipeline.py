@@ -18,7 +18,7 @@ class OutputConfig:
 
     def __post_init__(self):
         dirname = os.path.dirname(self.output_path)
-        if dirname and not os.path.exists(dirname):
+        if dirname:
             os.makedirs(dirname, exist_ok=True)
 
 
@@ -70,6 +70,7 @@ class PPPipeline:
     def run(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
         """
         Run the post-processing pipeline on a list of multimodal samples.
+        The post-processors are applied in sequence.
 
         Args:
             samples (List[MultimodalSample]): List of multimodal samples.
@@ -77,21 +78,22 @@ class PPPipeline:
         Returns:
             List[MultimodalSample]: Post-processed multimodal samples.
         """
-        post_processed_samples = []
+
+        output_dir = os.path.dirname(self.output_config.output_path) or "."
+
         for i, processor in enumerate(self.post_processors):
             tmp_save_path = None
             if self.output_config.save_each_step:
-                output_dir = os.path.dirname(self.output_config.output_path) or "."
                 tmp_save_path = os.path.join(
                     output_dir,
                     f"{i + 1}___{processor.name}.jsonl",
                 )
 
-            post_processed_samples += processor.batch_process(
+            samples = processor.batch_process(
                 samples,
                 tmp_save_path=tmp_save_path,
                 save_every=self.output_config.save_every,
             )
 
-        save_samples(post_processed_samples, self.output_config.output_path)
-        return post_processed_samples
+        save_samples(samples, self.output_config.output_path)
+        return samples
