@@ -85,18 +85,6 @@ class PPPipeline:
                 )
 
             samples = processor.batch_process(samples, tmp_save_path=tmp_save_path)
-            if self.output_config.save_each_step:
-                self.save_results(samples, f"{i + 1}___{processor.name}.jsonl")
-        self.save_results(samples, "final_pp.jsonl")
+
+        save_samples(samples, self.output_config.output_path)
         return samples
-
-    def save_results(self, samples: List[MultimodalSample], filename: str) -> None:
-        """
-        Save multimodal samples to a JSONL file.
-
-        Args:
-            samples (List[MultimodalSample]): List of multimodal samples.
-            output_path (str): Path to save the samples.
-        """
-
-        save_samples(samples, os.path.join(self.output_config.output_path, filename))

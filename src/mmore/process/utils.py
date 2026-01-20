@@ -91,7 +91,7 @@ def save_samples(samples: List[MultimodalSample], path: str) -> None:
 
     Args:
         samples (List[MultimodalSample]): List of multimodal samples.
-        output_path (str): Path to save the samples.
+        path (str): Path to save the samples.
     """
     with open(path, "w") as f:
         for result in samples:

@@ -63,7 +63,7 @@ class BasePostProcessor(ABC):
         for s in tqdm(samples, desc=f"{self.name}"):
             res += self.process(s, **kwargs)
 
-            if tmp_save_path and len(res) and len(res) % 100 == 0:
+            if tmp_save_path and len(res) > 0 and len(res) % 100 == 0:
                 save_samples(res, tmp_save_path)
 
         return res
