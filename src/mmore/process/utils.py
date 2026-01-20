@@ -6,14 +6,13 @@ cleaning, splitting, and aggregation.
 
 import json
 import logging
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import numpy as np
 from cleantext import clean
 from PIL import Image
 
-if TYPE_CHECKING:
-    from ..type import MultimodalSample
+from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
