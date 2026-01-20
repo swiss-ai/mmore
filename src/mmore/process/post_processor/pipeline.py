@@ -1,10 +1,10 @@
-import json
 import logging
 import os
 from dataclasses import dataclass
 from typing import List, Optional
 
 from ...type import MultimodalSample
+from ..utils import save_samples
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 logger = logging.getLogger(__name__)
@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 class OutputConfig:
     output_path: str
     save_each_step: bool = False
+    save_every: int = 100
 
     def __post_init__(self):
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+        dirname = os.path.dirname(self.output_path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
 
 
 @dataclass
@@ -68,6 +70,7 @@ class PPPipeline:
     def run(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
         """
         Run the post-processing pipeline on a list of multimodal samples.
+        The post-processors are applied in sequence.
 
         Args:
             samples (List[MultimodalSample]): List of multimodal samples.
@@ -75,23 +78,22 @@ class PPPipeline:
         Returns:
             List[MultimodalSample]: Post-processed multimodal samples.
         """
+
+        output_dir = os.path.dirname(self.output_config.output_path) or "."
+
         for i, processor in enumerate(self.post_processors):
-            samples = processor.batch_process(samples)
+            tmp_save_path = None
             if self.output_config.save_each_step:
-                self.save_results(samples, f"{i + 1}___{processor.name}.jsonl")
-        self.save_results(samples, "final_pp.jsonl")
+                tmp_save_path = os.path.join(
+                    output_dir,
+                    f"{i + 1}___{processor.name}.jsonl",
+                )
+
+            samples = processor.batch_process(
+                samples,
+                tmp_save_path=tmp_save_path,
+                save_every=self.output_config.save_every,
+            )
+
+        save_samples(samples, self.output_config.output_path)
         return samples
-
-    def save_results(self, samples: List[MultimodalSample], filename: str) -> None:
-        """
-        Save multimodal samples to a JSONL file.
-
-        Args:
-            samples (List[MultimodalSample]): List of multimodal samples.
-            output_path (str): Path to save the samples.
-        """
-        output_path = os.path.join(self.output_config.output_path, filename)
-        with open(output_path, "w") as f:
-            for result in samples:
-                f.write(json.dumps(result.to_dict()) + "\n")
-        logger.info(f"Results saved to {output_path}!")
