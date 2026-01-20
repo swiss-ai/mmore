@@ -55,19 +55,30 @@ class BasePostProcessor(ABC):
         Process a batch of samples.
         Args:
             samples: a list of samples to process
+            tmp_save_path: if provided, intermediate results will be saved to this path every 100 samples
             kwargs: additional arguments to pass to the process method
 
         Returns: a list of processed samples
         """
         res = []
+        if tmp_save_path:
+            # Clear the file if it exists
+            open(tmp_save_path, "w").close()
+
+        current_batch = []
         for s in tqdm(samples, desc=f"{self.name}"):
             new = self.process(s, **kwargs)
-            if tmp_save_path and len(res) > 0 and len(res) % 100 == 0:
-                save_samples(new, tmp_save_path, append_mode=True)
+            current_batch += new
 
-            res += new
+            if tmp_save_path and len(current_batch) >= 100:
+                save_samples(current_batch, tmp_save_path, append_mode=True)
+                res += current_batch
+                current_batch = []
 
         if tmp_save_path:
-            save_samples(new, tmp_save_path, append_mode=True)
+            if current_batch:
+                save_samples(current_batch, tmp_save_path, append_mode=True)
+
+            res += current_batch
 
         return res

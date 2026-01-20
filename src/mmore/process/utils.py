@@ -94,6 +94,7 @@ def save_samples(
     Args:
         samples (List[MultimodalSample]): List of multimodal samples.
         path (str): Path to save the samples.
+        append_mode (bool, optional): If True, append to the existing file; if False, overwrite it. Defaults to False.
     """
     try:
         mode = "a" if append_mode else "w"
@@ -103,5 +104,15 @@ def save_samples(
     except OSError as e:
         logger.error("Failed to save samples to %s: %s", path, e)
         raise
+    except (TypeError, ValueError) as e:
+        logger.error(
+            "Failed to serialize sample to JSON when saving to %s: %s", path, e
+        )
+        raise
+    except AttributeError as e:
+        logger.error("Invalid sample encountered when saving to %s: %s", path, e)
+        raise
+    except OSError as e:
+        logger.error("Failed to save samples to %s due to an OS error: %s", path, e)
 
     logger.info(f"Results saved to {path}!")

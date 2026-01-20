@@ -76,7 +76,7 @@ class PPPipeline:
         Returns:
             List[MultimodalSample]: Post-processed multimodal samples.
         """
-        samples = []
+        post_processed_samples = []
         for i, processor in enumerate(self.post_processors):
             tmp_save_path = None
             if self.output_config.save_each_step:
@@ -86,7 +86,9 @@ class PPPipeline:
                     f"{i + 1}___{processor.name}.jsonl",
                 )
 
-            samples += processor.batch_process(samples, tmp_save_path=tmp_save_path)
+            post_processed_samples += processor.batch_process(
+                samples, tmp_save_path=tmp_save_path
+            )
 
-        save_samples(samples, self.output_config.output_path)
-        return samples
+        save_samples(post_processed_samples, self.output_config.output_path)
+        return post_processed_samples
