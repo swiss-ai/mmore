@@ -62,13 +62,18 @@ class BaseFilter(BasePostProcessor):
         return list(map(self.filter, tqdm(batch, desc=f"{self.name}")))
 
     def batch_process(
-        self, samples, tmp_save_path: Optional[str] = None, **kwargs
+        self,
+        samples: List[MultimodalSample],
+        tmp_save_path: Optional[str] = None,
+        save_every: int = 100,
+        **kwargs,
     ) -> List[MultimodalSample]:
         """
         Process a batch of samples.
         Args:
             samples: a list of samples to process
             tmp_save_path: path to save intermediate results (inherited from the base class, but useless for filtering)
+            save_every: frequency of saving intermediate results (inherited from the base class, but useless for filtering)
             kwargs: additional arguments to pass to the process method
 
         Returns: a list of processed samples

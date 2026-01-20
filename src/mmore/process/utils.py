@@ -112,7 +112,5 @@ def save_samples(
     except AttributeError as e:
         logger.error("Invalid sample encountered when saving to %s: %s", path, e)
         raise
-    except OSError as e:
-        logger.error("Failed to save samples to %s due to an OS error: %s", path, e)
-
-    logger.info(f"Results saved to {path}!")
+    else:
+        logger.info(f"Results saved to {path}!")

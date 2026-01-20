@@ -49,6 +49,7 @@ class BasePostProcessor(ABC):
         self,
         samples: List[MultimodalSample],
         tmp_save_path: Optional[str] = None,
+        save_every: int = 100,
         **kwargs,
     ) -> List[MultimodalSample]:
         """
@@ -70,13 +71,14 @@ class BasePostProcessor(ABC):
             new = self.process(s, **kwargs)
             current_batch += new
 
-            if tmp_save_path and len(current_batch) >= 100:
-                save_samples(current_batch, tmp_save_path, append_mode=True)
+            if len(current_batch) >= save_every:
+                if tmp_save_path:
+                    save_samples(current_batch, tmp_save_path, append_mode=True)
                 res += current_batch
                 current_batch = []
 
-        if tmp_save_path:
-            if current_batch:
+        if current_batch:
+            if tmp_save_path:
                 save_samples(current_batch, tmp_save_path, append_mode=True)
 
             res += current_batch

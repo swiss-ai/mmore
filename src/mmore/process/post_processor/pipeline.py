@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class OutputConfig:
     output_path: str
     save_each_step: bool = False
+    save_every: int = 100
 
     def __post_init__(self):
         dirname = os.path.dirname(self.output_path)
@@ -87,7 +88,9 @@ class PPPipeline:
                 )
 
             post_processed_samples += processor.batch_process(
-                samples, tmp_save_path=tmp_save_path
+                samples,
+                tmp_save_path=tmp_save_path,
+                save_every=self.output_config.save_every,
             )
 
         save_samples(post_processed_samples, self.output_config.output_path)
