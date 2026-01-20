@@ -61,9 +61,13 @@ class BasePostProcessor(ABC):
         """
         res = []
         for s in tqdm(samples, desc=f"{self.name}"):
-            res += self.process(s, **kwargs)
-
+            new = self.process(s, **kwargs)
             if tmp_save_path and len(res) > 0 and len(res) % 100 == 0:
-                save_samples(res, tmp_save_path)
+                save_samples(new, tmp_save_path, append_mode=True)
+
+            res += new
+
+        if tmp_save_path:
+            save_samples(new, tmp_save_path, append_mode=True)
 
         return res

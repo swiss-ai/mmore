@@ -18,7 +18,7 @@ class OutputConfig:
     def __post_init__(self):
         dirname = os.path.dirname(self.output_path)
         if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
+            os.makedirs(dirname, exist_ok=True)
 
 
 @dataclass
@@ -76,15 +76,17 @@ class PPPipeline:
         Returns:
             List[MultimodalSample]: Post-processed multimodal samples.
         """
+        samples = []
         for i, processor in enumerate(self.post_processors):
             tmp_save_path = None
             if self.output_config.save_each_step:
+                output_dir = os.path.dirname(self.output_config.output_path) or "."
                 tmp_save_path = os.path.join(
-                    os.path.dirname(self.output_config.output_path),
+                    output_dir,
                     f"{i + 1}___{processor.name}.jsonl",
                 )
 
-            samples = processor.batch_process(samples, tmp_save_path=tmp_save_path)
+            samples += processor.batch_process(samples, tmp_save_path=tmp_save_path)
 
         save_samples(samples, self.output_config.output_path)
         return samples

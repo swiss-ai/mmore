@@ -85,7 +85,9 @@ def clean_image(
     return True
 
 
-def save_samples(samples: List[MultimodalSample], path: str) -> None:
+def save_samples(
+    samples: List[MultimodalSample], path: str, append_mode: bool = False
+) -> None:
     """
     Save multimodal samples to a JSONL file.
 
@@ -93,8 +95,13 @@ def save_samples(samples: List[MultimodalSample], path: str) -> None:
         samples (List[MultimodalSample]): List of multimodal samples.
         path (str): Path to save the samples.
     """
-    with open(path, "w") as f:
-        for result in samples:
-            f.write(json.dumps(result.to_dict()) + "\n")
+    try:
+        mode = "a" if append_mode else "w"
+        with open(path, mode) as f:
+            for result in samples:
+                f.write(json.dumps(result.to_dict()) + "\n")
+    except OSError as e:
+        logger.error("Failed to save samples to %s: %s", path, e)
+        raise
 
     logger.info(f"Results saved to {path}!")
