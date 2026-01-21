@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from mmore.index.indexer import Indexer, IndexerConfig
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
+from profiler import enable_profiling_from_env, profile_function
 
 logger = logging.getLogger(__name__)
 INDEX_EMOJI = "🗂️"
@@ -27,6 +28,7 @@ class IndexConfig:
     documents_path: str
 
 
+@profile_function()
 def index(
     config_file: Union[IndexConfig, str],
     documents_path: Optional[str] = None,
@@ -50,6 +52,7 @@ def index(
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the index configuration file."

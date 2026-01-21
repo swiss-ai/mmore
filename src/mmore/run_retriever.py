@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from mmore.rag.retriever import Retriever, RetrieverConfig
 from mmore.utils import load_config
+from profiler import enable_profiling_from_env, profile_function
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
@@ -53,6 +54,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
         json.dump(formatted_results, f, indent=2)
 
 
+@profile_function()
 def retrieve(
     config_file: str, input_file: str, output_file: str, document_ids: list[str] = []
 ):
@@ -168,6 +170,7 @@ def make_router(config_file: str) -> APIRouter:
     return router
 
 
+@profile_function()
 def run_api(config_file: str, host: str, port: int):
     router = make_router(config_file)
 
@@ -189,6 +192,7 @@ def run_api(config_file: str, host: str, port: int):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the retriever configuration file."
