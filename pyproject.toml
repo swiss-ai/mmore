@@ -21,115 +21,118 @@ authors = [
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
-    { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" }
-
+    { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
+    { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"}
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==1.26.4; python_version < '3.12'",
-    "numpy==2.3.2; python_version >= '3.12'",
-    "pandas==2.3.0",
-    "datasets==4.0.0",
-    "transformers==4.53.3",
-    "fasteners==0.19",
-    "uvicorn==0.34.3",
-    "python-dotenv==1.0.1",
-    "dacite==1.9.2",
-    "click>=8.1.7",
-    "dask[distributed]>=2025.2.0",
-    "pytest>=8.3.4",
-    "httpx==0.28.1",
+    # Core - shared utilities across all pipeline stages
+    "numpy>=1.26,<2; python_version < '3.12'",
+    "numpy>=2.0; python_version >= '3.12'",
+    "pandas>=2.1",
     "Pillow",
-    "PyMuPDF",
-    "beautifulsoup4==4.13.4",
-    "Unidecode",
-    "clean-text",
-    "docx2pdf",
-    "lxml_html_clean",
-    "python-docx",
-    "python-pptx",
-    "clean-text",
-    "requests==2.32.5",
-    "selenium==4.39.0",
-    "surya-ocr>=0.8.3",
-    "xlrd==2.0.1",
-    "py7zr==1.0.0",
-    "rarfile==4.2",
-    "markdown==3.7",
-    "markdownify==0.13.1",
-    "marker-pdf==1.7.5",
-    "moviepy==2.1.1",
-    "openpyxl==3.1.5",
-    "chonkie==0.2.1.post1",
-    "langdetect>=1.0.9",
-    "trafilatura==2.0.0",
-    "datatrove==0.3.0; python_version < '3.12'",
-    "datatrove==0.6.0; python_version >= '3.12'",
-    "validators==0.35.0",
-    "bokeh",
-    "motor==3.7.1",
-    "mpmath==1.3.0",
-    "networkx==3.4.2",
-    "fastapi[standard]",
-    "fastapi==0.125.0",
-    "pydantic==2.11.7",
-    "pymongo==4.13.2",
-    "pymilvus==2.6.3",
-    "pymilvus[milvus-lite]==2.6.3",
-    "pymilvus.model==0.3.2",
-    "milvus-model==0.2.12",
-    "accelerate==1.7.0",
-    "cohere==5.20.0",
-    "langchain==1.1.0",
-    "langchain-anthropic==1.2.0",
-    "langchain-aws==1.1.0",
-    "langchain-cohere==0.5.0",
-    "langchain-community==0.4.1",
-    "langchain-huggingface==1.1.0",
-    "langchain-milvus==0.3.2",
-    "langchain-mistralai==1.1.0",
-    "langchain-openai==1.1.0",
-    "ragas==0.4.1",
-    "nltk>=3.9",
-    "starlette==0.50.0",
+    "pydantic>=2.6",
+    "click>=8.1.7",
+    "dacite>=1.8",
+    "validators>=0.28",
+    "python-dotenv>=1.0",
     "typing_extensions>=4.15.0,<5.0",
-    "sympy>=1.13.1",
-    "google-auth==2.39.0",
-    "google-api-python-client==2.173.0",
-    "mammoth==1.9.0",
-    "argostranslate",
-    "sentence-transformers",
-    "langid",
-    "colpali-engine==0.3.13",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
+
+# --- Pipeline stages ---
+
+process = [
+    # Document processing + post-processing
+    "transformers>=4.44",
+    "PyMuPDF",
+    "marker-pdf>=1.6",
+    "surya-ocr>=0.8.3",
+    "moviepy>=2.0",
+    "mammoth>=1.8",
+    "markdownify>=0.12",
+    "markdown>=3.5",
+    "python-docx",
+    "python-pptx",
+    "openpyxl>=3.1",
+    "requests>=2.31",
+    "trafilatura>=1.12",
+    "clean-text",
+    "Unidecode",
+    "chonkie>=0.2.1",
+    "langdetect>=1.0.9",
+    "argostranslate",
+    "langid",
+    "dask[distributed]>=2025.2.0",
+    "docx2pdf",
+    "lxml_html_clean",
+    "selenium>=4.25",
+    "beautifulsoup4>=4.12",
+    "xlrd>=2.0.1",
+    "py7zr>=0.22",
+    "rarfile>=4.1",
+    "fasteners>=0.19",
+    "google-auth>=2.28",
+    "google-api-python-client>=2.120",
+    "datatrove>=0.3; python_version < '3.12'",
+    "datatrove>=0.6; python_version >= '3.12'",
+    "colpali-engine>=0.3",
+    "bokeh",
+]
+
+index = [
+    # Indexing + Retrieval (vector DB, embeddings)
+    "pymilvus>=2.4",
+    "pymilvus[milvus-lite]>=2.4",
+    "pymilvus.model>=0.3",
+    "milvus-model>=0.2.10",
+    "langchain-milvus>=0.1.7",
+    "sentence-transformers",
+    "transformers>=4.44",
+]
+
+rag = [
+    # RAG with LangChain (LLM calls, evaluation)
+    "mmore[index]",
+    "langchain>=0.3",
+    "langchain-anthropic>=0.3",
+    "langchain-aws>=0.2",
+    "langchain-cohere>=0.3",
+    "langchain-community>=0.3",
+    "langchain-huggingface>=0.1",
+    "langchain-mistralai>=0.2",
+    "langchain-openai>=0.3",
+    "cohere>=5.0",
+    "ragas>=0.2",
+    "datasets>=4.0",
+    "accelerate>=0.30",
+    "nltk>=3.9",
+]
+
+api = [
+    # API servers + dashboard
+    "fastapi[standard]>=0.110",
+    "uvicorn>=0.29",
+    "starlette>=0.36",
+    "httpx>=0.27",
+    "requests>=2.31",
+    "pymongo>=4.6",
+    "motor>=3.5",
+]
+
+# --- Composite + variant extras ---
+
+all = [
+    "mmore[process,index,rag,api]",
+]
+
 cpu = [
     "torch>=2.7.0",
 ]
 cu126 = [
     "torch>=2.7.0",
-]
-
-rag = [
-  "accelerate",
-  "cohere==5.20.0",
-  "langchain==1.1.0",
-  "langchain-anthropic==1.2.0",
-  "langchain-aws==1.1.0",
-  "langchain-cohere==0.5.0",
-  "langchain-community==0.4.1",
-  "langchain-huggingface==1.1.0",
-  "langchain-milvus==0.3.2",
-  "langchain-mistralai==1.1.0",
-  "langchain-openai==1.1.0",
-  "langdetect>=1.0.9",
-  "pymilvus==2.6.3",
-  "pymilvus[milvus-lite]==2.6.3",
-  "pymilvus.model==0.3.2",
-  "milvus-model==0.2.12",
-  "ragas==0.4.1",
-  "nltk>=3.9",
 ]
 
 dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
