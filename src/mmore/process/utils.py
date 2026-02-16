@@ -4,11 +4,15 @@ These functions can be used across various processors for data extraction,
 cleaning, splitting, and aggregation.
 """
 
+import json
 import logging
+from typing import List
 
 import numpy as np
 from cleantext import clean
 from PIL import Image
+
+from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
 
@@ -79,3 +83,34 @@ def clean_image(
         return False
 
     return True
+
+
+def save_samples(
+    samples: List[MultimodalSample], path: str, append_mode: bool = False
+) -> None:
+    """
+    Save multimodal samples to a JSONL file.
+
+    Args:
+        samples (List[MultimodalSample]): List of multimodal samples.
+        path (str): Path to save the samples.
+        append_mode (bool, optional): If True, append to the existing file; if False, overwrite it. Defaults to False.
+    """
+    try:
+        mode = "a" if append_mode else "w"
+        with open(path, mode) as f:
+            for result in samples:
+                f.write(json.dumps(result.to_dict()) + "\n")
+    except OSError as e:
+        logger.error("Failed to save samples to %s: %s", path, e)
+        raise
+    except (TypeError, ValueError) as e:
+        logger.error(
+            "Failed to serialize sample to JSON when saving to %s: %s", path, e
+        )
+        raise
+    except AttributeError as e:
+        logger.error("Invalid sample encountered when saving to %s: %s", path, e)
+        raise
+    else:
+        logger.info(f"Results saved to {path}!")

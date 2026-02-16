@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 from tqdm import tqdm
 
 from ...type import MultimodalSample
+from ..utils import save_samples
 
 
 @dataclass
@@ -45,18 +46,41 @@ class BasePostProcessor(ABC):
         pass
 
     def batch_process(
-        self, samples: List[MultimodalSample], **kwargs
+        self,
+        samples: List[MultimodalSample],
+        tmp_save_path: Optional[str] = None,
+        save_every: int = 100,
+        **kwargs,
     ) -> List[MultimodalSample]:
         """
         Process a batch of samples.
         Args:
             samples: a list of samples to process
+            tmp_save_path: if provided, intermediate results will be saved to this path every 100 samples
             kwargs: additional arguments to pass to the process method
 
         Returns: a list of processed samples
         """
         res = []
+        if tmp_save_path:
+            # Clear the file if it exists
+            open(tmp_save_path, "w").close()
+
+        current_batch = []
         for s in tqdm(samples, desc=f"{self.name}"):
-            res += self.process(s, **kwargs)
+            new = self.process(s, **kwargs)
+            current_batch += new
+
+            if len(current_batch) >= save_every:
+                if tmp_save_path:
+                    save_samples(current_batch, tmp_save_path, append_mode=True)
+                res += current_batch
+                current_batch = []
+
+        if current_batch:
+            if tmp_save_path:
+                save_samples(current_batch, tmp_save_path, append_mode=True)
+
+            res += current_batch
 
         return res
