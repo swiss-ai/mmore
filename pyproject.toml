@@ -64,7 +64,7 @@ dependencies = [
     "langdetect>=1.0.9",
     "trafilatura==2.0.0",
     "datatrove==0.3.0; python_version < '3.12'",
-    "datatrove==0.6.0; python_version >= '3.12'",
+    "datatrove==0.7.0; python_version >= '3.12'",
     "validators==0.35.0",
     "bokeh",
     "motor==3.7.1",
