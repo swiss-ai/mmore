@@ -3,9 +3,9 @@ import logging
 from typing import List
 
 from mmore.process.post_processor.pipeline import PPPipeline, PPPipelineConfig
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
-from mmore.profiler import enable_profiling_from_env, profile_function
 
 PP_EMOJI = "🧹"
 logger = logging.getLogger(__name__)

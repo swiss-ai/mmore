@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
-from mmore.profiler import enable_profiling_from_env, profile_function
 
 RAG_EMOJI = "🧠"
 logger = logging.getLogger(__name__)

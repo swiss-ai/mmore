@@ -123,8 +123,9 @@ class TranslatorPostProcessor(BasePostProcessor):
 
         package_to_install = next(
             filter(
-                lambda x: x.from_code == from_code
-                and x.to_code == self.target_language,
+                lambda x: (
+                    x.from_code == from_code and x.to_code == self.target_language
+                ),
                 available_packages,
             )
         )

@@ -12,9 +12,9 @@ from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
-from mmore.profiler import enable_profiling_from_env, profile_function
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)

@@ -17,9 +17,9 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.rag.retriever import Retriever, RetrieverConfig
 from mmore.utils import load_config
-from mmore.profiler import enable_profiling_from_env, profile_function
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"
