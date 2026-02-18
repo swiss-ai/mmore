@@ -197,9 +197,12 @@ class Dispatcher:
                     )
 
                     # Might need to check that the list isnt empty
-                    processor_config = {
-                        list(d.keys())[0]: list(d.values())[0] for d in processor_config
-                    }
+                    if processor_config:
+                        processor_config = {
+                            list(d.keys())[0]: list(d.values())[0] for d in processor_config
+                        }
+                    else:
+                        processor_config = {}
 
                     processor_config["output_path"] = self.config.output_path
                     processor_config["extract_images"] = self.config.extract_images
@@ -251,9 +254,12 @@ class Dispatcher:
 
         for processor_type, files in task_lists:
             processor_config = processor_configs.get(processor_type.__name__, [])
-            processor_config = {
-                list(d.keys())[0]: list(d.values())[0] for d in processor_config
-            }
+            if processor_config:
+                processor_config = {
+                    list(d.keys())[0]: list(d.values())[0] for d in processor_config
+                }
+            else:
+                processor_config = {}
             processor_config["output_path"] = self.config.output_path
             processor_config["extract_images"] = self.config.extract_images
 
@@ -273,7 +279,7 @@ class Dispatcher:
                 if ExecutionState._use_dask is None:
                     ExecutionState.initialize(distributed_mode=True, client=client)
 
-                worker_count = os.cpu_count()
+                worker_count = os.cpu_count() or 1
                 task_pool = mp.Pool(processes=worker_count)
 
                 try:

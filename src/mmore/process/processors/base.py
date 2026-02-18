@@ -197,7 +197,7 @@ class Processor(ABC):
                 return self._pool.map(process_func, files_paths)
             except Exception as e:
                 logger.error(f"Error during pool execution: {e}")
-                raise e
+                raise
         else:
             logger.info(
                 f"⚠️ No shared pool found. Creating temporary pool with {num_workers} workers..."
@@ -229,6 +229,8 @@ class Processor(ABC):
         self.__dict__.update(state)
         # Initialize _pool as None in the worker process
         self._pool = None
+        # Workers should never own the pool
+        self._owns_pool = False
 
     @classmethod
     def get_file_len(cls, file: FileDescriptor) -> int:
