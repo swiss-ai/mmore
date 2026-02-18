@@ -19,7 +19,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-from profiler import enable_profiling_from_env
+from mmore.profiler import enable_profiling_from_env
 
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig

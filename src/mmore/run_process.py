@@ -14,7 +14,7 @@ from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)

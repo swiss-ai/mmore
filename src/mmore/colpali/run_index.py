@@ -5,7 +5,7 @@ from typing import Union
 
 import pandas as pd
 
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager

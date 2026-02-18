@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from mmore.rag.retriever import Retriever, RetrieverConfig
 from mmore.utils import load_config
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 logger = logging.getLogger(__name__)
 RETRIVER_EMOJI = "🔍"

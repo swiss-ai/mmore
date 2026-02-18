@@ -16,7 +16,7 @@ from mmore.dashboard.backend.model import (
     Report,
     WorkerLatest,
 )
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 app = FastAPI()
 # allow all origins

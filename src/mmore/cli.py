@@ -2,7 +2,7 @@ from typing import Optional
 
 import click
 
-from profiler import enable_profiling_from_env
+from mmore.profiler import enable_profiling_from_env
 
 
 @click.group()

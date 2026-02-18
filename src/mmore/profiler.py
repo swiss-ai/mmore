@@ -92,7 +92,7 @@ def profile_function(
             # Generate output file name if not provided
             if output_file is None:
                 func_name = func.__name__
-                timestamp = int(time.time())
+                timestamp = time.time_ns()
                 output_path = os.path.join(
                     config.output_dir, f"{func_name}_{timestamp}.prof"
                 )
@@ -110,7 +110,9 @@ def profile_function(
                 profiler.disable()
 
                 # Save profiling results
-                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                output_dir = os.path.dirname(output_path)
+                if output_dir:
+                    os.makedirs(output_dir, exist_ok=True)
                 profiler.dump_stats(output_path)
 
                 # Print summary
@@ -150,7 +152,7 @@ def profile_context(
 
     # Generate output file name if not provided
     if output_file is None:
-        timestamp = int(time.time())
+        timestamp = time.time_ns()
         output_path = os.path.join(config.output_dir, f"{name}_{timestamp}.prof")
     else:
         output_path = output_file
@@ -164,7 +166,9 @@ def profile_context(
         profiler.disable()
 
         # Save profiling results
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
         profiler.dump_stats(output_path)
 
         # Print summary
@@ -281,7 +285,7 @@ class Profiler:
         self.profiler.disable()
 
         # Generate output file name
-        timestamp = int(time.time())
+        timestamp = time.time_ns()
         output_path = self.output_dir / f"{name}_{timestamp}.prof"
 
         # Save profiling results

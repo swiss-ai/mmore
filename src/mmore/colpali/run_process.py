@@ -17,7 +17,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config

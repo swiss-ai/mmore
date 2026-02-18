@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from profiler import enable_profiling_from_env, profile_function
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 from .rag.pipeline import RAGPipeline
 from .run_rag import APIConfig, LocalConfig, RAGInferenceConfig

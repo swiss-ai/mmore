@@ -65,13 +65,13 @@ snakeviz ./profiling_output/process_1700000000.prof
 
 ## Programmatic Usage
 
-If you are developing custom components or scripts, you can use the profiling tools directly from `src.profiler`.
+If you are developing custom components or scripts, you can use the profiling tools directly from `mmore.profiler`.
 
 ### 1. Decorator
 Profile a specific function using the `@profile_function` decorator.
 
 ```python
-from profiler import profile_function
+from mmore.profiler import profile_function
 
 @profile_function(sort_by="time", max_results=20)
 def my_heavy_function():
@@ -83,7 +83,7 @@ def my_heavy_function():
 Profile a specific block of code using the `profile_context` context manager.
 
 ```python
-from profiler import profile_context
+from mmore.profiler import profile_context
 
 def complex_operation():
     # ... setup ...
@@ -97,7 +97,7 @@ def complex_operation():
 Use the `Profiler` class for manual start/stop control.
 
 ```python
-from profiler import Profiler
+from mmore.profiler import Profiler
 
 profiler = Profiler(enabled=True)
 profiler.start()
@@ -109,7 +109,7 @@ profiler.stop(name="manual_session")
 If you only need to measure execution time (wall clock), use `time_function` or `time_context`.
 
 ```python
-from profiler import time_function, time_context
+from mmore.profiler import time_function, time_context
 
 @time_function
 def quick_check():
