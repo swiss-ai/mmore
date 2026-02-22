@@ -1,10 +1,10 @@
 name: 🧪 PyTest unit tests
 
 on:
-    push:
-        branches:
-        - master
-    pull_request:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   test:
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies (using uv)
         run: |
           source .venv/bin/activate
-          uv pip install -e .[rag,dev]
+          uv pip install -e ".[process,index,rag,api,cpu,dev]"
 
       - name: Show installed cohere and langchain-cohere versions
         run: |

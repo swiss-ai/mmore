@@ -6,8 +6,6 @@ import yaml
 from dacite import from_dict
 
 if TYPE_CHECKING:
-    from pymilvus import MilvusClient
-
     from .index.indexer import Indexer
     from .rag.retriever import Retriever, RetrieverConfig
     from .type import MultimodalSample
