@@ -5,6 +5,7 @@ from operator import itemgetter
 from typing import Dict, Iterator, List, Optional, Tuple, Type, Union, cast
 
 import torch
+import torch.multiprocessing as mp
 from dask.distributed import Client, as_completed
 from tqdm import tqdm
 
@@ -180,31 +181,59 @@ class Dispatcher:
         Dispatches the tasks locally.
         """
         ExecutionState.initialize(distributed_mode=False)
-
         processor_configs = self.config.processor_config or {}
 
-        for processor, files in task_lists:
-            processor_config = processor_configs.get(processor.__name__, [])
-            processor_config = {
-                list(d.keys())[0]: list(d.values())[0] for d in processor_config
-            }
-            processor_config["output_path"] = self.config.output_path
-            processor_config["extract_images"] = self.config.extract_images
+        instantiated_processors: Dict[Type[Processor], Processor] = {}
 
-            logger.info(
-                f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
-            )
-            processor_config = ProcessorConfig(
-                dashboard_backend_url=self.config.dashboard_backend_url,
-                custom_config=processor_config,
-            )
-            proc = processor(processor_config)
-            res = proc(
-                cast(List[Union[FileDescriptor, URLDescriptor]], files),
-                self.config.use_fast_processors,
-            )
-            self.save_individual_processor_results(res, processor.__name__)
-            yield res
+        num_workers = os.cpu_count() or 1
+        logger.info(f"🚀 Initializing Shared Global Pool with {num_workers} workers...")
+        global_pool = mp.Pool(processes=num_workers)
+
+        try:
+            for processor_type, files in task_lists:
+                if processor_type not in instantiated_processors:
+                    processor_config = processor_configs.get(
+                        processor_type.__name__, []
+                    )
+
+                    # Might need to check that the list isnt empty
+                    if processor_config:
+                        processor_config = {
+                            list(d.keys())[0]: list(d.values())[0]
+                            for d in processor_config
+                        }
+                    else:
+                        processor_config = {}
+
+                    processor_config["output_path"] = self.config.output_path
+                    processor_config["extract_images"] = self.config.extract_images
+
+                    full_config = ProcessorConfig(
+                        dashboard_backend_url=self.config.dashboard_backend_url,
+                        custom_config=processor_config,
+                    )
+
+                    logger.info(f"Initializing processor: {processor_type.__name__}")
+                    new_proc_instance = processor_type(full_config)
+                    new_proc_instance.set_shared_pool(global_pool)
+                    instantiated_processors[processor_type] = new_proc_instance
+
+                proc_instance = instantiated_processors[processor_type]
+
+                logger.info(
+                    f"Processing batch of {len(files)} files with {proc_instance.__class__.__name__}"
+                )
+
+                res = proc_instance(
+                    cast(List[Union[FileDescriptor, URLDescriptor]], files),
+                    self.config.use_fast_processors,
+                )
+                self.save_individual_processor_results(res, processor_type.__name__)
+                yield res
+        finally:
+            logger.info("Closing Shared Global Pool")
+            global_pool.close()
+            global_pool.join()
 
     def _dispatch_distributed(
         self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
@@ -224,16 +253,19 @@ class Dispatcher:
         futures = []
         processor_configs = self.config.processor_config or {}
 
-        for processor, files in task_lists:
-            processor_config = processor_configs.get(processor.__name__, [])
-            processor_config = {
-                list(d.keys())[0]: list(d.values())[0] for d in processor_config
-            }
+        for processor_type, files in task_lists:
+            processor_config = processor_configs.get(processor_type.__name__, [])
+            if processor_config:
+                processor_config = {
+                    list(d.keys())[0]: list(d.values())[0] for d in processor_config
+                }
+            else:
+                processor_config = {}
             processor_config["output_path"] = self.config.output_path
             processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
-                f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                f"Dispatching in distributed (to some worker) {len(files)} files to {processor_type.__name__}"
             )
 
             processor_config = ProcessorConfig(
@@ -242,24 +274,40 @@ class Dispatcher:
             )
 
             def process_files(
-                files, processor_config, processor_name
+                files, processor_config, processor_name, processor_class, use_fast
             ) -> Tuple[List[MultimodalSample], str]:
                 client = Client(**kwargs)
                 if ExecutionState._use_dask is None:
                     ExecutionState.initialize(distributed_mode=True, client=client)
 
-                return (
-                    processor(processor_config)(files, self.config.use_fast_processors),
-                    processor_name,
-                )
+                worker_count = os.cpu_count() or 1
+                task_pool = mp.Pool(processes=worker_count)
+
+                try:
+                    proc_instance = processor_class(processor_config)
+                    proc_instance.set_shared_pool(task_pool)
+                    results = proc_instance(files, use_fast)
+
+                    return results, processor_name
+
+                finally:
+                    task_pool.close()
+                    task_pool.join()
 
             try:
                 future = client.submit(
-                    process_files, files, processor_config, processor.__name__
+                    process_files,
+                    files,
+                    processor_config,
+                    processor_type.__name__,
+                    processor_type,
+                    self.config.use_fast_processors,
                 )
                 futures.append(future)
             except Exception as e:
-                logger.error(f"Error dispatching task to {processor.__name__}: {e}")
+                logger.error(
+                    f"Error dispatching task to {processor_type.__name__}: {e}"
+                )
 
         results = []
         for future, (result, processor_name) in tqdm(
