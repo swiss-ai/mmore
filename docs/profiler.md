@@ -59,7 +59,7 @@ For deeper analysis, use tools like `snakeviz` or `tuna` to visualize the genera
 
 **Using SnakeViz:**
 ```bash
-pip install snakeviz
+uv pip install snakeviz
 snakeviz ./profiling_output/process_1700000000.prof
 ```
 
