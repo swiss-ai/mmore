@@ -19,6 +19,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+from mmore.profiler import enable_profiling_from_env
+
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
 from .utils import get_indexer, load_config, process_files_default
@@ -407,6 +409,7 @@ def run_api(config_file: str, host: str, port: int):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the retriever configuration file."

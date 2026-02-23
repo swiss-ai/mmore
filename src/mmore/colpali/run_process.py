@@ -17,6 +17,8 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from mmore.profiler import enable_profiling_from_env, profile_function
+
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config
 
@@ -238,6 +240,7 @@ def process_pdf_batch(
         return [], []
 
 
+@profile_function()
 def run_process(config_file: str):
     click.echo(f"Processing configuration file path: {config_file}")
     overall_start_time = time.time()
@@ -322,6 +325,7 @@ def run_process(config_file: str):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(
         description="Process PDFs and store page embeddings in Parquet."
     )

@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from mmore.profiler import enable_profiling_from_env, profile_function
+
 from .rag.pipeline import RAGPipeline
 from .run_rag import APIConfig, LocalConfig, RAGInferenceConfig
 from .utils import load_config
@@ -37,6 +39,7 @@ class WebsearchInferenceConfig:
             self.mode_args = APIConfig()
 
 
+@profile_function()
 def run_websearch(config_file):
     cfg = load_config(config_file, WebsearchInferenceConfig)
     ws = cfg.websearch
@@ -118,6 +121,7 @@ This API defines the retriever API of mmore, handling:
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(
         description="Run the Websearch (+ optional RAG) pipeline."
     )

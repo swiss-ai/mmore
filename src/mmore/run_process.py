@@ -12,6 +12,7 @@ from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
 
@@ -40,6 +41,7 @@ class ProcessInference:
     skip_already_processed: bool = False
 
 
+@profile_function()
 def process(config_file: str):
     """Process documents from a directory."""
     click.echo(f"Dispatcher configuration file path: {config_file}")
@@ -140,6 +142,7 @@ def process(config_file: str):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(description="Run the processing pipeline.")
     parser.add_argument(
         "--config_file", required=True, help="Path to the process configuration file."

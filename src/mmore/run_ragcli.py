@@ -13,6 +13,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+from mmore.profiler import enable_profiling_from_env, profile_function
+
 from .rag.pipeline import RAGPipeline
 from .run_rag import RAGInferenceConfig
 from .utils import load_config
@@ -179,6 +181,7 @@ class RagCLI:
         self.ragPP = RAGPipeline.from_config(self.ragConfig.rag)
         logger.info("RAG pipeline initialized!")
 
+    @profile_function()
     def do_rag(self, query):
         queries = [{"input": query, "collection_name": "my_docs"}]
         # called only after init_config and initialize_ragpp
@@ -232,6 +235,7 @@ def str_green(text, bold=False):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     # example usage: python -m mmore.ragcli --config-file examples/rag/config.yaml
 
     parser = argparse.ArgumentParser()

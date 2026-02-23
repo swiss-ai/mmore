@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
 
@@ -98,6 +99,7 @@ def create_api(rag: RAGPipeline, endpoint: str):
     return app
 
 
+@profile_function()
 def rag(config_file):
     """Run RAG in local or API"""
     config = load_config(config_file, RAGInferenceConfig)
@@ -124,6 +126,7 @@ def rag(config_file):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config-file", required=True, help="Path to the rag configuration file."

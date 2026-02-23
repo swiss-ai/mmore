@@ -11,6 +11,8 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 
+from mmore.profiler import enable_profiling_from_env, profile_function
+
 from ..utils import load_config
 from .retriever import ColPaliRetriever, ColPaliRetrieverConfig
 
@@ -50,6 +52,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
     logger.info(f"Saved results to {output_file}")
 
 
+@profile_function()
 def retrieve(config_file: str, input_file: str, output_file: str):
     """Retrieve documents for specified queries via ColPali-based similarity search."""
     # Load the config file
@@ -121,6 +124,7 @@ def make_router(config_file: str) -> APIRouter:
     return router
 
 
+@profile_function()
 def run_api(config_file: str, host: str, port: int):
     """Run the ColPali retriever API server."""
     router = make_router(config_file)
@@ -143,6 +147,7 @@ def run_api(config_file: str, host: str, port: int):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser(
         description="Retrieve documents from local Milvus database using ColPali embeddings."
     )
