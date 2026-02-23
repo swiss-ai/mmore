@@ -67,9 +67,7 @@ class PDFProcessor(Processor):
             if num_gpus == 1 or len(files_paths) < 10:
                 if self.converter is None:
                     self.converter = PDFProcessor.load_models(
-                        disable_image_extraction=not self.config.custom_config.get(
-                            "extract_images", True
-                        )
+                        disable_image_extraction=not self.config.extract_images
                     )
 
                 results = []
@@ -103,7 +101,7 @@ class PDFProcessor(Processor):
                         args=(
                             batch,
                             gpu_id,
-                            self.config.custom_config,
+                            self.config.extract_images,
                             output_queue,
                             error_queue,
                         ),
@@ -132,14 +130,12 @@ class PDFProcessor(Processor):
     def process(self, file_path: str) -> MultimodalSample:
         if self.converter is None:
             self.converter = PDFProcessor.load_models(
-                disable_image_extraction=not self.config.custom_config.get(
-                    "extract_images", True
-                )
+                disable_image_extraction=not self.config.extract_images
             )
 
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
-        text = re.sub(str(IMG_REGEX), "<attachment>", cast(str, text))
+        text = re.sub(str(IMG_REGEX), self.config.attachment_tag, cast(str, text))
         images = list(images.values())
         return self.create_sample([text], images, {"file_path": file_path})
 
@@ -184,7 +180,7 @@ class PDFProcessor(Processor):
                 all_text_parts.append(text)
                 current_position += len(text)
 
-            if self.config.custom_config.get("extract_images", True):
+            if self.config.extract_images:
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
                     if image and clean_image(image):
@@ -223,7 +219,7 @@ class PDFProcessor(Processor):
         return batches
 
     def _process_parallel(
-        self, files_paths, gpu_id, config_custom, output_queue, error_queue
+        self, files_paths, gpu_id, extract_images: bool, output_queue, error_queue
     ):
         try:
             torch.cuda.set_device(gpu_id)
@@ -232,9 +228,7 @@ class PDFProcessor(Processor):
                 PDFProcessor.artifact_dict = create_model_dict()
 
             marker_config = {
-                "disable_image_extraction": not config_custom.get(
-                    "extract_images", True
-                ),
+                "disable_image_extraction": not extract_images,
                 "languages": None,
                 "use_llm": False,
                 "disable_multiprocessing": False,
