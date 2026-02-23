@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
 
 import yaml
 from dacite import from_dict
-from pymilvus import MilvusClient
 
 if TYPE_CHECKING:
     from .index.indexer import Indexer
@@ -113,6 +112,8 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
         return indexers[collection_name]
 
     try:
+        from pymilvus import MilvusClient
+
         client = MilvusClient(uri=uri, db_name=db_name, enable_sparse=True)
 
         collections = cast(List[str], client.list_collections())

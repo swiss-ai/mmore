@@ -55,13 +55,37 @@ uv pip install weasyprint
 
 #### Step 1 – Install MMORE
 
-To install the latest release of the package, simply run:
+Dependencies are split by pipeline stage. Install only what you need:
+
+| Extra | What it includes |
+|---|---|
+| `process` | mmore's processing pipeline |
+| `index` | mmore's indexing pipeline |
+| `rag` | mmore's RAG pipeline (includes `index`) |
+| `api` | FastAPI servers |
+| `all` | Everything above |
+| `cpu` | PyTorch (CPU) + torchvision, for a CPU-only setup |
+| `cu126` | PyTorch (CUDA 12.6) + torchvision, for a GPU setup |
+
+**Full install (CPU):**
 
 ```bash
-uv pip install mmore
+uv pip install "mmore[all,cpu]"
 ```
 
-> :warning: This package requires many big dependencies and requires a dependency override, so it has to be installed with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
+**Full install (GPU — CUDA 12.6):**
+
+```bash
+uv pip install "mmore[all,cu126]"
+```
+
+**Partial install example (processing only):**
+
+```bash
+uv pip install "mmore[process,cpu]"
+```
+
+> :warning: This package requires many big dependencies, so it is recommended to install with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 > :warning: **Check the instructions for contributors directly at [`docs/for_devs.md`](./docs/for_devs.md)**
 
