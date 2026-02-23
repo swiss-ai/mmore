@@ -78,9 +78,12 @@ cd mmore
 ```bash
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e .
-uv pip install .[dev]
+uv pip install -e ".[all,cpu,dev]"
 ```
+
+> **GPU (CUDA 12.6):** replace `cpu` with `cu126` — e.g. `uv pip install -e ".[all,cu126,dev]"`
+>
+> **Partial install:** replace `all` with only the stages you need - e.g. `uv pip install -e ".[rag,cpu,dev]"` for RAG only. Available stages: `process`, `index`, `rag`, `api`.
 
 > **Important:** This package requires many big dependencies and requires a dependency override, so it must be installed with `uv` to handle `pip` installations. Check our [tutorial on uv](./uv.md) for more information.
 
