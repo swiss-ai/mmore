@@ -81,7 +81,7 @@ source .venv/bin/activate
 uv pip install -e ".[all,cpu,dev]"
 ```
 
-> **GPU (CUDA 12.6):** replace `cpu` with `cu126` — e.g. `uv pip install -e ".[all,cu126,dev]"`
+> **GPU (CUDA 12.6):** replace `cpu` with `cu126` - e.g. `uv pip install -e ".[all,cu126,dev]"`
 >
 > **Partial install:** replace `all` with only the stages you need - e.g. `uv pip install -e ".[rag,cpu,dev]"` for RAG only. Available stages: `process`, `index`, `rag`, `api`.
 
