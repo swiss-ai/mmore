@@ -131,9 +131,11 @@ all = [
 
 cpu = [
     "torch>=2.7.0",
+    "torchvision",
 ]
 cu126 = [
     "torch>=2.7.0",
+    "torchvision",
 ]
 
 dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
@@ -153,6 +155,10 @@ torch = [
   { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
   { index = "pytorch-cu126", extra="cu126", marker = "platform_machine != 'aarch64'"},
   # { url = "https://download.pytorch.org/whl/cu126/torch-2.5.1-cp311-cp311-linux_aarch64.whl", extra="cu126",  marker = "platform_machine == 'aarch64'" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu", marker = "platform_system != 'Darwin'" },
+  { index = "pytorch-cu126", extra = "cu126", marker = "platform_machine != 'aarch64'" },
 ]
 
 [[tool.uv.index]]
