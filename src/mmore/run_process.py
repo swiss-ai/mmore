@@ -8,7 +8,6 @@ from typing import List, Union
 import click
 import torch
 
-from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
@@ -106,9 +105,6 @@ def process(config_file: str):
         return
 
     dispatcher_config: DispatcherConfig = config.dispatcher_config
-
-    url = dispatcher_config.dashboard_backend_url
-    DashboardClient(url).init_db(len(crawl_result))
 
     logger.info(f"Using dispatcher configuration: {dispatcher_config}")
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)

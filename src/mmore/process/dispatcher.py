@@ -72,7 +72,6 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
-    dashboard_backend_url: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -89,7 +88,6 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
-            dashboard_backend_url=config.get("dashboard_backend_url", None),
         )
 
     @staticmethod
@@ -115,7 +113,6 @@ class DispatcherConfig:
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,
-            "dashboard_backend_url": self.dashboard_backend_url,
         }
 
     def __str__(self) -> str:
@@ -128,9 +125,8 @@ class DispatcherConfig:
             f"output_path={self.output_path}, "
             f"processor_config={self.processor_config}, "
             f"process_batch_sizes={self.process_batch_sizes}, "
-            f"batch_multiplier={self.batch_multiplier}"
+            f"batch_multiplier={self.batch_multiplier}, "
             f"extract_images={self.extract_images}"
-            f"dashboard_backend_url={self.dashboard_backend_url}"
             f")"
         )
 
@@ -195,7 +191,6 @@ class Dispatcher:
                 f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
             )
             processor_config = ProcessorConfig(
-                dashboard_backend_url=self.config.dashboard_backend_url,
                 custom_config=processor_config,
             )
             proc = processor(processor_config)
@@ -237,7 +232,6 @@ class Dispatcher:
             )
 
             processor_config = ProcessorConfig(
-                dashboard_backend_url=self.config.dashboard_backend_url,
                 custom_config=processor_config,
             )
 

@@ -3,7 +3,6 @@ dispatcher_config:
   output_path: $ROOT_OUT_DIR/process/outputs/ #put absolute path!
   use_fast_processors: false
   distributed: false
-  dashboard_backend_url: null
   extract_images: true
   scheduler_file: $ROOT_OUT_DIR/scheduler-file.json #put absolute path!
   process_batch_sizes:

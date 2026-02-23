@@ -245,34 +245,6 @@ def websearch(config_file):
 
 @main.command()
 @click.option(
-    "--host",
-    type=str,
-    default="0.0.0.0",
-    help="Host on which the dashboard API should be run.",
-)
-@click.option(
-    "--port",
-    type=int,
-    default=8000,
-    help="Port on which the dashboard API should be run.",
-)
-def dashboard_backend(host, port):
-    """Run the dashboard backend.
-
-    Args:
-      host:
-      port:
-
-    Returns:
-
-    """
-    from .run_dashboard_backend import run_api
-
-    run_api(host, port)
-
-
-@main.command()
-@click.option(
     "--config-file", type=str, required=True, help="Configuration for the RAG CLI."
 )
 def ragcli(config_file: str):

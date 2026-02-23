@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Union
 import torch.multiprocessing as mp
 from PIL import Image
 
-from ...dashboard.backend.client import DashboardClient
 from ...process.crawler import FileDescriptor, URLDescriptor
 from ...process.execution_state import ExecutionState
 from ...type import MultimodalRawInput, MultimodalSample
@@ -28,11 +27,9 @@ class ProcessorConfig:
     def __init__(
         self,
         attachement_tag: str = "<attachment>",
-        dashboard_backend_url: Optional[str] = None,
         custom_config: Dict[str, Any] = {},
     ):
         self.attachment_tag = attachement_tag
-        self.dashboard_backend_url = dashboard_backend_url
         self.custom_config = custom_config
         self.custom_config["attachment_tag"] = attachement_tag
 
@@ -161,8 +158,6 @@ class Processor(ABC):
             return []
         files_paths = [file.file_path for file in files]
         res = self.process_batch(files_paths, fast, num_workers=os.cpu_count() or 1)
-        new_state = self.ping_dashboard(files_paths)
-        ExecutionState.set_should_stop_execution(new_state)
         return res
 
     def process_batch(
@@ -274,19 +269,6 @@ class Processor(ABC):
         Get size of the file (in bytes).
         """
         return os.path.getsize(file_path)
-
-    def ping_dashboard(self, finished_file_paths) -> bool:
-        """
-        Sends a ping to the dashboard to indicate that the processing is complete.
-        Opportunity to check if the processing should be stopped (the idea is to not do this at the beginning of the process for tradeoff/performance reasons).
-        """
-        if os.environ.get("RANK") is not None:
-            worker_id = os.environ.get("RANK")
-        else:
-            worker_id = os.getpid()
-        return DashboardClient(self.config.dashboard_backend_url).report(
-            str(worker_id), finished_file_paths
-        )
 
     @staticmethod
     def load_models() -> Any:
