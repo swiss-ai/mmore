@@ -43,12 +43,6 @@ We provide [a simple bash script](/scripts/process_distributed.sh) to run the pr
 bash scripts/process_distributed.sh -f /path/to/my/input/folder 
 ```
 
-#### :hourglass: Dashboard UI
-Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
-You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
-
-Check the docs in the [dashboard documentation](./dashboard.md).
-
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
 

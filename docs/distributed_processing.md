@@ -75,15 +75,6 @@ Once all nodes are running, return to the master node and type `go`. The master 
 
 The dask server will be automatically shut down by the master node at the end of the processing. This will also shut down the dask workers on all the connected nodes.
 
-## Monitoring Progress
-
-You can monitor the processing using the dashboard, just check its [documentation](./dashboard.md).
-
-The dashboard provides:
-- Real-time progress visualization
-- Worker status monitoring
-- The ability to gracefully stop workers
-
 ## Output Structure
 
 After processing completes, the output will be organized as follows:
