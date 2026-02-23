@@ -199,7 +199,8 @@ class Dispatcher:
                     # Might need to check that the list isnt empty
                     if processor_config:
                         processor_config = {
-                            list(d.keys())[0]: list(d.values())[0] for d in processor_config
+                            list(d.keys())[0]: list(d.values())[0]
+                            for d in processor_config
                         }
                     else:
                         processor_config = {}
