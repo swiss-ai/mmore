@@ -141,7 +141,9 @@ class MediaProcessor(Processor):
                     logger.error(f"Error processing {file}: {e}")
         return results
 
-    def _process_file(self, file_path: str, pipeline, fast_mode: bool) -> MultimodalSample:
+    def _process_file(
+        self, file_path: str, pipeline, fast_mode: bool
+    ) -> MultimodalSample:
         all_text = self._extract_text(file_path, pipeline)
         images = self._extract_images(file_path) if self.config.extract_images else []
         return self.create_sample([all_text], images, {"file_path": file_path})

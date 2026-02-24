@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch.multiprocessing as mp
@@ -152,7 +152,9 @@ class Processor(ABC):
     IMAGES_DIR: str = "images"
 
     def __init__(self, config: Optional[ProcessorConfig] = None) -> None:
-        self.config: ProcessorConfig = config if config is not None else ProcessorConfig()
+        self.config: ProcessorConfig = (
+            config if config is not None else ProcessorConfig()
+        )
         self._pool = None
         self._owns_pool = False
 

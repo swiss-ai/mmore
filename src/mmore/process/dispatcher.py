@@ -269,7 +269,9 @@ class Dispatcher:
                 else:
                     processor = AutoProcessor.from_file(file)
 
-                logger.debug(f"Assigned file {file.file_path} to processor: {processor}")
+                logger.debug(
+                    f"Assigned file {file.file_path} to processor: {processor}"
+                )
                 if processor is not None:
                     if processor not in processor_map:
                         processor_map[processor] = []
