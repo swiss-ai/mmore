@@ -96,8 +96,6 @@ class PPTXProcessor(Processor):
 
                             except Exception as e:
                                 logger.error(f"Failed to extract image from slide: {e}")
-                    else:
-                        embedded_images = []
 
                 # 2) Extract text from slide notes if present
                 if slide.has_notes_slide and slide.notes_slide.notes_text_frame:

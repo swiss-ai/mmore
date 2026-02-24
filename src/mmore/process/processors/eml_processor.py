@@ -102,7 +102,5 @@ class EMLProcessor(Processor):
                         )  # default token is "<attachment>"
                     except Exception as e:
                         logger.error(f"Error extracting image from EML: {e}")
-                else:
-                    embedded_images = []
 
         return self.create_sample(all_text, embedded_images, {"file_path": file_path})

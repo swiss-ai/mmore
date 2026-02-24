@@ -126,6 +126,8 @@ class MediaProcessor(Processor):
     ) -> List[MultimodalSample]:
         if not self.pipelines:
             self._load_pipelines(fast_mode=fast_mode)
+        if not self.pipelines:
+            raise RuntimeError("Failed to load any processing pipelines.")
 
         file_chunks = self.evenly_split_across_gpus(files_paths, len(self.devices))
 

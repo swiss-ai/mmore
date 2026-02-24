@@ -189,8 +189,6 @@ class PDFProcessor(Processor):
                         attachment_text = self.config.attachment_tag
                         all_text_parts.append(attachment_text)
                         current_position += len(attachment_text)
-            else:
-                embedded_images = []
 
         page_starts.append((current_position, len(pdf_doc)))
         metadata = {
