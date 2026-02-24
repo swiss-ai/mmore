@@ -20,47 +20,43 @@ logger = logging.getLogger(__name__)
 
 
 class DOCXProcessor(Processor):
-    def __init__(self, config=None):
-        """
-        A processor for handling Microsoft Word documents (.docx). Extracts text content and embedded images.
+    """Processor for Microsoft Word documents (``.docx``).
 
-        Attributes:
-            files (List[FileDescriptor]): List of DOCX files to be processed.
-            config (ProcessorConfig): Config for the processor, which includes options such as
-                                    the placeholder tag for embedded images (e.g., "<attachment>").
-        """
+    Extracts text content and embedded images using
+    `mammoth <https://github.com/mwilliamson/python-mammoth>`_.
+    """
+
+    def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
-        """
-        Args:
-            file (FileDescriptor): The file descriptor to check.
-
-        Returns:
-            bool: True if the file is a DOCX file, False otherwise.
-        """
         return file.file_extension.lower() in [".docx"]
 
     def process(self, file_path: str) -> MultimodalSample:
-        """
-        Process a single DOCX file. Extracts text content and embedded images.
+        """Extract text and images from a ``.docx`` file.
 
         Args:
-            file_path (str): Path to the DOCX file.
+            file_path: Path to the ``.docx`` file.
 
         Returns:
-            MultimodalSample: A sample containing the extracted text and images.
-
-        The method parses the DOCX file, cleans and extracts textual content from paragraphs,
-        and extracts embedded images. Images in the paragraphs are replaced with a placeholder tag
-        defined in the processor configuration (e.g., "<attachment>").
+            A :class:`~mmore.type.MultimodalSample` containing the extracted
+            text (as Markdown) and image paths.
         """
 
         all_images = []
 
+        # Images are saved to output_path/images/ when available,
+        # falling back to a temporary directory.
+        if self.config.output_path:
+            image_output_dir = os.path.join(self.config.output_path, self.IMAGES_DIR)
+            os.makedirs(image_output_dir, exist_ok=True)
+        else:
+            image_output_dir = tempfile.mkdtemp(prefix="mmore_docx_")
+            logger.info(f"Saving DOCX images in temp dir {image_output_dir}")
+
         def _convert_image(image: m_Image) -> Dict[str, Any]:
-            if not self.config.custom_config.get("extract_images", False):
+            if not self.config.extract_images:
                 return {"src": ""}
 
             content_type = cast(Optional[str], image.content_type)
@@ -72,11 +68,7 @@ class DOCXProcessor(Processor):
                     if content_type is None:
                         raise ValueError("Invalid content type")
 
-                    # Generate unique image path and save the image there
-                    image_path = Path(
-                        os.path.join(str(image_output_dir), str(uuid.uuid4()))
-                    )
-
+                    image_path = Path(os.path.join(image_output_dir, str(uuid.uuid4())))
                     extension = mimetypes.guess_extension(content_type)
                     if extension is None:
                         raise ValueError(
@@ -84,7 +76,6 @@ class DOCXProcessor(Processor):
                         )
 
                     image_path = image_path.with_suffix(extension)
-
                     pil_image.save(image_path)
                     logger.info(f"Saving image to {image_path}")
                     all_images.append(
@@ -98,13 +89,6 @@ class DOCXProcessor(Processor):
                         f"Failed to load image with MIME type {content_type}: {e}"
                     )
                     return {"src": "", "alt": ""}
-
-        image_output_dir = self.config.custom_config.get("image_output_dir", None)
-
-        # If no image_output_dir is specified then create a temporary output dir
-        if image_output_dir is None:
-            image_output_dir = tempfile.mkdtemp(prefix="mmore_docx_")
-            logger.info(f"Saving files in {image_output_dir}")
 
         try:
             with open(file_path, "rb") as docx_fileobj:

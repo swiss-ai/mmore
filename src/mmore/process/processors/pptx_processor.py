@@ -84,7 +84,7 @@ class PPTXProcessor(Processor):
                             all_text.append(cleaned_text)
 
                     # Extract images from shape
-                    if self.config.custom_config.get("extract_images", True):
+                    if self.config.extract_images:
                         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                             try:
                                 pil_image = Image.open(
@@ -96,8 +96,6 @@ class PPTXProcessor(Processor):
 
                             except Exception as e:
                                 logger.error(f"Failed to extract image from slide: {e}")
-                    else:
-                        embedded_images = []
 
                 # 2) Extract text from slide notes if present
                 if slide.has_notes_slide and slide.notes_slide.notes_text_frame:

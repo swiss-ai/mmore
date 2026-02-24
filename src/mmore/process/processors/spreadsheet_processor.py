@@ -160,7 +160,7 @@ class SpreadsheetProcessor(Processor):
                 return []
 
         all_text = clean_text(_extract_text(file_path))
-        if self.config.custom_config.get("extract_images", True):
+        if self.config.extract_images:
             embedded_images = _extract_images(file_path)
         else:
             embedded_images = []

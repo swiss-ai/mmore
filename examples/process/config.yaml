@@ -1,38 +1,96 @@
-data_path: examples/sample_data/ #put absolute path! Possible to pass a list of folders as well
-google_drive_ids: [] #put ids of google drive folders
-dispatcher_config:
-  output_path: examples/process/outputs/ #put absolute path or relative to the root of the module
-  use_fast_processors: false
-  distributed: false
-  dashboard_backend_url: null
-  extract_images: true
-  scheduler_file: null # for instance /path/to/mmore/scheduler-file.json
-  process_batch_sizes:
-    - URLProcessor: 40
-    - DOCXProcessor: 100
-    - PDFProcessor: 4000
-    - MediaProcessor: 40
-    - SpreadsheetProcessor: 100
-    - TXTProcessor: 100
-    - PPTXProcessor: 100
-    - MarkdownProcessor: 100
-    - EMLProcessor: 100
-    - HTMLProcessor: 100
-  processor_config:
-    MediaProcessor:
-      - normal_model: "openai/whisper-large-v3-turbo"
-      - fast_model: "openai/whisper-tiny"
-      - type: "automatic-speech-recognition"
-      - sample_rate: 10
-      - batch_size: 4
+# =============================================================================
+# mmore process — configuration file
+# =============================================================================
+# Run with:
+#   python -m mmore process --config-file examples/process/config.yaml
+# =============================================================================
 
-    PDFProcessor:
-      - PDFTEXT_CPU_WORKERS: 0
-      - DETECTOR_BATCH_SIZE: 1
-      - DETECTOR_POSTPROCESSING_CPU_WORKERS: 0
-      - RECOGNITION_BATCH_SIZE: 1
-      - OCR_PARALLEL_WORKERS: 0
-      - TEXIFY_BATCH_SIZE: 1
-      - LAYOUT_BATCH_SIZE: 1
-      - ORDER_BATCH_SIZE: 1
-      - TABLE_REC_BATCH_SIZE: 1
+# ---------------------------------------------------------------------------
+# Required: input and output paths
+# ---------------------------------------------------------------------------
+
+# Directory (or list of directories) containing files to process.
+# Accepts local paths and URLs.
+input_path: examples/sample_data/
+
+# Directory where results will be saved.
+# Structure:
+#   output_path/
+#   ├── processors/<ProcessorName>/results.jsonl  (per-processor results)
+#   ├── merged/merged_results.jsonl               (all results combined)
+#   └── images/                                   (extracted images)
+output_path: examples/process/outputs/
+
+# ---------------------------------------------------------------------------
+# Processing options
+# ---------------------------------------------------------------------------
+
+# Use faster but lower-quality processing modes where available.
+#   PDFs:  PyMuPDF  (fast)  vs  marker-pdf (default, GPU-accelerated OCR)
+#   Media: whisper-tiny (fast)  vs  whisper-large-v3-turbo (default)
+use_fast_processors: false
+
+# Extract and save embedded images from documents.
+extract_images: true
+
+# Skip files that already have results in output_path (from a previous run).
+skip_already_processed: false
+
+# ---------------------------------------------------------------------------
+# Distributed mode  (requires a running Dask cluster)
+# ---------------------------------------------------------------------------
+distributed: false
+# scheduler_file: /path/to/scheduler-file.json  # required when distributed: true
+
+# ---------------------------------------------------------------------------
+# Optional: Google Drive integration
+# ---------------------------------------------------------------------------
+# List of Google Drive folder IDs to download and process.
+# Requires a service account JSON file at googledrive/client_secrets.json.
+# google_drive_ids: []
+
+# ---------------------------------------------------------------------------
+# Optional: dashboard
+# ---------------------------------------------------------------------------
+# dashboard_backend_url: null
+
+# ---------------------------------------------------------------------------
+# Optional: per-processor settings
+# ---------------------------------------------------------------------------
+# Override model or behaviour for a specific processor.
+# Only MediaProcessor has additional settings today; other processors use
+# the global extract_images / use_fast_processors flags above.
+#
+# processors:
+#   MediaProcessor:
+#     normal_model: openai/whisper-large-v3-turbo  # HuggingFace model ID
+#     fast_model:   openai/whisper-tiny             # model used in fast mode
+#     frame_sample_rate: 10                         # video: 1 frame every N sec
+
+# ---------------------------------------------------------------------------
+# Optional: batch sizes
+# ---------------------------------------------------------------------------
+# Maximum number of document-pages per dispatch batch, per processor.
+# Larger values use more memory but reduce scheduling overhead.
+# The defaults below are used automatically when this section is omitted.
+#
+# batch_sizes:
+#   PDFProcessor:         4000
+#   MediaProcessor:         40
+#   DOCXProcessor:         100
+#   PPTXProcessor:         100
+#   SpreadsheetProcessor:  100
+#   MarkdownProcessor:     100
+#   TextProcessor:         100
+#   EMLProcessor:          100
+#   HTMLProcessor:         100
+#   URLProcessor:           40
+
+# ---------------------------------------------------------------------------
+# Optional: per-file-type processor selection
+# ---------------------------------------------------------------------------
+# Override which processor handles a given file extension.
+# Useful when you have multiple processors registered for the same type.
+#
+# file_type_processors:
+#   .pdf: PDFProcessor
