@@ -87,7 +87,7 @@ class EMLProcessor(Processor):
 
             # extract images only if passed argument in config is True
             elif part.get_content_type().startswith("image/"):
-                if self.config.custom_config.get("extract_images", True):
+                if self.config.extract_images:
                     try:
                         image_data = part.get_payload(decode=True)
                         if isinstance(image_data, bytes):
@@ -102,7 +102,5 @@ class EMLProcessor(Processor):
                         )  # default token is "<attachment>"
                     except Exception as e:
                         logger.error(f"Error extracting image from EML: {e}")
-                else:
-                    embedded_images = []
 
         return self.create_sample(all_text, embedded_images, {"file_path": file_path})
