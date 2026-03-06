@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.1.1"
+dynamic = ["version"]
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -193,3 +193,12 @@ ignore = ["E501", "E402"]   # Avoid enforcing line-length violations (`E501`) an
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "run_index_api.py" = ["N803", "N806"]
+
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "no-local-version"
+
+[dependency-groups]
+dev = [
+    "setuptools-scm>=9.2.2",
+]
