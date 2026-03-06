@@ -16,6 +16,7 @@ from mmore.dashboard.backend.model import (
     Report,
     WorkerLatest,
 )
+from mmore.profiler import enable_profiling_from_env, profile_function
 
 app = FastAPI()
 # allow all origins
@@ -248,11 +249,13 @@ async def get_stop_status():
     return m.get("ask_to_stop", False)
 
 
+@profile_function()
 def run_api(host: str, port: int):
     uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--host",

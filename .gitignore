@@ -130,3 +130,5 @@ test*.sh
 # Examples
 examples/outputs
 outputs/
+
+paper/

@@ -3,6 +3,7 @@ import logging
 from typing import List
 
 from mmore.process.post_processor.pipeline import PPPipeline, PPPipelineConfig
+from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
 
@@ -19,6 +20,7 @@ def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:
     return [s for path in data_path for s in MultimodalSample.from_jsonl(path)]
 
 
+@profile_function()
 def postprocess(config_file, input_data):
     """Run post-processors pipeline."""
     if isinstance(input_data, str):
@@ -40,6 +42,7 @@ def postprocess(config_file, input_data):
 
 
 if __name__ == "__main__":
+    enable_profiling_from_env()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config_file",

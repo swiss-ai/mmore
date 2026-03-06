@@ -9,6 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/ruff-action@v3
-      - run: ruff check
-      - run: ruff format --check
+      - name: Install dependencies
+        run: |
+          pip install pre-commit ruff
+
+      # 4️⃣ Run pre-commit on all files
+      - name: Run pre-commit hooks
+        run: |
+          pre-commit run --all-files || (
+            echo ""
+            echo "❌ Pre-commit checks failed!"
+            echo "This project REQUIRES pre-commit to run formatting and lint fixes."
+            echo ""
+            echo "To fix locally, run:"
+            echo "  pip install pre-commit"
+            echo "  pre-commit install"
+            echo "  pre-commit run --all-files"
+            exit 1
+          )

@@ -1,7 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from chonkie import BaseChunker, Chunk
 
@@ -104,7 +104,9 @@ class MultimodalChunker(BasePostProcessor):
     ) -> List[Dict[str, Any]]:
         """Assign page numbers using page start positions."""
         page_info_chunks = []
-        page_starts = sample.metadata.get("page_starts", [])
+        page_starts = cast(
+            List[Tuple[int, int]], sample.metadata.get("page_starts", [])
+        )
 
         if len(page_starts) == 0:
             for chunk in text_chunks:

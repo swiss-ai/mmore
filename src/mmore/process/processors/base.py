@@ -107,6 +107,8 @@ class Processor(ABC):
         """
 
         self.config = config
+        self._pool = None
+        self._owns_pool = False
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -165,6 +167,13 @@ class Processor(ABC):
         ExecutionState.set_should_stop_execution(new_state)
         return res
 
+    def set_shared_pool(self, pool):
+        """
+        Injects a shared pool into the processor.
+        """
+        self._pool = pool
+        self._owns_pool = False
+
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
     ) -> List[MultimodalSample]:
@@ -183,11 +192,45 @@ class Processor(ABC):
         # use fast mode if user requests it
         process_func = self.process_fast if fast_mode else self.process
 
-        # process files in parallel using multiprocessing pool
-        with mp.Pool(processes=num_workers) as pool:
-            results = pool.map(process_func, files_paths)
+        if self._pool is not None:
+            try:
+                return self._pool.map(process_func, files_paths)
+            except Exception as e:
+                logger.error(f"Error during pool execution: {e}")
+                raise
+        else:
+            logger.info(
+                f"⚠️ No shared pool found. Creating temporary pool with {num_workers} workers..."
+            )
+            with mp.Pool(processes=num_workers) as temp_pool:
+                return temp_pool.map(process_func, files_paths)
 
-        return results
+    def __del__(self):
+        if hasattr(self, "_owns_pool") and self._owns_pool and self._pool:
+            self._pool.close()
+            self._pool.join()
+
+    def __getstate__(self):
+        """
+        Called when the object is being pickled (sent to a worker).
+        We must REMOVE the _pool, because pools cannot be pickled.
+        """
+        state = self.__dict__.copy()
+        # Remove the pool from the state to be pickled
+        if "_pool" in state:
+            del state["_pool"]
+        return state
+
+    def __setstate__(self, state):
+        """
+        Called when the object is unpickled (received by the worker).
+        We restore the state and set _pool to None (workers don't need the pool manager).
+        """
+        self.__dict__.update(state)
+        # Initialize _pool as None in the worker process
+        self._pool = None
+        # Workers should never own the pool
+        self._owns_pool = False
 
     @classmethod
     def get_file_len(cls, file: FileDescriptor) -> int:
