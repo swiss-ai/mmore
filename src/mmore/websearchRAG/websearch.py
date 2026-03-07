@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Literal
+from typing import Dict, List, Literal
 
 from duckduckgo_search import DDGS
 from duckduckgo_search.exceptions import DuckDuckGoSearchException, RatelimitException
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class WebsearchOnly:
     """Class dedicated to performing web searches only
     Default provider: DuckDuckGo (free, no API key needed)
-    Optional provider: Tavily (set TAVILY_API_KEY, pip install mmore[tavily])
+    Optional provider: Tavily (set TAVILY_API_KEY, pip install mmore[websearch])
     """
 
     def __init__(
@@ -35,7 +35,7 @@ class WebsearchOnly:
             try:
                 from tavily import TavilyClient
             except ImportError:
-                raise ImportError("Run: pip install taviy")
+                raise ImportError("Run: pip install mmore[websearch]")
             api_key = os.getenv("TAVILY_API_KEY")
 
             if not api_key:
@@ -43,36 +43,40 @@ class WebsearchOnly:
 
             self._tavily = TavilyClient(api_key=api_key)
 
-    def _search_duckduckgo(self, query: str) -> str:
+    def _search_duckduckgo(self, query: str) -> List[Dict[str, str]]:
         "DDG search with exponential backoff retry - fixes the timeout error"
         for attempt in range(self.max_retries):
             try:
                 with DDGS() as ddgs:
-                    results = list(ddgs.text(query, max_results=self.max_results))
-                return str(results)
+                    results = list(
+                        ddgs.text(
+                            query, max_results=self.max_results, region=self.region
+                        )
+                    )
+                return results
 
             except RatelimitException:
                 wait = 2**attempt  # 1s -> 2s -> 4s
 
                 logger.warning(
-                    f"DDG rate limit hit, retying in {wait}s "
+                    f"DDG rate limit hit, retrying in {wait}s "
                     f"(attempt {attempt + 1}/{self.max_retries})"
                 )
                 time.sleep(wait)
 
             except DuckDuckGoSearchException as e:
                 logger.error(f"DDG search error: {e}")
-                return ""
+                return []
 
         logger.error("DDG search failed after all retries")
-        return ""
+        return []
 
-    def _search_tavily(self, query: str) -> str:
+    def _search_tavily(self, query: str) -> List[Dict[str, str]]:
         """Tavily search : optional provider"""
         response = self._tavily.search(query, max_results=self.max_results)
-        return str(response.get("results", []))
+        return response.get("results", [])
 
-    def websearch_pipeline(self, query: str) -> str:
+    def websearch_pipeline(self, query: str) -> List[Dict[str, str]]:
         """Perform a single web search."""
 
         if self.provider == "tavily":

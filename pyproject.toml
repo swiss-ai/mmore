@@ -110,7 +110,6 @@ rag = [
     "datasets>=4.0",
     "accelerate>=0.30",
     "nltk>=3.9",
-    "duckduckgo-search>=6.0",
 ]
 
 api = [

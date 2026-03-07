@@ -7,8 +7,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from duckduckgo_search import DDGS
-from duckduckgo_search.exceptions import DuckDuckGoSearchException, RatelimitException
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,6 +14,7 @@ from ..rag.llm import LLM, LLMConfig
 from ..run_rag import rag
 from .config import WebsearchConfig
 from .logging_config import logger
+from .websearch import WebsearchOnly
 
 
 @dataclass
@@ -56,6 +55,11 @@ class WebsearchPipeline:
         self.llm = self._initialize_llm()
         self.rag_results = None
         self.max_searches = self.config.max_searches
+        self.searcher = WebsearchOnly(
+            provider=self.config.search_provider,
+            max_results=self.config.max_searches,
+            max_retries=self.config.max_retries,
+        )
 
     def _initialize_llm(self) -> BaseChatModel:
         if self.config.use_rag:
@@ -169,38 +173,19 @@ class WebsearchPipeline:
 
     def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
         """
-        Perform a DuckDuckGo search using duckduckgo-search library
-        inlcudes exponential backoff retry logic to fix timeout issues (#230)
-        Returns a list of dicts with keys: 'snippet', title' and 'url'
+        Perform a web search using the configured provider (WebsearchOnly).
+        Includes exponential backoff retry logic to fix timeout issues (#230).
+        Returns a list of dicts with keys: 'snippet', 'title' and 'url'
         """
-
-        for attempt in range(3):
-            try:
-                with DDGS() as ddgs:
-                    results = list(ddgs.text(query, max_results=self.max_searchers))
-
-                return [
-                    {
-                        "snippet": r.get("body", ""),
-                        "url": r.get("href", ""),
-                        "title": r.get("title", ""),
-                    }
-                    for r in results
-                ]
-
-            except RatelimitException:
-                wait = 2**attempt  # 1s -> 2s -> 4s
-                logger.warning(
-                    f"DDG rate limit hit, retrying in {wait}s (attempt {attempt + 1}/3)"
-                )
-                time.sleep(wait)
-
-            except DuckDuckGoSearchException as e:
-                logger.error(f"DDG search error: {e}")
-                return []
-
-        logger.error("DDG search failed after all retries")
-        return []
+        results = self.searcher.websearch_pipeline(query)
+        return [
+            {
+                "snippet": r.get("body", ""),
+                "url": r.get("href", ""),
+                "title": r.get("title", ""),
+            }
+            for r in results
+        ]
 
     def integrate_with_llm(
         self, original: str, rag_doc: str | None, web_snippets: List[str]
