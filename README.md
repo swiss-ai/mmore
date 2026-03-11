@@ -151,7 +151,7 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
    DuckDuckGo is the default provider (free, no API key needed). Tavily is available as an optional higher-quality provider.
     ```bash
       # Install web search dependencies
-      pip install "mmore[websearch]"
+      pip install "mmore[rag,websearch]"
 
       # Optional: use Tavily instead of DuckDuckGo
       export TAVILY_API_KEY=your_key_here

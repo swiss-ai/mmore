@@ -44,7 +44,7 @@ class WebsearchOnly:
             self._tavily = TavilyClient(api_key=api_key)
 
     def _search_duckduckgo(self, query: str) -> List[Dict[str, str]]:
-        "DDG search with exponential backoff retry - fixes the timeout error"
+        """DDG search with exponential backoff retry - fixes the timeout error"""
         for attempt in range(self.max_retries):
             try:
                 with DDGS() as ddgs:
@@ -74,7 +74,14 @@ class WebsearchOnly:
     def _search_tavily(self, query: str) -> List[Dict[str, str]]:
         """Tavily search : optional provider"""
         response = self._tavily.search(query, max_results=self.max_results)
-        return response.get("results", [])
+        return [
+            {
+                "body": r.get("content", ""),
+                "href": r.get("url", ""),
+                "title": r.get("title", ""),
+            }
+            for r in response.get("results", [])
+        ]
 
     def websearch_pipeline(self, query: str) -> List[Dict[str, str]]:
         """Perform a single web search."""

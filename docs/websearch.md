@@ -3,17 +3,17 @@
 ## Implementation
 
 ### Overview
-The WebSearch integration uses the DuckDuckGo search API through a wrapper provided by the LangChain library. The implementation combines:
+The WebSearch integration uses the `duckduckgo-search` library with optional Tavily support. The implementation combines:
 
-- **DuckDuckGo Search:** Default provider — free, no API key needed. Install with `pip install "mmore[websearch]"`.
-- **Tavily Search:** Optional higher-quality provider. Requires `TAVILY_API_KEY` environment variable. Install with `pip install "mmore[websearch]"`.
+- **DuckDuckGo Search:** Default provider — free, no API key needed. Install with `pip install "mmore[rag,websearch]"`.
+- **Tavily Search:** Optional higher-quality provider. Requires `TAVILY_API_KEY` environment variable. Install with `pip install "mmore[rag,websearch]"`.
 - **LLM Integration:** Summarizes and integrates retrieved web snippets with RAG results to provide a final answer
 
 ## Installation & Search Providers
 
 Install web search dependencies:
 ```bash
-pip install "mmore[websearch]"
+pip install "mmore[rag,websearch]"
 ```
 
 | Provider | Default | API Key Required | Notes |
