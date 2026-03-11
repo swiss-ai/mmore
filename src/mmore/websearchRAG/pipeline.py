@@ -7,8 +7,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,6 +14,7 @@ from ..rag.llm import LLM, LLMConfig
 from ..run_rag import rag
 from .config import WebsearchConfig
 from .logging_config import logger
+from .websearch import WebsearchOnly
 
 
 @dataclass
@@ -55,9 +54,11 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self.rag_results = None
-        self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches)
-        self.search = DuckDuckGoSearchResults(
-            api_wrapper=self.wrapper, output_format="list"
+        self.max_searches = self.config.max_searches
+        self.searcher = WebsearchOnly(
+            provider=self.config.search_provider,
+            max_results=self.config.max_searches,
+            max_retries=self.config.max_retries,
         )
 
     def _initialize_llm(self) -> BaseChatModel:
@@ -172,27 +173,19 @@ class WebsearchPipeline:
 
     def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
         """
-        Perform a DuckDuckGo search using LangChain DuckDuckGo wrapper
-
-        Returns a list of dicts with keys: 'title' and 'url'
+        Perform a web search using the configured provider (WebsearchOnly).
+        Includes exponential backoff retry logic to fix timeout issues (#230).
+        Returns a list of dicts with keys: 'snippet', 'title' and 'url'
         """
-        try:
-            results = self.search.invoke(query)
-
-            formatted_results = []
-            for r in results:
-                snippet = r.get("snippet", "")
-                url = r.get("link", "")  # note: it's "link" in LangChain results
-                title = r.get("title", "")
-
-                formatted_results.append(
-                    {"snippet": snippet, "url": url, "title": title}
-                )
-
-            return formatted_results
-        except Exception as e:
-            logger.error(f"DuckDuckGo search error: {e}")
-            return []
+        results = self.searcher.websearch_pipeline(query)
+        return [
+            {
+                "snippet": r.get("body", ""),
+                "url": r.get("href", ""),
+                "title": r.get("title", ""),
+            }
+            for r in results
+        ]
 
     def integrate_with_llm(
         self, original: str, rag_doc: str | None, web_snippets: List[str]

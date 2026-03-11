@@ -138,6 +138,14 @@ cu126 = [
     "torchvision",
 ]
 
+websearch = [
+    # Optional Tavily search provider for websearch pipeline
+    # Usage: pip install mmore[websearch]
+    # Requires: TAVILY_API_KEY environment variable
+    "tavily-python>=0.3.0",
+    "duckduckgo-search>=6.0",
+]
+
 dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
 
 [tool.uv]
