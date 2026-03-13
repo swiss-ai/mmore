@@ -196,7 +196,7 @@ class Indexer:
                     "document_id": sample.document_id,
                     "text": sample.text,
                     "dense_embedding": d,
-                    "sparse_embedding": s.reshape(1, -1),
+                    "sparse_embedding": s,  # hacky reshape now useless with new version of langchain-milvus
                     **sample.metadata,
                 }
                 for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)

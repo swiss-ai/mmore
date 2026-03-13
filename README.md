@@ -43,7 +43,7 @@ brew update
 brew install ffmpeg chromium gtk+3 pango cairo \
   gobject-introspection libffi pkg-config libx11 libxi \
   libxrandr libxcomposite libxcursor libxdamage libxext \
-  libxrender libasound2 atk libreoffice weasyprint
+  libxrender atk libreoffice weasyprint
 ```
 
 If `weasyprint` fails to find GTK or Cairo, also run:
@@ -99,7 +99,7 @@ python -m mmore process --config-file examples/process/config.yaml
 python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/final_pp.jsonl
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/results.jsonl
 
 # Run RAG
 python -m mmore rag --config-file examples/rag/config.yaml
