@@ -128,14 +128,26 @@ class LLM(BaseChatModel):
             config = load_config(config, LLMConfig)
 
         if config.organization == "HF":
-            cls.device_count = (cls.device_count + 1) % (
-                cls.nb_devices + 1
-            )  # rotate devices, +1 for accounting the -1 below
+            if torch.backends.mps.is_available():
+                return ChatHuggingFace(
+                    llm=HuggingFacePipeline.from_model_id(
+                        model_id=config.llm_name,
+                        task="text-generation",
+                        device_map="mps",
+                        pipeline_kwargs=config.generation_kwargs,
+                    )
+                )
+            if torch.cuda.is_available():
+                cls.device_count = (cls.device_count + 1) % cls.nb_devices
+                current_device = cls.device_count
+            else:
+                current_device = -1
+
             return ChatHuggingFace(
                 llm=HuggingFacePipeline.from_model_id(
                     config.llm_name,
                     task="text-generation",
-                    device=cls.device_count - 1,
+                    device=current_device,
                     pipeline_kwargs=config.generation_kwargs,
                 )
             )

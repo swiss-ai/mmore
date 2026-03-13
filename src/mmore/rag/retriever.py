@@ -84,7 +84,13 @@ class Retriever(BaseRetriever):
 
         # Load reranker from Hugging Face
         if config.reranker_model_name:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps"
+                if torch.backends.mps.is_available()
+                else "cpu"
+            )
             reranker_tokenizer = AutoTokenizer.from_pretrained(
                 config.reranker_model_name
             )
@@ -284,7 +290,7 @@ class Retriever(BaseRetriever):
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-            ).to("cuda")
+            ).to(self.reranker_model.device)
 
             # Forward pass on the batch
             with torch.no_grad():
