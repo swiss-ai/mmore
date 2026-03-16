@@ -29,15 +29,20 @@ class SpladeSparseEmbedding(BaseSparseEmbedding):
     def embed_query(self, query: str) -> Dict[int, float]:
         res = self.splade.encode_queries([query])
         # res[0] because res has one row per query and there is only one query
+        # conversion from coo_array to csr_array is needed with new version of pymilvus
         row = res[0].tocsr()
-        return {k: v for k, v in zip(row.indices.tolist(), row.data.tolist())}
+        res_as_dict: Dict[int, float] = {
+            k: v for k, v in zip(row.indices.tolist(), row.data.tolist())
+        }
+        return res_as_dict
 
     def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
         res = self.splade.encode_documents(texts)
-        return [
+        res_as_dicts: List[Dict[int, float]] = [
             {
                 k: v
                 for k, v in zip(row.tocsr().indices.tolist(), row.tocsr().data.tolist())
             }
             for row in res
         ]
+        return res_as_dicts
