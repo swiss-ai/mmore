@@ -41,7 +41,7 @@ class SpladeSparseEmbedding(BaseSparseEmbedding):
         ]
         return res_as_dicts
 
-    def _sparse_row_to_dict(self, row: scipy.sparse._coo.coo_array) -> Dict[int, float]:
+    def _sparse_row_to_dict(self, row: scipy.sparse.coo_array) -> Dict[int, float]:
         """Convert a sparse row to a dict of index.
 
         Conversion from coo_array to csr_array is needed with new versions of pymilvus.

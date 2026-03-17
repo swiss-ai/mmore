@@ -54,7 +54,7 @@ brew update
 brew install ffmpeg gtk+3 pango cairo \
   gobject-introspection libffi pkg-config libx11 libxi \
   libxrandr libxcomposite libxcursor libxdamage libxext \
-  libxrender libasound2 atk libreoffice weasyprint
+  libxrender atk libreoffice weasyprint
 ```
 
 If `weasyprint` fails to find GTK or Cairo, also run:
