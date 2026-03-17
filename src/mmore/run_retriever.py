@@ -132,7 +132,9 @@ def make_router(config_file: str) -> APIRouter:
     logger.info("Retriever loaded!")
 
     @router.get("/list_files", tags=["Files"])
-    def list_files(collection_name: str, limit: int = Query(default=16000, ge=1, le=100000)):
+    def list_files(
+        collection_name: str, limit: int = Query(default=16000, ge=1, le=100000)
+    ):
         """List all files currently in the database."""
         return retriever_obj.list_files(collection_name=collection_name, limit=limit)
 
@@ -155,7 +157,7 @@ def make_router(config_file: str) -> APIRouter:
             else:
                 fileId = meta["id"]
                 chunkId = None
-                
+
             docs_info.append(
                 {
                     "fileId": fileId,

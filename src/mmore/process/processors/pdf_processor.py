@@ -156,7 +156,9 @@ class PDFProcessor(Processor):
         return self.create_sample([text], images, metadata)
 
     @classmethod
-    def _parse_pagination(cls, text: str) -> Tuple[
+    def _parse_pagination(
+        cls, text: str
+    ) -> Tuple[
         List[Tuple[int, int]],
         List[Tuple[int, int, int]],
         str,
@@ -171,7 +173,7 @@ class PDFProcessor(Processor):
         prev_end = 0
         for match in separators:
             page_id = int(match.group(1))
-            page_content = text[prev_end:match.start()]
+            page_content = text[prev_end : match.start()]
             page_texts.append((page_id, page_content))
             prev_end = match.end()
         trailing = text[prev_end:]
@@ -210,7 +212,9 @@ class PDFProcessor(Processor):
         all_text_parts = []
         embedded_images = []
         page_starts: List[Tuple[int, int]] = []
-        paragraph_starts: List[Tuple[int, int, int]] = []  # (char_offset, page_num, para_index)
+        paragraph_starts: List[
+            Tuple[int, int, int]
+        ] = []  # (char_offset, page_num, para_index)
         current_position = 0
 
         def _extract_images(pdf_doc, xref) -> Optional[Image.Image]:
