@@ -90,6 +90,7 @@ index = [
     "langchain-milvus>=0.1.8",
     "sentence-transformers",
     "transformers>=4.44",
+    "scipy>=1.8",
 ]
 
 rag = [
