@@ -225,6 +225,10 @@ paths:
                     paragraphNumbers:
                       type: array
                       items:
-                        type: integer
-                      description: Paragraph indices within their respective pages (empty if not applicable)
+                        type: array
+                          items:
+                            type: integer
+                          minItems: 2
+                          maxItems: 2
+                      description: Each entry is a [pageNumber, paragraphIndex] pair for paragraphs within their respective pages (empty if not applicable)
                 description: Results sorted by similarity (highest first)
