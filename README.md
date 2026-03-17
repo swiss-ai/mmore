@@ -64,6 +64,7 @@ Dependencies are split by pipeline stage. Install only what you need:
 | `rag` | mmore's RAG pipeline (includes `index`) |
 | `api` | FastAPI servers |
 | `all` | Everything above |
+| `websearch` | Web search pipeline (DuckDuckGo + optional Tavily) |
 | `cpu` | PyTorch (CPU) + torchvision, for a CPU-only setup |
 | `cu126` | PyTorch (CUDA 12.6) + torchvision, for a GPU setup |
 
@@ -145,7 +146,18 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system**  that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
    *Supports API hosting or local inference.*
 
-5. **:tada: Evaluation**
+5. [**:globe_with_meridians: Web Search**](https://github.com/swiss-ai/mmore/blob/master/docs/websearch.md)
+   Augments RAG answers with live web search results using an iterative sub-query loop.
+   DuckDuckGo is the default provider (free, no API key needed). Tavily is available as an optional higher-quality provider.
+    ```bash
+      # Install web search dependencies
+      pip install "mmore[rag,websearch]"
+
+      # Optional: use Tavily instead of DuckDuckGo
+      export TAVILY_API_KEY=your_key_here
+    ```
+
+6. **:tada: Evaluation**
    *Coming soon*
    An easy way to evaluate the performance of your RAG system using Ragas.
 
