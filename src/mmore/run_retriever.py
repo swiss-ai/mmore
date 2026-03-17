@@ -162,6 +162,7 @@ def make_router(config_file: str) -> APIRouter:
                     "chunkId": chunkId,
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
+                    "pageNumbers": meta.get("page_numbers", []),
                 }
             )
 
