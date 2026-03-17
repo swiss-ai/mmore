@@ -138,8 +138,8 @@ class LLM(BaseChatModel):
                     )
                 )
             if torch.cuda.is_available():
-                cls.device_count = (cls.device_count + 1) % cls.nb_devices
                 current_device = cls.device_count
+                cls.device_count = (cls.device_count + 1) % cls.nb_devices
             else:
                 current_device = -1
 
