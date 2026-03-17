@@ -28,8 +28,8 @@ Our package requires system dependencies. This snippet will take care of install
 
 ```bash
 sudo apt update
-sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
-  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
+sudo apt install -y ffmpeg libsm6 libxext6 libnss3 \
+  libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
   libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice \
   libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
@@ -40,10 +40,10 @@ For MacOS, use instead:
 
 ```bash
 brew update
-brew install ffmpeg chromium gtk+3 pango cairo \
+brew install ffmpeg gtk+3 pango cairo \
   gobject-introspection libffi pkg-config libx11 libxi \
   libxrandr libxcomposite libxcursor libxdamage libxext \
-  libxrender libasound2 atk libreoffice weasyprint
+  libxrender atk libreoffice weasyprint
 ```
 
 If `weasyprint` fails to find GTK or Cairo, also run:
@@ -99,7 +99,7 @@ python -m mmore process --config-file examples/process/config.yaml
 python -m mmore postprocess --config-file examples/postprocessor/config.yaml --input-data examples/process/outputs/merged/merged_results.jsonl
 
 # Run indexer
-python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/final_pp.jsonl
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/results.jsonl
 
 # Run RAG
 python -m mmore rag --config-file examples/rag/config.yaml

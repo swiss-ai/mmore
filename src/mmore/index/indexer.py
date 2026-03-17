@@ -183,7 +183,7 @@ class Indexer:
             dense_embeddings = self.dense_model.embed_documents(
                 Indexer._get_texts(batch, self.dense_model_config.is_multimodal)
             )
-            sparse_embeddings: scipy.sparse._coo.coo_array = (
+            sparse_embeddings: scipy.sparse.coo_array = (
                 self.sparse_model.embed_documents(
                     Indexer._get_texts(batch, self.sparse_model_config.is_multimodal)
                 )
@@ -196,7 +196,7 @@ class Indexer:
                     "document_id": sample.document_id,
                     "text": sample.text,
                     "dense_embedding": d,
-                    "sparse_embedding": s.reshape(1, -1),
+                    "sparse_embedding": s,
                     **sample.metadata,
                 }
                 for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)
