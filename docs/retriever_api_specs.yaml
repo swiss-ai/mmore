@@ -53,7 +53,7 @@ paths:
                 - fileId
                 - file
       responses:
-        '201':
+        "201":
           description: File successfully uploaded
 
   /list_files:
@@ -76,7 +76,7 @@ paths:
             type: integer
             default: 16000
       responses:
-        '200':
+        "200":
           description: A list of files
           content:
             application/json:
@@ -115,7 +115,7 @@ paths:
               required:
                 - file
       responses:
-        '200':
+        "200":
           description: File successfully updated
 
     delete:
@@ -133,7 +133,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: File successfully deleted
 
     get:
@@ -148,7 +148,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: File content
           content:
             application/octet-stream:
@@ -163,7 +163,7 @@ paths:
       summary: Retrieve on MMORE
       description: |
         Search for files based on content similarity.
-      
+
         This request is meant to be called by the Gateway to MMORE service upon chat completions request from Moove.
       requestBody:
         required: true
@@ -196,7 +196,7 @@ paths:
                 - query
                 - maxMatches
       responses:
-        '200':
+        "200":
           description: List of matching files with related content, sorted by highest similarity first.
           content:
             application/json:
@@ -217,4 +217,14 @@ paths:
                       format: float
                       minimum: -1.0
                       maximum: 1.0
+                    pageNumbers:
+                      type: array
+                      items:
+                        type: integer
+                      description: Page numbers covered by this chunk (empty if not applicable)
+                    paragraphNumbers:
+                      type: array
+                      items:
+                        type: integer
+                      description: Paragraph indices within their respective pages (empty if not applicable)
                 description: Results sorted by similarity (highest first)
