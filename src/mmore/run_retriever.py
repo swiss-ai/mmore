@@ -163,6 +163,7 @@ def make_router(config_file: str) -> APIRouter:
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
                     "pageNumbers": meta.get("page_numbers", []),
+                    "paragraphNumbers": meta.get("paragraph_numbers", []),
                 }
             )
 

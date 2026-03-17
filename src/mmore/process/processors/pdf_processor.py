@@ -40,6 +40,7 @@ class PDFProcessor(Processor):
             "languages": None,
             "use_llm": False,
             "disable_multiprocessing": False,
+            "paginate_output": True,
         }
         config_parser = ConfigParser(marker_config)
         converter = PdfConverter(
@@ -129,6 +130,9 @@ class PDFProcessor(Processor):
 
                 return results
 
+    # Regex matching marker page separators: \n\n{page_id}----...\n\n
+    _PAGE_SEP_RE = re.compile(r"\n\n\{(\d+)\}-{3,}\n\n")
+
     def process(self, file_path: str) -> MultimodalSample:
         if self.converter is None:
             self.converter = PDFProcessor.load_models(
@@ -141,13 +145,72 @@ class PDFProcessor(Processor):
         text, _, images = text_from_rendered(rendered)
         text = re.sub(str(IMG_REGEX), "<attachment>", cast(str, text))
         images = list(images.values())
-        return self.create_sample([text], images, {"file_path": file_path})
+
+        page_starts, paragraph_starts, text = self._parse_pagination(cast(str, text))
+
+        metadata = {"file_path": file_path}
+        if page_starts:
+            metadata["page_starts"] = page_starts
+            metadata["paragraph_starts"] = paragraph_starts
+
+        return self.create_sample([text], images, metadata)
+
+    @classmethod
+    def _parse_pagination(cls, text: str) -> Tuple[
+        List[Tuple[int, int]],
+        List[Tuple[int, int, int]],
+        str,
+    ]:
+        """Parse marker pagination separators to build page_starts and paragraph_starts,
+        then strip the separators from the text."""
+        separators = list(cls._PAGE_SEP_RE.finditer(text))
+        if not separators:
+            return [], [], text
+
+        page_texts: List[Tuple[int, str]] = []  # (page_id, page_content)
+        prev_end = 0
+        for match in separators:
+            page_id = int(match.group(1))
+            page_content = text[prev_end:match.start()]
+            page_texts.append((page_id, page_content))
+            prev_end = match.end()
+        trailing = text[prev_end:]
+        if trailing.strip():
+            last_page_id = int(separators[-1].group(1)) + 1
+            page_texts.append((last_page_id, trailing))
+
+        page_starts: List[Tuple[int, int]] = []
+        paragraph_starts: List[Tuple[int, int, int]] = []
+        current_position = 0
+
+        for page_id, page_content in page_texts:
+            page_starts.append((current_position, page_id))
+
+            para_idx = 0
+            offset_in_page = 0
+            for segment in page_content.split("\n\n"):
+                if segment.strip():
+                    paragraph_starts.append(
+                        (current_position + offset_in_page, page_id, para_idx)
+                    )
+                    para_idx += 1
+                offset_in_page += len(segment) + 2
+
+            current_position += len(page_content)
+
+        page_starts.append((current_position, page_starts[-1][1] + 1))
+        paragraph_starts.append((current_position, -1, -1))
+
+        clean_text = "".join(content for _, content in page_texts)
+
+        return page_starts, paragraph_starts, clean_text
 
     def process_fast(self, file_path: str) -> MultimodalSample:
         pdf_doc = pymupdf.Document(file_path)
         all_text_parts = []
         embedded_images = []
         page_starts: List[Tuple[int, int]] = []
+        paragraph_starts: List[Tuple[int, int, int]] = []  # (char_offset, page_num, para_index)
         current_position = 0
 
         def _extract_images(pdf_doc, xref) -> Optional[Image.Image]:
@@ -181,6 +244,16 @@ class PDFProcessor(Processor):
             text = clean_text(page.get_text())  # type: ignore[attr-defined]
 
             if text.strip():
+                para_idx = 0
+                offset_in_page = 0
+                for segment in text.split("\n\n"):
+                    if segment.strip():
+                        paragraph_starts.append(
+                            (current_position + offset_in_page, page_num, para_idx)
+                        )
+                        para_idx += 1
+                    offset_in_page += len(segment) + 2  # +2 for the "\n\n" separator
+
                 all_text_parts.append(text)
                 current_position += len(text)
 
@@ -197,9 +270,11 @@ class PDFProcessor(Processor):
                 embedded_images = []
 
         page_starts.append((current_position, len(pdf_doc)))
+        paragraph_starts.append((current_position, -1, -1))
         metadata = {
             "file_path": file_path,
             "page_starts": page_starts,
+            "paragraph_starts": paragraph_starts,
             "document_type": "pdf",
         }
 
