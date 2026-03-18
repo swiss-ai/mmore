@@ -68,13 +68,13 @@ Follow the official [Docker installation guide](https://docs.docker.com/get-star
 ##### Step 2: Build the Docker image
 
 ```bash
-sudo docker build . --tag mmore
+sudo docker build -f docker/ubuntu/Dockerfile . --tag mmore
 ```
 
 To build for CPU-only platforms (results in a smaller image size):
 
 ```bash
-sudo docker build --build-arg PLATFORM=cpu -t mmore .
+sudo docker build -f docker/ubuntu/Dockerfile --build-arg PLATFORM=cpu -t mmore .
 ```
 
 *Running on RCP:* you can specify a `USER_UID` and a `USER_GID` variable. Set it to your RCP user ID and group ID to run it there.

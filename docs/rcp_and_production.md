@@ -14,7 +14,7 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
 
 2. **Build Docker image with custom IDs** (replace` <user-id>` and `<group-id>` with your actual IDs):
    ```bash
-   sudo docker build --build-arg USER_UID=<user-id> --build-arg USER_GID=<group-id> -t mmore .
+   sudo docker build -f docker/ubuntu/Dockerfile --build-arg USER_UID=<user-id> --build-arg USER_GID=<group-id> -t mmore .
    ```
 
 3. **Login to DockerHub**:
