@@ -1,20 +1,21 @@
-ARG PLATFORM
+ARG TARGET_PLATFORM=linux/amd64
+ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM archlinux:latest AS gpu
+FROM --platform=${TARGET_PLATFORM} archlinux:latest AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 RUN echo "DisableSandbox" >> /etc/pacman.conf 
 RUN pacman -Sy --noconfirm cuda cudnn
 
-FROM archlinux:latest AS cpu
+FROM --platform=${TARGET_PLATFORM} archlinux:latest AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 RUN echo "DisableSandbox" >> /etc/pacman.conf
 
 # --- Build ---
-FROM ${PLATFORM:-gpu} AS build
+FROM --platform=${TARGET_PLATFORM} ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 

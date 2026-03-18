@@ -4,6 +4,10 @@ Based on `opensuse/leap:15.6`. CUDA 12.6 is installed manually via the NVIDIA zy
 
 ## Build
 
+> **Note:** The default target architecture is `linux/amd64`. Pass `--build-arg TARGET_PLATFORM=<value>` to override:
+> - `linux/amd64` — x86_64 servers (e.g. RCP)
+> - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
+
 GPU (default):
 ```bash
 sudo docker build -f docker/sles/Dockerfile . -t mmore:sles
@@ -11,7 +15,7 @@ sudo docker build -f docker/sles/Dockerfile . -t mmore:sles
 
 CPU-only:
 ```bash
-sudo docker build -f docker/sles/Dockerfile --build-arg PLATFORM=cpu -t mmore:sles-cpu .
+sudo docker build -f docker/sles/Dockerfile --build-arg DEVICE=cpu -t mmore:sles-cpu .
 ```
 
 Custom extras (overrides the default `--extra all,cu126` or `--extra all,cpu`):

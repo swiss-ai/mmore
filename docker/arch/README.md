@@ -4,6 +4,10 @@ Based on `archlinux:latest`. CUDA and cuDNN are installed manually via `pacman` 
 
 ## Build
 
+> **Note:** The default target architecture is `linux/amd64`. Pass `--build-arg TARGET_PLATFORM=<value>` to override:
+> - `linux/amd64` — x86_64 servers (e.g. RCP)
+> - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
+
 GPU (default):
 ```bash
 sudo docker build -f docker/arch/Dockerfile . -t mmore:arch
@@ -11,7 +15,7 @@ sudo docker build -f docker/arch/Dockerfile . -t mmore:arch
 
 CPU-only:
 ```bash
-sudo docker build -f docker/arch/Dockerfile --build-arg PLATFORM=cpu -t mmore:arch-cpu .
+sudo docker build -f docker/arch/Dockerfile --build-arg DEVICE=cpu -t mmore:arch-cpu .
 ```
 
 Custom extras (overrides the default `--extra all,cu126` or `--extra all,cpu`):
