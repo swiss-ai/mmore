@@ -1,24 +1,27 @@
 ARG PLATFORM
-ARG UV_ARGUMENTS=""
+ARG UV_OVERRIDE
 
-FROM nvidia/cuda:12.2.2-base-ubuntu22.04 AS gpu
-ARG PLATFORM
+# --- Base images ---
+FROM nvidia/cuda:12.6.3-base-ubuntu22.04 AS gpu
+ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 
 FROM ubuntu:22.04 AS cpu
-ARG PLATFORM
-ARG UV_ARGUMENTS="--extra cpu"
+ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 
+# --- Build ---
 FROM ${PLATFORM:-gpu} AS build
-ARG UV_ARGUMENTS
+ARG UV_OVERRIDE
+ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 
 ARG USER_UID=1000
 ARG USER_GID=1000
 
+# Install system dependencies
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      python3-venv python3-pip \
+      python3.11 python3.11-venv python3-pip \
       tzdata nano curl ffmpeg libsm6 libxext6 libnss3 \
       libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 libxfixes3 libxrender1 \
       libasound2 libatk1.0-0 libgtk-3-0 libreoffice libjpeg-dev libpango-1.0-0 \
@@ -27,23 +30,27 @@ RUN apt-get update && \
     dpkg-reconfigure --frontend noninteractive tzdata && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
+# Create non-root user
 RUN groupadd --gid ${USER_GID} mmoreuser \
  && useradd --uid ${USER_UID} --gid ${USER_GID} -m mmoreuser
 
 WORKDIR /app
-RUN chown -R mmoreuser:mmoreuser /app
-
+RUN chown mmoreuser:mmoreuser /app
 USER mmoreuser
 
-RUN python3 -m venv .venv \
+# Set up Python virtual environment
+RUN python3.11 -m venv .venv \
  && .venv/bin/pip install --no-cache-dir uv
 
-COPY pyproject.toml poetry.lock* /app/
+# Install dependencies (cached unless uv.lock changes)
+COPY --chown=mmoreuser:mmoreuser pyproject.toml uv.lock /app/
+RUN .venv/bin/uv sync --frozen --no-install-project ${UV_ARGUMENTS}
+
+# Install the project
 COPY --chown=mmoreuser:mmoreuser . /app
+RUN .venv/bin/uv pip install --no-cache --no-deps -e .
 
-RUN .venv/bin/uv pip install --no-cache ${UV_ARGUMENTS} -e .
-
+# --- Runtime ---
 ENV PATH="/app/.venv/bin:$PATH"
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
 
