@@ -1,21 +1,21 @@
-ARG TARGET_PLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM --platform=${TARGET_PLATFORM} archlinux:latest AS gpu
+FROM --platform=${TARGETPLATFORM} archlinux:latest AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
-RUN echo "DisableSandbox" >> /etc/pacman.conf 
+RUN echo "DisableSandbox" >> /etc/pacman.conf
 RUN pacman -Sy --noconfirm cuda cudnn
 
-FROM --platform=${TARGET_PLATFORM} archlinux:latest AS cpu
+FROM --platform=${TARGETPLATFORM} archlinux:latest AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 RUN echo "DisableSandbox" >> /etc/pacman.conf
 
 # --- Build ---
-FROM --platform=${TARGET_PLATFORM} ${DEVICE:-gpu} AS build
+FROM --platform=${TARGETPLATFORM} ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 
@@ -26,7 +26,7 @@ ARG USER_GID=1000
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm --needed \
       base-devel python uv \
-      tzdata nano curl ffmpeg \
+      tzdata curl ffmpeg \
       libsm libxext nss \
       libxi libxrandr libxcomposite libxcursor libxdamage libxfixes libxrender \
       alsa-lib atk gtk3 libreoffice-fresh libjpeg-turbo pango && \

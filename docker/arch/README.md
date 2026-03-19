@@ -4,11 +4,14 @@ Based on `archlinux:latest`. CUDA and cuDNN are installed manually via `pacman` 
 
 ## Build
 
-> **Note:** The default target architecture is `linux/amd64`. Pass `--build-arg TARGET_PLATFORM=<value>` to override:
+> **Note:** The default target architecture matches the build host. Pass `--build-arg TARGETPLATFORM=<value>` to override:
 > - `linux/amd64` — x86_64 servers (e.g. RCP)
 > - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
 
 GPU (default):
+
+> **Warning:** Building the GPU image takes ~15 minutes and produces an image of ~27 GB. This is due to the lack of an optimized base image with CUDA pre-installed (it is compiled and installed from scratch during the build).
+
 ```bash
 sudo docker build -f docker/arch/Dockerfile . -t mmore:arch
 ```

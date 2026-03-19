@@ -1,22 +1,22 @@
-ARG TARGET_PLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM --platform=${TARGET_PLATFORM} opensuse/leap:15.6 AS gpu
+FROM --platform=${TARGETPLATFORM} opensuse/leap:15.6 AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 RUN zypper --non-interactive addrepo \
       https://developer.download.nvidia.com/compute/cuda/repos/opensuse15/x86_64/cuda-opensuse15.repo && \
     zypper --non-interactive --gpg-auto-import-keys refresh && \
-    zypper --non-interactive install -y cuda-12-6
+    zypper --non-interactive install -y cuda-toolkit-12-6
 
-FROM --platform=${TARGET_PLATFORM} opensuse/leap:15.6 AS cpu
+FROM --platform=${TARGETPLATFORM} opensuse/leap:15.6 AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 
 # --- Build ---
-FROM --platform=${TARGET_PLATFORM} ${DEVICE:-gpu} AS build
+FROM --platform=${TARGETPLATFORM} ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 

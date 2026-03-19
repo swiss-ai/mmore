@@ -1,18 +1,18 @@
-ARG TARGET_PLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM --platform=${TARGET_PLATFORM} nvidia/cuda:12.6.3-base-ubuntu22.04 AS gpu
+FROM --platform=${TARGETPLATFORM} nvidia/cuda:12.6.3-base-ubuntu22.04 AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 
-FROM --platform=${TARGET_PLATFORM} ubuntu:22.04 AS cpu
+FROM --platform=${TARGETPLATFORM} ubuntu:22.04 AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 
 # --- Build ---
-FROM --platform=${TARGET_PLATFORM} ${DEVICE:-gpu} AS build
+FROM --platform=${TARGETPLATFORM} ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 

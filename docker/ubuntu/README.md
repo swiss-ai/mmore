@@ -2,9 +2,15 @@
 
 Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
+> **Pre-built images:** CPU and GPU images are automatically built and published to GHCR on every push to `master` via the CI workflow. Each image is a multi-platform manifest covering both `linux/amd64` and `linux/arm64`. Pull them directly with:
+> ```bash
+> docker pull ghcr.io/swiss-ai/mmore:edge-gpu
+> docker pull ghcr.io/swiss-ai/mmore:edge-cpu
+> ```
+
 ## Build
 
-> **Note:** The default target architecture is `linux/amd64`. Pass `--build-arg TARGET_PLATFORM=<value>` to override:
+> **Note:** The default target architecture matches the build host. Pass `--build-arg TARGETPLATFORM=<value>` to override:
 > - `linux/amd64` — x86_64 servers (e.g. RCP)
 > - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
 
