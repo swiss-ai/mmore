@@ -74,7 +74,7 @@ sudo docker build -f docker/ubuntu/Dockerfile . --tag mmore
 To build for CPU-only platforms (results in a smaller image size):
 
 ```bash
-sudo docker build -f docker/ubuntu/Dockerfile --build-arg PLATFORM=cpu -t mmore .
+sudo docker build -f docker/ubuntu/Dockerfile --build-arg DEVICE=cpu -t mmore .
 ```
 
 *Running on RCP:* you can specify a `USER_UID` and a `USER_GID` variable. Set it to your RCP user ID and group ID to run it there.

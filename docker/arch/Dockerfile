@@ -1,21 +1,20 @@
-ARG TARGETPLATFORM
 ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM --platform=${TARGETPLATFORM} archlinux:latest AS gpu
+FROM archlinux:latest AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 RUN echo "DisableSandbox" >> /etc/pacman.conf
 RUN pacman -Sy --noconfirm cuda cudnn
 
-FROM --platform=${TARGETPLATFORM} archlinux:latest AS cpu
+FROM archlinux:latest AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 RUN echo "DisableSandbox" >> /etc/pacman.conf
 
 # --- Build ---
-FROM --platform=${TARGETPLATFORM} ${DEVICE:-gpu} AS build
+FROM ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 
@@ -51,7 +50,7 @@ RUN uv venv --python 3.11 .venv \
 COPY --chown=mmoreuser:mmoreuser pyproject.toml uv.lock /app/
 RUN uv sync --frozen --no-install-project ${UV_ARGUMENTS}
 
-# Install the project
+# Install mmore from local source code
 COPY --chown=mmoreuser:mmoreuser . /app
 RUN uv pip install --no-cache --no-deps -e .
 

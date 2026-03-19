@@ -22,6 +22,13 @@ MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retr
 
 ### Installation
 
+> :whale: **Prefer Docker?** Skip the steps below and pull a pre-built multi-platform image directly from GHCR, with CPU and GPU variants:
+> ```bash
+> docker pull ghcr.io/swiss-ai/mmore:edge-gpu   # GPU (CUDA 12.6)
+> docker pull ghcr.io/swiss-ai/mmore:edge-cpu   # CPU-only
+> ```
+> See [`docker/ubuntu/README.md`](docker/ubuntu/README.md) for build instructions and additional base OS variants (Arch Linux, openSUSE Leap).
+
 #### (Step 0 – Install system dependencies)
 
 Our package requires system dependencies. This snippet will take care of installing them for Linux!

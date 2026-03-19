@@ -4,9 +4,10 @@ Based on `archlinux:latest`. CUDA and cuDNN are installed manually via `pacman` 
 
 ## Build
 
-> **Note:** The default target architecture matches the build host. Pass `--build-arg TARGETPLATFORM=<value>` to override:
+> **Note:** The default target architecture matches the build host. Pass `--platform=<value>` to override:
 > - `linux/amd64` — x86_64 servers (e.g. RCP)
 > - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
+> - `windows/amd64` — x86_64 windows machines
 
 GPU (default):
 

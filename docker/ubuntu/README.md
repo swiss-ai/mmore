@@ -2,7 +2,9 @@
 
 Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
-> **Pre-built images:** CPU and GPU images are automatically built and published to GHCR on every push to `master` via the CI workflow. Each image is a multi-platform manifest covering both `linux/amd64` and `linux/arm64`. Pull them directly with:
+> **Other base OS variants:** Dockerfiles for [Arch Linux](../arch/README.md) and [openSUSE Leap](../sles/README.md) are also available if you need a different base distribution.
+
+> **Pre-built images:** CPU and GPU images are automatically built and published to GHCR on every push to `master` via the CI workflow. Each image is a multi-platform manifest covering `linux/amd64`, `linux/arm64` and `windows/amd64`. Pull them directly with:
 > ```bash
 > docker pull ghcr.io/swiss-ai/mmore:edge-gpu
 > docker pull ghcr.io/swiss-ai/mmore:edge-cpu
@@ -10,9 +12,10 @@ Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
 ## Build
 
-> **Note:** The default target architecture matches the build host. Pass `--build-arg TARGETPLATFORM=<value>` to override:
+> **Note:** The default target architecture matches the build host. Pass `--platform=<value>` to override:
 > - `linux/amd64` — x86_64 servers (e.g. RCP)
 > - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
+> - `windows/amd64` — x86_64 windows machines
 
 GPU (default):
 ```bash

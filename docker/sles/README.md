@@ -4,9 +4,10 @@ Based on `opensuse/leap:15.6`. CUDA 12.6 is installed manually via the NVIDIA zy
 
 ## Build
 
-> **Note:** The default target architecture matches the build host. Pass `--build-arg TARGETPLATFORM=<value>` to override:
+> **Note:** The default target architecture matches the build host. Pass `--platform=<value>` to override:
 > - `linux/amd64` — x86_64 servers (e.g. RCP)
 > - `linux/arm64` — ARM64 machines (e.g. Apple Silicon)
+> - `windows/amd64` — x86_64 windows machines
 
 GPU (default):
 

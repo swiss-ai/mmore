@@ -1,9 +1,8 @@
-ARG TARGETPLATFORM
 ARG DEVICE
 ARG UV_OVERRIDE
 
 # --- Base images ---
-FROM --platform=${TARGETPLATFORM} opensuse/leap:15.6 AS gpu
+FROM opensuse/leap:15.6 AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
 RUN zypper --non-interactive addrepo \
@@ -11,12 +10,12 @@ RUN zypper --non-interactive addrepo \
     zypper --non-interactive --gpg-auto-import-keys refresh && \
     zypper --non-interactive install -y cuda-toolkit-12-6
 
-FROM --platform=${TARGETPLATFORM} opensuse/leap:15.6 AS cpu
+FROM opensuse/leap:15.6 AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
 
 # --- Build ---
-FROM --platform=${TARGETPLATFORM} ${DEVICE:-gpu} AS build
+FROM ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
 
@@ -51,7 +50,7 @@ RUN python3.11 -m venv .venv \
 COPY --chown=mmoreuser:mmoreuser pyproject.toml uv.lock /app/
 RUN .venv/bin/uv sync --frozen --no-install-project ${UV_ARGUMENTS}
 
-# Install the project
+# Install mmore from local source code
 COPY --chown=mmoreuser:mmoreuser . /app
 RUN .venv/bin/uv pip install --no-cache --no-deps -e .
 
