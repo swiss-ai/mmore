@@ -3,9 +3,12 @@ websearch:
   n_subqueries : 3
   n_loops: 2
   max_searches: 10
+  search_provider: duckduckgo
+  max_retries: 3
+  max_context_tokens: 2048
   mode: api
   llm_config:
-    llm_name: OpenMeditron/meditron3-8b
+    llm_name: OpenMeditron/meditron3-8b # Qwen/Qwen2-0.5B 
     max_new_tokens: 1200
 
 # Mode Config

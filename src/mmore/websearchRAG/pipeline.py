@@ -1,3 +1,4 @@
+import torch
 import json
 import os
 import re
@@ -135,6 +136,11 @@ class WebsearchPipeline:
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
 
         return cleaned_section
+    
+    def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
+        """Fallback character truncation (roughly 4 chars per token) to prevent segfaults."""
+        char_limit = max_tokens * 4
+        return text[:char_limit] if len(text) > char_limit else text
 
     def generate_subqueries(
         self, original_query: str, current_context: Optional[str] = None
@@ -255,7 +261,9 @@ class WebsearchPipeline:
                 break
 
             for sq in subs:
-                time.sleep(10)
+                # Only sleep for DDG, and make it 2 seconds instead of 10
+                if self.config.search_provider == "duckduckgo":
+                    time.sleep(2)
                 res = self.duckduckgo_search(query=sq)
 
                 subquery_snippets = []
@@ -267,20 +275,28 @@ class WebsearchPipeline:
                     if r["title"] not in source_map[r["url"]]:
                         source_map[r["url"]].append(r["title"])
 
-                    snippet = f"{r['snippet']})"
+                    snippet = f"{r['snippet']}"
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
 
+                # Run this ONCE per subquery!
+                if subquery_snippets:
                     combined_snippets = "\n".join(subquery_snippets)
-
+                    # APPLY TRUNCATION HERE
+                    combined_snippets = self._truncate_to_token_limit(combined_snippets, self.config.max_context_tokens)
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
+
+                # CLEAR MEMORY HERE
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
             previous_sub = subs
 
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
             )
+            combined_sub_summaries = self._truncate_to_token_limit(combined_sub_summaries, self.config.max_context_tokens)
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
@@ -294,7 +310,9 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
+            combined_web_summaries = self._truncate_to_token_limit(combined_web_summaries, self.config.max_context_tokens)
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
+
 
             # Current context, web content  to generate the answer
             out = self.integrate_with_llm(qr, context_for_llm, snippets)

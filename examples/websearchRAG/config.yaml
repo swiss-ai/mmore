@@ -8,7 +8,10 @@ websearch:
   output_file: examples/websearchRAG/enhanced_results_trial.json
   n_loops: 2
   max_searches: 5
+  search_provider: duckduckgo
+  max_retries: 3
+  max_context_tokens: 2048
   mode: local
   llm_config:
-    llm_name: OpenMeditron/meditron3-8b
+    llm_name: OpenMeditron/meditron3-8b # Qwen/Qwen2-0.5B 
     max_new_tokens: 1200

@@ -3,8 +3,8 @@ import os
 import time
 from typing import Dict, List, Literal
 
-from duckduckgo_search import DDGS
-from duckduckgo_search.exceptions import DuckDuckGoSearchException, RatelimitException
+from ddgs import DDGS
+from ddgs.exceptions import DDGSException, RatelimitException
 
 from ..rag.llm import LLM, LLMConfig
 
@@ -64,7 +64,7 @@ class WebsearchOnly:
                 )
                 time.sleep(wait)
 
-            except DuckDuckGoSearchException as e:
+            except DDGSException as e:
                 logger.error(f"DDG search error: {e}")
                 return []
 

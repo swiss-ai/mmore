@@ -126,7 +126,7 @@ api = [
 # --- Composite + variant extras ---
 
 all = [
-    "mmore[process,index,rag,api]",
+    "mmore[process,index,rag,api,websearch]",
 ]
 
 cpu = [
@@ -143,7 +143,7 @@ websearch = [
     # Usage: pip install mmore[websearch]
     # Requires: TAVILY_API_KEY environment variable
     "tavily-python>=0.3.0",
-    "duckduckgo-search>=6.0",
+    "ddgs>=6.0",
 ]
 
 dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]

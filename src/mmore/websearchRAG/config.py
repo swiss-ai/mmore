@@ -41,6 +41,7 @@ class WebsearchConfig:
     max_searches: int = 10
     max_retries: int = 3
     search_provider: Literal["duckduckgo", "tavily"] = "duckduckgo"
+    max_context_tokens: int = 2048
 
     llm_config: LLMConfig = field(
         default_factory=lambda: LLMConfig(
