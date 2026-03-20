@@ -1,19 +1,39 @@
+import pytest
+
 from mmore.rag import llm as llm_module
 from mmore.rag.llm import LLM, LLMConfig
 
 
 def test_llm_config_provider_explicit():
-    cfg = LLMConfig(llm_name="some-model", provider="openai", max_new_tokens=128)
+    cfg = LLMConfig(llm_name="some-model", organization="openai", max_new_tokens=128)
 
-    assert cfg.provider == "OPENAI"
+    assert cfg.organization == "OPENAI"
     assert cfg.generation_kwargs["max_completion_tokens"] == 128
 
 
-def test_llm_config_legacy_model_name_inference():
-    cfg = LLMConfig(llm_name="mistral-7b", max_new_tokens=64)
+@pytest.mark.parametrize(
+    ("model_name", "expected_provider"),
+    [
+        ("gpt-4.1-mini", "OPENAI"),
+        ("claude-3-7-sonnet-latest", "ANTHROPIC"),
+        ("mistral-large-latest", "MISTRAL"),
+        ("command-r-plus", "COHERE"),
+    ],
+)
+def test_llm_config_model_hint_inference(model_name, expected_provider):
+    cfg = LLMConfig(llm_name=model_name, max_new_tokens=64)
 
-    assert cfg.provider == "MISTRAL"
+    assert cfg.organization == expected_provider
     assert cfg.generation_kwargs["max_new_tokens"] == 64
+
+
+def test_llm_config_base_url_hint_inference():
+    cfg = LLMConfig(
+        llm_name="model-without-org-clues",
+        base_url="https://api.mistral.ai/v1",
+    )
+
+    assert cfg.organization == "MISTRAL"
 
 
 def test_llm_config_legacy_custom_organization_with_base_url(monkeypatch):
@@ -25,7 +45,7 @@ def test_llm_config_legacy_custom_organization_with_base_url(monkeypatch):
         base_url="https://fmapi.example.org",
     )
 
-    assert cfg.provider == "OPENAI"
+    assert cfg.organization == "OPENAI"
     assert cfg.api_key_env_var == "SWISSAI_API_KEY"
     assert cfg.api_key == "swissai-token"
 
@@ -43,7 +63,7 @@ def test_llm_from_config_uses_provider_loader_and_kwargs(monkeypatch):
 
     cfg = LLMConfig(
         llm_name="gpt-4.1-mini",
-        provider="openai",
+        organization="openai",
         base_url="https://api.example.org/v1",
         max_new_tokens=33,
         temperature=0.15,

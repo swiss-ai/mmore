@@ -75,7 +75,7 @@ Here is an example on how to use the `LLM` module alone. Note that it assumes th
 1. Create a config file:
     ```yaml
     llm_name: gpt-4o-mini
-    provider: openai
+    organization: openai
     max_new_tokens: 150
     temperature: 0.7
     ```

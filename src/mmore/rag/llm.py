@@ -1,7 +1,9 @@
 import os
+import re
 from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Any, ClassVar, Optional
+from urllib.parse import urlparse
 
 import torch
 from langchain_anthropic import ChatAnthropic
@@ -15,34 +17,6 @@ from ..utils import load_config
 
 logger = getLogger(__name__)
 
-_OPENAI_MODELS = [
-    "gpt-4",
-    "gpt-4-turbo",
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-3.5-turbo",
-    "davinci",
-    "curie",
-    "babbage",
-    "ada",
-]
-_ANTHROPIC_MODELS = [
-    "claude-1",
-    "claude-1.3",
-    "claude-2",
-    "claude-instant-1",
-    "claude-instant-1.1",
-    "claude-instant-1.2",
-]
-_MISTRAL_MODELS = ["mistral-7b", "mistral-7b-instruct", "mistral-7b-chat"]
-_COHERE_MODELS = [
-    "command",
-    "command-light",
-    "command-nightly",
-    "summarize",
-    "embed-english-v2.0",
-]
-
 loaders: dict[str, Any] = {
     "OPENAI": ChatOpenAI,
     "ANTHROPIC": ChatAnthropic,
@@ -51,26 +25,60 @@ loaders: dict[str, Any] = {
     "HF": ChatHuggingFace,
 }
 
+_PROVIDER_MODEL_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
+    "OPENAI": (
+        re.compile(r"(^|[/:_-])(gpt|chatgpt)([/:_.-]|$)", re.IGNORECASE),
+        re.compile(r"^o[134]\b", re.IGNORECASE),  # o1/o3/o4 family
+        re.compile(r"(^|[/:_-])openai([/:_.-]|$)", re.IGNORECASE),
+    ),
+    "ANTHROPIC": (
+        re.compile(r"(^|[/:_-])claude([/:_.-]|$)", re.IGNORECASE),
+        re.compile(r"(^|[/:_-])anthropic([/:_.-]|$)", re.IGNORECASE),
+    ),
+    "MISTRAL": (
+        re.compile(
+            r"(^|[/:_-])(mistral|mixtral|ministral|pixtral|codestral)([/:_.-]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    "COHERE": (
+        re.compile(r"(^|[/:_-])(command|cohere|c4ai)([/:_.-]|$)", re.IGNORECASE),
+    ),
+}
 
-def _infer_provider_from_legacy_model_name(llm_name: str) -> Optional[str]:
-    if llm_name in _OPENAI_MODELS:
-        return "OPENAI"
-    if llm_name in _ANTHROPIC_MODELS:
-        return "ANTHROPIC"
-    if llm_name in _MISTRAL_MODELS:
-        return "MISTRAL"
-    if llm_name in _COHERE_MODELS:
-        return "COHERE"
+_PROVIDER_BASE_URL_HINTS: dict[str, tuple[str, ...]] = {
+    "OPENAI": ("openai",),
+    "ANTHROPIC": ("anthropic",),
+    "MISTRAL": ("mistral",),
+    "COHERE": ("cohere",),
+}
+
+
+def _normalize_value(value: Optional[str]) -> Optional[str]:
+    return value.upper() if value is not None else None
+
+
+def _infer_organization_from_hints(
+    llm_name: str, base_url: Optional[str]
+) -> Optional[str]:
+    for organization, patterns in _PROVIDER_MODEL_PATTERNS.items():
+        if any(pattern.search(llm_name) for pattern in patterns):
+            return organization
+
+    if base_url:
+        hostname = (urlparse(base_url).hostname or "").lower()
+        for organization, hints in _PROVIDER_BASE_URL_HINTS.items():
+            if any(hint in hostname for hint in hints):
+                return organization
+
     return None
 
 
 @dataclass
 class LLMConfig:
     llm_name: str
-    provider: Optional[str] = None
-    base_url: Optional[str] = None
-    # Deprecated alias of "provider". Kept for backward compatibility.
     organization: Optional[str] = None
+    base_url: Optional[str] = None
     # Optional override (e.g., "SWISSAI_API_KEY") for API-key lookup.
     api_key_env_var: Optional[str] = None
     max_new_tokens: Optional[int] = None
@@ -79,115 +87,59 @@ class LLMConfig:
     client_kwargs: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        if self.provider is not None:
-            self.provider = self.provider.upper()
+        self.organization = _normalize_value(self.organization)
 
-        if self.organization is not None:
-            self.organization = self.organization.upper()
-
-        if self.provider and self.organization and self.provider != self.organization:
-            if self.organization in loaders:
-                raise ValueError(
-                    "Both 'provider' and deprecated 'organization' are set with different values. "
-                    "Set only 'provider'."
-                )
-            if self.base_url is None:
-                raise ValueError(
-                    f"Unknown organization '{self.organization}' without base_url. "
-                    "Set 'provider' explicitly."
-                )
-            self.api_key_env_var = (
-                self.api_key_env_var or f"{self.organization}_API_KEY"
+        if self.organization is None:
+            self.organization = _infer_organization_from_hints(
+                self.llm_name, self.base_url
             )
+
+        if self.organization is None:
+            self.organization = "OPENAI" if self.base_url is not None else "HF"
             logger.warning(
-                "Using provider='%s' for routing and '%s' for API key env var. "
-                "Set provider and api_key_env_var explicitly.",
-                self.provider,
-                self.api_key_env_var,
+                "No organization configured. Defaulting to organization='%s'.",
+                self.organization,
             )
 
-        if self.provider is None and self.organization is not None:
-            if self.organization in loaders:
-                self.provider = self.organization
-                logger.warning(
-                    "LLMConfig.organization is deprecated. Use provider='%s' instead.",
-                    self.provider,
-                )
-            elif self.base_url is not None:
-                # Backward compatibility for openai-compatible endpoints
-                # with custom key env var naming (e.g., SWISSAI_API_KEY).
-                self.provider = "OPENAI"
-                self.api_key_env_var = (
-                    self.api_key_env_var or f"{self.organization}_API_KEY"
-                )
-                logger.warning(
-                    "LLMConfig.organization='%s' is deprecated. "
-                    "Set provider='OPENAI' and api_key_env_var='%s'.",
-                    self.organization,
-                    self.api_key_env_var,
-                )
-            else:
-                raise ValueError(
-                    f"Unknown organization '{self.organization}'. Set provider explicitly."
-                )
+        self._validate_organization()
 
-        if self.provider is None:
-            inferred_provider = _infer_provider_from_legacy_model_name(self.llm_name)
-            if inferred_provider is not None:
-                self.provider = inferred_provider
-                logger.warning(
-                    "Inferring provider from llm_name is deprecated. "
-                    "Set provider='%s' explicitly.",
-                    self.provider,
-                )
-            elif self.base_url is not None:
-                self.provider = "OPENAI"
-                logger.warning(
-                    "No provider configured. Defaulting to provider='OPENAI' because base_url is set."
-                )
-            else:
-                self.provider = "HF"
-                logger.warning("No provider configured. Defaulting to provider='HF'.")
+    def _validate_organization(self) -> None:
+        if self.organization in loaders:
+            return
 
-        if self.provider not in loaders:
-            supported = ", ".join(sorted(loaders))
-            raise ValueError(
-                f"Unsupported provider '{self.provider}'. Supported providers: {supported}."
-            )
+        supported = ", ".join(sorted(loaders))
+        raise ValueError(
+            f"Unsupported organization '{self.organization}'. Supported organizations: {supported}."
+        )
 
     @property
     def generation_kwargs(self) -> dict[str, Any]:
-        provider = self.resolved_provider
         max_token_key = (
             "max_new_tokens"
-            if provider in {"ANTHROPIC", "MISTRAL", "COHERE", "HF"}
+            if self.resolved_organization in {"ANTHROPIC", "MISTRAL", "COHERE", "HF"}
             else "max_completion_tokens"
         )
         return {"temperature": self.temperature, max_token_key: self.max_new_tokens}
 
     @property
-    def _resolved_api_key_env_var(self) -> str:
-        return self.api_key_env_var or f"{self.resolved_provider}_API_KEY"
-
-    @property
-    def resolved_provider(self) -> str:
-        if self.provider is None:
+    def resolved_organization(self) -> str:
+        if self.organization is None:
             raise ValueError(
-                "Provider resolution failed; provider should never be None."
+                "Organization resolution failed; organization should never be None."
             )
-        return self.provider
+        return self.organization
 
     @property
     def api_key(self) -> Optional[str]:
-        provider = self.resolved_provider
-        if provider == "HF":
+        organization = self.resolved_organization
+        if organization == "HF":
             return None
 
-        key_env_var = self._resolved_api_key_env_var
+        key_env_var = self.api_key_env_var or f"{self.resolved_organization}_API_KEY"
         if key_env_var in os.environ:
             return os.environ[key_env_var]
 
-        if provider == "OPENAI" and self.base_url:
+        if organization == "OPENAI" and self.base_url:
             # Keep compatibility with keyless openai-compatible local servers.
             return "EMPTY"
 
@@ -196,7 +148,7 @@ class LLMConfig:
 
     @property
     def is_huggingface(self) -> bool:
-        return self.resolved_provider == "HF"
+        return self.resolved_organization == "HF"
 
     @property
     def inference_kwargs(self) -> dict[str, Any]:
@@ -209,7 +161,7 @@ class LLMConfig:
             **self.inference_kwargs,
             **self.client_kwargs,
         }
-        if self.base_url is not None and self.resolved_provider == "OPENAI":
+        if self.base_url is not None and self.resolved_organization == "OPENAI":
             kwargs["base_url"] = self.base_url
 
         api_key = self.api_key
@@ -262,5 +214,5 @@ class LLM(BaseChatModel):
                 )
             )
 
-        loader = loaders[config.resolved_provider]
+        loader = loaders[config.resolved_organization]
         return loader(**config.loader_kwargs)
