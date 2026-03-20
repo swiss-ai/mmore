@@ -1,0 +1,15 @@
+rag:
+  llm: 
+    llm_name: meta-llama/Meta-Llama-3.1-70B-Instruct
+    base_url: https://fmapi.swissai.cscs.ch
+    organization: swissai
+    max_new_tokens: 200
+  retriever:
+    db:
+      uri: ./examples/index/qwen/ner.db
+    hybrid_search_weight: 0.5
+    k: 5
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+inference:
+  input_file: ./examples/rag/queries.jsonl
+  output_file: ./examples/rag/swissai/output.jsonl

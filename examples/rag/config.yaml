@@ -1,6 +1,6 @@
 rag:
   llm: 
-    llm_name: mistral-medium-latest
+    llm_name: OpenMeditron/meditron3-8b
     max_new_tokens: 1200
   retriever:
     db:
