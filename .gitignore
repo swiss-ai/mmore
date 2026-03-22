@@ -2,7 +2,6 @@ processed_texts/
 0000/
 0000_small/
 *.out
-*.lock
 *.zip
 *.log
 .local/
