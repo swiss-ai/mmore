@@ -6,35 +6,24 @@ import yaml
 
 default_config = {
     "processor": {
-        "MediaProcessor": [
-            {"normal_model": "openai/whisper-large-v3-turbo"},
-            {"fast_model": "openai/whisper-tiny"},
-        ],
-        "PDFProcessor": [
-            {"PDFTEXT_CPU_WORKERS": 0},  # We use cpu_count()
-            {"DETECTOR_BATCH_SIZE": 120},
-            {"DETECTOR_POSTPROCESSING_CPU_WORKERS": 0},  # We use cpu_count()
-            {"RECOGNITION_BATCH_SIZE": 64},
-            {"OCR_PARALLEL_WORKERS": 0},  # We use cpu_count()
-            {"TEXIFY_BATCH_SIZE": 120},
-            {"LAYOUT_BATCH_SIZE": 120},
-            {"ORDER_BATCH_SIZE": 90},
-            {"TABLE_REC_BATCH_SIZE": 120},
-        ],
+        "MediaProcessor": {
+            "normal_model": "openai/whisper-large-v3-turbo",
+            "fast_model": "openai/whisper-tiny",
+        },
     },
     "dispatcher": {
-        "node_batch_sizes": [
-            {"URLProcessor": 40},
-            {"DOCXProcessor": 100},
-            {"PDFProcessor": 3000},
-            {"MediaProcessor": 40},
-            {"SpreadsheetProcessor": 100},
-            {"TXTProcessor": 100},
-            {"PPTXProcessor": 100},
-            {"MarkdownProcessor": 100},
-            {"EMLProcessor": 100},
-            {"HTMLProcessor": 100},
-        ]
+        "batch_sizes": {
+            "URLProcessor": 40,
+            "DOCXProcessor": 100,
+            "PDFProcessor": 3000,
+            "MediaProcessor": 40,
+            "SpreadsheetProcessor": 100,
+            "TextProcessor": 100,
+            "PPTXProcessor": 100,
+            "MarkdownProcessor": 100,
+            "EMLProcessor": 100,
+            "HTMLProcessor": 100,
+        }
     },
 }
 

@@ -7,7 +7,7 @@ The process module enables the extraction and standardization of text and images
 [Setup the project](./installation.md) on each device you want to use using our setup script or looking at what it does and doing it manually.
 
 #### :computer: Running locally
-You have to specify the input folders by modifying the [config file](/examples/process/config.yaml). You can also twist the parameters to your needs. Once ready, you can run the process using the following command:
+Edit the [config file](/examples/process/config.yaml) to point at your data, then run:
 
 ```bash
 python3 -m mmore process --config-file examples/process/config.yaml
@@ -30,7 +30,7 @@ output_path
 │   ├── Processor_type_2
 │   │   └── results.jsonl
 │   ├── ...
-│   
+│
 └── merged
 │    └── merged_results.jsonl
 |
@@ -40,7 +40,7 @@ output_path
 
 We provide [a simple bash script](/scripts/process_distributed.sh) to run the process on distributed mode. Please call it with your arguments.
 ```bash
-bash scripts/process_distributed.sh -f /path/to/my/input/folder 
+bash scripts/process_distributed.sh -f /path/to/my/input/folder
 ```
 
 #### :hourglass: Dashboard UI
@@ -52,24 +52,69 @@ Check the docs in the [dashboard documentation](./dashboard.md).
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
 
+---
+
+## :page_facing_up: Configuration
+
+The config file is a flat YAML file. All options are top-level — there is no nested `dispatcher_config:` wrapper.
+
+```yaml
+# Required
+input_path: data/documents/   # path (or list of paths) to process
+output_path: data/outputs/    # where to save results
+
+# Processing flags
+use_fast_processors: false    # true = faster, lower quality
+extract_images: true          # extract embedded images
+skip_already_processed: false # resume a previous run
+
+# Distributed mode (requires a Dask cluster)
+distributed: false
+# scheduler_file: /path/to/scheduler-file.json
+
+# Optional per-processor overrides (only MediaProcessor has extra settings)
+# processors:
+#   MediaProcessor:
+#     normal_model: openai/whisper-large-v3-turbo
+#     fast_model: openai/whisper-tiny
+#     frame_sample_rate: 10   # extract one video frame every N seconds
+
+# Optional batch sizes (document pages per dispatch batch)
+# batch_sizes:
+#   PDFProcessor: 4000
+#   MediaProcessor: 40
+
+# Optional: pick a specific processor for a file extension
+# file_type_processors:
+#   .pdf: PDFProcessor
+```
+
+See the [example config](/examples/process/config.yaml) for the full annotated version.
+
+### Per-processor settings
+
+| Processor | Config field | Default | Description |
+| --------- | ----------- | ------- | ----------- |
+| `MediaProcessor` | `normal_model` | `openai/whisper-large-v3-turbo` | Whisper model for standard quality |
+| `MediaProcessor` | `fast_model` | `openai/whisper-tiny` | Whisper model for fast mode |
+| `MediaProcessor` | `frame_sample_rate` | `10` | Video: extract one frame every N seconds |
+
+All other processors are configured entirely through the global `extract_images` and `use_fast_processors` flags.
+
+---
+
 ## :zap: Optimization
 ### :racing_car: Fast mode
 
-For some file types, we provide a fast mode that will allow you to process the files faster, using a different method. To use it, set the `use_fast_processors` to `true` in the config file.
+For some file types, we provide a fast mode that will allow you to process the files faster, using a different method. To use it, set `use_fast_processors: true` in the config file.
 
 Be aware that the fast mode might not be as accurate as the default mode, especially for scanned non-native PDFs, which may require Optical Character Recognition (OCR) for more accurate extraction.
 
 ### :rocket: Distributed mode
 
-The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, To use it, set the `distributed` to `true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
+The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, set `distributed: true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
-### :wrench: File type parameters tuning
-
-Many parameters are hardware-dependent and can be customized to suit your needs. For example, you can adjust the processor batch size, dispatcher batch size, and the number of threads per worker to optimize performance.
-
-You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/process/config.yaml).
-
-:rotating_light: Not all parameters are configurable yet :wink:
+---
 
 ## :scroll: More information on what's under the hood
 
@@ -99,11 +144,57 @@ The project supports multiple file types and utilizes various AI-based tools for
 We also use [Dask distributed](https://distributed.dask.org/en/latest/) to manage the distributed environment.
 
 ## :wrench: Customization
-The system is designed to be extensible, allowing you to register custom processors for handling new file types or specialized processing. To implement a new processor you need to inherit the `Processor` class and implement only two methods:
-- accepts: defines the file types your processor supports (e.g. docx)
-- process: how to process a single file (input:file type, output: Multimodal sample, see other processors for reference)
 
-See `TextProcessor` in `src/process/processors/text_processor.py` for a minimal example.
+### Adding a new processor
+
+To add a processor for a new file type, inherit `Processor` and implement two methods:
+
+```python
+from mmore.process.processors.base import Processor, ProcessorConfig
+from mmore.type import FileDescriptor, MultimodalSample
+
+class MyProcessor(Processor):
+    @classmethod
+    def accepts(cls, file: FileDescriptor) -> bool:
+        return file.file_extension.lower() == ".myext"
+
+    def process(self, file_path: str) -> MultimodalSample:
+        # Extract text and images, then:
+        return self.create_sample([text], images, {"file_path": file_path})
+```
+
+Place the file anywhere inside `src/mmore/process/processors/` — it will be auto-discovered and registered.
+
+### Adding processor-specific config fields
+
+If your processor needs its own settings, define a `@dataclass` that extends `ProcessorConfig` and set `CONFIG_CLASS` on the processor class:
+
+```python
+from dataclasses import dataclass
+from mmore.process.processors.base import Processor, ProcessorConfig
+
+@dataclass
+class MyProcessorConfig(ProcessorConfig):
+    my_setting: str = "default"
+
+class MyProcessor(Processor):
+    CONFIG_CLASS = MyProcessorConfig
+
+    def process(self, file_path: str) -> MultimodalSample:
+        assert isinstance(self.config, MyProcessorConfig)
+        value = self.config.my_setting
+        ...
+```
+
+Users can then set `my_setting` in the config file:
+
+```yaml
+processors:
+  MyProcessor:
+    my_setting: custom_value
+```
+
+See `TextProcessor` in [src/mmore/process/processors/txt_processor.py](/src/mmore/process/processors/txt_processor.py) for a minimal processor example, and `MediaProcessor` + `MediaProcessorConfig` in [src/mmore/process/processors/media_processor.py](/src/mmore/process/processors/media_processor.py) for an example with a custom config class.
 
 ## :broom: Post-processing
 
