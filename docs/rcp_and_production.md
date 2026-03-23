@@ -12,7 +12,15 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
    id -g  # Your group ID
    ```
 
-2. **Build Docker image with custom IDs** (replace` <user-id>` and `<group-id>` with your actual IDs):
+2. **Build Docker image with custom IDs** — choose one of the two options below:
+
+   **Option A — CI build (recommended):** Trigger the [Build Student Image](../../.github/workflows/push-to-registry.yml) workflow manually from the GitHub Actions tab and enter your UID and GID. The image will be published to GHCR and tagged as:
+   ```
+   ghcr.io/swiss-ai/mmore:student-uid<user-id>-gid<group-id>-gpu
+   ```
+   You can then pull it directly with `docker pull`.
+
+   **Option B — local build** (replace `<user-id>` and `<group-id>` with your actual IDs):
    ```bash
    sudo docker build -f docker/ubuntu/Dockerfile --build-arg USER_UID=<user-id> --build-arg USER_GID=<group-id> -t mmore .
    ```
