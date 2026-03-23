@@ -24,7 +24,8 @@ class WebsearchConfig:
       n_loops:            (int) Number of loops to run the process.
       max_searches:       (int) Max results to fetch per sub-query.
       max_retries:        (int) Max retries for search on rate limit (default: 3).
-      search_provider:    (str) Search provider: 'duckduckgo' (default, free) or 'tavily' (requires TAVILY_API_KEY, pip install mmore[websearch]).
+      search_provider:    (str) Search provider: 'duckduckgo' (default, free) or 'tavily' (requires TAVILY_API_KEY, pip install "mmore[rag,websearch]").
+      max_context_tokens: (int) Maximum number of context tokens for constructing prompts (default: 2048).
       llm_config:         (dict) Passed to rag.llm.LLMConfig (keys: llm_name, max_new_tokens, temperature, etc.)
       mode:               (str) Mode of operation ("local" or "api").
     """

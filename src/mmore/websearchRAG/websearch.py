@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class WebsearchOnly:
     """Class dedicated to performing web searches only
     Default provider: DuckDuckGo (free, no API key needed)
-    Optional provider: Tavily (set TAVILY_API_KEY, pip install mmore[websearch])
+    Optional provider: Tavily (set TAVILY_API_KEY, pip install "mmore[rag,websearch]")
     """
 
     def __init__(

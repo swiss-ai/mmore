@@ -1,4 +1,3 @@
-import torch
 import json
 import os
 import re
@@ -8,6 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import torch
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -55,7 +55,6 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self.rag_results = None
-        self.max_searches = self.config.max_searches
         self.searcher = WebsearchOnly(
             provider=self.config.search_provider,
             max_results=self.config.max_searches,
@@ -128,15 +127,12 @@ class WebsearchPipeline:
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
-
         if delimiter not in content:
             return content
-
         # Extract the section after the delimiter
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
-
         return cleaned_section
-    
+
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
         """Fallback character truncation (roughly 4 chars per token) to prevent segfaults."""
         char_limit = max_tokens * 4
@@ -197,7 +193,9 @@ class WebsearchPipeline:
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
-        sources = "\n".join(web_snippets)
+        sources = self._truncate_to_token_limit(
+            "\n".join(web_snippets), self.config.max_context_tokens
+        )
         prompt = (
             f"Original Query: {original}\n"
             f"RAG Document Information:\n{rag_doc}\n\n"
@@ -283,7 +281,9 @@ class WebsearchPipeline:
                 if subquery_snippets:
                     combined_snippets = "\n".join(subquery_snippets)
                     # APPLY TRUNCATION HERE
-                    combined_snippets = self._truncate_to_token_limit(combined_snippets, self.config.max_context_tokens)
+                    combined_snippets = self._truncate_to_token_limit(
+                        combined_snippets, self.config.max_context_tokens
+                    )
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
 
@@ -296,7 +296,9 @@ class WebsearchPipeline:
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
             )
-            combined_sub_summaries = self._truncate_to_token_limit(combined_sub_summaries, self.config.max_context_tokens)
+            combined_sub_summaries = self._truncate_to_token_limit(
+                combined_sub_summaries, self.config.max_context_tokens
+            )
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
@@ -310,12 +312,15 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
-            combined_web_summaries = self._truncate_to_token_limit(combined_web_summaries, self.config.max_context_tokens)
+            combined_web_summaries = self._truncate_to_token_limit(
+                combined_web_summaries, self.config.max_context_tokens
+            )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-
             # Current context, web content  to generate the answer
-            out = self.integrate_with_llm(qr, context_for_llm, snippets)
+            out = self.integrate_with_llm(
+                qr, context_for_llm, [] if self.config.use_summary else snippets
+            )
             final_short, final_detailed = out["short"], out["detailed"]
 
             # Prepare context for next search loop

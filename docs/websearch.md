@@ -28,8 +28,9 @@ export TAVILY_API_KEY=your_key_here
 
 Configure the provider in your config file:
 ```yaml
-search_provider: "tavily"   # or "duckduckgo" (default)
-max_retries: 3              # retries on rate limit
+websearch:
+    search_provider: "tavily"   # or "duckduckgo" (default)
+    max_retries: 3              # retries on rate limit
 ```
 
 
