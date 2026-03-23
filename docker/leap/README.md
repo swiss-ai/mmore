@@ -13,30 +13,30 @@ GPU (default):
 > **Warning:** Building the GPU image takes ~15 minutes and produces an image of ~26 GB. This is due to the lack of an optimized base image with CUDA pre-installed (it is installed and compiled from scratch during the build).
 
 ```bash
-sudo docker build -f docker/sles/Dockerfile . -t mmore:sles
+sudo docker build -f docker/leap/Dockerfile . -t mmore:leap
 ```
 
 CPU-only:
 ```bash
-sudo docker build -f docker/sles/Dockerfile --build-arg DEVICE=cpu -t mmore:sles-cpu .
+sudo docker build -f docker/leap/Dockerfile --build-arg DEVICE=cpu -t mmore:leap-cpu .
 ```
 
 Custom extras (overrides the default `--extra all,cu126` or `--extra all,cpu`):
 ```bash
-sudo docker build -f docker/sles/Dockerfile --build-arg UV_OVERRIDE="--extra all,cu126" -t mmore:sles .
+sudo docker build -f docker/leap/Dockerfile --build-arg UV_OVERRIDE="--extra all,cu126" -t mmore:leap .
 ```
 
 Custom user UID/GID (e.g. for RCP):
 ```bash
-sudo docker build -f docker/sles/Dockerfile --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t mmore:sles .
+sudo docker build -f docker/leap/Dockerfile --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t mmore:leap .
 ```
 
 ## Run
 
 ```bash
 # GPU
-sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:sles
+sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:leap
 
 # CPU-only
-sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:sles-cpu
+sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:leap-cpu
 ```

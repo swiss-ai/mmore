@@ -2,7 +2,7 @@
 
 Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
-> **Other base OS variants:** Dockerfiles for [Arch Linux](../arch/README.md) and [openSUSE Leap](../sles/README.md) are also available if you need a different base distribution.
+> **Other base OS variants:** Dockerfiles for [Arch Linux](../arch/README.md) and [openSUSE Leap](../leap/README.md) are also available if you need a different base distribution.
 
 > **Pre-built images:** CPU and GPU images are automatically built and published to GHCR on every push to `master` via the CI workflow. Each image is a multi-platform manifest covering `linux/amd64` and `linux/arm64`. Pull them directly with:
 > ```bash
