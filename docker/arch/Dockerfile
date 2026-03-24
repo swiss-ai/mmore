@@ -5,18 +5,16 @@ ARG UV_OVERRIDE
 FROM archlinux:latest AS gpu
 ENV UV_ARGUMENTS="--extra all,cu126"
 RUN echo "Using GPU image"
-RUN echo "DisableSandbox" >> /etc/pacman.conf
-RUN pacman -Sy --noconfirm cuda cudnn
 
 FROM archlinux:latest AS cpu
 ENV UV_ARGUMENTS="--extra all,cpu"
 RUN echo "Using CPU-only image"
-RUN echo "DisableSandbox" >> /etc/pacman.conf
 
 # --- Build ---
 FROM ${DEVICE:-gpu} AS build
 ARG UV_OVERRIDE
 ENV UV_ARGUMENTS=${UV_OVERRIDE:-$UV_ARGUMENTS}
+RUN echo "DisableSandbox" >> /etc/pacman.conf
 
 ARG USER_UID=1000
 ARG USER_GID=1000

@@ -1,6 +1,6 @@
 # Arch Linux
 
-Based on `archlinux:latest`. CUDA and cuDNN are installed manually via `pacman` for the GPU version.
+Based on `archlinux:latest`.
 
 ## Build
 
