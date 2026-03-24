@@ -84,7 +84,13 @@ class Retriever(BaseRetriever):
 
         # Load reranker from Hugging Face
         if config.reranker_model_name:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps"
+                if torch.backends.mps.is_available()
+                else "cpu"
+            )
             reranker_tokenizer = AutoTokenizer.from_pretrained(
                 config.reranker_model_name
             )
@@ -123,7 +129,7 @@ class Retriever(BaseRetriever):
         partition_names: Optional[List[str]] = None,
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text"],
+        output_fields: List[str] = ["text", "page_numbers", "paragraph_numbers"],
         search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
         document_ids: List[str] = [],  # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
@@ -229,7 +235,7 @@ class Retriever(BaseRetriever):
         partition_names: List[str] = [],
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text"],
+        output_fields: List[str] = ["text", "page_numbers", "paragraph_numbers"],
         search_type: str = "hybrid",
     ) -> List[List[Dict[str, Any]]]:
         """
@@ -284,7 +290,7 @@ class Retriever(BaseRetriever):
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-            ).to("cuda")
+            ).to(self.reranker_model.device)
 
             # Forward pass on the batch
             with torch.no_grad():
@@ -343,6 +349,8 @@ class Retriever(BaseRetriever):
                     "id": result["id"],
                     "rank": offset + i + 1,
                     "similarity": result["distance"],
+                    "page_numbers": result["entity"].get("page_numbers", []),
+                    "paragraph_numbers": result["entity"].get("paragraph_numbers", []),
                 },
             )
 

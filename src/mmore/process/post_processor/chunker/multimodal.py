@@ -80,14 +80,17 @@ class MultimodalChunker(BasePostProcessor):
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
         page_info_chunks = self._assign_page_numbers(sample, text_chunks)
+        para_info_chunks = self._assign_paragraph_numbers(sample, text_chunks)
 
         chunks = []
-        for i, (chunk, mods, page_info) in enumerate(
-            zip(text_chunks, modalities_chunks, page_info_chunks)
+        for i, (chunk, mods, page_info, para_info) in enumerate(
+            zip(text_chunks, modalities_chunks, page_info_chunks, para_info_chunks)
         ):
             chunk_metadata = sample.metadata.copy()
             chunk_metadata.update(page_info)
+            chunk_metadata.update(para_info)
             chunk_metadata.pop("page_starts", None)
+            chunk_metadata.pop("paragraph_starts", None)
 
             s = MultimodalSample(
                 text=chunk.text,
@@ -126,6 +129,34 @@ class MultimodalChunker(BasePostProcessor):
             page_info_chunks.append({"page_numbers": sorted_pages})
 
         return page_info_chunks
+
+    def _assign_paragraph_numbers(
+        self, sample: MultimodalSample, text_chunks: List[Chunk]
+    ) -> List[Dict[str, Any]]:
+        """Assign paragraph numbers (per-page) using paragraph start positions."""
+        para_info_chunks: List[Dict[str, Any]] = []
+        paragraph_starts = cast(
+            List[Tuple[int, int, int]],
+            sample.metadata.get("paragraph_starts", []),
+        )
+
+        if len(paragraph_starts) == 0:
+            for chunk in text_chunks:
+                para_info_chunks.append({})
+            return para_info_chunks
+
+        for chunk in text_chunks:
+            chunk_paragraphs = []
+
+            for i in range(len(paragraph_starts) - 1):
+                para_start, page_num, para_idx = paragraph_starts[i]
+                next_start, _, _ = paragraph_starts[i + 1]
+                if chunk.start_index < next_start and chunk.end_index > para_start:
+                    chunk_paragraphs.append([page_num, para_idx])
+
+            para_info_chunks.append({"paragraph_numbers": chunk_paragraphs})
+
+        return para_info_chunks
 
 
 def _text_index_to_chunk_index(index: int, chunks: List[Chunk]) -> Optional[int]:
