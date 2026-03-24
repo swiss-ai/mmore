@@ -210,6 +210,7 @@ paths:
                     chunkId:
                       type: string
                       nullable: true
+                      description: Id of the chunk. `null` for a full document.
                     content:
                       type: string
                     similarity:
