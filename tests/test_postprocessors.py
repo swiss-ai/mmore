@@ -7,6 +7,10 @@ from mmore.process.post_processor.chunker.multimodal import (
     MultimodalChunker,
     MultimodalChunkerConfig,
 )
+from mmore.process.post_processor.chunker.utils import (
+    chunk_table,
+    detect_markdown_tables,
+)
 from mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
 from mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
 from mmore.process.post_processor.ner import NERecognizer, NERExtractorConfig
@@ -342,3 +346,194 @@ def test_tagger_process_lang_detector():
         "EN",
     ], f"Expected detected language 'en', got {detected_lang}"
     assert isinstance(processed, list), "Expected process() to return a list."
+
+
+# ------------------ Table-Aware Chunker Tests ------------------
+
+
+SIMPLE_TABLE = """\
+| Name | Age | City |
+|------|-----|------|
+| Alice | 30 | Paris |
+| Bob | 25 | London |
+| Carol | 35 | Berlin |"""
+
+
+LARGE_TABLE_HEADER = "| Col A | Col B | Col C |"
+LARGE_TABLE_SEP = "|-------|-------|-------|"
+
+
+def _make_long_table(num_rows: int) -> str:
+    rows = [f"| val{i}_a | val{i}_b | val{i}_c |" for i in range(num_rows)]
+    return LARGE_TABLE_HEADER + "\n" + LARGE_TABLE_SEP + "\n" + "\n".join(rows)
+
+
+MIXED_TEXT = f"""\
+This is a paragraph of regular text before the table.
+
+{SIMPLE_TABLE}
+
+This is a paragraph of regular text after the table."""
+
+
+class TestDetectMarkdownTables:
+    def test_detects_simple_table(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        assert len(tables) == 1
+        table = tables[0]
+        assert table.start_index == 0
+        assert len(table.body_rows) == 3
+        assert "Name" in table.header
+        assert "---" in table.header
+
+    def test_detects_table_in_mixed_text(self):
+        tables = detect_markdown_tables(MIXED_TEXT)
+        assert len(tables) == 1
+        table = tables[0]
+        assert table.start_index != 0
+        assert len(table.body_rows) == 3
+        assert "Name" in table.header
+        assert "Age" in table.header
+
+    def test_no_tables(self):
+        text = "Just some regular text.\nNo tables here.\nAnother line."
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 0
+
+    def test_header_only_table(self):
+        text = "| A | B |\n|---|---|\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 1
+        assert len(tables[0].body_rows) == 0
+
+    def test_multiple_tables(self):
+        text = (
+            "| A | B |\n|---|---|\n| 1 | 2 |\n\n"
+            "Some text in between.\n\n"
+            "| X | Y |\n|---|---|\n| 3 | 4 |\n"
+        )
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 2
+
+    def test_not_a_table_without_separator(self):
+        text = "| looks like | a table |\n| but no | separator |\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 0
+
+
+class TestChunkTable:
+    def _simple_counter(self, text: str) -> int:
+        """Simple word-based token counter for tests."""
+        return len(text.split())
+
+    def test_small_table_single_chunk(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        assert len(tables) == 1
+        chunks = chunk_table(
+            tables[0], max_tokens=1000, count_tokens=self._simple_counter
+        )
+        assert len(chunks) == 1
+        assert "Alice" in chunks[0].text
+        assert "Carol" in chunks[0].text
+
+    def test_large_table_split_preserves_headers(self):
+        big_table = _make_long_table(50)
+        tables = detect_markdown_tables(big_table)
+        assert len(tables) == 1
+        # Use a small max_tokens to force splitting
+        chunks = chunk_table(
+            tables[0], max_tokens=30, count_tokens=self._simple_counter
+        )
+        assert len(chunks) > 1
+        # Every chunk must start with the header
+        for chunk in chunks:
+            assert chunk.text.startswith(LARGE_TABLE_HEADER)
+            assert LARGE_TABLE_SEP in chunk.text
+
+    def test_chunk_indices_in_range(self):
+        big_table = _make_long_table(20)
+        tables = detect_markdown_tables(big_table)
+        chunks = chunk_table(
+            tables[0], max_tokens=30, count_tokens=self._simple_counter
+        )
+        for chunk in chunks:
+            assert chunk.start_index >= tables[0].start_index
+            assert chunk.end_index <= tables[0].end_index
+
+
+class TestMultimodalChunkerTableHandling:
+    def _make_chunker(
+        self, table_handling: str = "preserve_headers", chunk_size: int = 20
+    ) -> MultimodalChunker:
+        config = MultimodalChunkerConfig(
+            chunking_strategy="sentence",
+            text_chunker_config={"chunk_size": chunk_size, "chunk_overlap": 0},
+            table_handling=table_handling,
+        )
+        return MultimodalChunker.from_config(config)
+
+    def test_no_tables_unchanged_behavior(self):
+        chunker = self._make_chunker()
+        sample = MultimodalSample(
+            text="Hello world. This is a test.", modalities=[], metadata={}
+        )
+        chunks = chunker.chunk(sample)
+        assert len(chunks) >= 1
+        # No table metadata
+        for c in chunks:
+            assert "is_table_chunk" not in c.metadata
+
+    def test_small_table_kept_whole(self):
+        chunker = self._make_chunker(chunk_size=512)
+        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) == 1
+        assert chunks[0].metadata.get("is_table_chunk") is True
+        assert "Name" in chunks[0].metadata.get("table_header", "")
+
+    def test_large_table_split_with_headers(self):
+        big_table = _make_long_table(50)
+        chunker = self._make_chunker(chunk_size=30)
+        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) > 1
+        for c in chunks:
+            assert c.metadata.get("is_table_chunk") is True
+            # Every chunk text should start with the table header
+            assert c.text.startswith(LARGE_TABLE_HEADER)
+
+    def test_mixed_content_chunking(self):
+        chunker = self._make_chunker(chunk_size=512)
+        sample = MultimodalSample(text=MIXED_TEXT, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) >= 2  # at least text + table
+        table_chunks = [c for c in chunks if c.metadata.get("is_table_chunk")]
+        non_table_chunks = [c for c in chunks if not c.metadata.get("is_table_chunk")]
+        assert len(table_chunks) >= 1
+        assert len(non_table_chunks) >= 1
+
+    def test_table_handling_none(self):
+        chunker = self._make_chunker(table_handling="none", chunk_size=512)
+        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        # No table metadata when handling is disabled
+        for c in chunks:
+            assert "is_table_chunk" not in c.metadata
+
+    def test_table_handling_keep_whole(self):
+        big_table = _make_long_table(50)
+        chunker = self._make_chunker(table_handling="keep_whole", chunk_size=30)
+        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        # Should be a single chunk even though it exceeds chunk_size
+        assert len(chunks) == 1
+        assert chunks[0].metadata.get("is_table_chunk") is True
+
+    def test_invalid_table_handling_mode(self):
+        with pytest.raises(ValueError, match="Invalid table_handling mode"):
+            MultimodalChunker(
+                text_chunker=MultimodalChunker.from_config(
+                    MultimodalChunkerConfig()
+                ).text_chunker,
+                table_handling="invalid_mode",
+            )
