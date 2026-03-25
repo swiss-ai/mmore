@@ -138,9 +138,6 @@ cu126 = [
 ]
 
 websearch = [
-    # Optional Tavily search provider for websearch pipeline
-    # Usage: pip install mmore[websearch]
-    # Requires: TAVILY_API_KEY environment variable
     "tavily-python>=0.3.0",
     "ddgs>=6.0",
 ]
