@@ -35,7 +35,7 @@ class WebsearchOnly:
             try:
                 from tavily import TavilyClient
             except ImportError:
-                raise ImportError("Run: pip install mmore[websearch]")
+                raise ImportError("Run: pip install mmore[rag,websearch]")
             api_key = os.getenv("TAVILY_API_KEY")
 
             if not api_key:

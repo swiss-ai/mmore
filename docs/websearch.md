@@ -3,7 +3,7 @@
 ## Implementation
 
 ### Overview
-The WebSearch integration uses the `duckduckgo-search` library with optional Tavily support. The implementation combines:
+The WebSearch integration uses the `ddgs` (DuckDuckGo Search) library with optional Tavily support. The implementation combines:
 
 - **DuckDuckGo Search:** Default provider — free, no API key needed. Install with `pip install "mmore[rag,websearch]"`.
 - **Tavily Search:** Optional higher-quality provider. Requires `TAVILY_API_KEY` environment variable. Install with `pip install "mmore[rag,websearch]"`.

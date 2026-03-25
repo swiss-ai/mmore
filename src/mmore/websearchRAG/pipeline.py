@@ -7,7 +7,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
+
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -173,7 +177,7 @@ class WebsearchPipeline:
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
         return cleaned_answer
 
-    def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
+    def web_search(self, query: str) -> List[Dict[str, str]]:
         """
         Perform a web search using the configured provider (WebsearchOnly).
         Includes exponential backoff retry logic to fix timeout issues (#230).
@@ -262,7 +266,7 @@ class WebsearchPipeline:
                 # Only sleep for DDG, and make it 2 seconds instead of 10
                 if self.config.search_provider == "duckduckgo":
                     time.sleep(2)
-                res = self.duckduckgo_search(query=sq)
+                res = self.web_search(query=sq)
 
                 subquery_snippets = []
 
@@ -287,11 +291,11 @@ class WebsearchPipeline:
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
 
-                # CLEAR MEMORY HERE
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
             previous_sub = subs
+
+            # CLEAR MEMORY HERE
+            if torch is not None and torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
