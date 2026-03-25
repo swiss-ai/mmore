@@ -14,14 +14,15 @@ from chonkie import (
 
 logger = logging.getLogger(__name__)
 
-# Regexes obtained from
+# Regexes obtained from link below, then improved to detect empty cells
+# and trailing/leading colons for alignment
 # https://stackoverflow.com/questions/9837935/regex-for-markdown-table-syntax
 
 # Matches a table row
-_TABLE_ROW_RE = re.compile(r"^(?:\| *[^|\r\n]+ *)+\|$")
+_TABLE_ROW_RE = re.compile(r"^(?:\| *[^|\r\n]* *)+\|$")
 
 # Matches the delimiter row
-_TABLE_SEPARATOR_RE = re.compile(r"^(?:\|[ :]?-+[ :]?)+\|$")
+_TABLE_SEPARATOR_RE = re.compile(r"^(?:\| *:?-+:? *)+\|$")
 
 
 @dataclass
@@ -30,7 +31,7 @@ class TableRegion:
 
     start_index: int  # char offset in original text
     end_index: int  # char offset in original text (exclusive)
-    header: str  # header row + separator row (prepended to sub-chunks)
+    header: str  # header row + separator row
     body_rows: List[str] = field(default_factory=list)
 
 
@@ -223,6 +224,58 @@ def chunk_table(
             end_index=table.end_index,
             token_count=current_token_count,
         )
+
+    return chunks
+
+
+def chunk_table_single_row(
+    table: TableRegion,
+    count_tokens: Callable[[str], int],
+) -> List[Chunk]:
+    """Split a table into one chunk per body row, prepending the header to each.
+
+    Args:
+        table: The detected table region.
+        count_tokens: Callable that returns token count for a string.
+
+    Returns:
+        List of Chunk objects, one per body row.
+    """
+    if not table.body_rows:
+        token_count = count_tokens(table.header)
+        return [
+            Chunk(
+                text=table.header,
+                start_index=table.start_index,
+                end_index=table.end_index,
+                token_count=token_count,
+            )
+        ]
+
+    chunks = []
+    table_body_start_offset = table.start_index + len(table.header) + 1
+
+    offset = table_body_start_offset
+    for idx, row in enumerate(table.body_rows):
+        chunk_text = table.header + "\n" + row
+        token_count = count_tokens(chunk_text)
+
+        # First chunk starts at table start, otherwise starts at given offset
+        chunk_start = table.start_index if idx == 0 else offset
+
+        row_end = offset + len(row) + 1
+        if row_end > table.end_index:
+            row_end = table.end_index
+
+        chunks.append(
+            Chunk(
+                text=chunk_text,
+                start_index=chunk_start,
+                end_index=row_end,
+                token_count=token_count,
+            )
+        )
+        offset += len(row) + 1
 
     return chunks
 

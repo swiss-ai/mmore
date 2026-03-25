@@ -7,30 +7,36 @@ from chonkie import BaseChunker, Chunk
 
 from ....type import MultimodalSample
 from .. import BasePostProcessor
-from .utils import TableRegion, chunk_table, detect_markdown_tables, load_chonkie
+from .utils import (
+    TableRegion,
+    chunk_table,
+    chunk_table_single_row,
+    detect_markdown_tables,
+    load_chonkie,
+)
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_CHUNK_SIZE = 512  # TODO: confirm
+_DEFAULT_CHUNK_SIZE = (
+    512  # Good balance between retrieval precision and context preservation for RAG
+)
 
 # Valid modes when chunking tables
-_TABLE_HANDLING_MODES = ("preserve_headers", "keep_whole", "none")
+_TABLE_HANDLING_MODES = ("single_row", "multi_rows", "keep_whole", "none")
 
 
 @dataclass
 class MultimodalChunkerConfig:
     chunking_strategy: str = "sentence"
     text_chunker_config: Dict[str, Any] = field(default_factory=dict)
-    table_handling: str = "preserve_headers"
+    table_handling: str = "single_row"
 
 
 class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
     table_handling: str
 
-    def __init__(
-        self, text_chunker: BaseChunker, table_handling: str = "preserve_headers"
-    ):
+    def __init__(self, text_chunker: BaseChunker, table_handling: str = "single_row"):
         super().__init__("🦛 Chunker")
         self.text_chunker = text_chunker
         if table_handling not in _TABLE_HANDLING_MODES:
@@ -93,7 +99,9 @@ class MultimodalChunker(BasePostProcessor):
             return self.text_chunker.chunk_size
         return _DEFAULT_CHUNK_SIZE
 
-    def _chunk_with_table_awareness(self, text: str) -> List[Chunk]:
+    def _chunk_with_table_awareness(
+        self, text: str, tables: Optional[List[TableRegion]] = None
+    ) -> List[Chunk]:
         """Split text into chunks with special handling for markdown tables.
 
         Detects tables, splits text into table/non-table segments, applies
@@ -103,7 +111,8 @@ class MultimodalChunker(BasePostProcessor):
         if self.table_handling == "none":
             return self.text_chunker.chunk(text)
 
-        tables = detect_markdown_tables(text)
+        if tables is None:
+            tables = detect_markdown_tables(text)
         if not tables:
             return self.text_chunker.chunk(text)
 
@@ -138,8 +147,11 @@ class MultimodalChunker(BasePostProcessor):
                         token_count=token_count,
                     )
                 )
-            elif self.table_handling == "preserve_headers":
+            elif self.table_handling == "multi_rows":
                 table_chunks = chunk_table(table, max_tokens, self._count_tokens)
+                all_chunks.extend(table_chunks)
+            elif self.table_handling == "single_row":
+                table_chunks = chunk_table_single_row(table, self._count_tokens)
                 all_chunks.extend(table_chunks)
 
             prev_end = table.end_index
@@ -187,7 +199,7 @@ class MultimodalChunker(BasePostProcessor):
             tables = detect_markdown_tables(sample.text)
 
         try:
-            text_chunks = self._chunk_with_table_awareness(sample.text)
+            text_chunks = self._chunk_with_table_awareness(sample.text, tables)
         except Exception as e:
             logger.error(
                 f"Chunking error on sample with length {len(sample.text)}: {e}"
