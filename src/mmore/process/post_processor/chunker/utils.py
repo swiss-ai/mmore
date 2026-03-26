@@ -25,6 +25,21 @@ _TABLE_ROW_RE = re.compile(r"^(?:\| *[^|\r\n]* *)+\|$")
 _TABLE_SEPARATOR_RE = re.compile(r"^(?:\| *:?-+:? *)+\|$")
 
 
+def _strip_table_row(row: str) -> str:
+    """Strip padding whitespace from each cell in a markdown table row."""
+    if not row.strip().startswith("|"):
+        return row
+
+    parts = row.split("|")
+    stripped = [p.strip() for p in parts[1:-1]]  # parts[0] and parts[-1] are empty
+    return "| " + " | ".join(stripped) + " |"
+
+
+def _strip_table_text(text: str) -> str:
+    """Strip padding from all lines that are part of a markdown table row."""
+    return "\n".join(_strip_table_row(line) for line in text.split("\n"))
+
+
 @dataclass
 class TableRegion:
     """A detected markdown table region within a text."""
@@ -128,9 +143,12 @@ def chunk_table(
     Returns:
         List of Chunk objects representing the table pieces.
     """
-    full_text = table.header
-    if table.body_rows:
-        full_text += "\n" + "\n".join(table.body_rows)
+    header = _strip_table_text(table.header)
+    body_rows = [_strip_table_row(r) for r in table.body_rows]
+
+    full_text = header
+    if body_rows:
+        full_text += "\n" + "\n".join(body_rows)
 
     full_token_count = count_tokens(full_text)
 
@@ -146,7 +164,7 @@ def chunk_table(
         ]
 
     # Split by rows, prepending header to each chunk
-    header_tokens = count_tokens(table.header)
+    header_tokens = count_tokens(header)
     chunks: List[Chunk] = []
     current_rows: List[str] = []
     current_token_count = header_tokens
@@ -164,7 +182,7 @@ def chunk_table(
         rows: List[str], first_row_idx: int, end_index: int, token_count: int
     ):
         """Flush accumulated rows as a single chunk."""
-        chunk_text = table.header + "\n" + "\n".join(rows)
+        chunk_text = header + "\n" + "\n".join(rows)
 
         # For the first chunk, start_index is the table start (includes header)
         # For subsequent chunks, start_index is the first row's offset
@@ -182,7 +200,7 @@ def chunk_table(
             )
         )
 
-    for idx, row in enumerate(table.body_rows):
+    for idx, row in enumerate(body_rows):
         row_token_count = count_tokens(row)
 
         if current_rows and (current_token_count + row_token_count + 1) > max_tokens:
@@ -220,7 +238,7 @@ def chunk_table(
     if current_rows:
         flush_rows(
             current_rows,
-            first_row_idx=len(table.body_rows) - len(current_rows),
+            first_row_idx=len(body_rows) - len(current_rows),
             end_index=table.end_index,
             token_count=current_token_count,
         )
@@ -241,11 +259,14 @@ def chunk_table_single_row(
     Returns:
         List of Chunk objects, one per body row.
     """
-    if not table.body_rows:
-        token_count = count_tokens(table.header)
+    header = _strip_table_text(table.header)
+    body_rows = [_strip_table_row(r) for r in table.body_rows]
+
+    if not body_rows:
+        token_count = count_tokens(header)
         return [
             Chunk(
-                text=table.header,
+                text=header,
                 start_index=table.start_index,
                 end_index=table.end_index,
                 token_count=token_count,
@@ -256,8 +277,8 @@ def chunk_table_single_row(
     table_body_start_offset = table.start_index + len(table.header) + 1
 
     offset = table_body_start_offset
-    for idx, row in enumerate(table.body_rows):
-        chunk_text = table.header + "\n" + row
+    for idx, row in enumerate(body_rows):
+        chunk_text = header + "\n" + row
         token_count = count_tokens(chunk_text)
 
         # First chunk starts at table start, otherwise starts at given offset

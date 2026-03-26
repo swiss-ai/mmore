@@ -361,7 +361,7 @@ SIMPLE_TABLE = """\
 
 
 LARGE_TABLE_HEADER = "| Col A | Col B | Col C |"
-LARGE_TABLE_SEP = "|-------|-------|-------|"
+LARGE_TABLE_SEP = "| ------- | ------- | ------- |"
 
 
 def _make_long_table(num_rows: int) -> str:
@@ -463,7 +463,7 @@ class TestChunkTableSingleRow:
         assert len(tables) == 1
         chunks = chunk_table_single_row(tables[0], count_tokens=self._simple_counter)
         assert len(chunks) == 1
-        assert chunks[0].text == tables[0].header
+        assert chunks[0].text == "| A | B |\n| --- | --- |"
 
     def test_chunk_indices_in_range(self):
         tables = detect_markdown_tables(SIMPLE_TABLE)

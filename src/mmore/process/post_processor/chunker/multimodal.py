@@ -9,6 +9,8 @@ from ....type import MultimodalSample
 from .. import BasePostProcessor
 from .utils import (
     TableRegion,
+    _strip_table_row,
+    _strip_table_text,
     chunk_table,
     chunk_table_single_row,
     detect_markdown_tables,
@@ -135,9 +137,11 @@ class MultimodalChunker(BasePostProcessor):
 
             # Table segment
             if self.table_handling == "keep_whole":
-                full_text = table.header
+                full_text = _strip_table_text(table.header)
                 if table.body_rows:
-                    full_text += "\n" + "\n".join(table.body_rows)
+                    full_text += "\n" + "\n".join(
+                        _strip_table_row(r) for r in table.body_rows
+                    )
                 token_count = self._count_tokens(full_text)
                 all_chunks.append(
                     Chunk(
@@ -225,7 +229,7 @@ class MultimodalChunker(BasePostProcessor):
             table = self._is_table_chunk(chunk, tables)
             if table is not None:
                 chunk_metadata["is_table_chunk"] = True
-                chunk_metadata["table_header"] = table.header
+                chunk_metadata["table_header"] = _strip_table_text(table.header)
 
             s = MultimodalSample(
                 text=chunk.text,
