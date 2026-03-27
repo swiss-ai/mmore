@@ -18,7 +18,7 @@ Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
 GPU (default):
 ```bash
-sudo docker build -f docker/ubuntu/Dockerfile . -t mmore
+sudo docker build -f docker/ubuntu/Dockerfile -t mmore .
 ```
 
 CPU-only:

@@ -10,10 +10,8 @@ Based on `archlinux:latest`.
 
 GPU (default):
 
-> **Warning:** Building the GPU image takes ~15 minutes and produces an image of ~27 GB. This is due to the lack of an optimized base image with CUDA pre-installed (it is compiled and installed from scratch during the build).
-
 ```bash
-sudo docker build -f docker/arch/Dockerfile . -t mmore:arch
+sudo docker build -f docker/arch/Dockerfile -t mmore:arch .
 ```
 
 CPU-only:

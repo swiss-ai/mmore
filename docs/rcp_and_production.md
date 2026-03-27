@@ -14,27 +14,31 @@ This document provides comprehensive guidelines for deploying MMORE on the RCP (
 
 2. **Build Docker image with custom IDs** — choose one of the two options below:
 
-   **Option A — CI build (recommended):** Trigger the [Build Student Image](../../.github/workflows/push-to-registry.yml) workflow manually from the GitHub Actions tab and enter your UID and GID. The image will be published to GHCR and tagged as:
+   **Option A — CI build (recommended):** Trigger the [Build Student Image](../.github/workflows/push-to-registry.yml) workflow manually from the GitHub Actions tab (*Run workflow*) and input your user UID and group GID. This builds a custom student GPU image published to GHCR, tagged as:
    ```
    ghcr.io/swiss-ai/mmore:student-uid<user-id>-gid<group-id>-gpu
    ```
-   You can then pull it directly with `docker pull`.
+   You can then pull it directly with `docker pull`. Skip to step 5.
 
    **Option B — local build** (replace `<user-id>` and `<group-id>` with your actual IDs):
    ```bash
    sudo docker build -f docker/ubuntu/Dockerfile --build-arg USER_UID=<user-id> --build-arg USER_GID=<group-id> -t mmore .
    ```
 
-3. **Login to DockerHub**:
+3. **Login to DockerHub** *(option B only)*:
    ```bash
    docker login docker.io
    ```
 
-4. **Push to registry** (replace `username` with your DockerHub username):
+4. **Push to registry** *(option B only)* (replace `<username>` with your DockerHub username):
    ```bash
-   docker tag mmore docker.io/username/mmore:latest
-   docker push docker.io/username/mmore:latest
+   docker tag mmore docker.io/<username>/mmore:latest
+   docker push docker.io/<username>/mmore:latest
    ```
+
+5. **Identify your image reference** — all `runai` commands below use `<image>` as a placeholder. Replace it with:
+   - Option A: `ghcr.io/swiss-ai/mmore:student-uid<user-id>-gid<group-id>-gpu`
+   - Option B: `docker.io/<username>/mmore:latest`
 
 For detailed installation instructions, see [Installation Guide](./installation.md).
 
@@ -63,11 +67,11 @@ mkdir -p /lightscratch/users/$GASPAR/mmore-data/in/sample_data/
 
 ### Interactive Development Session
 
-For development, debugging, or manual operations, start an interactive session (replace `<group-id>` with your actual group ID and `username` with your DockerHub username):
+For development, debugging, or manual operations, start an interactive session (replace `<group-id>` with your actual group ID):
 
 ```bash
 runai submit swissaimmore \
-  --image docker.io/username/mmore:latest \
+  --image <image> \
   --node-pool h100 \
   --pvc light-scratch:/lightscratch \
   --gpu 1 \
@@ -87,12 +91,12 @@ For production workloads, submit jobs that run specific pipeline stages:
 
 #### 1. Document Processing
 
-Process raw documents and extract multimodal content (replace `<group-id>` with your actual group ID and `username` with your DockerHub username):
+Process raw documents and extract multimodal content (replace `<group-id>` with your actual group ID):
 
 ```bash
 runai submit \ 
   --name swissaimmore-process \ 
-  --image docker.io/username/mmore:latest \ 
+  --image <image> \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid <group-id> \ 
@@ -110,7 +114,7 @@ Clean and structure the extracted data:
 ```bash
 runai submit \ 
   --name swissaimmore-postprocess \ 
-  --image docker.io/username/mmore:latest \ 
+  --image <image> \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid <group-id> \ 
@@ -128,7 +132,7 @@ Create searchable vector indexes:
 ```bash
 runai submit \ 
   --name swissaimmore-index \ 
-  --image docker.io/username/mmore:latest \ 
+  --image <image> \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid 84257 \ 
@@ -146,7 +150,7 @@ Deploy the retrieval API service:
 ```bash
 runai submit \ 
   --name swissaimmore-rag \ 
-  --image docker.io/username/mmore:latest \ 
+  --image <image> \ 
   --backoff-limit 0 \ 
   --pvc light-scratch:/lightscratch \ 
   --run-as-gid <group-id> \ 

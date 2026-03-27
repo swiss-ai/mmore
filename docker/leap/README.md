@@ -10,10 +10,8 @@ Based on `opensuse/leap:15.6`. This image targets CSCS rather than RCP, and ther
 
 GPU (default):
 
-> **Warning:** Building the GPU image takes ~15 minutes and produces an image of ~26 GB. This is due to the lack of an optimized base image with CUDA pre-installed (it is installed and compiled from scratch during the build).
-
 ```bash
-sudo docker build -f docker/leap/Dockerfile . -t mmore:leap
+sudo docker build -f docker/leap/Dockerfile -t mmore:leap .
 ```
 
 CPU-only:

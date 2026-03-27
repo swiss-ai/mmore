@@ -68,7 +68,7 @@ Follow the official [Docker installation guide](https://docs.docker.com/get-star
 ##### Step 2: Build the Docker image
 
 ```bash
-sudo docker build -f docker/ubuntu/Dockerfile . --tag mmore
+sudo docker build -f docker/ubuntu/Dockerfile -t mmore .
 ```
 
 To build for CPU-only platforms (results in a smaller image size):
