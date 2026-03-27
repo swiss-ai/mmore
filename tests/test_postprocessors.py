@@ -1,4 +1,4 @@
-import signal
+import re
 from typing import Dict, List, cast
 
 import pytest
@@ -471,20 +471,12 @@ class TestDetectAndStripMarkdownTables:
         expected = "| Name | Age |\n| --- | --- |\n| Alice | 30 |"
         assert _strip_table_text(table) == expected
 
-    def test_table_row_regex_no_catastrophic_backtracking(self):
+    @pytest.mark.timeout(2)
+    def test_table_row_regex_no_exponential_backtracking(self):
         """A row missing its closing | (e.g. PDF processor injecting a <span> tag)
         must be rejected instantly and not hang due to exponential backtracking."""
         line = "| " + " | ".join(" " * 50 for _ in range(5)) + " <tag>"
-
-        old = signal.signal(
-            signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError)
-        )
-        signal.alarm(2)
-        try:
-            assert _TABLE_ROW_RE.match(line) is None
-        finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old)
+        assert re.match(_TABLE_ROW_RE, line) is None
 
     def test_strips_table_text_preserves_alignment(self):
         table = (
