@@ -181,7 +181,7 @@ def chunk_table(
     def flush_rows(
         rows: List[str], first_row_idx: int, end_index: int, token_count: int
     ):
-        """Flush accumulated rows as a single chunk."""
+        """Helper to flush accumulated rows as a single chunk."""
         chunk_text = header + "\n" + "\n".join(rows)
 
         # For the first chunk, start_index is the table start (includes header)
@@ -228,7 +228,9 @@ def chunk_table(
             flush_rows(
                 current_rows,
                 first_row_idx=idx,
-                end_index=row_offsets[idx],
+                end_index=row_offsets[idx + 1]
+                if idx + 1 < len(row_offsets)
+                else table.end_index,
                 token_count=current_token_count,
             )
             current_rows = []
@@ -277,14 +279,14 @@ def chunk_table_single_row(
     table_body_start_offset = table.start_index + len(table.header) + 1
 
     offset = table_body_start_offset
-    for idx, row in enumerate(body_rows):
+    for idx, (row, unstripped_row) in enumerate(zip(body_rows, table.body_rows)):
         chunk_text = header + "\n" + row
         token_count = count_tokens(chunk_text)
 
         # First chunk starts at table start, otherwise starts at given offset
         chunk_start = table.start_index if idx == 0 else offset
 
-        row_end = offset + len(row) + 1
+        row_end = offset + len(unstripped_row) + 1
         if row_end > table.end_index:
             row_end = table.end_index
 
@@ -296,7 +298,7 @@ def chunk_table_single_row(
                 token_count=token_count,
             )
         )
-        offset += len(row) + 1
+        offset += len(unstripped_row) + 1
 
     return chunks
 
