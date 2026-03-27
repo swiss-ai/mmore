@@ -1,6 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from chonkie import BaseChunker, Chunk
@@ -19,12 +20,17 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_CHUNK_SIZE = (
-    512  # Good balance between retrieval precision and context preservation for RAG
-)
+# Good balance between retrieval precision and context preservation for RAG
+_DEFAULT_CHUNK_SIZE = 512
 
-# Valid modes when chunking tables
-_TABLE_HANDLING_MODES = ("single_row", "multi_rows", "keep_whole", "none")
+
+class TableHandlingMode(str, Enum):
+    """Valid modes when chunking tables."""
+
+    SINGLE_ROW = "single_row"
+    MULTI_ROWS = "multi_rows"
+    KEEP_WHOLE = "keep_whole"
+    NONE = "none"
 
 
 @dataclass
@@ -36,17 +42,18 @@ class MultimodalChunkerConfig:
 
 class MultimodalChunker(BasePostProcessor):
     text_chunker: BaseChunker
-    table_handling: str
+    table_handling: TableHandlingMode
 
     def __init__(self, text_chunker: BaseChunker, table_handling: str = "single_row"):
         super().__init__("🦛 Chunker")
         self.text_chunker = text_chunker
-        if table_handling not in _TABLE_HANDLING_MODES:
+        try:
+            self.table_handling = TableHandlingMode(table_handling)
+        except ValueError:
             raise ValueError(
                 f"Invalid table_handling mode '{table_handling}'. "
-                f"Must be one of: {_TABLE_HANDLING_MODES}"
+                f"Must be one of: {[m.value for m in TableHandlingMode]}"
             )
-        self.table_handling = table_handling
 
     @classmethod
     def from_config(cls, config: MultimodalChunkerConfig):
@@ -110,7 +117,7 @@ class MultimodalChunker(BasePostProcessor):
         the standard chunker to non-table segments, and applies table-specific
         chunking to table segments. Reassembles in document order.
         """
-        if self.table_handling == "none":
+        if self.table_handling is TableHandlingMode.NONE:
             return self.text_chunker.chunk(text)
 
         if tables is None:
@@ -136,7 +143,7 @@ class MultimodalChunker(BasePostProcessor):
                     all_chunks.extend(segment_chunks)
 
             # Table segment
-            if self.table_handling == "keep_whole":
+            if self.table_handling is TableHandlingMode.KEEP_WHOLE:
                 full_text = _strip_table_text(table.header)
                 if table.body_rows:
                     full_text += "\n" + "\n".join(
@@ -151,10 +158,10 @@ class MultimodalChunker(BasePostProcessor):
                         token_count=token_count,
                     )
                 )
-            elif self.table_handling == "multi_rows":
+            elif self.table_handling is TableHandlingMode.MULTI_ROWS:
                 table_chunks = chunk_table(table, max_tokens, self._count_tokens)
                 all_chunks.extend(table_chunks)
-            elif self.table_handling == "single_row":
+            elif self.table_handling is TableHandlingMode.SINGLE_ROW:
                 table_chunks = chunk_table_single_row(table, self._count_tokens)
                 all_chunks.extend(table_chunks)
 
@@ -199,7 +206,7 @@ class MultimodalChunker(BasePostProcessor):
 
         # Detect tables before chunking
         tables = []
-        if self.table_handling != "none":
+        if self.table_handling is not TableHandlingMode.NONE:
             tables = detect_markdown_tables(sample.text)
 
         try:
