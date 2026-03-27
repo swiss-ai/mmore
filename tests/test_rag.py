@@ -206,20 +206,20 @@ def test_get_relevant_documents(mock_rerank, mock_retrieve):
 def test_llm_config_generation_kwargs():
     """Test that LLMConfig.generation_kwargs returns correct parameter names for different providers."""
     # Test MISTRAL uses "max_tokens"
-    mistral_config = LLMConfig(llm_name="mistral-medium-latest", max_new_tokens=1200)
+    mistral_config = LLMConfig(llm_name="mistral-large-3", max_new_tokens=1200)
     assert mistral_config.provider == "MISTRAL"
     assert "max_tokens" in mistral_config.generation_kwargs
     assert mistral_config.generation_kwargs["max_tokens"] == 1200
     assert mistral_config.generation_kwargs["temperature"] == 0.7
 
     # Test ANTHROPIC uses "max_tokens"
-    anthropic_config = LLMConfig(llm_name="claude-2", max_new_tokens=1500)
+    anthropic_config = LLMConfig(llm_name="claude-sonnet-4-6", max_new_tokens=1500)
     assert anthropic_config.provider == "ANTHROPIC"
     assert "max_tokens" in anthropic_config.generation_kwargs
     assert anthropic_config.generation_kwargs["max_tokens"] == 1500
 
     # Test COHERE uses "max_tokens"
-    cohere_config = LLMConfig(llm_name="command", max_new_tokens=1000)
+    cohere_config = LLMConfig(llm_name="command-r-08-2024", max_new_tokens=1000)
     assert cohere_config.provider == "COHERE"
     assert "max_tokens" in cohere_config.generation_kwargs
     assert cohere_config.generation_kwargs["max_tokens"] == 1000
