@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # https://stackoverflow.com/questions/9837935/regex-for-markdown-table-syntax
 
 # Matches a table row
-_TABLE_ROW_RE = re.compile(r"^(?:\| *[^|\r\n]* *)+\|$")
+_TABLE_ROW_RE = re.compile(r"^\|(?:[^|\r\n]*\|)+$")
 
 # Matches the delimiter row
 _TABLE_SEPARATOR_RE = re.compile(r"^(?:\| *:?-+:? *)+\|$")
