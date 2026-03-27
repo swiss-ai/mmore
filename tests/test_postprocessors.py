@@ -8,6 +8,9 @@ from mmore.process.post_processor.chunker.multimodal import (
     MultimodalChunkerConfig,
 )
 from mmore.process.post_processor.chunker.utils import (
+    _strip_separator_cell,
+    _strip_table_row,
+    _strip_table_text,
     chunk_table,
     chunk_table_single_row,
     detect_markdown_tables,
@@ -361,12 +364,13 @@ SIMPLE_TABLE = """\
 
 
 LARGE_TABLE_HEADER = "| Col A | Col B | Col C |"
-LARGE_TABLE_SEP = "| ------- | ------- | ------- |"
+LARGE_TABLE_SEP_RAW = "| ------- | ------- | ------- |"
+LARGE_TABLE_SEP = "| --- | --- | --- |"
 
 
 def _make_long_table(num_rows: int) -> str:
     rows = [f"| val{i}_a | val{i}_b | val{i}_c |" for i in range(num_rows)]
-    return LARGE_TABLE_HEADER + "\n" + LARGE_TABLE_SEP + "\n" + "\n".join(rows)
+    return LARGE_TABLE_HEADER + "\n" + LARGE_TABLE_SEP_RAW + "\n" + "\n".join(rows)
 
 
 MIXED_TEXT = f"""\
@@ -377,7 +381,7 @@ This is a paragraph of regular text before the table.
 This is a paragraph of regular text after the table."""
 
 
-class TestDetectMarkdownTables:
+class TestDetectAndStripMarkdownTables:
     def test_detects_simple_table(self):
         tables = detect_markdown_tables(SIMPLE_TABLE)
         assert len(tables) == 1
@@ -435,6 +439,45 @@ class TestDetectMarkdownTables:
         text = "| looks like | a table |\n| but no | separator |\n"
         tables = detect_markdown_tables(text)
         assert len(tables) == 0
+
+    def test_strip_row_removes_cell_padding(self):
+        row = "|  Alice  |  30  |  Paris  |"
+        assert _strip_table_row(row) == "| Alice | 30 | Paris |"
+
+    def test_strip_row_ignores_non_table_line(self):
+        row = "This is just text."
+        assert _strip_table_row(row) == row
+
+    def test_strip_separator_cell_all_alignments(self):
+        assert _strip_separator_cell("----------") == "---"
+        assert _strip_separator_cell(":----------") == ":---"
+        assert _strip_separator_cell("----------:") == "---:"
+        assert _strip_separator_cell(":----------:") == ":---:"
+        assert _strip_separator_cell("---") == "---"
+        assert _strip_separator_cell("  :---:  ") == ":---:"
+
+    def test_strip_row_normalizes_separator_dashes(self):
+        row = "| ---------- | ---- | ------- |"
+        assert _strip_table_row(row) == "| --- | --- | --- |"
+
+    def test_strip_row_preserves_alignment_colons(self):
+        row = "| :---------- | :----: | -------: |"
+        assert _strip_table_row(row) == "| :--- | :---: | ---: |"
+
+    def test_strips_full_table_text(self):
+        table = "|  Name  |  Age  |\n| ---------- | ---- |\n|  Alice  |  30  |"
+        expected = "| Name | Age |\n| --- | --- |\n| Alice | 30 |"
+        assert _strip_table_text(table) == expected
+
+    def test_strips_table_text_preserves_alignment(self):
+        table = (
+            "| Left | Center | Right |\n"
+            "| :---------- | :--------: | ----------: |\n"
+            "| a | b | c |"
+        )
+        result = _strip_table_text(table)
+        lines = result.split("\n")
+        assert lines[1] == "| :--- | :---: | ---: |"
 
 
 class TestChunkTableSingleRow:

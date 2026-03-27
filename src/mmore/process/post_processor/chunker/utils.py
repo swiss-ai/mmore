@@ -25,6 +25,20 @@ _TABLE_ROW_RE = re.compile(r"^(?:\| *[^|\r\n]* *)+\|$")
 _TABLE_SEPARATOR_RE = re.compile(r"^(?:\| *:?-+:? *)+\|$")
 
 
+def _strip_separator_cell(cell: str) -> str:
+    """Normalize a separator cell to its minimal form, preserving alignment colons."""
+    cell = cell.strip()
+    match (cell.startswith(":"), cell.endswith(":")):
+        case (True, True):
+            return ":---:"
+        case (True, False):
+            return ":---"
+        case (False, True):
+            return "---:"
+        case _:
+            return "---"
+
+
 def _strip_table_row(row: str) -> str:
     """Strip padding whitespace from each cell in a markdown table row."""
     if not row.strip().startswith("|"):
@@ -32,6 +46,10 @@ def _strip_table_row(row: str) -> str:
 
     parts = row.split("|")
     stripped = [p.strip() for p in parts[1:-1]]  # parts[0] and parts[-1] are empty
+
+    if _TABLE_SEPARATOR_RE.match(row.strip()):
+        stripped = [_strip_separator_cell(p) for p in stripped]
+
     return "| " + " | ".join(stripped) + " |"
 
 
