@@ -94,16 +94,16 @@ For production workloads, submit jobs that run specific pipeline stages:
 Process raw documents and extract multimodal content (replace `<group-id>` with your actual group ID):
 
 ```bash
-runai submit \ 
-  --name swissaimmore-process \ 
-  --image <image> \ 
-  --backoff-limit 0 \ 
-  --pvc light-scratch:/lightscratch \ 
-  --run-as-gid <group-id> \ 
-  --node-pool h100 \ 
-  --gpu 1 \ 
-  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
-  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \ 
+runai submit \
+  --name swissaimmore-process \
+  --image <image> \
+  --backoff-limit 0 \
+  --pvc light-scratch:/lightscratch \
+  --run-as-gid <group-id> \
+  --node-pool h100 \
+  --gpu 1 \
+  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
+  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
   --command "python3 -m mmore process --config-file production-config/process/config.yaml"
 ```
 
@@ -112,16 +112,16 @@ runai submit \
 Clean and structure the extracted data:
 
 ```bash
-runai submit \ 
-  --name swissaimmore-postprocess \ 
-  --image <image> \ 
-  --backoff-limit 0 \ 
-  --pvc light-scratch:/lightscratch \ 
-  --run-as-gid <group-id> \ 
-  --node-pool h100 \ 
-  --gpu 1 \ 
-  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
-  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \ 
+runai submit \
+  --name swissaimmore-postprocess \
+  --image <image> \
+  --backoff-limit 0 \
+  --pvc light-scratch:/lightscratch \
+  --run-as-gid <group-id> \
+  --node-pool h100 \
+  --gpu 1 \
+  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
+  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
   --command "python3 -m mmore postprocess --config-file production-config/postprocessor/config.yaml --input-data /lightscratch/users/$GASPAR/mmore-data/out/process/outputs/merged/merged_results.jsonl"
 ```
 
@@ -130,16 +130,16 @@ runai submit \
 Create searchable vector indexes:
 
 ```bash
-runai submit \ 
-  --name swissaimmore-index \ 
-  --image <image> \ 
-  --backoff-limit 0 \ 
-  --pvc light-scratch:/lightscratch \ 
-  --run-as-gid 84257 \ 
-  --node-pool h100 \ 
-  --gpu 1 \ 
-  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
-  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \ 
+runai submit \
+  --name swissaimmore-index \
+  --image <image> \
+  --backoff-limit 0 \
+  --pvc light-scratch:/lightscratch \
+  --run-as-gid 84257 \
+  --node-pool h100 \
+  --gpu 1 \
+  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
+  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
   --command "python3 -m mmore index --config-file production-config/index/config.yaml --documents-path /lightscratch/users/$GASPAR/mmore-data/out/postprocessor/outputs/merged/final_pp.jsonl"
 ```
 
@@ -148,17 +148,17 @@ runai submit \
 Deploy the retrieval API service:
 
 ```bash
-runai submit \ 
-  --name swissaimmore-rag \ 
-  --image <image> \ 
-  --backoff-limit 0 \ 
-  --pvc light-scratch:/lightscratch \ 
-  --run-as-gid <group-id> \ 
-  --node-pool h100 \ 
-  --gpu 1 \ 
-  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \ 
-  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \ 
-  -e HF_TOKEN=$HF_TOKEN \ 
+runai submit \
+  --name swissaimmore-rag \
+  --image <image> \
+  --backoff-limit 0 \
+  --pvc light-scratch:/lightscratch \
+  --run-as-gid <group-id> \
+  --node-pool h100 \
+  --gpu 1 \
+  -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
+  -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e HF_TOKEN=$HF_TOKEN \
   --command "python3 -m mmore live-retrieval --config-file production-config/retriever_api/config.yaml"
 ```
 

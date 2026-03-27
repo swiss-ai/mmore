@@ -65,6 +65,7 @@ jobs:
           cache-to:   type=gha,mode=max
 
   publish-github-container:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
