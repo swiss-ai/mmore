@@ -182,10 +182,8 @@ def chunk_table(
         ]
 
     # Split by rows, prepending header to each chunk
-    header_tokens = count_tokens(header)
     chunks: List[Chunk] = []
     current_rows: List[str] = []
-    current_token_count = header_tokens
 
     # Track char offset for body rows within the original text
     table_body_start_offset = table.start_index + len(table.header) + 1
@@ -196,11 +194,10 @@ def chunk_table(
         row_offsets.append(offset)
         offset += len(row) + 1
 
-    def flush_rows(
-        rows: List[str], first_row_idx: int, end_index: int, token_count: int
-    ):
+    def flush_rows(rows: List[str], first_row_idx: int, end_index: int):
         """Helper to flush accumulated rows as a single chunk."""
         chunk_text = header + "\n" + "\n".join(rows)
+        token_count = count_tokens(chunk_text)
 
         # For the first chunk, start_index is the table start (includes header)
         # For subsequent chunks, start_index is the first row's offset
@@ -219,40 +216,38 @@ def chunk_table(
         )
 
     for idx, row in enumerate(body_rows):
-        row_token_count = count_tokens(row)
+        current_rows.append(row)
+        chunk_text = header + "\n" + "\n".join(current_rows)
+        token_count = count_tokens(chunk_text)
 
-        if current_rows and (current_token_count + row_token_count + 1) > max_tokens:
+        if len(current_rows) > 1 and token_count > max_tokens:
+            current_rows.pop()
             flush_rows(
                 current_rows,
                 first_row_idx=idx - len(current_rows),
                 end_index=row_offsets[idx],
-                token_count=current_token_count,
             )
-            current_rows = []
-            current_token_count = header_tokens
-
-        current_rows.append(row)
-        current_token_count += row_token_count + 1
+            current_rows = [row]
 
         # If a single row + header already exceeds max_tokens, flush it immediately
-        if len(current_rows) == 1 and current_token_count > max_tokens:
-            logger.warning(
-                "Table row %d exceeds max_tokens (%d > %d) even alone with header.\n"
-                "Emitting oversized chunk.",
-                idx,
-                current_token_count,
-                max_tokens,
-            )
-            flush_rows(
-                current_rows,
-                first_row_idx=idx,
-                end_index=row_offsets[idx + 1]
-                if idx + 1 < len(row_offsets)
-                else table.end_index,
-                token_count=current_token_count,
-            )
-            current_rows = []
-            current_token_count = header_tokens
+        if len(current_rows) == 1:
+            token_count = count_tokens(header + "\n" + row)
+            if token_count > max_tokens:
+                logger.debug(
+                    "Table row %d exceeds max_tokens (%d > %d) even alone with header.\n"
+                    "Emitting oversized chunk.",
+                    idx,
+                    token_count,
+                    max_tokens,
+                )
+                flush_rows(
+                    current_rows,
+                    first_row_idx=idx,
+                    end_index=row_offsets[idx + 1]
+                    if idx + 1 < len(row_offsets)
+                    else table.end_index,
+                )
+                current_rows = []
 
     # Flush remaining rows
     if current_rows:
@@ -260,7 +255,6 @@ def chunk_table(
             current_rows,
             first_row_idx=len(body_rows) - len(current_rows),
             end_index=table.end_index,
-            token_count=current_token_count,
         )
 
     return chunks
