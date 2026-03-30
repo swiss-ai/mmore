@@ -193,9 +193,7 @@ class WebsearchPipeline:
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
-        sources = self._truncate_to_token_limit(
-            "\n".join(web_snippets), self.config.max_context_tokens
-        )
+        sources = "\n".join(web_snippets)
         prompt = (
             f"Original Query: {original}\n"
             f"RAG Document Information:\n{rag_doc}\n\n"
@@ -258,7 +256,15 @@ class WebsearchPipeline:
             ):
                 break
 
+            # Token-aware accumulation: stop collecting snippets when budget is reached
+            char_budget = self.config.max_context_tokens * 4  # 1 ≈ 4 chars
+            total_snippet_chars = 0
+            budget_exhausted = False
+
             for sq in subs:
+                if budget_exhausted:
+                    break
+
                 # Only sleep for DDG, and make it 2 seconds instead of 10
                 if self.config.search_provider == "duckduckgo":
                     time.sleep(2)
@@ -267,23 +273,30 @@ class WebsearchPipeline:
                 subquery_snippets = []
 
                 for r in res:
+                    snippet = r["snippet"]
+                    snippet_len = len(snippet) + 1
+
+                    if total_snippet_chars + snippet_len > char_budget:
+                        logger.debug(
+                            "Token budget reached (%d tokens), skipping remaining searches on the web",
+                            self.config.max_context_tokens,
+                        )
+                        budget_exhausted = True
+                        break
+
                     if r["url"] not in source_map:
                         source_map[r["url"]] = []
 
                     if r["title"] not in source_map[r["url"]]:
                         source_map[r["url"]].append(r["title"])
 
-                    snippet = f"{r['snippet']}"
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
+                    total_snippet_chars += snippet_len
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:
                     combined_snippets = "\n".join(subquery_snippets)
-                    # APPLY TRUNCATION HERE
-                    combined_snippets = self._truncate_to_token_limit(
-                        combined_snippets, self.config.max_context_tokens
-                    )
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
 
