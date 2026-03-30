@@ -177,7 +177,10 @@ class LLM(BaseChatModel):
 
         if config.provider == "HF":
             if torch is None:
-                raise ImportError("torch is required for HuggingFace models")
+                raise ImportError(
+                    "torch is required for HuggingFace models. "
+                    "Install it with: uv pip install 'mmore[cpu]' or uv pip install 'mmore[cu126]'"
+                )
             if torch.backends.mps.is_available():
                 return ChatHuggingFace(
                     llm=HuggingFacePipeline.from_model_id(
