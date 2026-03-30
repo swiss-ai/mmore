@@ -84,7 +84,7 @@ process = [
 
 index = [
     # Indexing + Retrieval (vector DB, embeddings)
-    "pymilvus[milvus-lite]==2.6.6",
+    "pymilvus[milvus-lite]==2.6.11",
     "pymilvus-model>=0.3.2",
     "milvus-model>=0.2.12",
     "langchain-milvus>=0.1.8",
