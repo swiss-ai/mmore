@@ -109,6 +109,15 @@ See `TextProcessor` in `src/process/processors/text_processor.py` for a minimal 
 
 Post-processing refines the extracted text data to improve quality for downstream tasks. The infrastructure is modular and extensible: mmore natively supports the following post-processors: [**Chunker**](/src/mmore/process/post_processor/chunker), [**Filter**](/src/mmore/process/post_processor/filter), [**Named Entity Recognition**](/src/mmore/process/post_processor/ner), and [**Tagger**](/src/mmore/process/post_processor/tagger). Applying the **Chunker** is heavily recommended, as it cuts documents into reasonably sized chunks that are more specific to feed to an LLM.
 
+The chunker supports a `table_handling` option to control how markdown tables are split:
+
+| Mode | Description |
+|---|---|
+| `single_row` (default) | Each table row has its own chunk, with the header repeated for context |
+| `multi_rows` | Rows are grouped to fill the chunk size, header repeated per chunk |
+| `keep_whole` | Tables are never split and kept as one chunk regardless of size |
+| `none` | No special table handling, tables are chunked like regular text |
+
 You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/postprocessor/config.yaml).
 
 Once ready, you can run the process using the following command:

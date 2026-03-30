@@ -1,25 +1,94 @@
-from typing import Dict
+import logging
+import os
+import time
+from typing import Dict, List, Literal
 
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from ddgs import DDGS
+from ddgs.exceptions import DDGSException, RatelimitException
 
 from ..rag.llm import LLM, LLMConfig
 
+logger = logging.getLogger(__name__)
+
 
 class WebsearchOnly:
-    """Class dedicated to performing web searches and validating their usefulness."""
+    """Class dedicated to performing web searches only
+    Default provider: DuckDuckGo (free, no API key needed)
+    Optional provider: Tavily (set TAVILY_API_KEY, pip install "mmore[rag,websearch]")
+    """
 
-    def __init__(self, region: str = "wt-wt", max_results: int = 10):
+    def __init__(
+        self,
+        region: str = "wt-wt",
+        max_results: int = 10,
+        provider: Literal["duckduckgo", "tavily"] = "duckduckgo",
+        max_retries: int = 3,
+    ):
         """Initialize the WebsearchOnly class with search parameters."""
-        self.wrapper = DuckDuckGoSearchAPIWrapper(
-            region=region, max_results=max_results
-        )
 
-    def websearch_pipeline(self, query: str) -> Dict[str, str]:
+        self.region = region
+        self.max_results = max_results
+        self.provider = provider
+        self.max_retries = max_retries
+
+        if provider == "tavily":
+            try:
+                from tavily import TavilyClient
+            except ImportError:
+                raise ImportError("Run: pip install mmore[rag,websearch]")
+            api_key = os.getenv("TAVILY_API_KEY")
+
+            if not api_key:
+                raise ValueError("set TAVILY_API_KEY environment variable")
+
+            self._tavily = TavilyClient(api_key=api_key)
+
+    def _search_duckduckgo(self, query: str) -> List[Dict[str, str]]:
+        """DDG search with exponential backoff retry - fixes the timeout error"""
+        for attempt in range(self.max_retries):
+            try:
+                with DDGS() as ddgs:
+                    results = list(
+                        ddgs.text(
+                            query, max_results=self.max_results, region=self.region
+                        )
+                    )
+                return results
+
+            except RatelimitException:
+                wait = 2**attempt  # 1s -> 2s -> 4s
+
+                logger.warning(
+                    f"DDG rate limit hit, retrying in {wait}s "
+                    f"(attempt {attempt + 1}/{self.max_retries})"
+                )
+                time.sleep(wait)
+
+            except DDGSException as e:
+                logger.error(f"DDG search error: {e}")
+                return []
+
+        logger.error("DDG search failed after all retries")
+        return []
+
+    def _search_tavily(self, query: str) -> List[Dict[str, str]]:
+        """Tavily search : optional provider"""
+        response = self._tavily.search(query, max_results=self.max_results)
+        return [
+            {
+                "body": r.get("content", ""),
+                "href": r.get("url", ""),
+                "title": r.get("title", ""),
+            }
+            for r in response.get("results", [])
+        ]
+
+    def websearch_pipeline(self, query: str) -> List[Dict[str, str]]:
         """Perform a single web search."""
-        search = DuckDuckGoSearchResults(api_wrapper=self.wrapper)
-        web_output = search.run(query)
-        return web_output
+
+        if self.provider == "tavily":
+            return self._search_tavily(query)
+        return self._search_duckduckgo(query)
 
     def summarize_web_search(self, query: str, web_output: str) -> str:
         """Call LLM to summarize the current web output based on the original query, return a summary of the web search and the source."""

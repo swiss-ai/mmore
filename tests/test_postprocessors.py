@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, cast
 
 import pytest
@@ -6,6 +7,15 @@ from mmore.process.post_processor import BasePostProcessorConfig, load_postproce
 from mmore.process.post_processor.chunker.multimodal import (
     MultimodalChunker,
     MultimodalChunkerConfig,
+)
+from mmore.process.post_processor.chunker.utils import (
+    _TABLE_ROW_RE,
+    _strip_separator_cell,
+    _strip_table_row,
+    _strip_table_text,
+    chunk_table,
+    chunk_table_single_row,
+    detect_markdown_tables,
 )
 from mmore.process.post_processor.filter import FILTER_TYPES, FILTERS_LOADERS_MAP
 from mmore.process.post_processor.filter.base import BaseFilter, BaseFilterConfig
@@ -342,3 +352,295 @@ def test_tagger_process_lang_detector():
         "EN",
     ], f"Expected detected language 'en', got {detected_lang}"
     assert isinstance(processed, list), "Expected process() to return a list."
+
+
+# ------------------ Table-Aware Chunker Tests ------------------
+
+
+SIMPLE_TABLE = """\
+| Name | Age | City |
+|------|-----|------|
+| Alice | 30 | Paris |
+| Bob | 25 | London |
+| Carol | 35 | Berlin |"""
+
+
+LARGE_TABLE_HEADER = "| Col A | Col B | Col C |"
+LARGE_TABLE_SEP_RAW = "| ------- | ------- | ------- |"
+LARGE_TABLE_SEP = "| --- | --- | --- |"
+
+
+def _make_long_table(num_rows: int) -> str:
+    rows = [f"| val{i}_a | val{i}_b | val{i}_c |" for i in range(num_rows)]
+    return LARGE_TABLE_HEADER + "\n" + LARGE_TABLE_SEP_RAW + "\n" + "\n".join(rows)
+
+
+MIXED_TEXT = f"""\
+This is a paragraph of regular text before the table.
+
+{SIMPLE_TABLE}
+
+This is a paragraph of regular text after the table."""
+
+
+class TestDetectAndStripMarkdownTables:
+    def test_detects_simple_table(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        assert len(tables) == 1
+        table = tables[0]
+        assert table.start_index == 0
+        assert len(table.body_rows) == 3
+        assert "Name" in table.header
+        assert "---" in table.header
+
+    def test_detects_table_in_mixed_text(self):
+        tables = detect_markdown_tables(MIXED_TEXT)
+        assert len(tables) == 1
+        table = tables[0]
+        assert table.start_index != 0
+        assert len(table.body_rows) == 3
+        assert "Name" in table.header
+        assert "Age" in table.header
+
+    def test_no_tables(self):
+        text = "Just some regular text.\nNo tables here.\nAnother line."
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 0
+
+    def test_header_only_table(self):
+        text = "| A | B |\n|---|---|\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 1
+        assert len(tables[0].body_rows) == 0
+
+    def test_multiple_tables(self):
+        text = (
+            "| A | B |\n|---|---|\n| 1 | 2 |\n\n"
+            "Some text in between.\n\n"
+            "| X | Y |\n|---|---|\n| 3 | 4 |\n"
+        )
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 2
+
+    def test_detects_table_with_empty_cells(self):
+        text = "| A | B |\n|---|---|\n| | val |\n| x | |\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 1
+        assert len(tables[0].body_rows) == 2
+        assert "| | val |" in tables[0].body_rows[0]
+        assert "| x | |" in tables[0].body_rows[1]
+
+    def test_detects_table_with_alignment_colons(self):
+        text = "| Left | Center | Right |\n| :--- | :---: | ---: |\n| a | b | c |\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 1
+        assert len(tables[0].body_rows) == 1
+        assert "Left" in tables[0].header
+
+    def test_not_a_table_without_separator(self):
+        text = "| looks like | a table |\n| but no | separator |\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 0
+
+    def test_strip_row_removes_cell_padding(self):
+        row = "|  Alice  |  30  |  Paris  |"
+        assert _strip_table_row(row) == "| Alice | 30 | Paris |"
+
+    def test_strip_row_ignores_non_table_line(self):
+        row = "This is just text."
+        assert _strip_table_row(row) == row
+
+    def test_strip_separator_cell_all_alignments(self):
+        assert _strip_separator_cell("----------") == "---"
+        assert _strip_separator_cell(":----------") == ":---"
+        assert _strip_separator_cell("----------:") == "---:"
+        assert _strip_separator_cell(":----------:") == ":---:"
+        assert _strip_separator_cell("---") == "---"
+        assert _strip_separator_cell("  :---:  ") == ":---:"
+
+    def test_strip_row_normalizes_separator_dashes(self):
+        row = "| ---------- | ---- | ------- |"
+        assert _strip_table_row(row) == "| --- | --- | --- |"
+
+    def test_strip_row_preserves_alignment_colons(self):
+        row = "| :---------- | :----: | -------: |"
+        assert _strip_table_row(row) == "| :--- | :---: | ---: |"
+
+    def test_strips_full_table_text(self):
+        table = "|  Name  |  Age  |\n| ---------- | ---- |\n|  Alice  |  30  |"
+        expected = "| Name | Age |\n| --- | --- |\n| Alice | 30 |"
+        assert _strip_table_text(table) == expected
+
+    @pytest.mark.timeout(2)
+    def test_table_row_regex_no_exponential_backtracking(self):
+        """A row missing its closing | (e.g. PDF processor injecting a <span> tag)
+        must be rejected instantly and not hang due to exponential backtracking."""
+        line = "| " + " | ".join(" " * 50 for _ in range(5)) + " <tag>"
+        assert re.match(_TABLE_ROW_RE, line) is None
+
+    def test_strips_table_text_preserves_alignment(self):
+        table = (
+            "| Left | Center | Right |\n"
+            "| :---------- | :--------: | ----------: |\n"
+            "| a | b | c |"
+        )
+        result = _strip_table_text(table)
+        lines = result.split("\n")
+        assert lines[1] == "| :--- | :---: | ---: |"
+
+
+class TestChunkTableSingleRow:
+    def _simple_counter(self, text: str) -> int:
+        return len(text.split())
+
+    def test_one_chunk_per_row(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        assert len(tables) == 1
+        chunks = chunk_table_single_row(tables[0], count_tokens=self._simple_counter)
+        assert len(chunks) == 3
+        assert "Alice" in chunks[0].text
+        assert "Bob" in chunks[1].text
+        assert "Carol" in chunks[2].text
+
+    def test_header_prepended_to_each_chunk(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        chunks = chunk_table_single_row(tables[0], count_tokens=self._simple_counter)
+        for chunk in chunks:
+            assert chunk.text.startswith("| Name | Age | City |")
+            assert "---" in chunk.text
+
+    def test_header_only_table_returns_single_chunk(self):
+        text = "| A | B |\n|---|---|\n"
+        tables = detect_markdown_tables(text)
+        assert len(tables) == 1
+        chunks = chunk_table_single_row(tables[0], count_tokens=self._simple_counter)
+        assert len(chunks) == 1
+        assert chunks[0].text == "| A | B |\n| --- | --- |"
+
+    def test_chunk_indices_in_range(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        chunks = chunk_table_single_row(tables[0], count_tokens=self._simple_counter)
+        for chunk in chunks:
+            assert chunk.start_index >= tables[0].start_index
+            assert chunk.end_index <= tables[0].end_index
+
+
+class TestChunkTable:
+    def _simple_counter(self, text: str) -> int:
+        """Simple word-based token counter for tests."""
+        return len(text.split())
+
+    def test_small_table_single_chunk(self):
+        tables = detect_markdown_tables(SIMPLE_TABLE)
+        assert len(tables) == 1
+        chunks = chunk_table(
+            tables[0], max_tokens=1000, count_tokens=self._simple_counter
+        )
+        assert len(chunks) == 1
+        assert "Alice" in chunks[0].text
+        assert "Carol" in chunks[0].text
+
+    def test_large_table_split_preserves_headers(self):
+        big_table = _make_long_table(50)
+        tables = detect_markdown_tables(big_table)
+        assert len(tables) == 1
+        # Small max_tokens to force splitting
+        chunks = chunk_table(
+            tables[0], max_tokens=30, count_tokens=self._simple_counter
+        )
+        assert len(chunks) > 1
+        # Every chunk must start with the header
+        for chunk in chunks:
+            assert chunk.text.startswith(LARGE_TABLE_HEADER)
+            assert LARGE_TABLE_SEP in chunk.text
+
+    def test_chunk_indices_in_range(self):
+        big_table = _make_long_table(20)
+        tables = detect_markdown_tables(big_table)
+        chunks = chunk_table(
+            tables[0], max_tokens=30, count_tokens=self._simple_counter
+        )
+        for chunk in chunks:
+            assert chunk.start_index >= tables[0].start_index
+            assert chunk.end_index <= tables[0].end_index
+
+
+class TestMultimodalChunkerTableHandling:
+    def _make_chunker(
+        self, table_handling: str = "single_row", chunk_size: int = 20
+    ) -> MultimodalChunker:
+        config = MultimodalChunkerConfig(
+            chunking_strategy="sentence",
+            text_chunker_config={"chunk_size": chunk_size, "chunk_overlap": 0},
+            table_handling=table_handling,
+        )
+        return MultimodalChunker.from_config(config)
+
+    def test_no_tables_unchanged_behavior(self):
+        chunker = self._make_chunker()
+        sample = MultimodalSample(
+            text="Hello world. This is a test.", modalities=[], metadata={}
+        )
+        chunks = chunker.chunk(sample)
+        assert len(chunks) >= 1
+        for c in chunks:
+            assert "is_table_chunk" not in c.metadata
+
+    def test_large_table_split_with_headers(self):
+        big_table = _make_long_table(50)
+        chunker = self._make_chunker(table_handling="multi_rows", chunk_size=30)
+        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) > 1
+        # Every chunk has the header prepended
+        for c in chunks:
+            assert c.metadata.get("is_table_chunk") is True
+            assert c.text.startswith(LARGE_TABLE_HEADER)
+
+    def test_table_handling_single_row(self):
+        chunker = self._make_chunker(table_handling="single_row", chunk_size=512)
+        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) == 3
+        # Every chunk has the header prepended
+        for c in chunks:
+            assert c.metadata.get("is_table_chunk") is True
+            assert c.text.startswith("| Name | Age | City |")
+        assert "Alice" in chunks[0].text
+        assert "Bob" in chunks[1].text
+        assert "Carol" in chunks[2].text
+
+    def test_mixed_content_chunking(self):
+        chunker = self._make_chunker(chunk_size=512)
+        sample = MultimodalSample(text=MIXED_TEXT, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        assert len(chunks) >= 2  # at least text + table
+        table_chunks = [c for c in chunks if c.metadata.get("is_table_chunk")]
+        non_table_chunks = [c for c in chunks if not c.metadata.get("is_table_chunk")]
+        assert len(table_chunks) >= 1
+        assert len(non_table_chunks) >= 1
+
+    def test_table_handling_none(self):
+        chunker = self._make_chunker(table_handling="none", chunk_size=512)
+        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        for c in chunks:
+            assert "is_table_chunk" not in c.metadata
+
+    def test_table_handling_keep_whole(self):
+        big_table = _make_long_table(50)
+        chunker = self._make_chunker(table_handling="keep_whole", chunk_size=30)
+        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        chunks = chunker.chunk(sample)
+        # Should be a single chunk even though it exceeds chunk_size
+        assert len(chunks) == 1
+        assert chunks[0].metadata.get("is_table_chunk") is True
+
+    def test_invalid_table_handling_mode(self):
+        with pytest.raises(ValueError, match="Invalid table_handling mode"):
+            MultimodalChunker(
+                text_chunker=MultimodalChunker.from_config(
+                    MultimodalChunkerConfig()
+                ).text_chunker,
+                table_handling="invalid_mode",
+            )

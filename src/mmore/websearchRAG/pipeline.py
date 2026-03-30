@@ -7,8 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+import torch
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,6 +15,7 @@ from ..rag.llm import LLM, LLMConfig
 from ..run_rag import rag
 from .config import WebsearchConfig
 from .logging_config import logger
+from .websearch import WebsearchOnly
 
 
 @dataclass
@@ -55,9 +55,10 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self.rag_results = None
-        self.wrapper = DuckDuckGoSearchAPIWrapper(max_results=self.config.max_searches)
-        self.search = DuckDuckGoSearchResults(
-            api_wrapper=self.wrapper, output_format="list"
+        self.searcher = WebsearchOnly(
+            provider=self.config.search_provider,
+            max_results=self.config.max_searches,
+            max_retries=self.config.max_retries,
         )
 
     def _initialize_llm(self) -> BaseChatModel:
@@ -126,14 +127,16 @@ class WebsearchPipeline:
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
-
         if delimiter not in content:
             return content
-
         # Extract the section after the delimiter
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
-
         return cleaned_section
+
+    def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
+        """Fallback character truncation (roughly 4 chars per token) to prevent segfaults."""
+        char_limit = max_tokens * 4
+        return text[:char_limit] if len(text) > char_limit else text
 
     def generate_subqueries(
         self, original_query: str, current_context: Optional[str] = None
@@ -170,35 +173,29 @@ class WebsearchPipeline:
         cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
         return cleaned_answer
 
-    def duckduckgo_search(self, query: str) -> List[Dict[str, str]]:
+    def web_search(self, query: str) -> List[Dict[str, str]]:
         """
-        Perform a DuckDuckGo search using LangChain DuckDuckGo wrapper
-
-        Returns a list of dicts with keys: 'title' and 'url'
+        Perform a web search using the configured provider (WebsearchOnly).
+        Includes exponential backoff retry logic to fix timeout issues (#230).
+        Returns a list of dicts with keys: 'snippet', 'title' and 'url'
         """
-        try:
-            results = self.search.invoke(query)
-
-            formatted_results = []
-            for r in results:
-                snippet = r.get("snippet", "")
-                url = r.get("link", "")  # note: it's "link" in LangChain results
-                title = r.get("title", "")
-
-                formatted_results.append(
-                    {"snippet": snippet, "url": url, "title": title}
-                )
-
-            return formatted_results
-        except Exception as e:
-            logger.error(f"DuckDuckGo search error: {e}")
-            return []
+        results = self.searcher.websearch_pipeline(query)
+        return [
+            {
+                "snippet": r.get("body", ""),
+                "url": r.get("href", ""),
+                "title": r.get("title", ""),
+            }
+            for r in results
+        ]
 
     def integrate_with_llm(
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
-        sources = "\n".join(web_snippets)
+        sources = self._truncate_to_token_limit(
+            "\n".join(web_snippets), self.config.max_context_tokens
+        )
         prompt = (
             f"Original Query: {original}\n"
             f"RAG Document Information:\n{rag_doc}\n\n"
@@ -262,8 +259,10 @@ class WebsearchPipeline:
                 break
 
             for sq in subs:
-                time.sleep(10)
-                res = self.duckduckgo_search(query=sq)
+                # Only sleep for DDG, and make it 2 seconds instead of 10
+                if self.config.search_provider == "duckduckgo":
+                    time.sleep(2)
+                res = self.web_search(query=sq)
 
                 subquery_snippets = []
 
@@ -274,19 +273,31 @@ class WebsearchPipeline:
                     if r["title"] not in source_map[r["url"]]:
                         source_map[r["url"]].append(r["title"])
 
-                    snippet = f"{r['snippet']})"
+                    snippet = f"{r['snippet']}"
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
 
+                # Run this ONCE per subquery!
+                if subquery_snippets:
                     combined_snippets = "\n".join(subquery_snippets)
-
+                    # APPLY TRUNCATION HERE
+                    combined_snippets = self._truncate_to_token_limit(
+                        combined_snippets, self.config.max_context_tokens
+                    )
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
 
             previous_sub = subs
 
+            # CLEAR MEMORY HERE
+            if torch is not None and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
+            )
+            combined_sub_summaries = self._truncate_to_token_limit(
+                combined_sub_summaries, self.config.max_context_tokens
             )
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
@@ -301,10 +312,15 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
+            combined_web_summaries = self._truncate_to_token_limit(
+                combined_web_summaries, self.config.max_context_tokens
+            )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
             # Current context, web content  to generate the answer
-            out = self.integrate_with_llm(qr, context_for_llm, snippets)
+            out = self.integrate_with_llm(
+                qr, context_for_llm, [] if self.config.use_summary else snippets
+            )
             final_short, final_detailed = out["short"], out["detailed"]
 
             # Prepare context for next search loop
