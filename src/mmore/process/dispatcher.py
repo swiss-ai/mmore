@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from operator import itemgetter
 from typing import Dict, Iterator, List, Optional, Tuple, Type, Union, cast
 
@@ -402,6 +403,11 @@ class Dispatcher:
     ) -> None:
         if not self.config.output_path:
             return
+
+        processed_at = datetime.now().isoformat()
+        for sample in results:
+            sample.metadata["processed_at"] = processed_at
+            sample.metadata["processor_type"] = cls_name
 
         processor_output_path = os.path.join(
             self.config.output_path, "processors", cls_name
