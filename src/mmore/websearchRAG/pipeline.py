@@ -276,6 +276,7 @@ class WebsearchPipeline:
         )
 
         source_map = {}
+        seen_results = set()
         current_context = rag_summary
         final_short, final_detailed = "", ""
         web_summary = ""
@@ -299,7 +300,7 @@ class WebsearchPipeline:
                 break
 
             # Token-aware accumulation: stop collecting snippets when budget is reached
-            total_snippet_tokens = 0
+            total_tokens = 0
             budget_exhausted = False
 
             for sq in subs:
@@ -314,13 +315,18 @@ class WebsearchPipeline:
                 subquery_snippets = []
 
                 for r in res:
+                    url = r["url"]
                     snippet = r["snippet"]
+                    title = r["title"]
+
+                    # Prevent duplicated results
+                    if (url, snippet) in seen_results:
+                        continue
+                    seen_results.add((url, snippet))
+
                     snippet_tokens = self._count_tokens(snippet)
 
-                    if (
-                        total_snippet_tokens + snippet_tokens
-                        > self.config.max_context_tokens
-                    ):
+                    if total_tokens + snippet_tokens > self.config.max_context_tokens:
                         logger.debug(
                             "Token budget reached (%d tokens), skipping remaining searches on the web",
                             self.config.max_context_tokens,
@@ -328,15 +334,15 @@ class WebsearchPipeline:
                         budget_exhausted = True
                         break
 
-                    if r["url"] not in source_map:
-                        source_map[r["url"]] = []
+                    if url not in source_map:
+                        source_map[url] = []
 
-                    if r["title"] not in source_map[r["url"]]:
-                        source_map[r["url"]].append(r["title"])
+                    if title not in source_map[url]:
+                        source_map[url].append(title)
 
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
-                    total_snippet_tokens += snippet_tokens
+                    total_tokens += snippet_tokens
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:
