@@ -83,19 +83,14 @@ class WebsearchPipeline:
         Summarize the RAG answer (used when rag_summary=True)
         """
         system_msg = (
-            "You are a helpful assistant that summarizes text relevant to the question."
+            "You are an extractive summarizer. Use only the provided context, no external knowledge. "
+            "Keep the summary concise and factual."
         )
-        prefix = (
-            "You have only the following context to answer the question, do not use any external knowledge.\n\n"
-            f"Question: {query}\n\n"
-            "Context:\n"
-        )
+        prefix = f"Question: {query}\n\n---CONTEXT---\n"
         suffix = (
-            "\n\n"
-            "If the context contains the answer or any useful information, respond with that information. \n"
-            "If no useful informations are, answer: no useful informations\n"
-            "Answer: \n"
-            "---------------------------"
+            "\n---END CONTEXT---\n\n"
+            "Extract and summarize only the information relevant to the question above.\n"
+            "If the context contains no useful information, respond exactly with: NO_USEFUL_INFORMATION"
         )
         content = self._fit_to_budget(
             rag_answer or "No context yet", system_msg, prefix, suffix
@@ -161,7 +156,7 @@ class WebsearchPipeline:
         return text[:lo]
 
     def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
-        """Truncate content so that content + fixed parts fit within max_context_tokens."""
+        """Truncate content so that prompt fits within max_context_tokens."""
         fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
         available = self.config.max_context_tokens - fixed_tokens
         if available <= 0:
@@ -176,27 +171,30 @@ class WebsearchPipeline:
         """
         n = self.config.n_subqueries
         if current_context is None:
-            instruction = (
-                f"You have the question below:\nQuestion: {original_query}\n\n"
-            )
+            instruction = f"Question: {original_query}\n\n"
             task = (
-                f"Generate {n}-independant subqueries based on the original query, in order to generate the most complete research. Each subquery must be concise and ≤30 words.\n"
-                f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
-                f"---ANSWER---\n"
+                f"Generate exactly {n} independent web-search subqueries that together cover the question comprehensively.\n"
+                "Each subquery must be concise (≤30 words) and search-engine friendly.\n\n"
+                "Output format (one per line, no extra text):\n"
+                "subquery 1: <query>\n"
+                "subquery 2: <query>\n"
             )
         else:
-            instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
+            instruction = f"Question: {original_query}\n\n"
             task = (
-                f"Partial answer: {current_context}\n\n"
-                f"Generate {n}-independant subqueries to refine the answer based on the original query. Each subquery must be concise and ≤30 words.\n"
-                f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
-                f"---ANSWER---\n"
+                f"Partial answer so far:\n{current_context}\n\n"
+                f"Generate exactly {n} independent web-search subqueries to fill gaps in the partial answer.\n"
+                "Each subquery must be concise (≤30 words) and search-engine friendly.\n"
+                "Do not repeat aspects already covered by the partial answer.\n\n"
+                "Output format (one per line, no extra text):\n"
+                "subquery 1: <query>\n"
+                "subquery 2: <query>\n"
             )
 
         prompt = instruction + task
         messages = [
             SystemMessage(
-                content="You are an assistant specializing in generating search queries."
+                content="You are a search query generator. Output only the requested subqueries in the specified format."
             ),
             HumanMessage(content=prompt),
         ]
@@ -227,17 +225,20 @@ class WebsearchPipeline:
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
-        system_msg = "You are a research assistant."
+        system_msg = (
+            "You are a research assistant. Synthesize the provided sources into a clear answer. "
+            "Do not introduce information beyond what is given."
+        )
         prefix = (
-            f"Original Query: {original}\n"
-            f"RAG Document Information:\n{rag_doc}\n\n"
-            "Web Information:\n"
+            f"Question: {original}\n\n"
+            f"---RAG SOURCES---\n{rag_doc}\n\n"
+            "---WEB SOURCES---\n"
         )
         suffix = (
-            "\n\n"
-            "Provide the response in the following format:\n"
-            "short answer: <your concise answer>\n"
-            "detailed answer: <your detailed answer>"
+            "\n---END SOURCES---\n\n"
+            "Respond in exactly this format (keep the labels):\n"
+            "short answer: <1-2 sentence answer>\n"
+            "detailed answer: <comprehensive answer with key details>"
         )
         sources = self._fit_to_budget(
             "\n".join(web_snippets), system_msg, prefix, suffix
@@ -345,7 +346,7 @@ class WebsearchPipeline:
 
             previous_sub = subs
 
-            # CLEAR MEMORY HERE
+            # Clear memory
             if torch is not None and torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
