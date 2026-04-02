@@ -82,21 +82,28 @@ class WebsearchPipeline:
         """
         Summarize the RAG answer (used when rag_summary=True)
         """
-        prompt = (
+        system_msg = (
+            "You are a helpful assistant that summarizes text relevant to the question."
+        )
+        prefix = (
             "You have only the following context to answer the question, do not use any external knowledge.\n\n"
             f"Question: {query}\n\n"
             "Context:\n"
-            f"{rag_answer or 'No context yet'}\n\n"
+        )
+        suffix = (
+            "\n\n"
             "If the context contains the answer or any useful information, respond with that information. \n"
             "If no useful informations are, answer: no useful informations\n"
             "Answer: \n"
             "---------------------------"
         )
+        content = self._fit_to_budget(
+            rag_answer or "No context yet", system_msg, prefix, suffix
+        )
+        prompt = prefix + content + suffix
 
         messages = [
-            SystemMessage(
-                content="You are a helpful assistant that summarizes text relevant to the question."
-            ),
+            SystemMessage(content=system_msg),
             HumanMessage(content=prompt),
         ]
 
@@ -141,6 +148,14 @@ class WebsearchPipeline:
         char_limit = max_tokens * 4
         return text[:char_limit] if len(text) > char_limit else text
 
+    def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
+        """Truncate content so that prompt fits within max_context_tokens"""
+        fixed_chars = sum(len(p) for p in fixed_parts)
+        available = self.config.max_context_tokens * 4 - fixed_chars
+        if available <= 0:
+            return ""
+        return content[:available] if len(content) > available else content
+
     def generate_subqueries(
         self, original_query: str, current_context: Optional[str] = None
     ) -> List[str]:
@@ -148,18 +163,22 @@ class WebsearchPipeline:
         Generate concise search subqueries
         """
         n = self.config.n_subqueries
-        instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
         if current_context is None:
+            instruction = (
+                f"You have the question below:\nQuestion: {original_query}\n\n"
+            )
             task = (
                 f"Generate {n}-independant subqueries based on the original query, in order to generate the most complete research. Each subquery must be concise and ≤30 words.\n"
                 f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
+                f"---ANSWER---\n"
             )
         else:
+            instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
             task = (
                 f"Partial answer: {current_context}\n\n"
                 f"Generate {n}-independant subqueries to refine the answer based on the original query. Each subquery must be concise and ≤30 words.\n"
                 f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
-                f"---ANSWER ---"
+                f"---ANSWER---\n"
             )
 
         prompt = instruction + task
@@ -196,18 +215,25 @@ class WebsearchPipeline:
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
         # Build prompt for short & detailed answer
-        sources = "\n".join(web_snippets)
-        prompt = (
+        system_msg = "You are a research assistant."
+        prefix = (
             f"Original Query: {original}\n"
             f"RAG Document Information:\n{rag_doc}\n\n"
-            f"Web Information:\n{sources}\n\n"
+            "Web Information:\n"
+        )
+        suffix = (
+            "\n\n"
             "Provide the response in the following format:\n"
             "short answer: <your concise answer>\n"
             "detailed answer: <your detailed answer>"
         )
+        sources = self._fit_to_budget(
+            "\n".join(web_snippets), system_msg, prefix, suffix
+        )
+        prompt = prefix + sources + suffix
 
         msgs = [
-            SystemMessage(content="You are a research assistant."),
+            SystemMessage(content=system_msg),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(msgs)
