@@ -120,20 +120,20 @@ class WebsearchPipeline:
             f"Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
             f"New subqueries:\n{current_subqueries}\n\n"
             "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
-            "Respond strictly with 'yes' if at least one is relevant, or 'no' if none are."
+            "Respond with a single word: 'yes' or 'no'."
         )
         messages = [
-            SystemMessage(content="You are a helpful assistant"),
+            SystemMessage(
+                content="You are a binary classifier. You must respond with exactly one word: yes or no."
+            ),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(messages)
         response_content = extract_response(response_llm.content)
-        response = self._clean_llm_output(response_content)
+        response = self._clean_llm_output(response_content).strip().lower()
 
-        if "no" in response:
-            return False
-        else:
-            return True
+        first_word = response.split()[0] if response.split() else ""
+        return first_word != "no"
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -143,18 +143,30 @@ class WebsearchPipeline:
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
         return cleaned_section
 
+    def _count_tokens(self, text: str) -> int:
+        """Count tokens using the LLM's tokenizer."""
+        return self.llm.get_num_tokens(text)
+
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
-        """Fallback character truncation (roughly 4 chars per token) to prevent segfaults."""
-        char_limit = max_tokens * 4
-        return text[:char_limit] if len(text) > char_limit else text
+        """Truncate text to fit within a token budget using binary search."""
+        if self._count_tokens(text) <= max_tokens:
+            return text
+        lo, hi = 0, len(text)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if self._count_tokens(text[:mid]) <= max_tokens:
+                lo = mid
+            else:
+                hi = mid - 1
+        return text[:lo]
 
     def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
-        """Truncate content so that prompt fits within max_context_tokens"""
-        fixed_chars = sum(len(p) for p in fixed_parts)
-        available = self.config.max_context_tokens * 4 - fixed_chars
+        """Truncate content so that content + fixed parts fit within max_context_tokens."""
+        fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
+        available = self.config.max_context_tokens - fixed_tokens
         if available <= 0:
             return ""
-        return content[:available] if len(content) > available else content
+        return self._truncate_to_token_limit(content, available)
 
     def generate_subqueries(
         self, original_query: str, current_context: Optional[str] = None
@@ -286,8 +298,7 @@ class WebsearchPipeline:
                 break
 
             # Token-aware accumulation: stop collecting snippets when budget is reached
-            char_budget = self.config.max_context_tokens * 4  # 1 ≈ 4 chars
-            total_snippet_chars = 0
+            total_snippet_tokens = 0
             budget_exhausted = False
 
             for sq in subs:
@@ -303,9 +314,12 @@ class WebsearchPipeline:
 
                 for r in res:
                     snippet = r["snippet"]
-                    snippet_len = len(snippet) + 1
+                    snippet_tokens = self._count_tokens(snippet)
 
-                    if total_snippet_chars + snippet_len > char_budget:
+                    if (
+                        total_snippet_tokens + snippet_tokens
+                        > self.config.max_context_tokens
+                    ):
                         logger.debug(
                             "Token budget reached (%d tokens), skipping remaining searches on the web",
                             self.config.max_context_tokens,
@@ -321,7 +335,7 @@ class WebsearchPipeline:
 
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
-                    total_snippet_chars += snippet_len
+                    total_snippet_tokens += snippet_tokens
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:
