@@ -125,7 +125,7 @@ api = [
 # --- Composite + variant extras ---
 
 all = [
-    "mmore[process,rag,api]",
+    "mmore[process,rag,api,websearch]",
 ]
 
 cpu = [
