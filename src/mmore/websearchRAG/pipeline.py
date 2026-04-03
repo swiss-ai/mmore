@@ -66,11 +66,9 @@ SYNTHESIS_SYSTEM_MSG = (
     "You are a research assistant. Synthesize the provided sources into a clear answer. "
     "Do not introduce information beyond what is given."
 )
-SYNTHESIS_PREFIX = (
-    "Question: {original}\n\n---RAG SOURCES---\n{rag_doc}\n\n---WEB SOURCES---\n"
-)
+SYNTHESIS_PREFIX = "Question: {original}\n\n---RAG SOURCES---\n{rag_doc}\n---END RAG SOURCES---\n\n---WEB SOURCES---\n"
 SYNTHESIS_SUFFIX = (
-    "\n---END SOURCES---\n\n"
+    "\n---END WEB SOURCES---\n\n"
     "Respond in exactly this format (keep the labels):\n"
     "short answer: <1-2 sentence answer>\n"
     "detailed answer: <comprehensive answer with key details>"
@@ -135,15 +133,13 @@ class WebsearchPipeline:
             base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
 
-    def generate_summary(self, rag_answer: str | None, query: str):
-        """
-        Summarize the RAG answer (used when rag_summary=True)
-        """
+    def generate_summary(self, content: str | None, query: str):
+        """Summarize content relevant to the query."""
         prefix = SUMMARY_PREFIX.format(query=query)
-        content = self._fit_to_budget(
-            rag_answer or "No context yet", SUMMARY_SYSTEM_MSG, prefix, SUMMARY_SUFFIX
+        fitted = self._fit_to_budget(
+            content or "No context yet", SUMMARY_SYSTEM_MSG, prefix, SUMMARY_SUFFIX
         )
-        prompt = prefix + content + SUMMARY_SUFFIX
+        prompt = prefix + fitted + SUMMARY_SUFFIX
 
         messages = [
             SystemMessage(content=SUMMARY_SYSTEM_MSG),
@@ -277,13 +273,14 @@ class WebsearchPipeline:
         return max(0, self.config.max_context_tokens - fixed_tokens)
 
     def integrate_with_llm(
-        self, original: str, rag_doc: str | None, web_snippets: List[str]
+        self, original: str, rag_doc: str | None, web_content: str
     ) -> Dict[str, str]:
-        prefix = SYNTHESIS_PREFIX.format(
-            original=original, rag_doc=rag_doc or "No RAG sources"
+        rag_text = rag_doc or "No RAG sources"
+        prefix = SYNTHESIS_PREFIX.format(original=original, rag_doc=rag_text)
+        fitted = self._fit_to_budget(
+            web_content, SYNTHESIS_SYSTEM_MSG, prefix, SYNTHESIS_SUFFIX
         )
-        sources = "\n".join(web_snippets)
-        prompt = prefix + sources + SYNTHESIS_SUFFIX
+        prompt = prefix + fitted + SYNTHESIS_SUFFIX
 
         msgs = [
             SystemMessage(content=SYNTHESIS_SYSTEM_MSG),
@@ -339,6 +336,11 @@ class WebsearchPipeline:
             ):
                 break
 
+            # Build RAG context: RAG summary + prior loop answer when available
+            rag_for_llm = rag_summary or ""
+            if current_context and current_context != rag_summary:
+                rag_for_llm += f"\n\nPrior answer:\n{current_context}"
+
             # Token-aware accumulation: use effective budget that accounts for
             # the fixed prompt overhead in the downstream prompt.
             # snippet_budget caps total snippets (for integrate_with_llm when not summarizing).
@@ -346,7 +348,7 @@ class WebsearchPipeline:
                 snippet_budget = self.config.max_context_tokens
             else:
                 synthesis_prefix = SYNTHESIS_PREFIX.format(
-                    original=qr, rag_doc=current_context or "No RAG sources"
+                    original=qr, rag_doc=rag_for_llm or "No RAG sources"
                 )
                 snippet_budget = self._compute_content_budget(
                     SYNTHESIS_SYSTEM_MSG, synthesis_prefix, SYNTHESIS_SUFFIX
@@ -429,21 +431,16 @@ class WebsearchPipeline:
             web_summaries.append(web_summary)
 
             if self.config.use_summary:
-                # Combine rag summary, web summary, and original query for final answer
-                context_for_llm = f"RAG informations:\n{rag_summary or ''}\n\nWeb informations:\n{web_summary}"
+                web_for_llm = web_summary
             else:
-                # If not summarizing subqueries, use rag summary or current context with snippets
-                context_for_llm = current_context
+                web_for_llm = "\n".join(snippets)
 
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-            # Current context, web content to generate the answer
-            out = self.integrate_with_llm(
-                qr, context_for_llm, [] if self.config.use_summary else snippets
-            )
+            out = self.integrate_with_llm(qr, rag_for_llm, web_for_llm)
             final_short, final_detailed = out["short"], out["detailed"]
 
             # Prepare context for next search loop
