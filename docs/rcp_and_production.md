@@ -63,7 +63,21 @@ mkdir -p /lightscratch/users/$GASPAR/mmore-data/out
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/out/db
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/out/process/outputs/images
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/in/sample_data/
+# Persistent model cache directory (avoids re-downloading models on each job run)
+mkdir -p /lightscratch/users/$GASPAR/.cache
 ```
+
+### Model Cache (Persistent Volume)
+
+By default, ML models (Marker/OCR, Whisper, sentence-transformers, SPLADE) are downloaded from HuggingFace on every job start, which takes 10–20 minutes. To cache them persistently on `light-scratch`, pass `-e CACHE_DIR=...` in every `runai submit` command:
+
+```bash
+-e CACHE_DIR=/lightscratch/users/$GASPAR/.cache
+```
+
+- **First run:** Models download to the PVC (~10–20 min, depending on network speed)
+- **Subsequent runs:** Models load from disk in seconds
+- **Optional — offline mode:** Once the cache is warm, add `-e HF_HUB_OFFLINE=1` to skip all HuggingFace network checks entirely, further reducing startup time
 
 ### Interactive Development Session
 
@@ -104,6 +118,7 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e CACHE_DIR=/lightscratch/users/$GASPAR/.cache \
   --command "python3 -m mmore process --config-file production-config/process/config.yaml"
 ```
 
@@ -122,6 +137,7 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e CACHE_DIR=/lightscratch/users/$GASPAR/.cache \
   --command "python3 -m mmore postprocess --config-file production-config/postprocessor/config.yaml --input-data /lightscratch/users/$GASPAR/mmore-data/out/process/outputs/merged/merged_results.jsonl"
 ```
 
@@ -140,6 +156,7 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e CACHE_DIR=/lightscratch/users/$GASPAR/.cache \
   --command "python3 -m mmore index --config-file production-config/index/config.yaml --documents-path /lightscratch/users/$GASPAR/mmore-data/out/postprocessor/outputs/merged/final_pp.jsonl"
 ```
 
@@ -159,6 +176,7 @@ runai submit \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
   -e HF_TOKEN=$HF_TOKEN \
+  -e CACHE_DIR=/lightscratch/users/$GASPAR/.cache \
   --command "python3 -m mmore live-retrieval --config-file production-config/retriever_api/config.yaml"
 ```
 

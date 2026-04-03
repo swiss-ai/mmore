@@ -53,5 +53,8 @@ RUN .venv/bin/uv pip install --no-cache --no-deps -e .
 # --- Runtime ---
 ENV PATH="/app/.venv/bin:$PATH"
 ENV DASK_DISTRIBUTED__WORKER__DAEMON=False
+ENV HF_HOME="/mmoreuser/.cache/huggingface"
+ENV TORCH_HOME="/mmoreuser/.cache/torch"
+ENV XDG_CACHE_HOME="/mmoreuser/.cache"
 
 ENTRYPOINT ["/bin/bash"]
