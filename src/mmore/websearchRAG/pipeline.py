@@ -80,7 +80,7 @@ SYNTHESIS_SUFFIX = (
 @dataclass
 class ProcessedResponse:
     query: str
-    rag_informations: str
+    rag_informations: str | None
     rag_summary: str | None
     web_summary: str
     short_answer: str
@@ -170,9 +170,7 @@ class WebsearchPipeline:
         response_llm = self.llm.invoke(messages)
         response_content = extract_response(response_llm.content)
         response = self._clean_llm_output(response_content).strip().lower()
-
-        first_word = response.split()[0] if response.split() else ""
-        return first_word == "yes"
+        return bool(re.match(r"^yes\b", response))
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -311,7 +309,7 @@ class WebsearchPipeline:
 
     def process_record(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         qr = rec.get("input", "").strip()
-        rag_ans = rec.get("answer", "") if self.config.use_rag else ""
+        rag_ans = rec.get("answer", "") if self.config.use_rag else None
         self.rag_results = rag_ans
         rag_summary = (
             self.generate_summary(rag_ans, qr) if self.config.use_rag else None
@@ -343,12 +341,7 @@ class WebsearchPipeline:
 
             # Token-aware accumulation: use effective budget that accounts for
             # the fixed prompt overhead in the downstream prompt.
-            # summary_budget caps per-subquery snippets (for generate_summary).
             # snippet_budget caps total snippets (for integrate_with_llm when not summarizing).
-            summary_prefix = SUMMARY_PREFIX.format(query=qr)
-            summary_budget = self._compute_content_budget(
-                SUMMARY_SYSTEM_MSG, summary_prefix, SUMMARY_SUFFIX
-            )
             if self.config.use_summary:
                 snippet_budget = self.config.max_context_tokens
             else:
@@ -364,6 +357,12 @@ class WebsearchPipeline:
             for sq in subs:
                 if budget_exhausted:
                     break
+
+                # Compute per-subquery summary budget using the current subquery
+                sq_prefix = SUMMARY_PREFIX.format(query=sq)
+                summary_budget = self._compute_content_budget(
+                    SUMMARY_SYSTEM_MSG, sq_prefix, SUMMARY_SUFFIX
+                )
 
                 # Only sleep for DDG, and make it 2 seconds instead of 10
                 if self.config.search_provider == "duckduckgo":
@@ -383,7 +382,7 @@ class WebsearchPipeline:
                         continue
                     seen_results.add((url, snippet))
 
-                    snippet_tokens = self._count_tokens(snippet)
+                    snippet_tokens = self._count_tokens(snippet + "\n")
 
                     if total_tokens + snippet_tokens > snippet_budget:
                         logger.debug(
