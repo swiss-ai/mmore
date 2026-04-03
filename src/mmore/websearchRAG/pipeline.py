@@ -20,6 +20,62 @@ from .config import WebsearchConfig
 from .logging_config import logger
 from .websearch import WebsearchOnly
 
+# --- Prompt constants ---
+
+SUMMARY_SYSTEM_MSG = (
+    "You are an extractive summarizer. Use only the provided context, no external knowledge. "
+    "Keep the summary concise and factual."
+)
+SUMMARY_PREFIX = "Question: {query}\n\n---CONTEXT---\n"
+SUMMARY_SUFFIX = (
+    "\n---END CONTEXT---\n\n"
+    "Extract and summarize only the information relevant to the question above.\n"
+    "If the context contains no useful information, respond exactly with: NO_USEFUL_INFORMATION"
+)
+
+RELEVANCE_SYSTEM_MSG = (
+    "You are a binary classifier. You must respond with exactly one word: yes or no."
+)
+RELEVANCE_PROMPT = (
+    "Original query:\n{query}\n\n"
+    "Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
+    "New subqueries:\n{current_subqueries}\n\n"
+    "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
+    "Respond with a single word: 'yes' or 'no'."
+)
+
+SUBQUERY_SYSTEM_MSG = "You are a search query generator. Output only the requested subqueries in the specified format."
+SUBQUERY_TASK = (
+    "Generate exactly {n} independent web-search subqueries that together cover the question comprehensively.\n"
+    "Each subquery must be concise (≤30 words) and search-engine friendly.\n\n"
+    "Output format (one per line, no extra text):\n"
+    "subquery 1: <query>\n"
+    "subquery 2: <query>\n"
+)
+SUBQUERY_TASK_WITH_CONTEXT = (
+    "Partial answer so far:\n{current_context}\n\n"
+    "Generate exactly {n} independent web-search subqueries to fill gaps in the partial answer.\n"
+    "Each subquery must be concise (≤30 words) and search-engine friendly.\n"
+    "Do not repeat aspects already covered by the partial answer.\n\n"
+    "Output format (one per line, no extra text):\n"
+    "subquery 1: <query>\n"
+    "subquery 2: <query>\n"
+)
+
+SYNTHESIS_SYSTEM_MSG = (
+    "You are a research assistant. Synthesize the provided sources into a clear answer. "
+    "Do not introduce information beyond what is given."
+)
+SYNTHESIS_PREFIX = (
+    "Question: {original}\n\n---RAG SOURCES---\n{rag_doc}\n\n---WEB SOURCES---\n"
+)
+SYNTHESIS_SUFFIX = (
+    "\n---END SOURCES---\n\n"
+    "Respond in exactly this format (keep the labels):\n"
+    "short answer: <1-2 sentence answer>\n"
+    "detailed answer: <comprehensive answer with key details>"
+)
+
 
 @dataclass
 class ProcessedResponse:
@@ -57,6 +113,7 @@ class WebsearchPipeline:
     def __init__(self, config: WebsearchConfig):
         self.config = config
         self.llm = self._initialize_llm()
+        self._tokenizer = self._get_tokenizer()
         self.rag_results = None
         self.searcher = WebsearchOnly(
             provider=self.config.search_provider,
@@ -82,23 +139,14 @@ class WebsearchPipeline:
         """
         Summarize the RAG answer (used when rag_summary=True)
         """
-        system_msg = (
-            "You are an extractive summarizer. Use only the provided context, no external knowledge. "
-            "Keep the summary concise and factual."
-        )
-        prefix = f"Question: {query}\n\n---CONTEXT---\n"
-        suffix = (
-            "\n---END CONTEXT---\n\n"
-            "Extract and summarize only the information relevant to the question above.\n"
-            "If the context contains no useful information, respond exactly with: NO_USEFUL_INFORMATION"
-        )
+        prefix = SUMMARY_PREFIX.format(query=query)
         content = self._fit_to_budget(
-            rag_answer or "No context yet", system_msg, prefix, suffix
+            rag_answer or "No context yet", SUMMARY_SYSTEM_MSG, prefix, SUMMARY_SUFFIX
         )
-        prompt = prefix + content + suffix
+        prompt = prefix + content + SUMMARY_SUFFIX
 
         messages = [
-            SystemMessage(content=system_msg),
+            SystemMessage(content=SUMMARY_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
 
@@ -110,17 +158,13 @@ class WebsearchPipeline:
     def evaluate_subquery_relevance(
         self, query, current_subqueries, previous_subqueries
     ):
-        prompt = (
-            f"Original query:\n{query}\n\n"
-            f"Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
-            f"New subqueries:\n{current_subqueries}\n\n"
-            "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
-            "Respond with a single word: 'yes' or 'no'."
+        prompt = RELEVANCE_PROMPT.format(
+            query=query,
+            previous_subqueries=previous_subqueries,
+            current_subqueries=current_subqueries,
         )
         messages = [
-            SystemMessage(
-                content="You are a binary classifier. You must respond with exactly one word: yes or no."
-            ),
+            SystemMessage(content=RELEVANCE_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(messages)
@@ -128,7 +172,7 @@ class WebsearchPipeline:
         response = self._clean_llm_output(response_content).strip().lower()
 
         first_word = response.split()[0] if response.split() else ""
-        return first_word != "no"
+        return first_word == "yes"
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -138,12 +182,35 @@ class WebsearchPipeline:
         cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
         return cleaned_section
 
+    def _get_tokenizer(self):
+        """Try to get a local tokenizer."""
+        if hasattr(self.llm, "tokenizer") and self.llm.tokenizer is not None:
+            return self.llm.tokenizer
+        return None
+
+    def _encode(self, text: str) -> list[int]:
+        """Encode text to token IDs using the llm tokenizer."""
+        return self._tokenizer.encode(text, add_special_tokens=False)
+
+    def _decode(self, token_ids: list[int]) -> str:
+        """Decode token IDs back to text using the llm tokenizer."""
+        return self._tokenizer.decode(token_ids, skip_special_tokens=True)
+
     def _count_tokens(self, text: str) -> int:
-        """Count tokens using the LLM's tokenizer."""
+        """Count tokens using the model's tokenizer or fallback tokenizer if none."""
+        if self._tokenizer is not None:
+            return len(self._encode(text))
         return self.llm.get_num_tokens(text)
 
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
-        """Truncate text to fit within a token budget using binary search."""
+        """Truncate text to fit within a token budget."""
+        if self._tokenizer is not None:
+            token_ids = self._encode(text)
+            if len(token_ids) <= max_tokens:
+                return text
+            return self._decode(token_ids[:max_tokens])
+
+        # Fallback with binary search when no local tokenizer
         if self._count_tokens(text) <= max_tokens:
             return text
         lo, hi = 0, len(text)
@@ -170,32 +237,17 @@ class WebsearchPipeline:
         Generate concise search subqueries
         """
         n = self.config.n_subqueries
+        instruction = f"Question: {original_query}\n\n"
         if current_context is None:
-            instruction = f"Question: {original_query}\n\n"
-            task = (
-                f"Generate exactly {n} independent web-search subqueries that together cover the question comprehensively.\n"
-                "Each subquery must be concise (≤30 words) and search-engine friendly.\n\n"
-                "Output format (one per line, no extra text):\n"
-                "subquery 1: <query>\n"
-                "subquery 2: <query>\n"
-            )
+            task = SUBQUERY_TASK.format(n=n)
         else:
-            instruction = f"Question: {original_query}\n\n"
-            task = (
-                f"Partial answer so far:\n{current_context}\n\n"
-                f"Generate exactly {n} independent web-search subqueries to fill gaps in the partial answer.\n"
-                "Each subquery must be concise (≤30 words) and search-engine friendly.\n"
-                "Do not repeat aspects already covered by the partial answer.\n\n"
-                "Output format (one per line, no extra text):\n"
-                "subquery 1: <query>\n"
-                "subquery 2: <query>\n"
+            task = SUBQUERY_TASK_WITH_CONTEXT.format(
+                n=n, current_context=current_context
             )
 
         prompt = instruction + task
         messages = [
-            SystemMessage(
-                content="You are a search query generator. Output only the requested subqueries in the specified format."
-            ),
+            SystemMessage(content=SUBQUERY_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
 
@@ -221,32 +273,22 @@ class WebsearchPipeline:
             for r in results
         ]
 
+    def _compute_content_budget(self, *fixed_parts: str) -> int:
+        """Compute how many tokens are available for content given fixed prompt parts."""
+        fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
+        return max(0, self.config.max_context_tokens - fixed_tokens)
+
     def integrate_with_llm(
         self, original: str, rag_doc: str | None, web_snippets: List[str]
     ) -> Dict[str, str]:
-        # Build prompt for short & detailed answer
-        system_msg = (
-            "You are a research assistant. Synthesize the provided sources into a clear answer. "
-            "Do not introduce information beyond what is given."
+        prefix = SYNTHESIS_PREFIX.format(
+            original=original, rag_doc=rag_doc or "No RAG sources"
         )
-        prefix = (
-            f"Question: {original}\n\n"
-            f"---RAG SOURCES---\n{rag_doc}\n\n"
-            "---WEB SOURCES---\n"
-        )
-        suffix = (
-            "\n---END SOURCES---\n\n"
-            "Respond in exactly this format (keep the labels):\n"
-            "short answer: <1-2 sentence answer>\n"
-            "detailed answer: <comprehensive answer with key details>"
-        )
-        sources = self._fit_to_budget(
-            "\n".join(web_snippets), system_msg, prefix, suffix
-        )
-        prompt = prefix + sources + suffix
+        sources = "\n".join(web_snippets)
+        prompt = prefix + sources + SYNTHESIS_SUFFIX
 
         msgs = [
-            SystemMessage(content=system_msg),
+            SystemMessage(content=SYNTHESIS_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(msgs)
@@ -299,7 +341,23 @@ class WebsearchPipeline:
             ):
                 break
 
-            # Token-aware accumulation: stop collecting snippets when budget is reached
+            # Token-aware accumulation: use effective budget that accounts for
+            # the fixed prompt overhead in the downstream prompt.
+            # summary_budget caps per-subquery snippets (for generate_summary).
+            # snippet_budget caps total snippets (for integrate_with_llm when not summarizing).
+            summary_prefix = SUMMARY_PREFIX.format(query=qr)
+            summary_budget = self._compute_content_budget(
+                SUMMARY_SYSTEM_MSG, summary_prefix, SUMMARY_SUFFIX
+            )
+            if self.config.use_summary:
+                snippet_budget = self.config.max_context_tokens
+            else:
+                synthesis_prefix = SYNTHESIS_PREFIX.format(
+                    original=qr, rag_doc=current_context or "No RAG sources"
+                )
+                snippet_budget = self._compute_content_budget(
+                    SYNTHESIS_SYSTEM_MSG, synthesis_prefix, SYNTHESIS_SUFFIX
+                )
             total_tokens = 0
             budget_exhausted = False
 
@@ -313,6 +371,7 @@ class WebsearchPipeline:
                 res = self.web_search(query=sq)
 
                 subquery_snippets = []
+                subquery_tokens = 0
 
                 for r in res:
                     url = r["url"]
@@ -326,12 +385,19 @@ class WebsearchPipeline:
 
                     snippet_tokens = self._count_tokens(snippet)
 
-                    if total_tokens + snippet_tokens > self.config.max_context_tokens:
+                    if total_tokens + snippet_tokens > snippet_budget:
                         logger.debug(
-                            "Token budget reached (%d tokens), skipping remaining searches on the web",
-                            self.config.max_context_tokens,
+                            "Token budget reached (%d/%d tokens), skipping remaining searches on the web",
+                            total_tokens,
+                            snippet_budget,
                         )
                         budget_exhausted = True
+                        break
+
+                    if (
+                        summary_budget
+                        and subquery_tokens + snippet_tokens > summary_budget
+                    ):
                         break
 
                     if url not in source_map:
@@ -343,6 +409,7 @@ class WebsearchPipeline:
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
                     total_tokens += snippet_tokens
+                    subquery_tokens += snippet_tokens
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:
@@ -359,9 +426,6 @@ class WebsearchPipeline:
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
             )
-            combined_sub_summaries = self._truncate_to_token_limit(
-                combined_sub_summaries, self.config.max_context_tokens
-            )
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
@@ -375,12 +439,9 @@ class WebsearchPipeline:
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
-            combined_web_summaries = self._truncate_to_token_limit(
-                combined_web_summaries, self.config.max_context_tokens
-            )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-            # Current context, web content  to generate the answer
+            # Current context, web content to generate the answer
             out = self.integrate_with_llm(
                 qr, context_for_llm, [] if self.config.use_summary else snippets
             )
