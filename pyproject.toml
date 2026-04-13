@@ -185,7 +185,9 @@ package-dir = {"" = "src"}
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::Warning"]
 testpaths = ["tests"]
-
+markers = [
+    "gpu: marks tests that require a GPU (deselect with '-m \"not gpu\"')",
+]
 [tool.ruff]
 exclude = ["src/mmore/run_retriever.py"]    # TODO: add back when GH CI bug is fixed
 

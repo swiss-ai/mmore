@@ -39,7 +39,7 @@ jobs:
           uv pip show cohere || echo "Cohere not installed"
           uv pip show langchain-cohere || echo "Langchain-cohere not installed"
 
-      - name: Run tests
+      - name: Run tests (CPU only)
         run: |
           source .venv/bin/activate
-          pytest
+          pytest -m "not gpu"

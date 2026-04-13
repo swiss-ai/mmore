@@ -1,16 +1,61 @@
 # tests/test_indexer.py
 
 import json
+from typing import Dict, List
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from mmore.index.indexer import Indexer, IndexerConfig
+from mmore.index.indexer import DBConfig, Indexer, IndexerConfig
+from mmore.rag.model import DenseModelConfig, SparseModelConfig
 
 # Import run_index from the correct package path:
 from mmore.run_index import index
 from mmore.type import MultimodalSample
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by integration tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeSparseEmbedding(BaseSparseEmbedding):
+    """Deterministic sparse embedder — no model download, runs on CPU."""
+
+    def embed_query(self, query: str) -> Dict[int, float]:
+        return {0: 1.0, 1: float(len(query))}
+
+    def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
+        return [{0: 1.0, i + 1: float(len(t))} for i, t in enumerate(texts)]
+
+
+@pytest.fixture
+def sample_documents():
+    return [
+        MultimodalSample(
+            id="doc-1",
+            document_id="doc-1",
+            text="Paris is the capital of France.",
+            modalities=[],
+            metadata={},
+        ),
+        MultimodalSample(
+            id="doc-2",
+            document_id="doc-2",
+            text="The Eiffel Tower stands 330 metres tall.",
+            modalities=[],
+            metadata={"author": "Alice"},
+        ),
+        MultimodalSample(
+            id="doc-3",
+            document_id="doc-3",
+            text="Milvus is an open-source vector database.",
+            modalities=[],
+            metadata={},
+        ),
+    ]
 
 
 @pytest.fixture
