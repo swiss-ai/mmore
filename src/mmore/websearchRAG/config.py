@@ -26,6 +26,7 @@ class WebsearchConfig:
       max_retries:        (int) Max retries for search on rate limit (default: 3).
       search_provider:    (str) Search provider: 'duckduckgo' (default, free) or 'tavily' (requires TAVILY_API_KEY, pip install "mmore[rag,websearch]").
       max_context_tokens: (int) Maximum number of context tokens for constructing prompts (default: 2048).
+      fast_tokenizer:     (bool) If True, use a fast heuristic (~4 chars/token) instead of the LLM tokenizer (default: False).
       llm_config:         (dict) Passed to rag.llm.LLMConfig (keys: llm_name, max_new_tokens, temperature, etc.)
       mode:               (str) Mode of operation ("local" or "api").
     """
@@ -43,6 +44,7 @@ class WebsearchConfig:
     max_retries: int = 3
     search_provider: Literal["duckduckgo", "tavily"] = "duckduckgo"
     max_context_tokens: int = 2048
+    fast_tokenizer: bool = False
 
     llm_config: LLMConfig = field(
         default_factory=lambda: LLMConfig(

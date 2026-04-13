@@ -198,13 +198,21 @@ class WebsearchPipeline:
         return self._tokenizer.decode(token_ids, skip_special_tokens=True)
 
     def _count_tokens(self, text: str) -> int:
-        """Count tokens using the model's tokenizer or fallback tokenizer if none."""
+        """Count tokens using heuristic, local tokenizer, or LLM."""
+        if self.config.fast_tokenizer:
+            return len(text) // 4 or 1  # at least 1 to avoid zero-token strings
         if self._tokenizer is not None:
             return len(self._encode(text))
         return self.llm.get_num_tokens(text)
 
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
         """Truncate text to fit within a token budget."""
+        if self.config.fast_tokenizer:
+            char_limit = max_tokens * 4
+            if len(text) <= char_limit:
+                return text
+            return text[:char_limit]
+
         if self._tokenizer is not None:
             token_ids = self._encode(text)
             if len(token_ids) <= max_tokens:

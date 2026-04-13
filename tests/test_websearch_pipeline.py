@@ -146,6 +146,17 @@ class TestTokenHelpers:
             list(range(5)), skip_special_tokens=True
         )
 
+    def test_fast_tokenizer_counts_and_truncates(self):
+        p = make_pipeline(fast_tokenizer=True)
+        # 12 chars -> 12 // 4 = 3 tokens
+        assert p._count_tokens("twelve chars") == 3
+        # Truncate to 2 tokens = 8 chars
+        assert p._truncate_to_token_limit("twelve chars", max_tokens=2) == "twelve c"
+        # No truncating when within limit
+        assert (
+            p._truncate_to_token_limit("twelve chars", max_tokens=5) == "twelve chars"
+        )
+
     def test_fit_to_budget_truncates_content(self):
         # "system prompt" = 2 tokens, "prefix" = 1 token -> available = 20 - 3 = 17
         string = "word " * 30
