@@ -30,12 +30,10 @@ SUMMARY_PREFIX = "Question: {query}\n\n---CONTEXT---\n"
 SUMMARY_SUFFIX = (
     "\n---END CONTEXT---\n\n"
     "Extract and summarize only the information relevant to the question above.\n"
-    "If the context contains no useful information, respond exactly with: NO_USEFUL_INFORMATION"
+    "If the context contains no useful information, respond exactly with: 'NO_USEFUL_INFORMATION'"
 )
 
-RELEVANCE_SYSTEM_MSG = (
-    "You are a binary classifier. You must respond with exactly one word: yes or no."
-)
+RELEVANCE_SYSTEM_MSG = "You are a binary classifier. You must respond with exactly one word: 'yes' or 'no'."
 RELEVANCE_PROMPT = (
     "Original query:\n{query}\n\n"
     "Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
@@ -166,7 +164,14 @@ class WebsearchPipeline:
         response_llm = self.llm.invoke(messages)
         response_content = extract_response(response_llm.content)
         response = self._clean_llm_output(response_content).strip().lower()
-        return bool(re.match(r"^yes\b", response))
+        if re.match(r"^yes\b", response):
+            return True
+        if re.match(r"^no\b", response):
+            return False
+        logger.warning(
+            f"Unexpected LLM relevance response (expected 'yes'/'no'): '{response}'"
+        )
+        return False
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -184,10 +189,12 @@ class WebsearchPipeline:
 
     def _encode(self, text: str) -> list[int]:
         """Encode text to token IDs using the llm tokenizer."""
+        assert self._tokenizer is not None
         return self._tokenizer.encode(text, add_special_tokens=False)
 
     def _decode(self, token_ids: list[int]) -> str:
         """Decode token IDs back to text using the llm tokenizer."""
+        assert self._tokenizer is not None
         return self._tokenizer.decode(token_ids, skip_special_tokens=True)
 
     def _count_tokens(self, text: str) -> int:
@@ -202,19 +209,15 @@ class WebsearchPipeline:
             token_ids = self._encode(text)
             if len(token_ids) <= max_tokens:
                 return text
-            return self._decode(token_ids[:max_tokens])
-
-        # Fallback with binary search when no local tokenizer
-        if self._count_tokens(text) <= max_tokens:
-            return text
-        lo, hi = 0, len(text)
-        while lo < hi:
-            mid = (lo + hi + 1) // 2
-            if self._count_tokens(text[:mid]) <= max_tokens:
-                lo = mid
             else:
-                hi = mid - 1
-        return text[:lo]
+                return self._decode(token_ids[:max_tokens])
+
+        # Fallback when no local tokenizer
+        total_tokens = self._count_tokens(text)
+        if total_tokens <= max_tokens:
+            return text
+        cut = int(len(text) * max_tokens / total_tokens)
+        return text[:cut]
 
     def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
         """Truncate content so that prompt fits within max_context_tokens."""
