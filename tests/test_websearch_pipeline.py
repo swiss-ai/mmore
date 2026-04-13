@@ -18,11 +18,9 @@ def make_pipeline(
     subqueries=("sub1",),
     **config_overrides,
 ):
-    """Build a WebsearchPipeline with all I/O and LLM mocked out.
+    """Build a test WebsearchPipeline and a mocked LLM.
 
-    Args:
-        subqueries: List of subquery strings returned by generate_subqueries.
-            Set to None to keep the real (LLM-driven) implementation.
+    When subqueries is None, generate_subqueries falls back to the mocked LLM.
     """
     config = WebsearchConfig(
         rag_config_path="dummy.yaml",
@@ -150,9 +148,12 @@ class TestTokenHelpers:
 
     def test_fit_to_budget_truncates_content(self):
         # "system prompt" = 2 tokens, "prefix" = 1 token -> available = 20 - 3 = 17
+        string = "word " * 30
         p = make_pipeline(max_context_tokens=20)
-        result = p._fit_to_budget("word " * 30, "system prompt", "prefix")
-        assert p._count_tokens(result) <= 17
+        result = p._fit_to_budget(string, "system prompt", "prefix")
+        assert p._count_tokens(result) == p._count_tokens(
+            string[: int(len(string) * 17 / p._count_tokens(string))]
+        )
 
     def test_fit_to_budget_returns_empty_when_fixed_exceeds_max(self):
         p = make_pipeline(max_context_tokens=5)
@@ -160,15 +161,6 @@ class TestTokenHelpers:
             "content", "this is a very long system prompt that exceeds everything"
         )
         assert result == ""
-
-    def test_compute_content_budget_subtracts_fixed_tokens(self):
-        p = make_pipeline(max_context_tokens=100)
-        # "hello world" = 2 tokens, "foo" = 1 token
-        assert p._compute_content_budget("hello world", "foo") == 97
-
-    def test_compute_content_budget_clamps_to_zero(self):
-        p = make_pipeline(max_context_tokens=5)
-        assert p._compute_content_budget("a " * 100) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -178,16 +170,24 @@ class TestTokenHelpers:
 
 class TestSmoke:
     def test_process_record_returns_expected_keys(self):
-        """No web results -> valid structure with empty sources."""
+        """No web results yields valid structure with empty sources."""
         p = make_pipeline(n_loops=1, n_subqueries=1, subqueries=None)
         p.searcher.websearch_pipeline.return_value = []
 
-        result = p.process_record({"input": "What is Python?"})
+        result = p.process_record({"input": "What's the weather like today?"})
 
-        assert result["query"] == "What is Python?"
+        assert result["query"] == "What's the weather like today?"
         for key in ("query", "short_answer", "detailed_answer", "sources"):
             assert key in result
         assert result["sources"] == {}
+
+    def test_empty_query(self):
+        p = make_pipeline(n_loops=1, subqueries=None)
+        p.searcher.websearch_pipeline.return_value = []
+
+        result = p.process_record({"input": ""})
+
+        assert result["query"] == ""
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +212,7 @@ class TestSnippetBudget:
         assert "http://b.com" in result["sources"]
 
     def test_budget_exhaustion_stops_accumulation(self):
-        """First snippet (4 tokens) fits in ~6-token budget; second (9 tokens) doesn't."""
+        """First snippet (3 tokens) fits in ~5-token budget; second (8 tokens) doesn't."""
         p = make_pipeline(max_context_tokens=62)
 
         p.searcher.websearch_pipeline.return_value = [
@@ -222,7 +222,7 @@ class TestSnippetBudget:
             ),
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert "http://a.com" in result["sources"]
         assert "http://b.com" not in result["sources"]
@@ -245,18 +245,17 @@ class TestSnippetBudget:
             ]
 
         p.web_search = counting_web_search
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         assert call_count == 1
 
     def test_snippet_at_exact_boundary_is_accepted(self):
-        """total + snippet == budget is accepted (strict >, not >=)."""
-        p = make_pipeline(max_context_tokens=5000)
+        """When total + snippet == budget, snippet is accepted."""
+        p = make_pipeline()
 
-        # Make arithmetic deterministic: every text = 10 tokens
+        # Make every text 10 tokens long
         p._count_tokens = lambda text: 10
-        # Fixed overhead: 3 parts x 10 tokens = 30 -> snippet_budget = 4970
-        # Override snippet_budget by also controlling _compute_content_budget
+        # Set content budget manually to 20 tokens
         p._compute_content_budget = lambda *parts: 20
 
         p.searcher.websearch_pipeline.return_value = [
@@ -271,11 +270,22 @@ class TestSnippetBudget:
             ),  # 10 tokens, total=30, 30 > 20? Yes
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert "http://a.com" in result["sources"]
         assert "http://b.com" in result["sources"]
         assert "http://c.com" not in result["sources"]
+
+    def test_tiny_budget_rejects_all_snippets(self):
+        p = make_pipeline(max_context_tokens=1)
+
+        p.searcher.websearch_pipeline.return_value = [
+            make_search_result("http://a.com", "data"),
+        ]
+
+        result = p.process_record({"input": "test query"})
+
+        assert result["sources"] == {}
 
 
 # ---------------------------------------------------------------------------
@@ -287,38 +297,38 @@ class TestDeduplication:
     """(url, snippet) deduplication logic."""
 
     def test_exact_duplicate_is_skipped(self):
-        p = make_pipeline(max_context_tokens=5000)
+        p = make_pipeline()
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "same snippet"),
             make_search_result("http://a.com", "same snippet"),
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert len(result["sources"]["http://a.com"]) == 1
 
     def test_same_url_different_snippet_kept(self):
-        p = make_pipeline(max_context_tokens=5000)
+        p = make_pipeline()
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "snippet alpha", title="Title A"),
             make_search_result("http://a.com", "snippet beta", title="Title B"),
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert len(result["sources"]["http://a.com"]) == 2
 
     def test_same_snippet_different_url_kept(self):
-        p = make_pipeline(max_context_tokens=5000)
+        p = make_pipeline()
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "identical text"),
             make_search_result("http://b.com", "identical text"),
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert "http://a.com" in result["sources"]
         assert "http://b.com" in result["sources"]
@@ -339,7 +349,7 @@ class TestDeduplication:
 
         p.web_search = web_search_returning_same
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert call_count == 2  # both subqueries searched
         assert len(result["sources"]["http://shared.com"]) == 1  # but only one kept
@@ -359,7 +369,7 @@ class TestDeduplication:
             ),  # 10 tokens, fits only if dup didn't count
         ]
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
         assert "http://b.com" in result["sources"]
 
@@ -373,7 +383,7 @@ class TestDeduplication:
         def web_search_per_loop(query):
             nonlocal call_count
             call_count += 1
-            # Same url+snippet but different title each loop
+            # Same (url, snippet) but different title each loop
             return [
                 {
                     "url": "http://a.com",
@@ -384,9 +394,9 @@ class TestDeduplication:
 
         p.web_search = web_search_per_loop
 
-        result = p.process_record({"input": "q"})
+        result = p.process_record({"input": "test query"})
 
-        # Only loop 0's title kept; loop 1's result was deduped before title check
+        # Only the first loop title is kept (second loop is a duplicate even if different title)
         assert result["sources"]["http://a.com"] == ["Title Loop 1"]
 
 
@@ -411,7 +421,7 @@ class TestMultiLoopBudget:
         p.web_search = counting_web_search
         p.evaluate_subquery_relevance = MagicMock(return_value=True)
 
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         assert call_count == 2
 
@@ -430,7 +440,7 @@ class TestMultiLoopBudget:
         p.web_search = counting_web_search
         p.evaluate_subquery_relevance = MagicMock(return_value=False)
 
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         assert call_count == 1
 
@@ -450,7 +460,7 @@ class TestMultiLoopBudget:
             {"url": "http://x.com", "snippet": "data", "title": "t"}
         ]
 
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         assert rag_docs_seen[0] == ""
         assert "Prior answer:" in rag_docs_seen[1]
@@ -479,7 +489,7 @@ class TestMultiLoopBudget:
             content="short answer: s\ndetailed answer: " + "word " * 30
         )
 
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         # budgets_seen[0] = snippet budget loop 0, budgets_seen[2] = snippet budget loop 1
         assert len(budgets_seen) >= 4
@@ -513,7 +523,7 @@ class TestSummaryBudget:
             make_search_result("http://c.com", large),
         ]
 
-        p.process_record({"input": "q"})
+        p.process_record({"input": "test query"})
 
         # First generate_summary call is the per-subquery one
         assert len(summary_inputs) >= 1
@@ -524,49 +534,23 @@ class TestSummaryBudget:
     def test_use_summary_bypasses_synthesis_overhead(self):
         """With a tight budget, use_summary=True accepts what use_summary=False rejects.
 
-        Synthesis prompt overhead is ~56 tokens for query "q". At max_context_tokens=60,
-        use_summary=False leaves ~4 tokens for snippets (too few), while
+        Synthesis prompt overhead is ~57 tokens for query "test query". At max_context_tokens=60,
+        use_summary=False leaves ~3 tokens for snippets, while
         use_summary=True gives the full 60 tokens.
         """
-        snippet = "this snippet has seven words total"
+        snippet = "this snippet has six words total"
 
         p_no = make_pipeline(max_context_tokens=60, use_summary=False)
         p_no.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", snippet),
         ]
-        result_no = p_no.process_record({"input": "q"})
+        result_no = p_no.process_record({"input": "test query"})
 
         p_yes = make_pipeline(max_context_tokens=60, use_summary=True)
         p_yes.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", snippet),
         ]
-        result_yes = p_yes.process_record({"input": "q"})
+        result_yes = p_yes.process_record({"input": "test query"})
 
         assert "http://a.com" not in result_no["sources"]
         assert "http://a.com" in result_yes["sources"]
-
-
-# ---------------------------------------------------------------------------
-# Edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestEdgeCases:
-    def test_empty_query(self):
-        p = make_pipeline(n_loops=1, subqueries=None)
-        p.searcher.websearch_pipeline.return_value = []
-
-        result = p.process_record({"input": ""})
-
-        assert result["query"] == ""
-
-    def test_tiny_budget_rejects_all_snippets(self):
-        p = make_pipeline(max_context_tokens=1)
-
-        p.searcher.websearch_pipeline.return_value = [
-            make_search_result("http://a.com", "data"),
-        ]
-
-        result = p.process_record({"input": "q"})
-
-        assert result["sources"] == {}

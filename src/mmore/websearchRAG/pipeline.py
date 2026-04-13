@@ -224,6 +224,11 @@ class WebsearchPipeline:
         fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
         available = self.config.max_context_tokens - fixed_tokens
         if available <= 0:
+            logger.warning(
+                "Fixed prompt parts (%d tokens) exceed max_context_tokens (%d). Content dropped.",
+                fixed_tokens,
+                self.config.max_context_tokens,
+            )
             return ""
         return self._truncate_to_token_limit(content, available)
 
