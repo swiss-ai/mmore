@@ -227,12 +227,14 @@ class WebsearchPipeline:
             else:
                 return self._decode(token_ids[:max_tokens])
 
-        # Fallback when no local tokenizer
+        # Fallback when no local tokenizer: proportional char cut with a 10% safety
+        # margin because uneven token/char ratios can produce results that are too long.
         total_tokens = self._count_tokens(text)
         if total_tokens <= max_tokens:
             return text
-        cut = int(len(text) * max_tokens / total_tokens)
-        return text[:cut]
+        ratio = max_tokens / total_tokens * 0.9
+        cut = int(len(text) * ratio)
+        return text[:cut] if cut > 0 else ""
 
     def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
         """Truncate content so that prompt fits within max_context_tokens."""
