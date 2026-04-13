@@ -5,7 +5,7 @@ Integrates Milvus retrieval with HuggingFace text generation.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -15,6 +15,8 @@ from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrou
 
 from ..utils import load_config
 from .llm import LLM, LLMConfig
+from .context import format_docs_multimodal, load_images_from_paths
+from .multimodal_llm import BaseMultimodalLLM, get_multimodal_llm
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
 
@@ -33,29 +35,42 @@ class RAGConfig:
     retriever: RetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt2"))
     system_prompt: str = DEFAULT_PROMPT
+    max_images_per_request: int = 20
 
 
 class RAGPipeline:
     """Main RAG pipeline combining retrieval and generation."""
 
     retriever: Retriever
-    llm: BaseChatModel
+    llm: Optional[BaseChatModel]
     prompt_template: Union[str, ChatPromptTemplate]
 
     def __init__(
         self,
         retriever: Retriever,
         prompt_template: Union[str, ChatPromptTemplate],
-        llm: BaseChatModel,
+        llm: Optional[BaseChatModel],
+        use_vision: bool = False,
+        multimodal_llm: Optional[BaseMultimodalLLM] = None,
+        max_images_per_request: int = 20,
     ):
         # Get modules
         self.retriever = retriever
         self.prompt = prompt_template
         self.llm = llm
+        self.use_vision = use_vision
+        self.multimodal_llm = multimodal_llm
+        self.max_images_per_request = max_images_per_request
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(
-            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm
+            self.retriever,
+            RAGPipeline.format_docs,
+            self.prompt,
+            self.llm,
+            use_vision=self.use_vision,
+            multimodal_llm=self.multimodal_llm,
+            max_images_per_request=self.max_images_per_request,
         )
 
     def __str__(self):
@@ -67,12 +82,24 @@ class RAGPipeline:
             config = load_config(config, RAGConfig)
 
         retriever = Retriever.from_config(config.retriever)
-        llm = LLM.from_config(config.llm)
+        if config.llm.use_vision:
+            llm: Optional[BaseChatModel] = None
+            multimodal_llm = get_multimodal_llm(config.llm)
+        else:
+            llm = LLM.from_config(config.llm)
+            multimodal_llm = None
         chat_template = ChatPromptTemplate.from_messages(
             [("system", config.system_prompt), ("human", "{input}")]
         )
 
-        return cls(retriever, chat_template, llm)
+        return cls(
+            retriever,
+            chat_template,
+            llm,
+            use_vision=config.llm.use_vision,
+            multimodal_llm=multimodal_llm,
+            max_images_per_request=config.max_images_per_request,
+        )
 
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
@@ -82,7 +109,15 @@ class RAGPipeline:
         )
 
     @staticmethod
-    def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
+    def _build_chain(
+        retriever,
+        format_docs,
+        prompt,
+        llm,
+        use_vision: bool = False,
+        multimodal_llm: Optional[BaseMultimodalLLM] = None,
+        max_images_per_request: int = 20,
+    ) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
@@ -90,13 +125,32 @@ class RAGPipeline:
         def make_output(x):
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
-            res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
+            split_marker = "<|im_start|>assistant\n"
+            if split_marker in res_dict["answer"]:
+                res_dict["answer"] = res_dict["answer"].split(split_marker)[-1]
 
             return res_dict
 
         validate_output = RunnableLambda(make_output)
 
-        rag_chain_from_docs = prompt | llm | StrOutputParser()
+        if use_vision and multimodal_llm is not None:
+
+            def answer_with_vision(x: Dict[str, Any]) -> str:
+                mm_context = format_docs_multimodal(x["docs"])
+                images = load_images_from_paths(
+                    mm_context.image_paths, max_images=max_images_per_request
+                )
+                prompt_text = (
+                    f"Use the following context to answer the question.\n\n"
+                    f"Context:\n{mm_context.text}\n\n"
+                    f"Question:\n{x['input']}"
+                )
+                return multimodal_llm.invoke_with_images(text=prompt_text, images=images)
+
+            rag_chain_from_docs: Runnable = RunnableLambda(answer_with_vision)
+        else:
+            assert llm is not None
+            rag_chain_from_docs = prompt | llm | StrOutputParser()
 
         core_chain = (
             RunnablePassthrough.assign(docs=retriever)

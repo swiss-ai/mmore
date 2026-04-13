@@ -74,7 +74,7 @@ class MultimodalChunker(BasePostProcessor):
 
         m = 0  # To track which modality to assign
         for idx in attachment_indices:
-            if m >= len(sample.modalities) - 1:
+            if m >= len(sample.modalities):
                 break
             chunk_index = _text_index_to_chunk_index(idx, text_chunks)
             assert chunk_index is not None

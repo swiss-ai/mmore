@@ -3,6 +3,7 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
@@ -25,6 +26,26 @@ from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_image_paths(raw_image_paths: Any) -> List[str]:
+    if raw_image_paths is None:
+        return []
+    if isinstance(raw_image_paths, list):
+        return [str(path) for path in raw_image_paths if str(path).strip()]
+    if isinstance(raw_image_paths, str):
+        value = raw_image_paths.strip()
+        if not value:
+            return []
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return [value]
+        if isinstance(parsed, list):
+            return [str(path) for path in parsed if str(path).strip()]
+        if isinstance(parsed, str) and parsed.strip():
+            return [parsed.strip()]
+    return []
 
 
 @dataclass
@@ -333,14 +354,29 @@ class Retriever(BaseRetriever):
         if k == 0:
             return []
 
-        results = self.retrieve(
-            query=query_input,
-            collection_name=collection_name,
-            partition_names=partition_names,
-            min_score=min_score,
-            k=k,
-            document_ids=document_ids,
-        )
+        try:
+            results = self.retrieve(
+                query=query_input,
+                collection_name=collection_name,
+                partition_names=partition_names,
+                min_score=min_score,
+                k=k,
+                document_ids=document_ids,
+                output_fields=["text", "image_paths"],
+            )
+        except Exception:
+            logger.debug(
+                "Milvus output field `image_paths` unavailable, fallback to text-only fields."
+            )
+            results = self.retrieve(
+                query=query_input,
+                collection_name=collection_name,
+                partition_names=partition_names,
+                min_score=min_score,
+                k=k,
+                document_ids=document_ids,
+                output_fields=["text"],
+            )
 
         def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
             return Document(
@@ -351,6 +387,11 @@ class Retriever(BaseRetriever):
                     "similarity": result["distance"],
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
+                    ),
+                    "page_numbers": result["entity"].get("page_numbers", []),
+                    "paragraph_numbers": result["entity"].get("paragraph_numbers", []),
+                    "image_paths": _parse_image_paths(
+                        result["entity"].get("image_paths")
                     ),
                 },
             )
