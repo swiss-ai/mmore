@@ -39,6 +39,7 @@ def make_pipeline(
     pipeline.config = config
     pipeline.rag_results = None
     pipeline._tokenizer = None
+    pipeline._warned_fallback_tokenizer = False
 
     mock_llm = MagicMock()
     mock_llm.get_num_tokens = lambda text: len(text.split())  # 1 word = 1 token

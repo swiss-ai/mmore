@@ -110,6 +110,7 @@ class WebsearchPipeline:
         self.config = config
         self.llm = self._initialize_llm()
         self._tokenizer = self._get_tokenizer()
+        self._warned_fallback_tokenizer = False
         self.rag_results = None
         self.searcher = WebsearchOnly(
             provider=self.config.search_provider,
@@ -203,6 +204,12 @@ class WebsearchPipeline:
             return len(text) // 4 or 1  # at least 1 to avoid zero-token strings
         if self._tokenizer is not None:
             return len(self._encode(text))
+        if not self._warned_fallback_tokenizer:
+            logger.warning(
+                "No local tokenizer available; token counts may be inaccurate. "
+                "Consider setting fast_tokenizer=True in your config."
+            )
+            self._warned_fallback_tokenizer = True
         return self.llm.get_num_tokens(text)
 
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
