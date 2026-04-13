@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from mmore.websearchRAG.config import WebsearchConfig
 from mmore.websearchRAG.pipeline import WebsearchPipeline, extract_response
 
@@ -166,12 +168,12 @@ class TestTokenHelpers:
         result = p._fit_to_budget(string, "system prompt", "prefix")
         assert p._count_tokens(result) <= 17
 
-    def test_fit_to_budget_returns_empty_when_fixed_exceeds_max(self):
+    def test_fit_to_budget_raises_when_fixed_exceeds_max(self):
         p = make_pipeline(max_context_tokens=5)
-        result = p._fit_to_budget(
-            "content", "this is a very long system prompt that exceeds everything"
-        )
-        assert result == ""
+        with pytest.raises(ValueError, match="exceed max_context_tokens"):
+            p._fit_to_budget(
+                "content", "this is a very long system prompt that exceeds everything"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -287,16 +289,16 @@ class TestSnippetBudget:
         assert "http://b.com" in result["sources"]
         assert "http://c.com" not in result["sources"]
 
-    def test_tiny_budget_rejects_all_snippets(self):
+    def test_tiny_budget_raises(self):
+        """With a budget too small for the fixed prompt parts, fail loudly."""
         p = make_pipeline(max_context_tokens=1)
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "data"),
         ]
 
-        result = p.process_record({"input": "test query"})
-
-        assert result["sources"] == {}
+        with pytest.raises(ValueError, match="exceed max_context_tokens"):
+            p.process_record({"input": "test query"})
 
 
 # ---------------------------------------------------------------------------

@@ -241,12 +241,12 @@ class WebsearchPipeline:
         fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
         available = self.config.max_context_tokens - fixed_tokens
         if available <= 0:
-            logger.warning(
-                "Fixed prompt parts (%d tokens) exceed max_context_tokens (%d). Content dropped.",
-                fixed_tokens,
-                self.config.max_context_tokens,
+            raise ValueError(
+                "Prompt fixed parts exceed max_context_tokens: "
+                f"max_context_tokens={self.config.max_context_tokens}, "
+                f"fixed_tokens={fixed_tokens}. "
+                "Reduce the fixed prompt size or increase max_context_tokens."
             )
-            return ""
         return self._truncate_to_token_limit(content, available)
 
     def generate_subqueries(
