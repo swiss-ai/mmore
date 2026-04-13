@@ -54,13 +54,34 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
         return [json.loads(line) for line in f]
 
 
+def _document_metadata(doc: object) -> dict:
+    """Metadata from a LangChain Document or from a dict (e.g. after Pydantic model_dump)."""
+    if isinstance(doc, dict):
+        return doc.get("metadata") or {}
+    return getattr(doc, "metadata", None) or {}
+
+
 def save_results(results: List[Dict], output_file: Union[Path, str]):
-    results = [
-        {key: d[key] for key in {"input", "context", "answer"} if key in d}
-        for d in results
-    ]
+    formatted_results = []
+    for d in results:
+        kept = {key: d[key] for key in {"input", "context", "answer"} if key in d}
+        docs = d.get("docs", [])
+        used_image_paths: list[str] = []
+        seen: set[str] = set()
+        for doc in docs:
+            metadata = _document_metadata(doc)
+            for path in metadata.get("image_paths", []) or []:
+                path_str = str(path).strip()
+                if path_str and path_str not in seen:
+                    seen.add(path_str)
+                    used_image_paths.append(path_str)
+
+        kept["num_images_used"] = len(used_image_paths)
+        kept["used_image_paths"] = used_image_paths
+        formatted_results.append(kept)
+
     with open(output_file, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(formatted_results, f, indent=2)
 
 
 class InnerInput(BaseModel):

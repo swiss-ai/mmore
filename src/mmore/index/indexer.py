@@ -4,6 +4,7 @@ Supports multimodal documents with chunking capabilities.
 """
 
 import logging
+import json
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional, cast
 
@@ -197,6 +198,9 @@ class Indexer:
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s,
+                    "image_paths": json.dumps(
+                        [m.value for m in sample.modalities if m.type == "image"]
+                    ),
                     **sample.metadata.to_dict(),
                 }
                 for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)

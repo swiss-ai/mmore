@@ -100,6 +100,7 @@ class LLMConfig:
     llm_name: str
     base_url: Optional[str] = None
     provider: Optional[str] = None
+    use_vision: bool = False
     max_new_tokens: Optional[int] = None
     temperature: float = 0.7
 
