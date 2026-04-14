@@ -39,15 +39,15 @@ class PPPipeline:
     def __init__(
         self,
         *processors: BasePostProcessor,
-        output_config: Optional[OutputConfig] = None,
         previous_results_path: Optional[str] = None,
+        output_config: Optional[OutputConfig] = None,
     ):
         if output_config is None:
             output_config = OutputConfig(output_path="./results")
 
         self.post_processors = processors
-        self.output_config = output_config
         self.previous_results_path = previous_results_path
+        self.output_config = output_config
 
         # Log the pipeline
         self._log_plan()
@@ -56,8 +56,8 @@ class PPPipeline:
         return PPPipeline(
             *self.post_processors,
             *other.post_processors,
-            output_config=self.output_config,
             previous_results_path=self.previous_results_path,
+            output_config=self.output_config,
         )
 
     def _log_plan(self):
@@ -74,14 +74,12 @@ class PPPipeline:
         ]
         return cls(
             *post_processors,
-            output_config=config.output,
             previous_results_path=config.previous_results,
+            output_config=config.output,
         )
 
-    def __call__(
-        self, samples: List[MultimodalSample], **kwargs
-    ) -> List[MultimodalSample]:
-        return self.run(samples, **kwargs)
+    def __call__(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
+        return self.run(samples)
 
     def run(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
         """
@@ -99,7 +97,7 @@ class PPPipeline:
         return self._run_full(samples)
 
     def _run_full(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
-        """Run all processors on all samples (original behavior)."""
+        """Run all processors on all samples."""
         output_dir = os.path.dirname(self.output_config.output_path) or "."
         for i, processor in enumerate(self.post_processors):
             tmp_save_path = None
@@ -132,57 +130,51 @@ class PPPipeline:
         # Group input samples by file_path
         groups: dict[str, List[MultimodalSample]] = {}
         for sample in samples:
-            fp = sample.metadata.get("file_path", "__unknown__")
+            fp = sample.metadata["file_path"]
             groups.setdefault(fp, []).append(sample)
 
-        current_fps = set(groups.keys())
+        current_file_paths = set(groups.keys())
 
         # For each group, get max(processed_at) from input samples
-        reusable_fps = []
-        to_process_fps = []
+        reusable_file_paths: set[str] = set()
+        to_process_file_paths: set[str] = set()
         for fp, group_samples in groups.items():
-            pts = [
+            sample_timestamps = [
                 s.metadata.get("processed_at")
                 for s in group_samples
                 if s.metadata.get("processed_at")
             ]
-            if pts:
-                input_processed_at = max(pts)
+            if sample_timestamps:
+                input_processed_at = max(sample_timestamps)
             else:
-                # No processed_at on input → treat as new
-                to_process_fps.append(fp)
+                # When no processed_at on input, post process it as a new one
+                to_process_file_paths.add(fp)
                 continue
 
             if is_reusable_postprocess(fp, input_processed_at, previous):
-                reusable_fps.append(fp)
+                reusable_file_paths.add(fp)
             else:
-                to_process_fps.append(fp)
+                to_process_file_paths.add(fp)
 
         n_deleted = len(set(previous.keys()) - set(groups.keys()))
         logger.info(
-            f"PP incremental: {len(reusable_fps)} reused, "
-            f"{len(to_process_fps)} to process, {n_deleted} deleted"
+            f"Post-process pipeline: {len(reusable_file_paths)} reused, "
+            f"{len(to_process_file_paths)} to process, {n_deleted} deleted"
         )
 
-        # Collect reused sample dicts from previous results
-        reused: dict[str, List[dict]] = {
-            fp: previous[fp] for fp in reusable_fps if fp in previous
+        # Collect reused samples from previous results
+        reused: dict[str, List[MultimodalSample]] = {
+            fp: previous[fp] for fp in reusable_file_paths
         }
 
-        if not to_process_fps:
+        if not to_process_file_paths:
             logger.info("No document changes detected, reusing all previous results")
-            merged_dicts = merge_results(reused, [], current_fps)
-            merged_samples = [MultimodalSample.from_dict(d) for d in merged_dicts]
+            merged_samples = merge_results(reused, [], current_file_paths)
             save_samples(merged_samples, self.output_config.output_path)
             return merged_samples
 
         # Collect samples to process
-        to_process_set = set(to_process_fps)
-        samples_to_process = [
-            s
-            for s in samples
-            if s.metadata.get("file_path", "__unknown__") in to_process_set
-        ]
+        samples_to_process = [s for fp in to_process_file_paths for s in groups[fp]]
 
         # Run through pipeline
         processed = samples_to_process
@@ -199,16 +191,11 @@ class PPPipeline:
                 save_every=self.output_config.save_every,
             )
 
-        # Enrich newly processed with processed_at
+        # Add processed_at to newly processed samples
         processed_at = datetime.now().isoformat()
         for sample in processed:
             sample.metadata["processed_at"] = processed_at
 
-        # Convert processed to dicts and merge with reused
-        new_dicts = [s.to_dict() for s in processed]
-        merged_dicts = merge_results(reused, new_dicts, current_fps)
-
-        # Convert merged dicts back to MultimodalSample and save
-        merged_samples = [MultimodalSample.from_dict(d) for d in merged_dicts]
+        merged_samples = merge_results(reused, processed, current_file_paths)
         save_samples(merged_samples, self.output_config.output_path)
         return merged_samples

@@ -44,8 +44,7 @@ class ProcessInference:
 
 
 def _clear_processor_results(output_path):
-    """Remove per-processor results.jsonl files before a fresh dispatch.
-    Needed because MultimodalSample.to_jsonl uses append mode."""
+    """Remove per-processor results.jsonl files before a fresh dispatch."""
     processors_dir = os.path.join(output_path, "processors")
     if not os.path.isdir(processors_dir):
         return
@@ -56,7 +55,7 @@ def _clear_processor_results(output_path):
 
 
 def _build_merged_results(output_path, reused_samples=None):
-    """Build merged_results.jsonl from per-processor results + reused samples."""
+    """Build merged_results.jsonl from per-processor results and reused samples."""
     merged_output_path = os.path.join(output_path, "merged")
     output_file = os.path.join(merged_output_path, "merged_results.jsonl")
     os.makedirs(merged_output_path, exist_ok=True)
@@ -73,7 +72,8 @@ def _build_merged_results(output_path, reused_samples=None):
                         if line:
                             new_results.append(json.loads(line))
 
-    all_results = (reused_samples or []) + new_results
+    reused_dicts = [s.to_dict() for s in (reused_samples or [])]
+    all_results = reused_dicts + new_results
 
     with open(output_file, "w") as f:
         for sample in all_results:
@@ -144,7 +144,7 @@ def process(config_file: str):
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")
 
-    # Collect all crawled file paths for deletion filtering
+    # Collect all crawled file paths (excluding this way deleted files)
     all_crawled_paths = {
         fd.file_path
         for file_list in crawl_result.file_paths.values()
@@ -162,7 +162,7 @@ def process(config_file: str):
             if is_reusable_process(fp, previous):
                 reusable_paths.add(fp)
 
-        # Collect reused samples (only for files still present in the crawl)
+        # Collect reused samples
         for fp in reusable_paths:
             reused_samples.extend(previous[fp])
 
@@ -174,55 +174,42 @@ def process(config_file: str):
 
         n_deleted = len(set(previous.keys()) - all_crawled_paths)
         logger.info(
-            f"Change detection: {len(reusable_paths)} reused, "
+            f"Process pipeline: {len(reusable_paths)} reused, "
             f"{len(crawl_result)} to process, {n_deleted} deleted"
         )
 
     output_path = config.dispatcher_config.output_path
 
     if len(crawl_result) == 0 and not reused_samples:
-        logger.warning("\u26a0\ufe0f Found no file to process")
+        logger.warning("⚠️ Found no file to process")
         return
 
-    if len(crawl_result) == 0 and reused_samples:
-        logger.info("No new files to process; writing reused samples only.")
-        _clear_processor_results(output_path)
-        _build_merged_results(output_path, reused_samples)
-        if ggdrive_downloader:
-            ggdrive_downloader.remove_downloads()
-        overall_end_time = time.time()
-        overall_time = overall_end_time - overall_start_time
-        logger.info(f"Total execution time: {overall_time:.2f} seconds")
-        return
-
-    dispatcher_config: DispatcherConfig = config.dispatcher_config
-
-    url = dispatcher_config.dashboard_backend_url
-    DashboardClient(url).init_db(len(crawl_result))
-
-    logger.info(f"Using dispatcher configuration: {dispatcher_config}")
-
-    # Clear per-processor files before dispatch — to_jsonl uses append mode,
-    # so stale files from a prior run would cause duplicates.
+    # Clear per-processor files as to_jsonl uses append mode
     _clear_processor_results(output_path)
 
-    dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
+    if len(crawl_result) > 0:
+        dispatcher_config: DispatcherConfig = config.dispatcher_config
+        DashboardClient(dispatcher_config.dashboard_backend_url).init_db(
+            len(crawl_result)
+        )
+        logger.info(f"Using dispatcher configuration: {dispatcher_config}")
 
-    dispatch_start_time = time.time()
-    list(dispatcher())
-
-    dispatch_end_time = time.time()
-    dispatch_time = dispatch_end_time - dispatch_start_time
-
-    logger.info(f"Dispatching and processing completed in {dispatch_time:.2f} seconds")
+        dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
+        dispatch_start_time = time.time()
+        list(dispatcher())
+        dispatch_time = time.time() - dispatch_start_time
+        logger.info(
+            f"Dispatching and processing completed in {dispatch_time:.2f} seconds"
+        )
+    else:
+        logger.info("No new files to process, reusing previous samples only.")
 
     _build_merged_results(output_path, reused_samples if previous is not None else None)
 
     if ggdrive_downloader:
         ggdrive_downloader.remove_downloads()
 
-    overall_end_time = time.time()
-    overall_time = overall_end_time - overall_start_time
+    overall_time = time.time() - overall_start_time
     logger.info(f"Total execution time: {overall_time:.2f} seconds")
 
 

@@ -1,4 +1,4 @@
-previous_results: null  # Path to a previous post-processed JSONL to reuse when unchanged
+previous_results: null  # Path to a previous post-processed JSONL to reuse when unchanged documents
 
 pp_modules:
   - type: chunker

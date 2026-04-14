@@ -7,6 +7,17 @@ from mmore.process.previous_results import (
     merge_results,
 )
 from mmore.run_process import ProcessInference
+from mmore.type import MultimodalSample
+
+
+def _sample(file_path, **metadata) -> MultimodalSample:
+    return MultimodalSample.from_dict(
+        {
+            "text": "x",
+            "modalities": [],
+            "metadata": {"file_path": file_path, **metadata},
+        }
+    )
 
 
 class TestProcessStageReuse:
@@ -74,26 +85,14 @@ class TestProcessStageReuse:
     def test_drops_deleted_from_merge(self):
         """Deleted files are excluded from merge output."""
         reused = {
-            "/exists.pdf": [
-                {
-                    "text": "a",
-                    "modalities": [],
-                    "metadata": {"file_path": "/exists.pdf"},
-                }
-            ],
-            "/deleted.pdf": [
-                {
-                    "text": "b",
-                    "modalities": [],
-                    "metadata": {"file_path": "/deleted.pdf"},
-                }
-            ],
+            "/exists.pdf": [_sample("/exists.pdf")],
+            "/deleted.pdf": [_sample("/deleted.pdf")],
         }
-        new = [{"text": "c", "modalities": [], "metadata": {"file_path": "/new.txt"}}]
+        new = [_sample("/new.txt")]
         current = {"/exists.pdf", "/new.txt"}
 
         merged = merge_results(reused, new, current)
-        fps = {s["metadata"]["file_path"] for s in merged}
+        fps = {s.metadata["file_path"] for s in merged}
         assert fps == {"/exists.pdf", "/new.txt"}
 
     def test_metadata_fields_present(self, tmp_path):
@@ -116,8 +115,8 @@ class TestProcessStageReuse:
 
         previous = load_previous_results(str(prev_path))
         sample = previous["/x.pdf"][0]
-        assert "processed_at" in sample["metadata"]
-        assert "processor_type" in sample["metadata"]
+        assert "processed_at" in sample.metadata
+        assert "processor_type" in sample.metadata
 
 
 class TestProcessInferenceConfig:

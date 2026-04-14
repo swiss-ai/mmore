@@ -6,6 +6,17 @@ from mmore.process.previous_results import (
     load_previous_results,
     merge_results,
 )
+from mmore.type import MultimodalSample
+
+
+def _sample(file_path: str, **metadata) -> MultimodalSample:
+    return MultimodalSample.from_dict(
+        {
+            "text": "x",
+            "modalities": [],
+            "metadata": {"file_path": file_path, **metadata},
+        }
+    )
 
 
 class TestPostprocessStageReuse:
@@ -67,22 +78,14 @@ class TestPostprocessStageReuse:
     def test_drops_deleted_documents(self):
         """Documents absent from input are dropped from merge."""
         reused = {
-            "/a.pdf": [
-                {"text": "a", "modalities": [], "metadata": {"file_path": "/a.pdf"}}
-            ],
-            "/gone.pdf": [
-                {
-                    "text": "gone",
-                    "modalities": [],
-                    "metadata": {"file_path": "/gone.pdf"},
-                }
-            ],
+            "/a.pdf": [_sample("/a.pdf")],
+            "/gone.pdf": [_sample("/gone.pdf")],
         }
         current_fps = {"/a.pdf", "/new.pdf"}
-        new = [{"text": "new", "modalities": [], "metadata": {"file_path": "/new.pdf"}}]
+        new = [_sample("/new.pdf")]
 
         merged = merge_results(reused, new, current_fps)
-        fps = {s["metadata"]["file_path"] for s in merged}
+        fps = {s.metadata["file_path"] for s in merged}
         assert fps == {"/a.pdf", "/new.pdf"}
 
 
