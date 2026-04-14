@@ -43,34 +43,26 @@ class ProcessInference:
     previous_results: Optional[str] = None
 
 
-def _clear_processor_results(output_path):
-    """Remove per-processor results.jsonl files before a fresh dispatch."""
-    processors_dir = os.path.join(output_path, "processors")
-    if not os.path.isdir(processors_dir):
-        return
-    for processor_name in os.listdir(processors_dir):
-        results_path = os.path.join(processors_dir, processor_name, "results.jsonl")
-        if os.path.exists(results_path):
-            os.remove(results_path)
-
-
-def _build_merged_results(output_path, reused_samples=None):
-    """Build merged_results.jsonl from per-processor results and reused samples."""
+def _write_merged_results(output_path, reused_samples, dispatched=True):
+    """Merge per-processor JSONL files and reused samples into a single output."""
     merged_output_path = os.path.join(output_path, "merged")
     output_file = os.path.join(merged_output_path, "merged_results.jsonl")
     os.makedirs(merged_output_path, exist_ok=True)
 
     new_results = []
-    processors_dir = os.path.join(output_path, "processors")
-    if os.path.isdir(processors_dir):
-        for processor_name in sorted(os.listdir(processors_dir)):
-            results_path = os.path.join(processors_dir, processor_name, "results.jsonl")
-            if os.path.exists(results_path):
-                with open(results_path, "r") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line:
-                            new_results.append(json.loads(line))
+    if dispatched:
+        processors_dir = os.path.join(output_path, "processors")
+        if os.path.isdir(processors_dir):
+            for processor_name in sorted(os.listdir(processors_dir)):
+                results_path = os.path.join(
+                    processors_dir, processor_name, "results.jsonl"
+                )
+                if os.path.exists(results_path):
+                    with open(results_path, "r") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                new_results.append(json.loads(line))
 
     reused_dicts = [s.to_dict() for s in (reused_samples or [])]
     all_results = reused_dicts + new_results
@@ -184,10 +176,8 @@ def process(config_file: str):
         logger.warning("⚠️ Found no file to process")
         return
 
-    # Clear per-processor files as to_jsonl uses append mode
-    _clear_processor_results(output_path)
-
-    if len(crawl_result) > 0:
+    dispatched = len(crawl_result) > 0
+    if dispatched:
         dispatcher_config: DispatcherConfig = config.dispatcher_config
         DashboardClient(dispatcher_config.dashboard_backend_url).init_db(
             len(crawl_result)
@@ -204,7 +194,11 @@ def process(config_file: str):
     else:
         logger.info("No new files to process, reusing previous samples only.")
 
-    _build_merged_results(output_path, reused_samples if previous is not None else None)
+    _write_merged_results(
+        output_path,
+        reused_samples if previous is not None else None,
+        dispatched=dispatched,
+    )
 
     if ggdrive_downloader:
         ggdrive_downloader.remove_downloads()

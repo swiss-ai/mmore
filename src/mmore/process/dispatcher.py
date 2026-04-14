@@ -322,10 +322,24 @@ class Dispatcher:
 
         return results
 
+    def _clear_per_processor_results(self) -> None:
+        """Clear per-processor result JSONL files.
+        This is needed because :meth:`MultimodalSample.to_jsonl` uses append by default."""
+        if not self.config.output_path:
+            return
+        processors_dir = os.path.join(self.config.output_path, "processors")
+        if not os.path.isdir(processors_dir):
+            return
+        for processor_name in os.listdir(processors_dir):
+            results_path = os.path.join(processors_dir, processor_name, "results.jsonl")
+            if os.path.exists(results_path):
+                os.remove(results_path)
+
     def dispatch(self) -> List[List[MultimodalSample]]:
         """
         Dispatches the result to the appropriate processor.
         """
+        self._clear_per_processor_results()
 
         def batch_list(
             lst: List, obj_batch_size: int, processor: Type[Processor]
