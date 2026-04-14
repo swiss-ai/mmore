@@ -1,92 +1,68 @@
-import json
-
 from mmore.process.post_processor.pipeline import OutputConfig, PPPipelineConfig
 from mmore.process.previous_results import (
     is_reusable_postprocess,
     load_previous_results,
     merge_results,
 )
-from mmore.type import MultimodalSample
 
 
-def _sample(file_path: str, **metadata) -> MultimodalSample:
-    return MultimodalSample.from_dict(
-        {
-            "text": "x",
-            "modalities": [],
-            "metadata": {"file_path": file_path, **metadata},
-        }
-    )
+class TestPostProcessPipelineReuse:
+    """Test the post-process pipeline incremental workflow."""
 
-
-class TestPostprocessStageReuse:
-    """Test the post-process incremental workflow."""
-
-    def _write_jsonl(self, path, samples):
-        with open(path, "w") as f:
-            for s in samples:
-                f.write(json.dumps(s) + "\n")
-
-    def test_reuses_unchanged_documents(self, tmp_path):
+    def test_reuses_unchanged_documents(self, tmp_path, make_sample, write_jsonl):
         """Document groups where input processed_at <= cached processed_at are reused."""
         prev_path = tmp_path / "prev_pp.jsonl"
-        self._write_jsonl(
+        write_jsonl(
             str(prev_path),
             [
-                {
-                    "text": "chunked",
-                    "modalities": [],
-                    "metadata": {
-                        "file_path": "/a.pdf",
-                        "processed_at": "2026-06-01T00:00:00",
-                    },
-                },
+                make_sample(
+                    "/a.pdf",
+                    text="chunked",
+                    processed_at="2026-06-01T00:00:00",
+                ),
             ],
         )
 
         previous = load_previous_results(str(prev_path))
-        assert (
-            is_reusable_postprocess("/a.pdf", "2026-01-01T00:00:00", previous) is True
-        )
+        assert is_reusable_postprocess("/a.pdf", "2026-01-01T00:00:00", previous)
 
-    def test_reprocesses_changed_documents(self, tmp_path):
+    def test_reprocesses_changed_documents(self, tmp_path, make_sample, write_jsonl):
         """Document groups where input processed_at > cached processed_at need reprocessing."""
         prev_path = tmp_path / "prev_pp.jsonl"
-        self._write_jsonl(
+        write_jsonl(
             str(prev_path),
             [
-                {
-                    "text": "old chunked",
-                    "modalities": [],
-                    "metadata": {
-                        "file_path": "/a.pdf",
-                        "processed_at": "2026-01-01T00:00:00",
-                    },
-                },
+                make_sample(
+                    "/doc.pdf",
+                    text="old chunked",
+                    processed_at="2026-01-01T00:00:00",
+                ),
             ],
         )
 
         previous = load_previous_results(str(prev_path))
-        assert (
-            is_reusable_postprocess("/a.pdf", "2026-06-01T00:00:00", previous) is False
-        )
+        assert not is_reusable_postprocess("/doc.pdf", "2026-06-01T00:00:00", previous)
 
     def test_processes_new_documents(self):
         """New documents not in previous results are not reusable."""
-        assert is_reusable_postprocess("/new.pdf", "2026-01-01T00:00:00", {}) is False
+        assert not is_reusable_postprocess("/new.pdf", "2026-01-01T00:00:00", {})
 
-    def test_drops_deleted_documents(self):
+    def test_drops_deleted_documents(self, tmp_path, make_sample):
         """Documents absent from input are dropped from merge."""
+        exists = str(tmp_path / "exists.pdf")
+        deleted = str(tmp_path / "deleted.pdf")
+        new_file = str(tmp_path / "new.txt")
+
         reused = {
-            "/a.pdf": [_sample("/a.pdf")],
-            "/gone.pdf": [_sample("/gone.pdf")],
+            exists: [make_sample(exists)],
+            deleted: [make_sample(deleted)],
         }
-        current_fps = {"/a.pdf", "/new.pdf"}
-        new = [_sample("/new.pdf")]
+        new = [make_sample(new_file)]
+        current_fps = {exists, new_file}
 
         merged = merge_results(reused, new, current_fps)
         fps = {s.metadata["file_path"] for s in merged}
-        assert fps == {"/a.pdf", "/new.pdf"}
+        assert fps == {exists, new_file}
 
 
 class TestPPPipelineConfig:
