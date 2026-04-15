@@ -1,135 +1,120 @@
 import json
+import logging
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from ..type import MultimodalSample
 
+logger = logging.getLogger(__name__)
 
-def load_previous_results(path: str) -> Dict[str, List[MultimodalSample]]:
-    """Load a JSONL file and index samples by ``metadata.file_path``.
 
-    Args:
-        path: Absolute path to the JSONL file produced by a previous run.
-
-    Returns:
-        A dict mapping each ``file_path`` string to the list of samples
-        whose ``metadata.file_path`` equals that key.
-
-    Raises:
-        FileNotFoundError: If path does not exist on disk.
-    """
+def _iter_samples_jsonl(path: str):
+    """Helper function to stream line by line a JSONL to avoid loading it fully in memory."""
     if not os.path.exists(path):
         raise FileNotFoundError(f"Previous results file not found: {path}")
-
-    index: Dict[str, List[MultimodalSample]] = {}
     with open(path, "r") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            sample = MultimodalSample.from_dict(json.loads(line))
-            index.setdefault(sample.metadata["file_path"], []).append(sample)
+            yield MultimodalSample.from_dict(json.loads(line))
+
+
+def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
+    """Index samples by ``metadata.file_path`` for the processing pipeline,
+    keeping the latest ``processed_at`` if there are any duplicates."""
+    samples_by_file_path: Dict[str, List[MultimodalSample]] = {}
+    for sample in _iter_samples_jsonl(path):
+        samples_by_file_path.setdefault(sample.metadata["file_path"], []).append(sample)
+
+    index: Dict[str, MultimodalSample] = {}
+    for file_path, samples in samples_by_file_path.items():
+        if len(samples) > 1:
+            logger.warning(
+                "Duplicate samples for file_path %s: keeping latest processed_at, "
+                "dropping %d",
+                file_path,
+                len(samples) - 1,
+            )
+
+        index[file_path] = max(
+            samples,
+            key=lambda s: datetime.fromisoformat(s.metadata["processed_at"])
+            if s.metadata.get("processed_at") is not None
+            else datetime.min,
+        )
     return index
 
 
-def is_reusable_process(
-    file_path: str, previous_results: Dict[str, List[MultimodalSample]]
-) -> bool:
-    """Decide whether the process-stage cache for ``file_path`` is still valid.
+def load_previous_postprocess_results(
+    path: str,
+) -> Dict[str, List[MultimodalSample]]:
+    """Index samples by ``metadata.file_path`` for the post-processing pipeline."""
+    index: Dict[str, List[MultimodalSample]] = {}
+    for sample in _iter_samples_jsonl(path):
+        index.setdefault(sample.metadata["file_path"], []).append(sample)
+    return index
 
-    A cached result is considered valid when the source file has not been
-    modified since it was last processed, i.e.::
 
-        file_mtime <= max(processed_at for each cached sample)
+def is_reusable_process(file_path: str, previous: Dict[str, MultimodalSample]) -> bool:
+    """Check whether the previous processed sample the given file can be reused.
 
-    Args:
-        file_path: Path to the source file on disk.
-        previous_results: Index returned by :func:`load_previous_results`.
-
-    Returns:
-        ``True`` if the cache is usable, ``False`` otherwise.
+    Conditions (all required):
+    - ``file_path`` is present in ``previous``
+    - the cached sample has a ``processed_at`` timestamp
+    - the source file has not been modified since (``file_mtime <= processed_at``)
     """
-    if file_path not in previous_results:
+    sample = previous.get(file_path)
+    if sample is None:
         return False
 
-    samples = previous_results[file_path]
-    if not samples:
+    processed_at_str = sample.metadata.get("processed_at")
+    if processed_at_str is None:
         return False
 
-    timestamps = [
-        s.metadata["processed_at"] for s in samples if s.metadata.get("processed_at")
-    ]
-    if not timestamps:
-        return False
-
-    max_processed_at = max(datetime.fromisoformat(t) for t in timestamps)
+    processed_at = datetime.fromisoformat(processed_at_str)
     file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
-    return file_mtime <= max_processed_at
+    return file_mtime <= processed_at
 
 
 def is_reusable_postprocess(
     file_path: str,
     input_processed_at: str,
-    previous_results: Dict[str, List[MultimodalSample]],
+    previous: Dict[str, List[MultimodalSample]],
 ) -> bool:
-    """Decide whether the post-process-stage cache for ``file_path`` is still valid.
+    """Check whether the previous post-processed samples of the given file can be reused.
 
-    A cached result is considered valid when the post-processor ran after the
-    process stage produced its output, i.e.::
-
-        input_processed_at <= max(processed_at for each cached sample)
-
-    Args:
-        file_path: The source-document path used as the grouping key.
-        input_processed_at: ISO timestamp of when the process stage last produced an
-            output for this file.
-        previous_results: Index returned by :func:`load_previous_results`.
-
-    Returns:
-        ``True`` if the cache is usable, ``False`` otherwise.
+    Conditions (all required):
+    - ``file_path`` has at least one cached sample in ``previous``
+    - every cached sample has a ``processed_at`` timestamp
+    - ``input_processed_at <= min(cached processed_at)``
     """
-    if file_path not in previous_results:
-        return False
-
-    samples = previous_results[file_path]
+    samples = previous.get(file_path)
     if not samples:
         return False
 
-    timestamps = [
-        s.metadata["processed_at"] for s in samples if s.metadata.get("processed_at")
-    ]
-    if not timestamps:
-        return False
+    timestamps: List[datetime] = []
+    for s in samples:
+        timestamp_str = s.metadata.get("processed_at")
+        if timestamp_str is None:
+            return False
+        timestamps.append(datetime.fromisoformat(timestamp_str))
 
-    max_processed_at = max(datetime.fromisoformat(t) for t in timestamps)
-    return datetime.fromisoformat(input_processed_at) <= max_processed_at
+    return datetime.fromisoformat(input_processed_at) <= min(timestamps)
 
 
 def merge_results(
     reused: Dict[str, List[MultimodalSample]],
     new_results: List[MultimodalSample],
-    current_file_paths: set,
+    current_file_paths: Set[str],
 ) -> List[MultimodalSample]:
-    """Combine reused samples and newly processed samples into a list.
-
-    Args:
-        reused: Dictionary mapping ``file_path`` to a list of saved samples to keep.
-        new_results: List of newly processed samples.
-        current_file_paths: Set of source file paths present in the current run.
-
-    Returns:
-        A list of samples containing reused entries followed by newly processed
-        ones, with deleted-file entries removed.
-    """
+    """Combine reused and newly processed/post-processed samples."""
     merged: List[MultimodalSample] = []
-
     for file_path, samples in reused.items():
         if file_path in current_file_paths:
             merged.extend(samples)
-
     for sample in new_results:
         if sample.metadata["file_path"] in current_file_paths:
             merged.append(sample)
-
     return merged

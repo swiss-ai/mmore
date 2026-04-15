@@ -13,7 +13,10 @@ from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
-from mmore.process.previous_results import is_reusable_process, load_previous_results
+from mmore.process.previous_results import (
+    is_reusable_process,
+    load_previous_process_results,
+)
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.utils import load_config
 
@@ -148,15 +151,13 @@ def process(config_file: str):
     reusable_paths = set()
 
     if config.previous_results:
-        previous = load_previous_results(config.previous_results)
+        previous = load_previous_process_results(config.previous_results)
 
         for fp in all_crawled_paths:
             if is_reusable_process(fp, previous):
                 reusable_paths.add(fp)
 
-        # Collect reused samples
-        for fp in reusable_paths:
-            reused_samples.extend(previous[fp])
+        reused_samples = [previous[fp] for fp in reusable_paths]
 
         # Remove reusable files from crawl_result so they are not re-processed
         crawl_result.file_paths = {
