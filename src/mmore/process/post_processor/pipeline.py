@@ -7,7 +7,7 @@ from typing import List, Optional
 from ...type import MultimodalSample
 from ..previous_results import (
     is_reusable_postprocess,
-    load_previous_results,
+    load_previous_postprocess_results,
     merge_results,
 )
 from ..utils import save_samples
@@ -125,28 +125,20 @@ class PPPipeline:
         """Run processors only on samples from new/changed source documents."""
         output_dir = os.path.dirname(self.output_config.output_path) or "."
 
-        previous = load_previous_results(self.previous_results_path)
+        previous = load_previous_postprocess_results(self.previous_results_path)
 
         # Group input samples by file_path
-        groups: dict[str, List[MultimodalSample]] = {}
+        index: dict[str, MultimodalSample] = {}
         for sample in samples:
-            fp = sample.metadata["file_path"]
-            groups.setdefault(fp, []).append(sample)
+            index[sample.metadata["file_path"]] = sample
 
-        current_file_paths = set(groups.keys())
+        current_file_paths = set(index.keys())
 
-        # For each group, get max(processed_at) from input samples
         reusable_file_paths: set[str] = set()
         to_process_file_paths: set[str] = set()
-        for fp, group_samples in groups.items():
-            sample_timestamps = [
-                s.metadata.get("processed_at")
-                for s in group_samples
-                if s.metadata.get("processed_at")
-            ]
-            if sample_timestamps:
-                input_processed_at = max(sample_timestamps)
-            else:
+        for fp, sample in index.items():
+            input_processed_at = sample.metadata.get("processed_at")
+            if input_processed_at is None:
                 # When no processed_at on input, post process it as a new one
                 to_process_file_paths.add(fp)
                 continue
@@ -156,7 +148,7 @@ class PPPipeline:
             else:
                 to_process_file_paths.add(fp)
 
-        n_deleted = len(set(previous.keys()) - set(groups.keys()))
+        n_deleted = len(set(previous.keys()) - set(index.keys()))
         logger.info(
             f"Post-process pipeline: {len(reusable_file_paths)} reused, "
             f"{len(to_process_file_paths)} to process, {n_deleted} deleted"
@@ -174,7 +166,7 @@ class PPPipeline:
             return merged_samples
 
         # Collect samples to process
-        samples_to_process = [s for fp in to_process_file_paths for s in groups[fp]]
+        samples_to_process = [index[fp] for fp in to_process_file_paths]
 
         # Run through pipeline
         processed = samples_to_process
