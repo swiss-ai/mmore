@@ -71,6 +71,20 @@ You can configure parameters by providing a custom config file. You can find an 
 
 :rotating_light: Not all parameters are configurable yet :wink:
 
+### :recycle: Incremental reprocessing
+
+The optional top-level `previous_results` parameter lets you reuse results from a prior run to avoid reprocessing unchanged files so to save time and compute costs.
+
+```yaml
+previous_results: examples/process/outputs/merged/merged_results.jsonl
+```
+
+Point it to a `merged_results.jsonl` produced by an earlier run. On the next run, each input file is compared against that JSONL:
+
+- Unchanged files: their previous samples are reused as-is.
+- New or modified files: they are processed normally.
+- Removed files: their samples are dropped from the output.
+
 ## :scroll: More information on what's under the hood
 
 ### :construction: Pipeline architecture
@@ -126,5 +140,13 @@ python3 -m mmore postprocess --config-file examples/postprocessor/config.yaml --
 ```
 
 Specify with `--input-data` the path (absolute or relative to the root of the repository) to the JSONL recoding of the output of the initial processing phase.
+
+### :recycle: Incremental post-processing
+
+Like the processing pipeline, the post-processor accepts an optional `previous_results` parameter to reuse results from a prior post-processing run and skip unchanged documents.
+
+```yaml
+previous_results: examples/postprocessor/outputs/merged/results.jsonl
+```
 
 New post-processors can easily be implemented, and pipelines can be configured through lightweight YAML files. The post-processing stage produces a new JSONL file containing cleaned and optionally enhanced document samples.
