@@ -1,6 +1,6 @@
 from mmore.process.previous_results import (
     is_reusable_process,
-    load_previous_results,
+    load_previous_process_results,
     merge_results,
 )
 
@@ -26,7 +26,7 @@ class TestProcessPipelineReuse:
             ],
         )
 
-        previous = load_previous_results(str(prev_path))
+        previous = load_previous_process_results(str(prev_path))
         assert is_reusable_process(str(doc), previous)
 
     def test_reprocesses_modified_files(self, tmp_path, make_sample, write_jsonl):
@@ -47,7 +47,7 @@ class TestProcessPipelineReuse:
             ],
         )
 
-        previous = load_previous_results(str(prev_path))
+        previous = load_previous_process_results(str(prev_path))
         assert not is_reusable_process(str(doc), previous)
 
     def test_processes_new_files(self, tmp_path):
@@ -87,7 +87,7 @@ class TestProcessPipelineReuse:
             ],
         )
 
-        previous = load_previous_results(str(prev_path))
-        sample = previous["/x.pdf"][0]
+        previous = load_previous_process_results(str(prev_path))
+        sample = previous["/x.pdf"]
         assert "processed_at" in sample.metadata
         assert "processor_type" in sample.metadata

@@ -1,7 +1,7 @@
 from mmore.process.post_processor.pipeline import OutputConfig, PPPipelineConfig
 from mmore.process.previous_results import (
     is_reusable_postprocess,
-    load_previous_results,
+    load_previous_postprocess_results,
     merge_results,
 )
 
@@ -23,7 +23,7 @@ class TestPostProcessPipelineReuse:
             ],
         )
 
-        previous = load_previous_results(str(prev_path))
+        previous = load_previous_postprocess_results(str(prev_path))
         assert is_reusable_postprocess("/a.pdf", "2026-01-01T00:00:00", previous)
 
     def test_reprocesses_changed_documents(self, tmp_path, make_sample, write_jsonl):
@@ -40,7 +40,7 @@ class TestPostProcessPipelineReuse:
             ],
         )
 
-        previous = load_previous_results(str(prev_path))
+        previous = load_previous_postprocess_results(str(prev_path))
         assert not is_reusable_postprocess("/doc.pdf", "2026-06-01T00:00:00", previous)
 
     def test_processes_new_documents(self):
