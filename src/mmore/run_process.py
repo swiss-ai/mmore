@@ -51,29 +51,27 @@ def _write_merged_results(output_path, reused_samples, dispatched=True):
     output_file = os.path.join(merged_output_path, "merged_results.jsonl")
     os.makedirs(merged_output_path, exist_ok=True)
 
-    new_results = []
-    if dispatched:
-        processors_dir = os.path.join(output_path, "processors")
-        if os.path.isdir(processors_dir):
-            for processor_name in sorted(os.listdir(processors_dir)):
-                results_path = os.path.join(
-                    processors_dir, processor_name, "results.jsonl"
-                )
-                if os.path.exists(results_path):
-                    with open(results_path, "r") as f:
-                        for line in f:
-                            line = line.strip()
-                            if line:
-                                new_results.append(json.loads(line))
-
-    reused_dicts = [s.to_dict() for s in (reused_samples or [])]
-    all_results = reused_dicts + new_results
-
+    total_results = 0
     with open(output_file, "w") as f:
-        for sample in all_results:
-            f.write(json.dumps(sample) + "\n")
+        for sample in reused_samples or []:
+            f.write(json.dumps(sample.to_dict()) + "\n")
+            total_results += 1
+        if dispatched:
+            processors_dir = os.path.join(output_path, "processors")
+            if os.path.isdir(processors_dir):
+                for processor_name in sorted(os.listdir(processors_dir)):
+                    results_path = os.path.join(
+                        processors_dir, processor_name, "results.jsonl"
+                    )
+                    if os.path.exists(results_path):
+                        with open(results_path, "r") as processor_file:
+                            for line in processor_file:
+                                stripped_line = line.strip()
+                                if stripped_line:
+                                    f.write(stripped_line + "\n")
+                                    total_results += 1
 
-    logger.info(f"Merged results ({len(all_results)} samples) saved to {output_file}")
+    logger.info(f"Merged results ({total_results} samples) saved to {output_file}")
 
 
 @profile_function()

@@ -138,15 +138,13 @@ class PPPipeline:
         to_process_file_paths: set[str] = set()
         for fp, sample in index.items():
             input_processed_at = sample.metadata.get("processed_at")
-            if input_processed_at is None:
-                # When no processed_at on input, post process it as a new one
+            if input_processed_at is None or not is_reusable_postprocess(
+                fp, input_processed_at, previous
+            ):
+                # When no processed_at on input or not reusable, post process it as a new one
                 to_process_file_paths.add(fp)
-                continue
-
-            if is_reusable_postprocess(fp, input_processed_at, previous):
-                reusable_file_paths.add(fp)
             else:
-                to_process_file_paths.add(fp)
+                reusable_file_paths.add(fp)
 
         n_deleted = len(set(previous.keys()) - set(index.keys()))
         logger.info(

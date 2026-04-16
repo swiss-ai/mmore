@@ -73,7 +73,7 @@ You can configure parameters by providing a custom config file. You can find an 
 
 ### :recycle: Incremental reprocessing
 
-The optional top-level `previous_results` parameter lets you reuse results from a prior run to avoid reprocessing unchanged files so to save time and compute costs.
+The optional top-level `previous_results` parameter lets you reuse results from a prior run to avoid reprocessing unchanged files so as to save time and compute costs.
 
 ```yaml
 previous_results: examples/process/outputs/merged/merged_results.jsonl
