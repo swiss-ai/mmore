@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from mmore.process.previous_results import (
+from mmore.process.incremental import (
     is_reusable_postprocess,
     is_reusable_process,
     load_previous_postprocess_results,

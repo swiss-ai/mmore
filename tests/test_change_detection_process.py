@@ -1,4 +1,4 @@
-from mmore.process.previous_results import (
+from mmore.process.incremental import (
     is_reusable_process,
     load_previous_process_results,
     merge_results,

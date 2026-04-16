@@ -13,7 +13,7 @@ from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
-from mmore.process.previous_results import (
+from mmore.process.incremental import (
     is_reusable_process,
     load_previous_process_results,
 )

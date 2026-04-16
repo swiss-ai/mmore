@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from ...type import MultimodalSample
-from ..previous_results import (
+from ..incremental import (
     is_reusable_postprocess,
     load_previous_postprocess_results,
     merge_results,

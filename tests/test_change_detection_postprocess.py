@@ -1,9 +1,9 @@
-from mmore.process.post_processor.pipeline import OutputConfig, PPPipelineConfig
-from mmore.process.previous_results import (
+from mmore.process.incremental import (
     is_reusable_postprocess,
     load_previous_postprocess_results,
     merge_results,
 )
+from mmore.process.post_processor.pipeline import OutputConfig, PPPipelineConfig
 
 
 class TestPostProcessPipelineReuse:

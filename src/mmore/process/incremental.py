@@ -33,7 +33,7 @@ def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
         if len(samples) > 1:
             logger.warning(
                 "Duplicate samples for file_path %s: keeping latest processed_at, "
-                "dropping %d",
+                "dropping %d samples",
                 file_path,
                 len(samples) - 1,
             )
