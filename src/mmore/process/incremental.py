@@ -74,6 +74,8 @@ def is_reusable_process(file_path: str, previous: Dict[str, MultimodalSample]) -
         return False
 
     processed_at = datetime.fromisoformat(processed_at_str)
+    if not os.path.exists(file_path):
+        return False
     file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
     return file_mtime <= processed_at
 
