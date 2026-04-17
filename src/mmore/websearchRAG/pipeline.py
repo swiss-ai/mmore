@@ -407,7 +407,6 @@ class WebsearchPipeline:
                     # Prevent duplicated results
                     if (url, snippet) in seen_results:
                         continue
-                    seen_results.add((url, snippet))
 
                     snippet_tokens = self._count_tokens(snippet + "\n")
 
@@ -421,7 +420,7 @@ class WebsearchPipeline:
                         break
 
                     if (
-                        summary_budget
+                        summary_budget is not None
                         and subquery_tokens + snippet_tokens > summary_budget
                     ):
                         break
@@ -436,6 +435,7 @@ class WebsearchPipeline:
                     subquery_snippets.append(snippet)
                     total_tokens += snippet_tokens
                     subquery_tokens += snippet_tokens
+                    seen_results.add((url, snippet))
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:

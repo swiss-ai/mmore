@@ -545,21 +545,19 @@ class TestSummaryBudget:
         assert large.strip() not in per_subquery_input
 
     def test_use_summary_bypasses_synthesis_overhead(self):
-        """With a tight budget, use_summary=True accepts what use_summary=False rejects.
-
-        Synthesis prompt overhead is ~57 tokens for query "test query". At max_context_tokens=60,
-        use_summary=False leaves ~3 tokens for snippets, while
-        use_summary=True gives the full 60 tokens.
-        """
+        """use_summary=True skips synthesis overhead, so a tight budget accepts
+        what use_summary=False rejects."""
         snippet = "this snippet has six words total"
 
         p_no = make_pipeline(max_context_tokens=60, use_summary=False)
+        p_no._compute_content_budget = MagicMock(return_value=3)
         p_no.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", snippet),
         ]
         result_no = p_no.process_record({"input": "test query"})
 
         p_yes = make_pipeline(max_context_tokens=60, use_summary=True)
+        p_yes._compute_content_budget = MagicMock(return_value=60)
         p_yes.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", snippet),
         ]
