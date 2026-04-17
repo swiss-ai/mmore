@@ -158,7 +158,6 @@ class PPPipeline:
         }
 
         if not to_process_file_paths:
-            logger.info("No document changes detected, reusing all previous results")
             merged_samples = merge_results(reused, [], current_file_paths)
             save_samples(merged_samples, self.output_config.output_path)
             return merged_samples

@@ -53,7 +53,7 @@ def _write_merged_results(output_path, reused_samples, dispatched=True):
 
     total_results = 0
     with open(output_file, "w") as f:
-        for sample in reused_samples or []:
+        for sample in reused_samples:
             f.write(json.dumps(sample.to_dict()) + "\n")
             total_results += 1
         if dispatched:
@@ -171,11 +171,13 @@ def process(config_file: str):
 
     output_path = config.dispatcher_config.output_path
 
-    if len(crawl_result) == 0 and not reused_samples:
-        logger.warning("⚠️ Found no file to process")
-        return
-
     dispatched = len(crawl_result) > 0
+
+    if not dispatched and not reused_samples:
+        logger.warning("⚠️ Found no file to process")
+        if previous is None:
+            return
+
     if dispatched:
         dispatcher_config: DispatcherConfig = config.dispatcher_config
         DashboardClient(dispatcher_config.dashboard_backend_url).init_db(
@@ -190,12 +192,14 @@ def process(config_file: str):
         logger.info(
             f"Dispatching and processing completed in {dispatch_time:.2f} seconds"
         )
-    else:
+    elif reused_samples:
         logger.info("No new files to process, reusing previous samples only.")
+    else:
+        logger.info("No new files to process and no samples to reuse.")
 
     _write_merged_results(
         output_path,
-        reused_samples if previous is not None else None,
+        reused_samples,
         dispatched=dispatched,
     )
 
