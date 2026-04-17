@@ -79,7 +79,7 @@ The optional top-level `previous_results` parameter lets you reuse results from 
 previous_results: examples/process/outputs/merged/merged_results.jsonl
 ```
 
-Point it to a `merged_results.jsonl` produced by an earlier run. On the next run, each input file is compared against that JSONL:
+Point it to a `merged_results.jsonl` produced by an earlier run. On the next run, each local input file is compared against that JSONL (meanwhile URL inputs are always reprocessed):
 
 - Unchanged files: their previous samples are reused as-is.
 - New or modified files: they are processed normally.
