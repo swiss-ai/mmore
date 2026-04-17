@@ -136,12 +136,13 @@ def process(config_file: str):
     crawl_time = crawl_end_time - crawl_start_time
     logger.info(f"Crawling completed in {crawl_time:.2f} seconds")
 
-    # Collect all crawled file paths (excluding this way deleted files)
+    # Collect all crawled file paths and urls (excluding this way deleted files)
     all_crawled_paths = {
         fd.file_path
         for file_list in crawl_result.file_paths.values()
         for fd in file_list
     }
+    all_crawled_paths.update(url.file_path for url in crawl_result.urls)
 
     previous = None
     reused_samples = []
