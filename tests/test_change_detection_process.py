@@ -1,3 +1,5 @@
+import pytest
+
 from mmore.process.incremental import (
     is_reusable_process,
     load_previous_process_results,
@@ -72,6 +74,36 @@ class TestProcessPipelineReuse:
         merged = merge_results(reused, new, current)
         fps = {s.metadata["file_path"] for s in merged}
         assert fps == {exists, new_file}
+
+    @pytest.mark.parametrize(
+        "include_url, expected_deleted",
+        [(True, 0), (False, 1)],
+        ids=["url_still_present", "url_removed"],
+    )
+    def test_deleted_count_with_url_in_previous(
+        self, tmp_path, make_sample, write_jsonl, include_url, expected_deleted
+    ):
+        """URLs in previous results are only counted as deleted when not present in the crawl."""
+        local_file = tmp_path / "doc.pdf"
+        local_file.write_text("content")
+        url = "https://example.com/page"
+
+        prev_path = tmp_path / "prev.jsonl"
+        write_jsonl(
+            str(prev_path),
+            [
+                make_sample(str(local_file), processed_at="2099-01-01T00:00:00"),
+                make_sample(url, processed_at="2099-01-01T00:00:00"),
+            ],
+        )
+
+        previous = load_previous_process_results(str(prev_path))
+        all_crawled_paths = {str(local_file)}
+        if include_url:
+            all_crawled_paths.add(url)
+
+        n_deleted = len(set(previous.keys()) - all_crawled_paths)
+        assert n_deleted == expected_deleted
 
     def test_metadata_fields_present(self, tmp_path, make_sample, write_jsonl):
         """Previous results have expected metadata fields."""
