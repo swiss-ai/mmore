@@ -47,8 +47,7 @@ SUBQUERY_TASK = (
     "Generate exactly {n} independent web-search subqueries that together cover the question comprehensively.\n"
     "Each subquery must be concise (≤30 words) and search-engine friendly.\n\n"
     "Output format (one per line, no extra text):\n"
-    "subquery 1: <query>\n"
-    "subquery 2: <query>\n"
+    "subquery <i>: <query>\n"
 )
 SUBQUERY_TASK_WITH_CONTEXT = (
     "Partial answer so far:\n{current_context}\n\n"
@@ -56,8 +55,7 @@ SUBQUERY_TASK_WITH_CONTEXT = (
     "Each subquery must be concise (≤30 words) and search-engine friendly.\n"
     "Do not repeat aspects already covered by the partial answer.\n\n"
     "Output format (one per line, no extra text):\n"
-    "subquery 1: <query>\n"
-    "subquery 2: <query>\n"
+    "subquery <i>: <query>\n"
 )
 
 SYNTHESIS_SYSTEM_MSG = (
@@ -179,7 +177,7 @@ class WebsearchPipeline:
         if delimiter not in content:
             return content
         # Extract the section after the delimiter
-        cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
+        cleaned_section = content.split(delimiter, 1)[-1].strip()
         return cleaned_section
 
     def _get_tokenizer(self):
@@ -190,12 +188,14 @@ class WebsearchPipeline:
 
     def _encode(self, text: str) -> list[int]:
         """Encode text to token IDs using the llm tokenizer."""
-        assert self._tokenizer is not None
+        if self._tokenizer is None:
+            raise RuntimeError("No tokenizer is available for encoding text.")
         return self._tokenizer.encode(text, add_special_tokens=False)
 
     def _decode(self, token_ids: list[int]) -> str:
         """Decode token IDs back to text using the llm tokenizer."""
-        assert self._tokenizer is not None
+        if self._tokenizer is None:
+            raise RuntimeError("No tokenizer is available for decoding token IDs.")
         return self._tokenizer.decode(token_ids, skip_special_tokens=True)
 
     def _count_tokens(self, text: str) -> int:
@@ -273,7 +273,9 @@ class WebsearchPipeline:
         response_llm = self.llm.invoke(messages)
         response = extract_response(response_llm.content)
         cleaned_answer = self._clean_llm_output(response)
-        cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
+        cleaned_answer = re.findall(
+            r"subquery \d+: (.*)", cleaned_answer, flags=re.IGNORECASE
+        )
         return cleaned_answer
 
     def web_search(self, query: str) -> List[Dict[str, str]]:
@@ -419,10 +421,7 @@ class WebsearchPipeline:
                         budget_exhausted = True
                         break
 
-                    if (
-                        summary_budget is not None
-                        and subquery_tokens + snippet_tokens > summary_budget
-                    ):
+                    if subquery_tokens + snippet_tokens > summary_budget:
                         break
 
                     if url not in source_map:
