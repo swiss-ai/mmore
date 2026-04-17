@@ -225,8 +225,9 @@ class TestSnippetBudget:
         assert "http://b.com" in result["sources"]
 
     def test_budget_exhaustion_stops_accumulation(self):
-        """First snippet (3 tokens) fits in ~5-token budget; second (8 tokens) doesn't."""
-        p = make_pipeline(max_context_tokens=62)
+        """First snippet (3 tokens) fits in 5-token budget; second (8 tokens) doesn't."""
+        p = make_pipeline()
+        p._compute_content_budget = lambda *_: 5
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "alpha bravo charlie"),
@@ -242,9 +243,8 @@ class TestSnippetBudget:
 
     def test_budget_exhaustion_skips_remaining_subqueries(self):
         """Once budget is exhausted, subsequent subqueries never call web_search."""
-        p = make_pipeline(
-            max_context_tokens=80, n_subqueries=3, subqueries=["sub1", "sub2", "sub3"]
-        )
+        p = make_pipeline(n_subqueries=3, subqueries=["sub1", "sub2", "sub3"])
+        p._compute_content_budget = lambda *_: 5
 
         call_count = 0
 
@@ -252,7 +252,14 @@ class TestSnippetBudget:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                return [{"url": "http://a.com", "snippet": "word " * 60, "title": "t"}]
+                # Budget is exhausted after the first result
+                return [
+                    {
+                        "url": "http://{call_count}.com",
+                        "snippet": "word " * 10,
+                        "title": "t",
+                    }
+                ]
             return [
                 {"url": f"http://{call_count}.com", "snippet": "other", "title": "t"}
             ]
@@ -267,9 +274,9 @@ class TestSnippetBudget:
         p = make_pipeline()
 
         # Make every text 10 tokens long
-        p._count_tokens = lambda text: 10
+        p._count_tokens = lambda _: 10
         # Set content budget manually to 20 tokens
-        p._compute_content_budget = lambda *parts: 20
+        p._compute_content_budget = lambda *_: 20
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result(
@@ -370,9 +377,9 @@ class TestDeduplication:
     def test_duplicates_do_not_consume_budget(self):
         """If a dup consumed budget, the third snippet would be rejected."""
         p = make_pipeline(max_context_tokens=5000)
-        p._count_tokens = lambda text: 10
+        p._count_tokens = lambda _: 10
         # Budget fits 2 snippets (20 tokens) but not 3 (30 tokens)
-        p._compute_content_budget = lambda *parts: 25
+        p._compute_content_budget = lambda *_: 25
 
         p.searcher.websearch_pipeline.return_value = [
             make_search_result("http://a.com", "real content"),  # 10 tokens, accepted
@@ -497,14 +504,13 @@ class TestMultiLoopBudget:
             {"url": "http://x.com", "snippet": "data", "title": "t"}
         ]
 
-        # Long detailed answer to grow the context
         p.llm.invoke.return_value = MagicMock(
             content="short answer: s\ndetailed answer: " + "word " * 30
         )
 
         p.process_record({"input": "test query"})
 
-        # budgets_seen[0] = snippet budget loop 0, budgets_seen[2] = snippet budget loop 1
+        # Ensure budget gets smaller across loops
         assert len(budgets_seen) >= 4
         assert budgets_seen[2] < budgets_seen[0]
 
@@ -518,7 +524,8 @@ class TestSummaryBudget:
     def test_large_snippet_excluded_by_summary_budget(self):
         """Per-subquery summary_budget excludes snippets that overflow it,
         even if the global snippet_budget has room."""
-        p = make_pipeline(max_context_tokens=100)
+        p = make_pipeline()
+        p._compute_content_budget = lambda *_: 10
 
         summary_inputs = []
 
