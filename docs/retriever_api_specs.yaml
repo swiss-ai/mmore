@@ -242,13 +242,17 @@ paths:
         - name: fileId
           in: path
           required: true
+          description: Identifier of the source file. Must not contain `+` or `"`.
           schema:
             type: string
+            pattern: '^[^"+]+$'
         - name: chunkId
           in: path
           required: true
+          description: Identifier of the chunk within the file. Must not contain `+` or `"`.
           schema:
             type: string
+            pattern: '^[^"+]+$'
       responses:
         "200":
           description: The chunk's content and positional metadata
@@ -270,6 +274,8 @@ paths:
                     description: |
                       Positional range of the chunk inside the source document.
                       `null` when the source has no page/paragraph structure.
+        "400":
+          description: Invalid `fileId` or `chunkId` (e.g. contains disallowed characters)
         "404":
           description: No chunk found for the given `fileId` + `chunkId`
 
