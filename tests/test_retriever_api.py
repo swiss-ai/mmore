@@ -80,17 +80,18 @@ def test_get_chunk_404_when_not_found(client, mock_retriever):
     assert "missing-chunk" in response.json()["detail"]
 
 
-def test_get_chunk_400_when_file_id_contains_plus(client, mock_retriever):
-    """400 rejects IDs containing '+' before querying Milvus."""
-    response = client.get("/v1/chunks/bad+file/chunk-7")
-
-    assert response.status_code == 400
-    mock_retriever.client.query.assert_not_called()
-
-
-def test_get_chunk_400_when_chunk_id_contains_plus(client, mock_retriever):
-    """400 rejects IDs containing '+' before querying Milvus."""
-    response = client.get("/v1/chunks/file-123/bad+chunk")
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/chunks/bad+file/chunk-7",  # '+' in fileId
+        "/v1/chunks/file-123/bad+chunk",  # '+' in chunkId
+        "/v1/chunks/file%22123/chunk-7",  # '"' in fileId (URL-encoded)
+        "/v1/chunks/file-123/bad%22chunk",  # '"' in chunkId
+    ],
+)
+def test_get_chunk_400_rejects_invalid_id_chars(client, mock_retriever, path):
+    """Per OpenAPI spec, fileId/chunkId must reject '+' and '"' without querying Milvus."""
+    response = client.get(path)
 
     assert response.status_code == 400
     mock_retriever.client.query.assert_not_called()

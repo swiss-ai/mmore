@@ -6,6 +6,7 @@ load_dotenv()
 
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -120,6 +121,7 @@ class RetrieverQuery(BaseModel):
     )
     query: str = Field(..., description="Search query")
 
+_ID_PATTERN = re.compile(r'^[^"+]+$')
 
 def _chunk_metadata(paragraph_positions) -> Optional[dict]:
     if not paragraph_positions:
@@ -180,8 +182,10 @@ def make_router(config_file: str) -> APIRouter:
     @router.get("/v1/chunks/{fileId}/{chunkId}", tags=["Retrieval"])
     def get_chunk(fileId: str, chunkId: str):
         """Fetch a chunk's content and positional metadata by reference."""
-        if "+" in fileId or "+" in chunkId:
-            raise HTTPException(400, "fileId and chunkId must not contain '+'")
+        if not _ID_PATTERN.match(fileId) or not _ID_PATTERN.match(chunkId):
+            raise HTTPException(
+                400, "fileId and chunkId must not contain '+' or '\"'"
+            )
         chunk_ref_literal = json.dumps(f"{fileId}+{chunkId}")
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
