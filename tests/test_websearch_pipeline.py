@@ -255,7 +255,7 @@ class TestSnippetBudget:
                 # Budget is exhausted after the first result
                 return [
                     {
-                        "url": "http://{call_count}.com",
+                        "url": f"http://{call_count}.com",
                         "snippet": "word " * 10,
                         "title": "t",
                     }

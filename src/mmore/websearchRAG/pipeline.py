@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import tempfile
@@ -201,7 +202,7 @@ class WebsearchPipeline:
     def _count_tokens(self, text: str) -> int:
         """Count tokens using heuristic, local tokenizer, or LLM."""
         if self.config.fast_tokenizer:
-            return len(text) // 4 or 1  # at least 1 to avoid zero-token strings
+            return math.ceil(len(text) / 4)
         if self._tokenizer is not None:
             return len(self._encode(text))
         if not self._warned_fallback_tokenizer:
