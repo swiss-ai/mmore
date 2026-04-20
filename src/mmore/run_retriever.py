@@ -180,19 +180,25 @@ def make_router(config_file: str) -> APIRouter:
     @router.get("/v1/chunks/{fileId}/{chunkId}", tags=["Retrieval"])
     def get_chunk(fileId: str, chunkId: str):
         """Fetch a chunk's content and positional metadata by reference."""
+        if '"' in fileId or '"' in chunkId:
+            raise HTTPException(400, "Invalid fileId or chunkId")
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
             filter=f'id in ["{fileId}+{chunkId}"]',
             output_fields=["text", "paragraph_positions"],
+            limit=1,
         )
         if not results:
             raise HTTPException(404, f"Chunk {chunkId} not found for file {fileId}")
         row = results[0]
+        entity = row.get("entity", {})
         return {
             "fileId": fileId,
             "chunkId": chunkId,
-            "content": row.get("text", ""),
-            "metadata": _chunk_metadata(row.get("paragraph_positions")),
+            "content": row.get("text") or entity.get("text", ""),
+            "metadata": _chunk_metadata(
+                row.get("paragraph_positions") or entity.get("paragraph_positions")
+            ),
         }
 
     return router
