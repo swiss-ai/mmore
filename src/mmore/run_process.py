@@ -155,7 +155,7 @@ def process(config_file: str):
             if is_reusable_process(fp, previous):
                 reusable_paths.add(fp)
 
-        reused_samples = [previous[fp] for fp in reusable_paths]
+        reused_samples = [previous[fp] for fp in sorted(reusable_paths)]
 
         # Remove reusable files from crawl_result so they are not re-processed
         crawl_result.file_paths = {

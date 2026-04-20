@@ -154,7 +154,7 @@ class PPPipeline:
 
         # Collect reused samples from previous results
         reused: dict[str, List[MultimodalSample]] = {
-            fp: previous[fp] for fp in reusable_file_paths
+            fp: previous[fp] for fp in sorted(reusable_file_paths)
         }
 
         if not to_process_file_paths:
@@ -163,7 +163,7 @@ class PPPipeline:
             return merged_samples
 
         # Collect samples to process
-        samples_to_process = [index[fp] for fp in to_process_file_paths]
+        samples_to_process = [index[fp] for fp in sorted(to_process_file_paths)]
 
         # Run through pipeline
         processed = samples_to_process
