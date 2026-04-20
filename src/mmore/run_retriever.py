@@ -160,7 +160,7 @@ def make_router(config_file: str) -> APIRouter:
         for doc in docs_for_query:
             meta = doc.metadata
             if "+" in meta["id"]:
-                fileId, chunkId = meta["id"].split("+")
+                fileId, chunkId = meta["id"].rsplit("+", 1)
             else:
                 fileId = meta["id"]
                 chunkId = None

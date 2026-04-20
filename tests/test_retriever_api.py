@@ -178,3 +178,29 @@ def test_retrieve_handles_id_without_chunk_suffix(client, mock_retriever):
     assert item["fileId"] == "file-no-chunks"
     assert item["chunkId"] is None
     assert item["metadata"] is None
+
+
+def test_retrieve_handles_id_with_multiple_plus_separators(client, mock_retriever):
+    """When a doc id contains multiple '+', split from the right so the last
+    segment is the chunk index and everything before is the file id. Avoids a
+    500 for ids where the user-supplied document id itself contains '+'."""
+    mock_retriever.invoke.return_value = [
+        Document(
+            page_content="c",
+            metadata={
+                "id": "file+with+plus+42",
+                "similarity": 0.5,
+                "paragraph_positions": [],
+            },
+        )
+    ]
+
+    response = client.post(
+        "/v1/retrieve",
+        json={"query": "q", "fileIds": [], "maxMatches": 1, "minSimilarity": -1.0},
+    )
+
+    assert response.status_code == 200
+    [item] = response.json()
+    assert item["fileId"] == "file+with+plus"
+    assert item["chunkId"] == "42"
