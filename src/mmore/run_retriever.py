@@ -12,7 +12,7 @@ from typing import List, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
@@ -121,6 +121,13 @@ class RetrieverQuery(BaseModel):
     query: str = Field(..., description="Search query")
 
 
+def _chunk_metadata(paragraph_positions) -> Optional[dict]:
+    if not paragraph_positions:
+        return None
+    (fp, fi), (lp, li) = paragraph_positions[0], paragraph_positions[-1]
+    return {"first": {"page": fp, "paragraph": fi}, "last": {"page": lp, "paragraph": li}}
+
+
 def make_router(config_file: str) -> APIRouter:
     router = APIRouter()
 
@@ -164,12 +171,29 @@ def make_router(config_file: str) -> APIRouter:
                     "chunkId": chunkId,
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
-                    "pageNumbers": meta.get("page_numbers", []),
-                    "paragraphNumbers": meta.get("paragraph_numbers", []),
+                    "metadata": _chunk_metadata(meta.get("paragraph_positions")),
                 }
             )
 
         return docs_info
+
+    @router.get("/v1/chunks/{fileId}/{chunkId}", tags=["Retrieval"])
+    def get_chunk(fileId: str, chunkId: str):
+        """Fetch a chunk's content and positional metadata by reference."""
+        results = retriever_obj.client.query(
+            collection_name=config.collection_name,
+            filter=f'id in ["{fileId}+{chunkId}"]',
+            output_fields=["text", "paragraph_positions"],
+        )
+        if not results:
+            raise HTTPException(404, f"Chunk {chunkId} not found for file {fileId}")
+        row = results[0]
+        return {
+            "fileId": fileId,
+            "chunkId": chunkId,
+            "content": row.get("text", ""),
+            "metadata": _chunk_metadata(row.get("paragraph_positions")),
+        }
 
     return router
 
