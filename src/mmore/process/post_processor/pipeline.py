@@ -116,7 +116,9 @@ class PPPipeline:
         for sample in samples:
             sample.metadata["processed_at"] = processed_at
 
-        save_samples(samples, self.output_config.output_path)
+        save_samples(
+            samples, os.path.join(self.output_config.output_path, "final.jsonl")
+        )
         return samples
 
     def _run_incremental(
@@ -125,6 +127,7 @@ class PPPipeline:
         """Run processors only on samples from new/changed source documents."""
         output_dir = os.path.dirname(self.output_config.output_path) or "."
 
+        assert self.previous_results_path is not None
         previous = load_previous_postprocess_results(self.previous_results_path)
 
         # Group input samples by file_path
@@ -159,7 +162,10 @@ class PPPipeline:
 
         if not to_process_file_paths:
             merged_samples = merge_results(reused, [], current_file_paths)
-            save_samples(merged_samples, self.output_config.output_path)
+            save_samples(
+                merged_samples,
+                os.path.join(self.output_config.output_path, "final.jsonl"),
+            )
             return merged_samples
 
         # Collect samples to process
@@ -186,5 +192,7 @@ class PPPipeline:
             sample.metadata["processed_at"] = processed_at
 
         merged_samples = merge_results(reused, processed, current_file_paths)
-        save_samples(merged_samples, self.output_config.output_path)
+        save_samples(
+            merged_samples, os.path.join(self.output_config.output_path, "final.jsonl")
+        )
         return merged_samples
