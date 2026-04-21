@@ -38,7 +38,7 @@ class PPPipelineConfig:
 def _jsonl_path(path: str, filename: str = "final.jsonl") -> str:
     if path.endswith(".jsonl"):
         return path
-    return f"{path}/{filename}"
+    return os.path.normpath(os.path.join(path, filename))
 
 
 class PPPipeline:
