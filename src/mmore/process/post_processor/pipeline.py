@@ -131,7 +131,9 @@ class PPPipeline:
         """Run processors only on samples from new/changed source documents."""
         output_dir = os.path.dirname(self.output_config.output_path) or "."
 
-        assert self.previous_results_path is not None
+        assert self.previous_results_path is not None and os.path.exists(
+            self.previous_results_path
+        ), f"Previous results file not found: {self.previous_results_path}"
         previous = load_previous_postprocess_results(self.previous_results_path)
 
         # Group input samples by file_path
