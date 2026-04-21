@@ -35,6 +35,12 @@ class PPPipelineConfig:
     previous_results: Optional[str] = None
 
 
+def _jsonl_path(path: str, filename: str = "final.jsonl") -> str:
+    if path.endswith(".jsonl"):
+        return path
+    return f"{path}/{filename}"
+
+
 class PPPipeline:
     def __init__(
         self,
@@ -116,9 +122,7 @@ class PPPipeline:
         for sample in samples:
             sample.metadata["processed_at"] = processed_at
 
-        save_samples(
-            samples, os.path.join(self.output_config.output_path, "final.jsonl")
-        )
+        save_samples(samples, _jsonl_path(self.output_config.output_path))
         return samples
 
     def _run_incremental(
@@ -164,7 +168,7 @@ class PPPipeline:
             merged_samples = merge_results(reused, [], current_file_paths)
             save_samples(
                 merged_samples,
-                os.path.join(self.output_config.output_path, "final.jsonl"),
+                _jsonl_path(self.output_config.output_path),
             )
             return merged_samples
 
@@ -192,7 +196,5 @@ class PPPipeline:
             sample.metadata["processed_at"] = processed_at
 
         merged_samples = merge_results(reused, processed, current_file_paths)
-        save_samples(
-            merged_samples, os.path.join(self.output_config.output_path, "final.jsonl")
-        )
+        save_samples(merged_samples, _jsonl_path(self.output_config.output_path))
         return merged_samples

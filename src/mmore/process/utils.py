@@ -99,7 +99,10 @@ def save_samples(
     """
     try:
         mode = "a" if append_mode else "w"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
         with open(path, mode) as f:
             for result in samples:
                 f.write(json.dumps(result.to_dict()) + "\n")
