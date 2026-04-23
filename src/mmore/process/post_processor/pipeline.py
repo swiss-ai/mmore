@@ -10,7 +10,7 @@ from ..incremental import (
     load_previous_postprocess_results,
     merge_results,
 )
-from ..utils import save_samples
+from ..utils import _jsonl_path, save_samples
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 logger = logging.getLogger(__name__)
@@ -33,12 +33,6 @@ class PPPipelineConfig:
     pp_modules: List[BasePostProcessorConfig]
     output: OutputConfig
     previous_results: Optional[str] = None
-
-
-def _jsonl_path(path: str, filename: str = "final.jsonl") -> str:
-    if path.endswith(".jsonl"):
-        return path
-    return os.path.normpath(os.path.join(path, filename))
 
 
 class PPPipeline:
