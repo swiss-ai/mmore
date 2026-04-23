@@ -18,7 +18,7 @@ from ..type import MultimodalSample
 logger = logging.getLogger(__name__)
 
 
-def _jsonl_path(path: str, filename: str = "final.jsonl") -> str:
+def jsonl_path(path: str, filename: str = "final.jsonl") -> str:
     if path.endswith(".jsonl"):
         return path
     return os.path.normpath(os.path.join(path, filename))

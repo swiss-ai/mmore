@@ -10,7 +10,7 @@ from ..incremental import (
     load_previous_postprocess_results,
     merge_results,
 )
-from ..utils import _jsonl_path, save_samples
+from ..utils import jsonl_path, save_samples
 from . import BasePostProcessor, BasePostProcessorConfig, load_postprocessor
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ class PPPipeline:
         for sample in samples:
             sample.metadata["processed_at"] = processed_at
 
-        save_samples(samples, _jsonl_path(self.output_config.output_path))
+        save_samples(samples, jsonl_path(self.output_config.output_path))
         return samples
 
     def _run_incremental(
@@ -164,7 +164,7 @@ class PPPipeline:
             merged_samples = merge_results(reused, [], current_file_paths)
             save_samples(
                 merged_samples,
-                _jsonl_path(self.output_config.output_path),
+                jsonl_path(self.output_config.output_path),
             )
             return merged_samples
 
@@ -192,5 +192,5 @@ class PPPipeline:
             sample.metadata["processed_at"] = processed_at
 
         merged_samples = merge_results(reused, processed, current_file_paths)
-        save_samples(merged_samples, _jsonl_path(self.output_config.output_path))
+        save_samples(merged_samples, jsonl_path(self.output_config.output_path))
         return merged_samples
