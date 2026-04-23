@@ -1,6 +1,5 @@
 import cProfile
 import os
-import time
 from unittest.mock import patch
 
 import pytest
@@ -79,8 +78,9 @@ def test_enable_profiling_from_env(tmp_path):
     assert os.path.isdir(env_dir)
 
 
-def test_enable_profiling_from_env_defaults(tmp_path):
+def test_enable_profiling_from_env_defaults(tmp_path, monkeypatch):
     """Absent env vars result in default config values."""
+    monkeypatch.chdir(tmp_path)
     env_vars_to_remove = [
         "MMORE_PROFILING_ENABLED",
         "MMORE_PROFILING_OUTPUT_DIR",
@@ -94,8 +94,10 @@ def test_enable_profiling_from_env_defaults(tmp_path):
 
     config = get_profiling_config()
     assert config.enabled is False
+    assert config.output_dir == "./profiling_output"
     assert config.sort_by == "cumulative"
     assert config.max_results == 50
+    assert os.path.isdir(tmp_path / "profiling_output")
 
 
 # ------------------ Timing Utility Tests ------------------
@@ -107,7 +109,6 @@ def test_time_function_with_parens(mock_logger):
 
     @time_function(log=True)
     def add(a, b):
-        time.sleep(0.01)
         return a + b
 
     result = add(2, 3)
@@ -122,7 +123,6 @@ def test_time_function_no_parens(mock_logger):
 
     @time_function
     def multiply(a, b):
-        time.sleep(0.01)
         return a * b
 
     result = multiply(3, 4)
@@ -148,7 +148,7 @@ def test_time_function_no_log(mock_logger):
 def test_time_context(mock_logger):
     """time_context logs elapsed time including block name."""
     with time_context("MyBlock", log=True):
-        time.sleep(0.01)
+        pass
 
     mock_logger.info.assert_called_once()
     assert "MyBlock took" in mock_logger.info.call_args[0][0]
@@ -158,7 +158,7 @@ def test_time_context(mock_logger):
 def test_time_context_no_log(mock_logger):
     """time_context with log=False suppresses logger."""
     with time_context("SilentBlock", log=False):
-        time.sleep(0.01)
+        pass
 
     mock_logger.info.assert_not_called()
 
@@ -181,7 +181,7 @@ def test_profile_function_disabled(tmp_path):
 
 @patch("pstats.Stats.print_stats")
 @patch("sys.getprofile", return_value=None)
-def test_profile_function_enabled(mock_getprofile, mock_print_stats, tmp_path):
+def test_profile_function_enabled(_mock_getprofile, _mock_print_stats, tmp_path):
     """When enabled, a .prof file is written with func name in filename."""
     configure_profiling(enabled=True, output_dir=str(tmp_path))
 
@@ -197,7 +197,7 @@ def test_profile_function_enabled(mock_getprofile, mock_print_stats, tmp_path):
 
 @patch("pstats.Stats.print_stats")
 @patch("sys.getprofile", return_value=None)
-def test_profile_function_custom_output(mock_getprofile, mock_print_stats, tmp_path):
+def test_profile_function_custom_output(_mock_getprofile, _mock_print_stats, tmp_path):
     """Explicit output_file param is used as the .prof path."""
     configure_profiling(enabled=True, output_dir=str(tmp_path))
     custom_path = str(tmp_path / "custom_output.prof")
@@ -223,8 +223,7 @@ def test_profile_function_profile_functions_false(tmp_path):
     assert list(tmp_path.glob("*.prof")) == []
 
 
-@patch("pstats.Stats.print_stats")
-def test_profile_function_bypassed_if_profiler_active(mock_print_stats, tmp_path):
+def test_profile_function_bypassed_if_profiler_active(tmp_path):
     """When sys.getprofile() returns non-None, profiling is skipped even if enabled."""
     configure_profiling(enabled=True, output_dir=str(tmp_path))
 
@@ -232,7 +231,8 @@ def test_profile_function_bypassed_if_profiler_active(mock_print_stats, tmp_path
     def some_func():
         return "skipped"
 
-    with patch("sys.getprofile", return_value=lambda *a: None):
+    active_profiler_sentinel = object()
+    with patch("sys.getprofile", return_value=active_profiler_sentinel):
         result = some_func()
 
     assert result == "skipped"
@@ -253,7 +253,7 @@ def test_profile_context_disabled(tmp_path):
 
 
 @patch("pstats.Stats.print_stats")
-def test_profile_context_enabled(mock_print_stats, tmp_path):
+def test_profile_context_enabled(_mock_print_stats, tmp_path):
     """When enabled, profile_context yields a cProfile.Profile and writes a file."""
     configure_profiling(enabled=True, output_dir=str(tmp_path))
 
@@ -269,7 +269,7 @@ def test_profile_context_enabled(mock_print_stats, tmp_path):
 
 
 @patch("pstats.Stats.print_stats")
-def test_profiler_start_stop(mock_print_stats, tmp_path):
+def test_profiler_start_stop(_mock_print_stats, tmp_path):
     """Manual start/stop writes a named .prof file."""
     profiler = Profiler(enabled=True, output_dir=str(tmp_path))
     profiler.start()
@@ -281,7 +281,7 @@ def test_profiler_start_stop(mock_print_stats, tmp_path):
 
 
 @patch("pstats.Stats.print_stats")
-def test_profiler_context_manager(mock_print_stats, tmp_path):
+def test_profiler_context_manager(_mock_print_stats, tmp_path):
     """Context manager writes a file with the default 'session' name."""
     with Profiler(enabled=True, output_dir=str(tmp_path)) as prof:
         assert isinstance(prof.profiler, cProfile.Profile)
@@ -304,6 +304,6 @@ def test_profiler_disabled(tmp_path):
 def test_profiler_stop_without_start(tmp_path):
     """Calling stop() before start() is safe — no crash, no file written."""
     profiler = Profiler(enabled=True, output_dir=str(tmp_path))
-    profiler.stop(name="premature_stop")  # should not raise
+    profiler.stop(name="premature_stop")
 
     assert list(tmp_path.glob("*.prof")) == []
