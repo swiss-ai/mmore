@@ -8,7 +8,8 @@ import numpy as np
 import pytest
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from mmore.index.indexer import DBConfig, Indexer, IndexerConfig
+from mmore.index.indexer import Indexer, IndexerConfig
+from pymilvus import MilvusClient
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 
 # Import run_index from the correct package path:
@@ -179,3 +180,99 @@ def test_index_documents_error(mock_milvus_client, sample_jsonl):
 
         with pytest.raises(Exception, match="Insertion error"):
             indexer.index_documents(docs)
+
+
+# ---------------------------------------------------------------------------
+# Real integration tests — Milvus Lite (local .db) + FakeEmbeddings, no GPU
+# ---------------------------------------------------------------------------
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_real_insert(mock_sparse, tmp_path, sample_documents):
+    """
+    Documents are actually written to a local Milvus Lite .db file.
+    No mock for Milvus or the dense model — only SPLADE is replaced to
+    avoid a ~500 MB download.
+    """
+    mock_sparse.return_value = _FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    dense_cfg = DenseModelConfig(model_name="debug")  # FakeEmbeddings(size=2048)
+    sparse_cfg = SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil")
+
+    indexer = Indexer(
+        dense_model_config=dense_cfg,
+        sparse_model_config=sparse_cfg,
+        client=client,
+    )
+
+    inserted = indexer.index_documents(sample_documents, collection_name="test_col")
+
+    assert inserted == len(sample_documents)
+    stats = client.get_collection_stats("test_col")
+    assert int(stats["row_count"]) == len(sample_documents)
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path, sample_documents):
+    """
+    Metadata fields passed in documents are stored in Milvus dynamic fields
+    and can be retrieved after insertion.
+    """
+    mock_sparse.return_value = _FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    dense_cfg = DenseModelConfig(model_name="debug")
+    sparse_cfg = SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil")
+
+    indexer = Indexer(
+        dense_model_config=dense_cfg,
+        sparse_model_config=sparse_cfg,
+        client=client,
+    )
+    indexer.index_documents(sample_documents, collection_name="test_col")
+
+    # doc-2 has metadata {"author": "Alice"}, check it was stored
+    results = client.query(
+        collection_name="test_col",
+        filter='id == "doc-2"',
+        output_fields=["id", "text", "author"],
+    )
+    assert len(results) == 1
+    assert results[0]["author"] == "Alice"
+    assert results[0]["text"] == "The Eiffel Tower stands 330 metres tall."
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_real_idempotent_collection(mock_sparse, tmp_path, sample_documents):
+    """
+    Calling index_documents twice on the same collection name appends
+    rather than recreating the collection.
+    """
+    mock_sparse.return_value = _FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    dense_cfg = DenseModelConfig(model_name="debug")
+    sparse_cfg = SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil")
+
+    indexer = Indexer(
+        dense_model_config=dense_cfg,
+        sparse_model_config=sparse_cfg,
+        client=client,
+    )
+
+    extra = [
+        MultimodalSample(
+            id="doc-4",
+            document_id="doc-4",
+            text="A fourth document.",
+            modalities=[],
+            metadata={},
+        )
+    ]
+
+    indexer.index_documents(sample_documents, collection_name="test_col")
+    indexer.index_documents(extra, collection_name="test_col")
+
+    stats = client.get_collection_stats("test_col")
+    assert int(stats["row_count"]) == len(sample_documents) + len(extra)
