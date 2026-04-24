@@ -5,6 +5,7 @@ import functools
 import logging
 import os
 import pstats
+import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -86,7 +87,11 @@ def profile_function(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             config = get_profiling_config()
-            if not config.enabled or not config.profile_functions:
+            if (
+                not config.enabled
+                or not config.profile_functions
+                or sys.getprofile() is not None
+            ):
                 return func(*args, **kwargs)
 
             # Generate output file name if not provided

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.1.1"
+version = "1.2.2"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ authors = [
     { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
+    { name = "Laetitia Wilhelm", email = "laetitia.wilhelm@epfl.ch" },
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
@@ -125,7 +126,7 @@ api = [
 # --- Composite + variant extras ---
 
 all = [
-    "mmore[process,rag,api]",
+    "mmore[process,rag,api,websearch]",
 ]
 
 cpu = [
@@ -137,7 +138,12 @@ cu126 = [
     "torchvision",
 ]
 
-dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
+websearch = [
+    "tavily-python>=0.3.0",
+    "ddgs>=6.0",
+]
+
+dev = ["pytest>=8.3.4", "pytest-timeout>=2.3.1", "ruff>=0.4.0", "pyright"]
 
 [tool.uv]
 conflicts = [

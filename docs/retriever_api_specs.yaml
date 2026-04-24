@@ -218,18 +218,86 @@ paths:
                       format: float
                       minimum: -1.0
                       maximum: 1.0
-                    pageNumbers:
-                      type: array
-                      items:
-                        type: integer
-                      description: Page numbers covered by this chunk (empty if not applicable)
-                    paragraphNumbers:
-                      type: array
-                      items:
-                        type: array
-                        items:
-                          type: integer
-                        minItems: 2
-                        maxItems: 2
-                      description: Each entry is a [pageNumber, paragraphIndex] pair for paragraphs within their respective pages (empty if not applicable)
+                    metadata:
+                      allOf:
+                        - $ref: "#/components/schemas/ChunkRange"
+                      nullable: true
+                      description: |
+                        Positional range of the chunk inside the source document.
+                        `null` when the source has no page/paragraph structure.
                 description: Results sorted by similarity (highest first)
+
+  /chunks/{fileId}/{chunkId}:
+    get:
+      tags:
+        - Context Retrieval
+      summary: Fetch a chunk's content and metadata by reference
+      description: |
+        Returns the text content and positional metadata for a single chunk,
+        identified by its `fileId` + `chunkId` (as returned by `/retrieve`).
+
+        Consumers can persist only the `{fileId, chunkId}` reference and
+        fetch the content/metadata on demand, avoiding duplicated storage.
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: Identifier of the source file. Must not contain `+` or `"`.
+          schema:
+            type: string
+            pattern: '^[^"+]+$'
+        - name: chunkId
+          in: path
+          required: true
+          description: Identifier of the chunk within the file. Must not contain `+` or `"`.
+          schema:
+            type: string
+            pattern: '^[^"+]+$'
+      responses:
+        "200":
+          description: The chunk's content and positional metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fileId:
+                    type: string
+                  chunkId:
+                    type: string
+                  content:
+                    type: string
+                  metadata:
+                    allOf:
+                      - $ref: "#/components/schemas/ChunkRange"
+                    nullable: true
+                    description: |
+                      Positional range of the chunk inside the source document.
+                      `null` when the source has no page/paragraph structure.
+        "400":
+          description: Invalid `fileId` or `chunkId` (e.g. contains disallowed characters)
+        "404":
+          description: No chunk found for the given `fileId` + `chunkId`
+
+components:
+  schemas:
+    ChunkPosition:
+      type: object
+      properties:
+        page:
+          type: integer
+        paragraph:
+          type: integer
+      required:
+        - page
+        - paragraph
+    ChunkRange:
+      type: object
+      properties:
+        first:
+          $ref: "#/components/schemas/ChunkPosition"
+        last:
+          $ref: "#/components/schemas/ChunkPosition"
+      required:
+        - first
+        - last

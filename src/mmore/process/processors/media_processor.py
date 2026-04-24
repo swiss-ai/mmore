@@ -20,6 +20,8 @@ class MediaProcessor(Processor):
     def _get_available_devices():
         if torch.cuda.is_available():
             return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
+        if torch.backends.mps.is_available():
+            return [torch.device("mps")]
         return [torch.device("cpu")]
 
     devices = _get_available_devices()
