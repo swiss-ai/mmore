@@ -179,9 +179,6 @@ def process(config_file: str):
 
     if dispatched:
         dispatcher_config: DispatcherConfig = config.dispatcher_config
-        DashboardClient(dispatcher_config.dashboard_backend_url).init_db(
-            len(crawl_result)
-        )
         logger.info(f"Using dispatcher configuration: {dispatcher_config}")
 
         dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)

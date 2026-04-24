@@ -113,7 +113,7 @@ rag = [
 ]
 
 api = [
-    # API servers + dashboard
+    # API servers
     "fastapi[standard]>=0.110",
     "uvicorn>=0.29",
     "starlette>=0.36",
