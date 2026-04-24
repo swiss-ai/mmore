@@ -8,8 +8,7 @@ import numpy as np
 import pytest
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from mmore.index.indexer import DBConfig, Indexer, IndexerConfig
-from mmore.rag.model import DenseModelConfig, SparseModelConfig
+from mmore.index.indexer import Indexer, IndexerConfig
 
 # Import run_index from the correct package path:
 from mmore.run_index import index
