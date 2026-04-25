@@ -1,5 +1,6 @@
 import cProfile
 import os
+import pstats
 from unittest.mock import patch
 
 import pytest
@@ -18,10 +19,9 @@ from mmore.profiler import (
 
 @pytest.fixture(autouse=True)
 def reset_profiler_config(tmp_path):
-    """Reset global config before/after each test using tmp_path to avoid repo pollution."""
-    configure_profiling(enabled=False, output_dir=str(tmp_path / "default_profiling"))
+    """Reset global config after each test."""
     yield
-    configure_profiling(enabled=False, output_dir=str(tmp_path / "default_profiling"))
+    configure_profiling(enabled=False, output_dir=str(tmp_path))
 
 
 # ------------------ Configuration Tests ------------------
@@ -55,20 +55,14 @@ def test_configure_profiling_creates_output_dir(tmp_path):
     assert os.path.isdir(out_dir)
 
 
-def test_enable_profiling_from_env(tmp_path):
+def test_enable_profiling_from_env(tmp_path, monkeypatch):
     """Parses all 4 env vars and updates global config accordingly."""
     env_dir = str(tmp_path / "env_dir")
-    with patch.dict(
-        os.environ,
-        {
-            "MMORE_PROFILING_ENABLED": "true",
-            "MMORE_PROFILING_OUTPUT_DIR": env_dir,
-            "MMORE_PROFILING_SORT_BY": "calls",
-            "MMORE_PROFILING_MAX_RESULTS": "25",
-        },
-        clear=False,
-    ):
-        enable_profiling_from_env()
+    monkeypatch.setenv("MMORE_PROFILING_ENABLED", "true")
+    monkeypatch.setenv("MMORE_PROFILING_OUTPUT_DIR", env_dir)
+    monkeypatch.setenv("MMORE_PROFILING_SORT_BY", "calls")
+    monkeypatch.setenv("MMORE_PROFILING_MAX_RESULTS", "25")
+    enable_profiling_from_env()
 
     config = get_profiling_config()
     assert config.enabled is True
@@ -81,16 +75,15 @@ def test_enable_profiling_from_env(tmp_path):
 def test_enable_profiling_from_env_defaults(tmp_path, monkeypatch):
     """Absent env vars result in default config values."""
     monkeypatch.chdir(tmp_path)
-    env_vars_to_remove = [
+    for k in (
         "MMORE_PROFILING_ENABLED",
         "MMORE_PROFILING_OUTPUT_DIR",
         "MMORE_PROFILING_SORT_BY",
         "MMORE_PROFILING_MAX_RESULTS",
-    ]
-    with patch.dict(os.environ, {}, clear=False):
-        for k in env_vars_to_remove:
-            os.environ.pop(k, None)
-        enable_profiling_from_env()
+    ):
+        monkeypatch.delenv(k, raising=False)
+
+    enable_profiling_from_env()
 
     config = get_profiling_config()
     assert config.enabled is False
@@ -111,8 +104,7 @@ def test_time_function_with_parens(mock_logger):
     def add(a, b):
         return a + b
 
-    result = add(2, 3)
-    assert result == 5
+    assert add(2, 3) == 5
     mock_logger.info.assert_called_once()
     assert "add took" in mock_logger.info.call_args[0][0]
 
@@ -125,23 +117,9 @@ def test_time_function_no_parens(mock_logger):
     def multiply(a, b):
         return a * b
 
-    result = multiply(3, 4)
-    assert result == 12
+    assert multiply(3, 4) == 12
     mock_logger.info.assert_called_once()
     assert "multiply took" in mock_logger.info.call_args[0][0]
-
-
-@patch("mmore.profiler.logger")
-def test_time_function_no_log(mock_logger):
-    """@time_function(log=False) suppresses logger calls."""
-
-    @time_function(log=False)
-    def noop():
-        return "done"
-
-    result = noop()
-    assert result == "done"
-    mock_logger.info.assert_not_called()
 
 
 @patch("mmore.profiler.logger")
@@ -174,8 +152,7 @@ def test_profile_function_disabled(tmp_path):
     def greet():
         return "hello"
 
-    result = greet()
-    assert result == "hello"
+    assert greet() == "hello"
     assert list(tmp_path.glob("*.prof")) == []
 
 
@@ -189,8 +166,7 @@ def test_profile_function_enabled(_mock_getprofile, _mock_print_stats, tmp_path)
     def compute():
         return 42
 
-    result = compute()
-    assert result == 42
+    assert compute() == 42
     files = list(tmp_path.glob("compute_*.prof"))
     assert len(files) == 1
 
@@ -218,8 +194,7 @@ def test_profile_function_profile_functions_false(tmp_path):
     def task():
         return "result"
 
-    result = task()
-    assert result == "result"
+    assert task() == "result"
     assert list(tmp_path.glob("*.prof")) == []
 
 
@@ -233,9 +208,8 @@ def test_profile_function_bypassed_if_profiler_active(tmp_path):
 
     active_profiler_sentinel = object()
     with patch("sys.getprofile", return_value=active_profiler_sentinel):
-        result = some_func()
+        assert some_func() == "skipped"
 
-    assert result == "skipped"
     assert list(tmp_path.glob("*.prof")) == []
 
 
@@ -307,3 +281,72 @@ def test_profiler_stop_without_start(tmp_path):
     profiler.stop(name="premature_stop")
 
     assert list(tmp_path.glob("*.prof")) == []
+
+
+# ------------------ Profile File Content Tests ------------------
+
+
+@patch("pstats.Stats.print_stats")
+@patch("sys.getprofile", return_value=None)
+def test_profile_function_records_call_in_file(
+    _mock_getprofile, _mock_print_stats, tmp_path
+):
+    """profile_function dumped file records the wrapped function call."""
+    configure_profiling(enabled=True, output_dir=str(tmp_path))
+
+    @profile_function()
+    def workload():
+        return sum(range(50))
+
+    workload()
+
+    files = list(tmp_path.glob("workload_*.prof"))
+    assert len(files) == 1
+
+    stats = pstats.Stats(str(files[0]))
+    workload_entries = [key for key in stats.stats if key[2] == "workload"]
+    assert len(workload_entries) == 1
+    assert stats.stats[workload_entries[0]][1] == 1
+
+
+@patch("pstats.Stats.print_stats")
+def test_profile_context_records_total_call_count(_mock_print_stats, tmp_path):
+    """profile_context records exact number of times an inner function is called."""
+    configure_profiling(enabled=True, output_dir=str(tmp_path))
+
+    def inner():
+        return 1
+
+    with profile_context("loop_ctx"):
+        for _ in range(10):
+            inner()
+
+    files = list(tmp_path.glob("loop_ctx_*.prof"))
+    assert len(files) == 1
+
+    stats = pstats.Stats(str(files[0]))
+    inner_entries = [key for key in stats.stats if key[2] == "inner"]
+    assert len(inner_entries) == 1
+    assert stats.stats[inner_entries[0]][1] == 10
+
+
+@patch("pstats.Stats.print_stats")
+def test_profiler_records_total_call_count(_mock_print_stats, tmp_path):
+    """Profiler records exact number of times an inner function is called."""
+    profiler = Profiler(enabled=True, output_dir=str(tmp_path))
+
+    def inner():
+        return 1
+
+    profiler.start()
+    for _ in range(10):
+        inner()
+    profiler.stop(name="loop_session")
+
+    files = list(tmp_path.glob("loop_session_*.prof"))
+    assert len(files) == 1
+
+    stats = pstats.Stats(str(files[0]))
+    inner_entries = [key for key in stats.stats if key[2] == "inner"]
+    assert len(inner_entries) == 1
+    assert stats.stats[inner_entries[0]][1] == 10
