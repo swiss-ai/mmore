@@ -36,7 +36,7 @@ jobs:
         run: |
           uv venv .venv
           source .venv/bin/activate
-          uv pip install -e ".[process,index,rag,api,cu126,dev]"
+          uv pip install -e ".[all,cu126,dev]"
 
       - name: Run GPU tests
         run: |

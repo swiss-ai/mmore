@@ -9,7 +9,7 @@ import yaml
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 
-from mmore.index.indexer import Indexer, IndexerConfig
+from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index import index
 from mmore.type import MultimodalSample
