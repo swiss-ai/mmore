@@ -72,6 +72,13 @@ def sample_jsonl(tmp_path):
 
 # ---------------------------------------------------------------------------
 # Real integration tests — Milvus Lite (local .db) + FakeEmbeddings, no GPU
+#
+# MilvusClient is real (Milvus Lite, local .db file).
+# Dense model is real (FakeEmbeddings via model_name="debug" — a built-in
+# LangChain test class, not a MagicMock).
+# SparseModel.from_config is patched only to avoid downloading the SPLADE
+# model (~500 MB) in CI; _FakeSparseEmbedding is a real BaseSparseEmbedding
+# implementation with deterministic outputs.
 # ---------------------------------------------------------------------------
 
 
