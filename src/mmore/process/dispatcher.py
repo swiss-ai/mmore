@@ -67,8 +67,6 @@ class DispatcherConfig:
         distributed: Use distributed processing via Dask (default: ``False``).
         scheduler_file: Path to a Dask scheduler file (only needed when
             ``distributed=True``).
-        dashboard_backend_url: Optional URL of the mmore dashboard backend
-            for live progress tracking.
         batch_sizes: Per-processor batch size overrides, keyed by processor
             class name.  The value is the maximum number of *document pages*
             per dispatch batch.  Example::
@@ -152,7 +150,6 @@ class DispatcherConfig:
             extract_images=config.get("extract_images", True),
             distributed=config.get("distributed", False),
             scheduler_file=config.get("scheduler_file"),
-            dashboard_backend_url=config.get("dashboard_backend_url"),
             batch_sizes=batch_sizes,
             batch_multiplier=config.get("batch_multiplier", 1),
             processor_configs=processor_configs,
@@ -203,10 +200,10 @@ def _build_processor_config(
 ) -> ProcessorConfig:
     """Instantiate the typed config for *processor* from *dispatcher_cfg*.
 
-    The base fields (``output_path``, ``extract_images``,
-    ``dashboard_backend_url``) come from the dispatcher config.  Any
-    processor-specific overrides from ``dispatcher_cfg.processor_configs``
-    are merged in as keyword arguments to the processor's ``CONFIG_CLASS``.
+    The base fields (``output_path`` and ``extract_images``) come from the
+    dispatcher config.  Any processor-specific overrides from
+    ``dispatcher_cfg.processor_configs`` are merged in as keyword arguments
+    to the processor's ``CONFIG_CLASS``.
 
     Args:
         processor: The processor class whose config to build.
@@ -218,7 +215,6 @@ def _build_processor_config(
     return config_cls(
         output_path=dispatcher_cfg.output_path,
         extract_images=dispatcher_cfg.extract_images,
-        dashboard_backend_url=dispatcher_cfg.dashboard_backend_url,
         **proc_overrides,
     )
 

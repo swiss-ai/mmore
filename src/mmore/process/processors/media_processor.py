@@ -56,7 +56,6 @@ class MediaProcessor(Processor):
                 output_path=self.config.output_path,
                 extract_images=self.config.extract_images,
                 attachment_tag=self.config.attachment_tag,
-                dashboard_backend_url=self.config.dashboard_backend_url,
             )
 
     @classmethod

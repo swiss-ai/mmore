@@ -28,14 +28,11 @@ class ProcessorConfig:
         attachment_tag: Placeholder text inserted in the extracted text at each
             location where an image was found (default: ``"<attachment>"``).
             Used by multimodal models such as Meditron to mark image positions.
-        dashboard_backend_url: Optional URL of the mmore dashboard backend for
-            live progress tracking. Set to ``None`` to disable (default).
     """
 
     output_path: str = ""
     extract_images: bool = True
     attachment_tag: str = "<attachment>"
-    dashboard_backend_url: Optional[str] = None
 
 
 @dataclass

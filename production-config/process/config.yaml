@@ -4,7 +4,6 @@ output_path: $ROOT_OUT_DIR/process/outputs/
 use_fast_processors: false
 extract_images: true
 distributed: false
-dashboard_backend_url: null
 scheduler_file: $ROOT_OUT_DIR/scheduler-file.json
 
 batch_sizes:

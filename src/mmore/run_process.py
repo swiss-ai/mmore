@@ -71,8 +71,6 @@ class ProcessConfig:
             process (default: empty).
         scheduler_file: Path to a Dask scheduler file, required when
             ``distributed=True``.
-        dashboard_backend_url: Optional mmore dashboard URL for live
-            progress tracking.
         batch_sizes: Per-processor batch sizes (document pages per batch),
             keyed by processor class name.
         batch_multiplier: Scale all batch sizes by this factor (default:
@@ -93,7 +91,6 @@ class ProcessConfig:
     skip_already_processed: bool = False
     google_drive_ids: List[str] = field(default_factory=list)
     scheduler_file: Optional[str] = None
-    dashboard_backend_url: Optional[str] = None
     batch_sizes: Dict[str, int] = field(default_factory=dict)
     batch_multiplier: int = 1
     processors: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -237,7 +234,6 @@ def process(config_file: str):
             extract_images=config.extract_images,
             distributed=config.distributed,
             scheduler_file=config.scheduler_file,
-            dashboard_backend_url=config.dashboard_backend_url,
             batch_sizes=config.batch_sizes,
             batch_multiplier=config.batch_multiplier,
             processor_configs=config.processors,
