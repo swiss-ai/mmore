@@ -57,11 +57,11 @@ The config file is a flat YAML file. All options are top-level — there is no n
 # Required
 input_path: data/documents/   # path (or list of paths) to process
 output_path: data/outputs/    # where to save results
+previous_results: null        # path of the result file of previous run  
 
 # Processing flags
 use_fast_processors: false    # true = faster, lower quality
 extract_images: true          # extract embedded images
-skip_already_processed: false # resume a previous run
 
 # Distributed mode (requires a Dask cluster)
 distributed: false

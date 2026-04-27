@@ -43,10 +43,10 @@ class ProcessConfig:
 
         input_path: data/documents/
         output_path: data/outputs/
+        previous_results: null
 
         use_fast_processors: false
         extract_images: true
-        skip_already_processed: false
 
         # processors:
         #   MediaProcessor:
@@ -65,8 +65,6 @@ class ProcessConfig:
             (default: ``True``).
         distributed: Use distributed processing via Dask (default:
             ``False``).  Requires a running Dask cluster.
-        skip_already_processed: Skip files whose output already exists in
-            *output_path* from a previous run (default: ``False``).
         google_drive_ids: List of Google Drive folder IDs to download and
             process (default: empty).
         scheduler_file: Path to a Dask scheduler file, required when
@@ -88,7 +86,6 @@ class ProcessConfig:
     use_fast_processors: bool = False
     extract_images: bool = True
     distributed: bool = False
-    skip_already_processed: bool = False
     google_drive_ids: List[str] = field(default_factory=list)
     scheduler_file: Optional[str] = None
     batch_sizes: Dict[str, int] = field(default_factory=dict)
@@ -218,8 +215,6 @@ def process(config_file: str):
             f"{len(crawl_result)} to process, {n_deleted} deleted"
         )
 
-    output_path = config.dispatcher_config.output_path
-
     dispatched = len(crawl_result) > 0
 
     if not dispatched and not reused_samples:
@@ -255,7 +250,7 @@ def process(config_file: str):
         logger.info("No new files to process and no samples to reuse.")
 
     _write_merged_results(
-        output_path,
+        config.output_path,
         reused_samples,
         dispatched=dispatched,
     )

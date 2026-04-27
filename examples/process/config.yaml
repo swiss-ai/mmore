@@ -40,9 +40,6 @@ use_fast_processors: false
 # Extract and save embedded images from documents.
 extract_images: true
 
-# Skip files that already have results in output_path (from a previous run).
-skip_already_processed: false
-
 # ---------------------------------------------------------------------------
 # Distributed mode  (requires a running Dask cluster)
 # ---------------------------------------------------------------------------
