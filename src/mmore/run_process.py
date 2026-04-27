@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import time
@@ -8,12 +9,14 @@ from typing import Any, Dict, List, Optional, Union
 import click
 import torch
 
-from mmore.dashboard.backend.client import DashboardClient
 from mmore.process.crawler import Crawler, CrawlerConfig
 from mmore.process.dispatcher import Dispatcher, DispatcherConfig
 from mmore.process.drive_download import GoogleDriveDownloader
+from mmore.process.incremental import (
+    is_reusable_process,
+    load_previous_process_results,
+)
 from mmore.profiler import enable_profiling_from_env, profile_function
-from mmore.type import MultimodalSample
 from mmore.utils import load_config
 
 PROCESS_EMOJI = "🚀"
@@ -55,6 +58,7 @@ class ProcessConfig:
         input_path: Path (or list of paths) to directories containing the
             files to process.  Supports local directories and URLs.
         output_path: Directory where results will be written.
+        previous_results: Path to a previous JSON result file to reuse.
         use_fast_processors: Use faster but lower-quality processing modes
             where available (default: ``False``).
         extract_images: Extract embedded images from documents
@@ -82,6 +86,7 @@ class ProcessConfig:
 
     input_path: Union[List[str], str]
     output_path: str
+    previous_results: Optional[str] = None
     use_fast_processors: bool = False
     extract_images: bool = True
     distributed: bool = False
@@ -93,6 +98,35 @@ class ProcessConfig:
     batch_multiplier: int = 1
     processors: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     file_type_processors: Dict[str, str] = field(default_factory=dict)
+
+
+def _write_merged_results(output_path, reused_samples, dispatched=True):
+    """Merge per-processor JSONL files and reused samples into a single output."""
+    merged_output_path = os.path.join(output_path, "merged")
+    output_file = os.path.join(merged_output_path, "merged_results.jsonl")
+    os.makedirs(merged_output_path, exist_ok=True)
+
+    total_results = 0
+    with open(output_file, "w") as f:
+        for sample in reused_samples:
+            f.write(json.dumps(sample.to_dict()) + "\n")
+            total_results += 1
+        if dispatched:
+            processors_dir = os.path.join(output_path, "processors")
+            if os.path.isdir(processors_dir):
+                for processor_name in sorted(os.listdir(processors_dir)):
+                    results_path = os.path.join(
+                        processors_dir, processor_name, "results.jsonl"
+                    )
+                    if os.path.exists(results_path):
+                        with open(results_path, "r") as processor_file:
+                            for line in processor_file:
+                                stripped_line = line.strip()
+                                if stripped_line:
+                                    f.write(stripped_line + "\n")
+                                    total_results += 1
+
+    logger.info(f"Merged results ({total_results} samples) saved to {output_file}")
 
 
 @profile_function()
@@ -151,46 +185,84 @@ def process(config_file: str):
     crawler = Crawler(config=crawler_config)
 
     crawl_start_time = time.time()
-    crawl_result = crawler.crawl(skip_already_processed=config.skip_already_processed)
+    crawl_result = crawler.crawl()
     logger.info(f"Crawling completed in {time.time() - crawl_start_time:.2f} seconds")
 
-    if len(crawl_result) == 0:
+    # Collect all crawled file paths and urls (excluding this way deleted files)
+    all_crawled_paths = {
+        fd.file_path
+        for file_list in crawl_result.file_paths.values()
+        for fd in file_list
+    }
+    all_crawled_paths.update(url.file_path for url in crawl_result.urls)
+
+    previous = None
+    reused_samples = []
+    reusable_paths = set()
+
+    if config.previous_results:
+        previous = load_previous_process_results(config.previous_results)
+
+        for fp in all_crawled_paths:
+            if is_reusable_process(fp, previous):
+                reusable_paths.add(fp)
+
+        reused_samples = [previous[fp] for fp in sorted(reusable_paths)]
+
+        # Remove reusable files from crawl_result so they are not re-processed
+        crawl_result.file_paths = {
+            root_dir: [fd for fd in file_list if fd.file_path not in reusable_paths]
+            for root_dir, file_list in crawl_result.file_paths.items()
+        }
+
+        n_deleted = len(set(previous.keys()) - all_crawled_paths)
+        logger.info(
+            f"Process pipeline: {len(reusable_paths)} reused, "
+            f"{len(crawl_result)} to process, {n_deleted} deleted"
+        )
+
+    output_path = config.dispatcher_config.output_path
+
+    dispatched = len(crawl_result) > 0
+
+    if not dispatched and not reused_samples:
         logger.warning("⚠️ Found no file to process")
-        return
+        if previous is None:
+            return
 
-    dispatcher_config = DispatcherConfig(
-        output_path=config.output_path,
-        use_fast_processors=config.use_fast_processors,
-        extract_images=config.extract_images,
-        distributed=config.distributed,
-        scheduler_file=config.scheduler_file,
-        dashboard_backend_url=config.dashboard_backend_url,
-        batch_sizes=config.batch_sizes,
-        batch_multiplier=config.batch_multiplier,
-        processor_configs=config.processors,
-        file_type_processors=config.file_type_processors,
+    if dispatched:
+        dispatcher_config = DispatcherConfig(
+            output_path=config.output_path,
+            use_fast_processors=config.use_fast_processors,
+            extract_images=config.extract_images,
+            distributed=config.distributed,
+            scheduler_file=config.scheduler_file,
+            dashboard_backend_url=config.dashboard_backend_url,
+            batch_sizes=config.batch_sizes,
+            batch_multiplier=config.batch_multiplier,
+            processor_configs=config.processors,
+            file_type_processors=config.file_type_processors,
+        )
+
+        logger.info(f"Using dispatcher configuration: {dispatcher_config}")
+        dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
+
+        dispatch_start_time = time.time()
+        dispatcher()
+        logger.info(
+            f"Dispatching and processing completed in "
+            f"{time.time() - dispatch_start_time:.2f} seconds"
+        )
+    elif reused_samples:
+        logger.info("No new files to process, reusing previous samples only.")
+    else:
+        logger.info("No new files to process and no samples to reuse.")
+
+    _write_merged_results(
+        output_path,
+        reused_samples,
+        dispatched=dispatched,
     )
-
-    url = dispatcher_config.dashboard_backend_url
-    DashboardClient(url).init_db(len(crawl_result))
-
-    logger.info(f"Using dispatcher configuration: {dispatcher_config}")
-    dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
-
-    dispatch_start_time = time.time()
-    results = list(dispatcher())
-    logger.info(
-        f"Dispatching and processing completed in "
-        f"{time.time() - dispatch_start_time:.2f} seconds"
-    )
-
-    merged_output_path = os.path.join(config.output_path, "merged")
-    output_file = os.path.join(merged_output_path, "merged_results.jsonl")
-    os.makedirs(merged_output_path, exist_ok=True)
-    for res in results:
-        MultimodalSample.to_jsonl(output_file, res)
-
-    logger.info(f"Merged results ({len(results)} items) saved to {output_file}")
 
     if ggdrive_downloader:
         ggdrive_downloader.remove_downloads()

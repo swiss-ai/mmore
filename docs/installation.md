@@ -18,8 +18,8 @@ To install `mmore`, run the following:
 
 ```bash
 sudo apt update
-sudo apt install -y ffmpeg libsm6 libxext6 chromium-browser libnss3 \
-  libgconf-2-4 libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
+sudo apt install -y ffmpeg libsm6 libxext6 libnss3 \
+  libxi6 libxrandr2 libxcomposite1 libxcursor1 libxdamage1 \
   libxext6 libxfixes3 libxrender1 libasound2 libatk1.0-0 libgtk-3-0 libreoffice \
   libpango-1.0-0 libpangoft2-1.0-0 weasyprint
 ```
@@ -68,13 +68,13 @@ Follow the official [Docker installation guide](https://docs.docker.com/get-star
 ##### Step 2: Build the Docker image
 
 ```bash
-sudo docker build . --tag mmore
+sudo docker build -f docker/ubuntu/Dockerfile -t mmore .
 ```
 
 To build for CPU-only platforms (results in a smaller image size):
 
 ```bash
-sudo docker build --build-arg PLATFORM=cpu -t mmore .
+sudo docker build -f docker/ubuntu/Dockerfile --build-arg DEVICE=cpu -t mmore .
 ```
 
 *Running on RCP:* you can specify a `USER_UID` and a `USER_GID` variable. Set it to your RCP user ID and group ID to run it there.

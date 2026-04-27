@@ -21,6 +21,13 @@ input_path: examples/sample_data/
 #   └── images/                                   (extracted images)
 output_path: examples/process/outputs/
 
+
+# ---------------------------------------------------------------------------
+# Optional: Path to a previous JSONL result file to reuse when some documents are unchanged.
+# ---------------------------------------------------------------------------
+previous_results: null  
+
+
 # ---------------------------------------------------------------------------
 # Processing options
 # ---------------------------------------------------------------------------

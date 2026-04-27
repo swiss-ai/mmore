@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.1.1"
+version = "1.2.2"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ authors = [
     { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
+    { name = "Laetitia Wilhelm", email = "laetitia.wilhelm@epfl.ch" },
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
@@ -38,7 +39,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "typing_extensions>=4.15.0,<5.0",
     "PyYAML>=6.0",
-    "setuptools<70"
+    "setuptools<81"
 ]
 
 [project.optional-dependencies]
@@ -69,7 +70,6 @@ process = [
     "dask[distributed]>=2025.2.0",
     "docx2pdf",
     "lxml_html_clean",
-    "selenium>=4.25",
     "beautifulsoup4>=4.12",
     "xlrd>=2.0.1",
     "py7zr>=0.22",
@@ -78,20 +78,20 @@ process = [
     "google-auth>=2.28",
     "google-api-python-client>=2.120",
     "datatrove>=0.3; python_version < '3.12'",
-    "datatrove>=0.6; python_version >= '3.12'",
+    "datatrove>=0.7; python_version >= '3.12'",
     "colpali-engine>=0.3",
     "bokeh",
 ]
 
 index = [
     # Indexing + Retrieval (vector DB, embeddings)
-    "pymilvus>=2.6.6",
-    "pymilvus[milvus-lite]>=2.6.6",
-    "pymilvus.model>=0.3.2",
+    "pymilvus[milvus-lite]==2.6.6",
+    "pymilvus-model>=0.3.2",
     "milvus-model>=0.2.12",
-    "langchain-milvus>=0.1.7",
+    "langchain-milvus>=0.1.8",
     "sentence-transformers",
     "transformers>=4.44",
+    "scipy>=1.8",
 ]
 
 rag = [
@@ -113,7 +113,7 @@ rag = [
 ]
 
 api = [
-    # API servers + dashboard
+    # API servers
     "fastapi[standard]>=0.110",
     "uvicorn>=0.29",
     "starlette>=0.36",
@@ -126,7 +126,7 @@ api = [
 # --- Composite + variant extras ---
 
 all = [
-    "mmore[process,index,rag,api]",
+    "mmore[process,rag,api,websearch]",
 ]
 
 cpu = [
@@ -138,7 +138,12 @@ cu126 = [
     "torchvision",
 ]
 
-dev = ["pytest>=8.3.4", "ruff>=0.4.0", "pyright"]
+websearch = [
+    "tavily-python>=0.3.0",
+    "ddgs>=6.0",
+]
+
+dev = ["pytest>=8.3.4", "pytest-timeout>=2.3.1", "ruff>=0.4.0", "pyright"]
 
 [tool.uv]
 conflicts = [

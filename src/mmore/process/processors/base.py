@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional, Type, Union
 import torch.multiprocessing as mp
 from PIL import Image
 
-from ...dashboard.backend.client import DashboardClient
 from ...process.crawler import FileDescriptor, URLDescriptor
 from ...process.execution_state import ExecutionState
 from ...type import MultimodalRawInput, MultimodalSample
@@ -201,8 +200,6 @@ class Processor(ABC):
             return []
         files_paths = [file.file_path for file in files]
         res = self.process_batch(files_paths, fast, num_workers=os.cpu_count() or 1)
-        new_state = self.ping_dashboard(files_paths)
-        ExecutionState.set_should_stop_execution(new_state)
         return res
 
     def set_shared_pool(self, pool):
@@ -321,23 +318,6 @@ class Processor(ABC):
     def get_file_size(file_path: str) -> int:
         """Return the size of *file_path* in bytes."""
         return os.path.getsize(file_path)
-
-    def ping_dashboard(self, finished_file_paths: List[str]) -> bool:
-        """Report completed files to the dashboard and check for a stop signal.
-
-        Args:
-            finished_file_paths: Paths of files just processed.
-
-        Returns:
-            ``True`` if execution should stop (dashboard signal), else ``False``.
-        """
-        if os.environ.get("RANK") is not None:
-            worker_id = os.environ.get("RANK")
-        else:
-            worker_id = os.getpid()
-        return DashboardClient(self.config.dashboard_backend_url).report(
-            str(worker_id), finished_file_paths
-        )
 
     @staticmethod
     def load_models() -> Any:

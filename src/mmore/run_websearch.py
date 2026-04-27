@@ -5,7 +5,11 @@ import time
 from dataclasses import dataclass
 from typing import Optional, Union
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
+
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -24,9 +28,10 @@ load_dotenv()
 
 
 # CUDA tweaks for best perf
-torch.backends.cuda.enable_mem_efficient_sdp(False)
-torch.backends.cuda.enable_flash_sdp(False)
-torch.backends.cuda.enable_math_sdp(True)
+if torch is not None and torch.cuda.is_available():
+    torch.backends.cuda.enable_mem_efficient_sdp(False)
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_math_sdp(True)
 
 
 @dataclass

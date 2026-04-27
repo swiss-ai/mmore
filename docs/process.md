@@ -43,11 +43,6 @@ We provide [a simple bash script](/scripts/process_distributed.sh) to run the pr
 bash scripts/process_distributed.sh -f /path/to/my/input/folder
 ```
 
-#### :hourglass: Dashboard UI
-Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
-You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
-
-Check the docs in the [dashboard documentation](./dashboard.md).
 
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
@@ -115,6 +110,20 @@ Be aware that the fast mode might not be as accurate as the default mode, especi
 The project is designed to be easily scalable to a multi GPU / multi node environment. To use it, set `distributed: true` in the config file, and follow the steps described in the [distributed processing](./distributed_processing.md) section.
 
 ---
+
+### :recycle: Incremental reprocessing
+
+The optional top-level `previous_results` parameter lets you reuse results from a prior run to avoid reprocessing unchanged files so as to save time and compute costs.
+
+```yaml
+previous_results: examples/process/outputs/merged/merged_results.jsonl
+```
+
+Point it to a `merged_results.jsonl` produced by an earlier run. On the next run, each local input file is compared against that JSONL (meanwhile URL inputs are always reprocessed):
+
+- Unchanged files: their previous samples are reused as-is.
+- New or modified files: they are processed normally.
+- Removed files: their samples are dropped from the output.
 
 ## :scroll: More information on what's under the hood
 
@@ -200,6 +209,15 @@ See `TextProcessor` in [src/mmore/process/processors/txt_processor.py](/src/mmor
 
 Post-processing refines the extracted text data to improve quality for downstream tasks. The infrastructure is modular and extensible: mmore natively supports the following post-processors: [**Chunker**](/src/mmore/process/post_processor/chunker), [**Filter**](/src/mmore/process/post_processor/filter), [**Named Entity Recognition**](/src/mmore/process/post_processor/ner), and [**Tagger**](/src/mmore/process/post_processor/tagger). Applying the **Chunker** is heavily recommended, as it cuts documents into reasonably sized chunks that are more specific to feed to an LLM.
 
+The chunker supports a `table_handling` option to control how markdown tables are split:
+
+| Mode | Description |
+|---|---|
+| `single_row` (default) | Each table row has its own chunk, with the header repeated for context |
+| `multi_rows` | Rows are grouped to fill the chunk size, header repeated per chunk |
+| `keep_whole` | Tables are never split and kept as one chunk regardless of size |
+| `none` | No special table handling, tables are chunked like regular text |
+
 You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/postprocessor/config.yaml).
 
 Once ready, you can run the process using the following command:
@@ -208,5 +226,13 @@ python3 -m mmore postprocess --config-file examples/postprocessor/config.yaml --
 ```
 
 Specify with `--input-data` the path (absolute or relative to the root of the repository) to the JSONL recoding of the output of the initial processing phase.
+
+### :recycle: Incremental post-processing
+
+Like the processing pipeline, the post-processor accepts an optional `previous_results` parameter to reuse results from a prior post-processing run and skip unchanged documents.
+
+```yaml
+previous_results: examples/postprocessor/outputs/merged/results.jsonl
+```
 
 New post-processors can easily be implemented, and pipelines can be configured through lightweight YAML files. The post-processing stage produces a new JSONL file containing cleaned and optionally enhanced document samples.

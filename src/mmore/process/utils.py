@@ -6,6 +6,7 @@ cleaning, splitting, and aggregation.
 
 import json
 import logging
+import os
 from typing import List
 
 import numpy as np
@@ -15,6 +16,12 @@ from PIL import Image
 from ..type import MultimodalSample
 
 logger = logging.getLogger(__name__)
+
+
+def jsonl_path(path: str, filename: str = "final.jsonl") -> str:
+    if path.endswith(".jsonl"):
+        return path
+    return os.path.normpath(os.path.join(path, filename))
 
 
 def clean_text(text: str) -> str:
@@ -98,6 +105,10 @@ def save_samples(
     """
     try:
         mode = "a" if append_mode else "w"
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
         with open(path, mode) as f:
             for result in samples:
                 f.write(json.dumps(result.to_dict()) + "\n")

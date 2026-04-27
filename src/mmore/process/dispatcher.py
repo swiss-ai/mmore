@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
+from datetime import datetime
 from operator import itemgetter
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union, cast
 
@@ -100,7 +101,6 @@ class DispatcherConfig:
     extract_images: bool = True
     distributed: bool = False
     scheduler_file: Optional[str] = None
-    dashboard_backend_url: Optional[str] = None
     batch_sizes: Dict[str, int] = field(default_factory=dict)
     batch_multiplier: int = 1
     processor_configs: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -178,7 +178,6 @@ class DispatcherConfig:
             "extract_images": self.extract_images,
             "distributed": self.distributed,
             "scheduler_file": self.scheduler_file,
-            "dashboard_backend_url": self.dashboard_backend_url,
             "batch_sizes": self.batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "processor_configs": self.processor_configs,
@@ -393,12 +392,26 @@ class Dispatcher:
 
         return results
 
+    def _clear_per_processor_results(self) -> None:
+        """Clear per-processor result JSONL files.
+        This is needed because :meth:`MultimodalSample.to_jsonl` uses append by default."""
+        if not self.config.output_path:
+            return
+        processors_dir = os.path.join(self.config.output_path, "processors")
+        if not os.path.isdir(processors_dir):
+            return
+        for processor_name in os.listdir(processors_dir):
+            results_path = os.path.join(processors_dir, processor_name, "results.jsonl")
+            if os.path.exists(results_path):
+                os.remove(results_path)
+
     def dispatch(self) -> List[List[MultimodalSample]]:
         """Assign files to processors, batch them, and run all processing.
 
         Returns:
             A list of result lists, one per processor batch.
         """
+        self._clear_per_processor_results()
 
         def batch_list(
             lst: List, obj_batch_size: int, processor: Type[Processor]
@@ -457,6 +470,11 @@ class Dispatcher:
     ) -> None:
         if not self.config.output_path:
             return
+
+        processed_at = datetime.now().isoformat()
+        for sample in results:
+            sample.metadata["processed_at"] = processed_at
+            sample.metadata["processor_type"] = cls_name
 
         processor_output_path = os.path.join(
             self.config.output_path, "processors", cls_name

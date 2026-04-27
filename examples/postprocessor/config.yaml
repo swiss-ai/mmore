@@ -1,7 +1,10 @@
+previous_results: null  # Path to a previously post-processed JSONL to reuse when documents are unchanged
+
 pp_modules:
   - type: chunker
     args:
       chunking_strategy: sentence
+      table_handling: single_row  # Options: "single_row" (default), "multi_rows", "keep_whole", "none"
 
 output:
   output_path: examples/postprocessor/outputs/merged/results.jsonl
