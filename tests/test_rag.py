@@ -1,31 +1,15 @@
-from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
 from langchain_community.embeddings import FakeEmbeddings
 from langchain_core.documents import Document
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.llm import LLMConfig
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.rag.retriever import Retriever
-from mmore.type import MultimodalSample
-
-
-class _FakeSparseEmbedding(BaseSparseEmbedding):
-    def embed_query(self, query: str) -> Dict[int, float]:
-        return {0: 1.0, 1: float(len(query))}
-
-    def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
-        return [{0: 1.0, i + 1: float(len(t))} for i, t in enumerate(texts)]
-
-
-_DOCS = [
-    MultimodalSample(id="doc-1", document_id="doc-1", text="Paris is the capital of France.", modalities=[], metadata={}),
-    MultimodalSample(id="doc-2", document_id="doc-2", text="The Eiffel Tower stands 330 metres tall.", modalities=[], metadata={}),
-]
 
 _COLLECTION = "test_col"
 
@@ -33,14 +17,14 @@ _COLLECTION = "test_col"
 @pytest.fixture(scope="module")
 def populated_db(tmp_path_factory):
     db_path = str(tmp_path_factory.mktemp("rag_db") / "test.db")
-    with patch("mmore.index.indexer.SparseModel.from_config", return_value=_FakeSparseEmbedding()):
+    with patch("mmore.index.indexer.SparseModel.from_config", return_value=FakeSparseEmbedding()):
         client = MilvusClient(db_path, enable_sparse=True)
         indexer = Indexer(
             dense_model_config=DenseModelConfig(model_name="debug"),
             sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
             client=client,
         )
-        indexer.index_documents(_DOCS, collection_name=_COLLECTION)
+        indexer.index_documents(SAMPLE_DOCS, collection_name=_COLLECTION)
     return db_path
 
 
@@ -49,7 +33,7 @@ def test_retriever_initialization_real(tmp_path):
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     retriever = Retriever(
         dense_model=FakeEmbeddings(size=2048),
-        sparse_model=_FakeSparseEmbedding(),
+        sparse_model=FakeSparseEmbedding(),
         client=client,
         hybrid_search_weight=0.5,
         k=2,
@@ -66,7 +50,9 @@ def test_rerank_real(populated_db):
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available — this test requires a GPU")
+    device = "cuda"
     tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-reranker-base")
     model = AutoModelForSequenceClassification.from_pretrained(
         "BAAI/bge-reranker-base"
@@ -75,7 +61,7 @@ def test_rerank_real(populated_db):
     client = MilvusClient(populated_db)
     retriever = Retriever(
         dense_model=FakeEmbeddings(size=2048),
-        sparse_model=_FakeSparseEmbedding(),
+        sparse_model=FakeSparseEmbedding(),
         client=client,
         hybrid_search_weight=0.5,
         k=2,

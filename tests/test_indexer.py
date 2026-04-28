@@ -1,33 +1,17 @@
 # tests/test_indexer.py
 
 import json
-from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
 import yaml
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 
+from conftest import FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index import index
 from mmore.type import MultimodalSample
-
-
-# ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
-
-
-class _FakeSparseEmbedding(BaseSparseEmbedding):
-    """Deterministic sparse embedder — no model download, runs on CPU."""
-
-    def embed_query(self, query: str) -> Dict[int, float]:
-        return {0: 1.0, 1: float(len(query))}
-
-    def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
-        return [{0: 1.0, i + 1: float(len(t))} for i, t in enumerate(texts)]
 
 
 @pytest.fixture
@@ -77,7 +61,7 @@ def sample_jsonl(tmp_path):
 # Dense model is real (FakeEmbeddings via model_name="debug" — a built-in
 # LangChain test class, not a MagicMock).
 # SparseModel.from_config is patched only to avoid downloading the SPLADE
-# model (~500 MB) in CI; _FakeSparseEmbedding is a real BaseSparseEmbedding
+# model (~500 MB) in CI; FakeSparseEmbedding is a real BaseSparseEmbedding
 # implementation with deterministic outputs.
 # ---------------------------------------------------------------------------
 
@@ -85,7 +69,7 @@ def sample_jsonl(tmp_path):
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_real_insert(mock_sparse, tmp_path, sample_documents):
     """Documents are actually written to a local Milvus Lite .db file."""
-    mock_sparse.return_value = _FakeSparseEmbedding()
+    mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
@@ -104,7 +88,7 @@ def test_indexer_real_insert(mock_sparse, tmp_path, sample_documents):
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path, sample_documents):
     """Metadata fields are stored as Milvus dynamic fields and retrievable."""
-    mock_sparse.return_value = _FakeSparseEmbedding()
+    mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
@@ -127,7 +111,7 @@ def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path, sample_do
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_real_idempotent_collection(mock_sparse, tmp_path, sample_documents):
     """Calling index_documents twice on the same collection appends rather than recreating."""
-    mock_sparse.return_value = _FakeSparseEmbedding()
+    mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
@@ -153,7 +137,7 @@ def test_indexer_real_idempotent_collection(mock_sparse, tmp_path, sample_docume
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_run_index_real(mock_sparse, tmp_path, sample_jsonl):
     """run_index.index() reads a real YAML config and populates a real Milvus Lite DB."""
-    mock_sparse.return_value = _FakeSparseEmbedding()
+    mock_sparse.return_value = FakeSparseEmbedding()
 
     db_path = str(tmp_path / "test.db")
     config = {
@@ -182,7 +166,7 @@ def test_run_index_real(mock_sparse, tmp_path, sample_jsonl):
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_error_on_missing_collection(mock_sparse, tmp_path):
     """Inserting directly to a non-existent collection raises an exception."""
-    mock_sparse.return_value = _FakeSparseEmbedding()
+    mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(

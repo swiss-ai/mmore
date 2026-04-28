@@ -1,4 +1,44 @@
+from typing import Dict, List
+
 import pytest
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
+
+from mmore.type import MultimodalSample
+
+
+class FakeSparseEmbedding(BaseSparseEmbedding):
+    """Deterministic sparse embedder — no model download, runs on CPU."""
+
+    def embed_query(self, query: str) -> Dict[int, float]:
+        return {0: 1.0, 1: float(len(query))}
+
+    def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
+        return [{0: 1.0, i + 1: float(len(t))} for i, t in enumerate(texts)]
+
+
+SAMPLE_DOCS = [
+    MultimodalSample(
+        id="doc-1",
+        document_id="doc-1",
+        text="Paris is the capital of France.",
+        modalities=[],
+        metadata={},
+    ),
+    MultimodalSample(
+        id="doc-2",
+        document_id="doc-2",
+        text="The Eiffel Tower stands 330 metres tall.",
+        modalities=[],
+        metadata={"author": "Alice"},
+    ),
+    MultimodalSample(
+        id="doc-3",
+        document_id="doc-3",
+        text="Milvus is an open-source vector database.",
+        modalities=[],
+        metadata={},
+    ),
+]
 
 
 def pytest_addoption(parser):

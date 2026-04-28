@@ -8,33 +8,19 @@ HTTP routing) is real.
 
 import json
 from pathlib import Path
-from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
 import yaml
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
 
+from conftest import FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_retriever import make_router, read_queries, save_results
 from mmore.type import MultimodalSample
-
-
-# ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
-
-
-class _FakeSparseEmbedding(BaseSparseEmbedding):
-    def embed_query(self, query: str) -> Dict[int, float]:
-        return {0: 1.0, 1: float(len(query))}
-
-    def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
-        return [{0: 1.0, i + 1: float(len(t))} for i, t in enumerate(texts)]
 
 
 _DOCS = [
@@ -70,7 +56,7 @@ def db_path(tmp_path_factory):
     path = str(tmp_path_factory.mktemp("retriever_api_db") / "test.db")
     with patch(
         "mmore.index.indexer.SparseModel.from_config",
-        return_value=_FakeSparseEmbedding(),
+        return_value=FakeSparseEmbedding(),
     ):
         client = MilvusClient(path, enable_sparse=True)
         indexer = Indexer(
@@ -106,7 +92,7 @@ def client(config_path):
     """Builds the real FastAPI app via make_router() and returns a TestClient."""
     with patch(
         "mmore.rag.retriever.SparseModel.from_config",
-        return_value=_FakeSparseEmbedding(),
+        return_value=FakeSparseEmbedding(),
     ):
         router = make_router(config_path)
 
