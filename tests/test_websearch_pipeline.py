@@ -1,3 +1,4 @@
+from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,11 +17,11 @@ def make_pipeline(
     n_loops=1,
     use_summary=False,
     use_rag=False,
-    search_provider="tavily",
+    search_provider: Literal["duckduckgo", "tavily"] = "tavily",
     subqueries=("sub1",),
     **config_overrides,
-):
-    """Build a test WebsearchPipeline and a mocked LLM.
+) -> Any:
+    """Build a test WebsearchPipeline with a mocked LLM.
 
     When subqueries is None, generate_subqueries falls back to the mocked LLM.
     """
@@ -185,7 +186,6 @@ class TestSmoke:
     def test_process_record_returns_expected_keys(self):
         """No web results yields valid structure with empty sources."""
         p = make_pipeline(n_loops=1, n_subqueries=1, subqueries=None)
-        p.searcher.websearch_pipeline.return_value = []
 
         result = p.process_record({"input": "What's the weather like today?"})
 
@@ -196,7 +196,6 @@ class TestSmoke:
 
     def test_empty_query(self):
         p = make_pipeline(n_loops=1, subqueries=None)
-        p.searcher.websearch_pipeline.return_value = []
 
         result = p.process_record({"input": ""})
 

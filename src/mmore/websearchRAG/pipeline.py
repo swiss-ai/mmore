@@ -183,9 +183,7 @@ class WebsearchPipeline:
 
     def _get_tokenizer(self):
         """Try to get a local tokenizer."""
-        if hasattr(self.llm, "tokenizer") and self.llm.tokenizer is not None:
-            return self.llm.tokenizer
-        return None
+        return getattr(self.llm, "tokenizer", None)
 
     def _encode(self, text: str) -> list[int]:
         """Encode text to token IDs using the llm tokenizer."""

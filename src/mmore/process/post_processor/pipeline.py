@@ -133,14 +133,14 @@ class PPPipeline:
         # Group input samples by file_path
         index: dict[str, MultimodalSample] = {}
         for sample in samples:
-            index[sample.metadata["file_path"]] = sample
+            index[str(sample.metadata["file_path"])] = sample
 
         current_file_paths = set(index.keys())
 
         reusable_file_paths: set[str] = set()
         to_process_file_paths: set[str] = set()
         for fp, sample in index.items():
-            input_processed_at = sample.metadata.get("processed_at")
+            input_processed_at = str(sample.metadata.get("processed_at"))
             if input_processed_at is None or not is_reusable_postprocess(
                 fp, input_processed_at, previous
             ):

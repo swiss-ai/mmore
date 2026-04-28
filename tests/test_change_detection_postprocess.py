@@ -61,7 +61,7 @@ class TestPostProcessPipelineReuse:
         current_fps = {exists, new_file}
 
         merged = merge_results(reused, new, current_fps)
-        fps = {s.metadata["file_path"] for s in merged}
+        fps = {str(s.metadata["file_path"]) for s in merged}
         assert fps == {exists, new_file}
 
 

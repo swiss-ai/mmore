@@ -104,9 +104,7 @@ class MultimodalChunker(BasePostProcessor):
 
     def _get_chunk_size(self) -> int:
         """Get the max chunk size from the text chunker."""
-        if hasattr(self.text_chunker, "chunk_size"):
-            return self.text_chunker.chunk_size
-        return _DEFAULT_CHUNK_SIZE
+        return getattr(self.text_chunker, "chunk_size", _DEFAULT_CHUNK_SIZE)
 
     def _chunk_with_table_awareness(
         self, text: str, tables: Optional[List[TableRegion]] = None
