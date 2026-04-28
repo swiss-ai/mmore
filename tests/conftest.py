@@ -1,6 +1,6 @@
+import json
 from typing import Dict, List
 
-import json
 import pytest
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
@@ -42,21 +42,6 @@ SAMPLE_DOCS = [
 ]
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--gpu",
-        action="store_true",
-        default=False,
-        help="Run tests that require a GPU",
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--gpu"):
-        skip_gpu = pytest.mark.skip(reason="Pass --gpu to run GPU tests")
-        for item in items:
-            if "gpu" in item.keywords:
-                item.add_marker(skip_gpu)
 @pytest.fixture
 def make_sample():
     def _make(file_path: str, text: str = "x", **metadata) -> MultimodalSample:

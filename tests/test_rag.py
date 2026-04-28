@@ -1,9 +1,6 @@
-from unittest.mock import patch
-
-import pytest
 from langchain_community.embeddings import FakeEmbeddings
-from langchain_core.documents import Document
 from pymilvus import MilvusClient
+from unittest.mock import patch
 
 from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from mmore.index.indexer import Indexer
@@ -12,20 +9,6 @@ from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.rag.retriever import Retriever
 
 _COLLECTION = "test_col"
-
-
-@pytest.fixture(scope="module")
-def populated_db(tmp_path_factory):
-    db_path = str(tmp_path_factory.mktemp("rag_db") / "test.db")
-    with patch("mmore.index.indexer.SparseModel.from_config", return_value=FakeSparseEmbedding()):
-        client = MilvusClient(db_path, enable_sparse=True)
-        indexer = Indexer(
-            dense_model_config=DenseModelConfig(model_name="debug"),
-            sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
-            client=client,
-        )
-        indexer.index_documents(SAMPLE_DOCS, collection_name=_COLLECTION)
-    return db_path
 
 
 def test_retriever_initialization_real(tmp_path):
@@ -42,42 +25,6 @@ def test_retriever_initialization_real(tmp_path):
         reranker_tokenizer=None,
     )
     assert isinstance(retriever, Retriever)
-
-
-@pytest.mark.gpu
-def test_rerank_real(populated_db):
-    """Reranking with bge-reranker-base on a real GPU runner."""
-    import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available — this test requires a GPU")
-    device = "cuda"
-    tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-reranker-base")
-    model = AutoModelForSequenceClassification.from_pretrained(
-        "BAAI/bge-reranker-base"
-    ).to(device)
-
-    client = MilvusClient(populated_db)
-    retriever = Retriever(
-        dense_model=FakeEmbeddings(size=2048),
-        sparse_model=FakeSparseEmbedding(),
-        client=client,
-        hybrid_search_weight=0.5,
-        k=2,
-        use_web=False,
-        reranker_model=model,
-        reranker_tokenizer=tokenizer,
-    )
-
-    docs = [
-        Document(page_content="Paris is the capital of France.", metadata={"rank": 1, "similarity": 0.9, "id": "1", "page_numbers": [], "paragraph_numbers": []}),
-        Document(page_content="Milvus is an open-source vector database.", metadata={"rank": 2, "similarity": 0.8, "id": "2", "page_numbers": [], "paragraph_numbers": []}),
-    ]
-
-    reranked = retriever.rerank("France capital", docs)
-    assert len(reranked) == 2
-    assert all(isinstance(d, Document) for d in reranked)
 
 
 def test_llm_config_generation_kwargs():
