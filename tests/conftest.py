@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+import json
 import pytest
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
@@ -56,3 +57,25 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "gpu" in item.keywords:
                 item.add_marker(skip_gpu)
+@pytest.fixture
+def make_sample():
+    def _make(file_path: str, text: str = "x", **metadata) -> MultimodalSample:
+        return MultimodalSample.from_dict(
+            {
+                "text": text,
+                "modalities": [],
+                "metadata": {"file_path": file_path, **metadata},
+            }
+        )
+
+    return _make
+
+
+@pytest.fixture
+def write_jsonl():
+    def _write(path: str, samples: list[MultimodalSample]) -> None:
+        with open(path, "w") as f:
+            for s in samples:
+                f.write(json.dumps(s.to_dict()) + "\n")
+
+    return _write
