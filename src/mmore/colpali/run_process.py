@@ -86,9 +86,9 @@ class PDFConverter:
 class ColPaliEmbedder:
     def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
         self.device = device
-        dtype = torch.bfloat16
+        bfloat16: torch.dtype = torch.bfloat16
         self.model = ColPali.from_pretrained(
-            model_name, torch_dtype=dtype, device_map=device
+            model_name, torch_dtype=bfloat16, device_map=device
         ).eval()
         self.processor = ColPaliProcessor.from_pretrained(model_name)
 
@@ -112,7 +112,7 @@ class ColPaliEmbedder:
             with torch.no_grad():
                 batch_doc = {k: v.to(self.model.device) for k, v in batch_doc.items()}
                 embeddings_doc = self.model(**batch_doc)
-            ds.extend(list(torch.unbind(embeddings_doc.to(self.device))))
+            ds.extend(list(embeddings_doc.to(self.device).unbind()))
         ds_np = [d.float().cpu().numpy() for d in ds]
         return ds_np
 

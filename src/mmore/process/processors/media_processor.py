@@ -1,12 +1,14 @@
 import logging
 import os
 import tempfile
-from typing import List
+from typing import List, cast
 
+import numpy as np
 import torch
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from PIL import Image
+from torch._C import device as torch_device
 from transformers.pipelines import pipeline as pipeline_t
 
 from ...type import FileDescriptor, MultimodalSample
@@ -19,10 +21,10 @@ class MediaProcessor(Processor):
     @staticmethod
     def _get_available_devices():
         if torch.cuda.is_available():
-            return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
+            return [torch_device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
         if torch.backends.mps.is_available():
-            return [torch.device("mps")]
-        return [torch.device("cpu")]
+            return [torch_device("mps")]
+        return [torch_device("cpu")]
 
     devices = _get_available_devices()
     pipelines = []
@@ -155,7 +157,7 @@ class MediaProcessor(Processor):
                     for i in range(num_thumbnails):
                         t = min(i * sample_rate, duration - 0.1)
                         frame = clip.get_frame(t)
-                        image = Image.fromarray(frame).convert("RGB")
+                        image = Image.fromarray(cast(np.ndarray, frame).convert("RGB"))
                         images.append(image)
                 logger.info(f"Extracted {len(images)} images from {file_path}.")
             except Exception as e:

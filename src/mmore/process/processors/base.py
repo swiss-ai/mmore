@@ -216,12 +216,13 @@ class Processor(ABC):
             del state["_pool"]
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]):
         """
         Called when the object is unpickled (received by the worker).
         We restore the state and set _pool to None (workers don't need the pool manager).
         """
-        self.__dict__.update(state)
+        for key, value in state.items():
+            setattr(self, key, value)
         # Initialize _pool as None in the worker process
         self._pool = None
         # Workers should never own the pool

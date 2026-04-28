@@ -2,7 +2,7 @@ import io
 import logging
 import re
 from multiprocessing import Manager, Process, set_start_method
-from typing import List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import pymupdf
 import torch
@@ -148,7 +148,7 @@ class PDFProcessor(Processor):
 
         paragraph_starts, text = self._parse_pagination(cast(str, text))
 
-        metadata = {"file_path": file_path}
+        metadata: Dict[str, Any] = {"file_path": file_path}
         if paragraph_starts:
             metadata["paragraph_starts"] = paragraph_starts
 
@@ -218,7 +218,7 @@ class PDFProcessor(Processor):
                 if image_bytes is None:
                     logging.error(f"No image data found for xref {xref}")
 
-                return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+                return Image.open(io.BytesIO(cast(bytes, image_bytes))).convert("RGB")
 
             except KeyError as e:
                 logging.error(f"KeyError while extracting image: {e}")
@@ -236,7 +236,7 @@ class PDFProcessor(Processor):
                 )
                 return None
 
-        for page_num, page in enumerate(pdf_doc):
+        for page_num, page in enumerate(pdf_doc):  # pyright: ignore[reportArgumentType]
             text = clean_text(page.get_text())  # type: ignore[attr-defined]
 
             if text.strip():

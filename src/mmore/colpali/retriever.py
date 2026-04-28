@@ -62,9 +62,11 @@ def load_model(model_name: str, device: str):
         Tuple of (model, processor) ready for inference
     """
     logger.info(f"Loading ColPali model: {model_name}")
+
+    bfloat16: torch.dtype = torch.bfloat16
     model = ColPali.from_pretrained(
         model_name,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=bfloat16,
         device_map=device,
     ).eval()
     processor = ColPaliProcessor.from_pretrained(model_name)
@@ -95,7 +97,7 @@ def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:
         with torch.no_grad():
             batch_query = {k: v.to(model.device) for k, v in batch_query.items()}
             emb = model(**batch_query)
-            vectors.extend(list(torch.unbind(emb.to("cpu"))))
+            vectors.extend(list(emb.to("cpu").unbind()))
     return [v.float().numpy() for v in vectors]
 
 
