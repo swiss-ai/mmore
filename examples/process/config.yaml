@@ -91,5 +91,12 @@ distributed: false
 # Override which processor handles a given file extension.
 # Useful when you have multiple processors registered for the same type.
 #
+# Available PDF processors:
+#   PDFProcessor          (default) - marker-pdf, GPU-accelerated OCR, slow but
+#                                     accurate; supports scanned documents.
+#   PyMuPDF4LLMProcessor  - pymupdf4llm, LLM-friendly markdown, much faster but
+#                           does not OCR scanned documents.
+#                           See https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
+#
 # file_type_processors:
-#   .pdf: PDFProcessor
+#   .pdf: PyMuPDF4LLMProcessor
