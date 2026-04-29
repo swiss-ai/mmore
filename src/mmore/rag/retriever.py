@@ -42,7 +42,10 @@ class Retriever(BaseRetriever):
 
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
-    client: MilvusClient
+    # Loosened from `MilvusClient` so the QdrantMilvusClient adapter passes
+    # pydantic validation when `db.backend: qdrant` is set. The two clients
+    # implement the same surface (see qdrant_client.py).
+    client: Any
     hybrid_search_weight: float
     k: int
     use_web: bool
