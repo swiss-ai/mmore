@@ -48,3 +48,38 @@ def test_llm_config_generation_kwargs():
     openai_config = LLMConfig(llm_name="gpt-4o", max_new_tokens=2000)
     assert openai_config.provider == "OPENAI"
     assert openai_config.generation_kwargs["max_completion_tokens"] == 2000
+
+@pytest.mark.gpu
+def test_rerank_real(populated_db):
+    """Reranking with bge-reranker-base on a real GPU runner."""
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available — this test requires a GPU")
+    device = "cuda"
+    tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-reranker-base")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "BAAI/bge-reranker-base"
+    ).to(device)
+
+    client = MilvusClient(populated_db)
+    retriever = Retriever(
+        dense_model=FakeEmbeddings(size=2048),
+        sparse_model=FakeSparseEmbedding(),
+        client=client,
+        hybrid_search_weight=0.5,
+        k=2,
+        use_web=False,
+        reranker_model=model,
+        reranker_tokenizer=tokenizer,
+    )
+
+    docs = [
+        Document(page_content="Paris is the capital of France.", metadata={"rank": 1, "similarity": 0.9, "id": "1", "page_numbers": [], "paragraph_numbers": []}),
+        Document(page_content="Milvus is an open-source vector database.", metadata={"rank": 2, "similarity": 0.8, "id": "2", "page_numbers": [], "paragraph_numbers": []}),
+    ]
+
+    reranked = retriever.rerank("France capital", docs)
+    assert len(reranked) == 2
+    assert all(isinstance(d, Document) for d in reranked)

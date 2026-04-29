@@ -1,92 +1,94 @@
-from unittest.mock import patch
+"""
+Integration tests for the RAG HTTP API (run_rag.py).
+
+The real `create_api()` from run_rag.py is used to build the FastAPI app.
+The RAGPipeline is mocked — only `rag_chain.invoke()` is stubbed — so the test
+verifies the API contract (input/output shape, status codes, endpoints) without
+running an actual retrieval/LLM pipeline.
+"""
+
+from unittest.mock import MagicMock
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.embeddings import FakeEmbeddings
-from pydantic import BaseModel, Field
-from pymilvus import MilvusClient
 
-from conftest import SAMPLE_DOCS, FakeSparseEmbedding
-from mmore.index.indexer import Indexer
-from mmore.rag.model import DenseModelConfig, SparseModelConfig
-from mmore.rag.pipeline import DEFAULT_PROMPT, RAGPipeline
-from mmore.rag.retriever import Retriever
-
-
-class RAGInput(BaseModel):
-    input: str = Field(..., description="The user query or question.")
-    collection_name: str = Field(..., description="The Milvus collection name to search.")
-
-_COLLECTION = "test_col"
+from mmore.run_rag import create_api
 
 
 @pytest.fixture(scope="module")
-def populated_db(tmp_path_factory):
-    db_path = str(tmp_path_factory.mktemp("api_db") / "test.db")
-    with patch("mmore.index.indexer.SparseModel.from_config", return_value=FakeSparseEmbedding()):
-        client = MilvusClient(db_path, enable_sparse=True)
-        indexer = Indexer(
-            dense_model_config=DenseModelConfig(model_name="debug"),
-            sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
-            client=client,
-        )
-        indexer.index_documents(SAMPLE_DOCS, collection_name=_COLLECTION)
-    return db_path
+def client():
+    """Builds the real FastAPI app via create_api() with a mocked RAGPipeline."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "What is the capital of France?",
+        "context": "Paris is the capital of France.",
+        "answer": "Paris.",
+    }
 
-
-@pytest.fixture(scope="module")
-def app(populated_db):
-    retriever = Retriever(
-        dense_model=FakeEmbeddings(size=2048),
-        sparse_model=FakeSparseEmbedding(),
-        client=MilvusClient(populated_db),
-        hybrid_search_weight=0.5,
-        k=2,
-        use_web=False,
-        reranker_model=None,
-        reranker_tokenizer=None,
-    )
-
-    llm = FakeListChatModel(responses=["Paris is the capital of France."] * 20)
-    prompt = ChatPromptTemplate.from_messages(
-        [("system", DEFAULT_PROMPT), ("human", "{input}")]
-    )
-    pipeline = RAGPipeline(retriever=retriever, prompt_template=prompt, llm=llm)
-
-    api = FastAPI()
-
-    @api.post("/rag")
-    def rag_endpoint(input_data: RAGInput):
-        return pipeline(input_data.model_dump(), return_dict=True)[0]
-
-    return api
-
-
-@pytest.fixture(scope="module")
-def client(app):
+    app = create_api(mock_pipeline, "/rag")
     return TestClient(app)
+
+
+# ---------------------------------------------------------------------------
+# POST /rag
+# ---------------------------------------------------------------------------
 
 
 def test_rag_endpoint_returns_200(client):
     response = client.post(
-        "/rag", json={"input": "What is the capital of France?", "collection_name": _COLLECTION}
+        "/rag",
+        json={"input": {"input": "What is the capital of France?", "collection_name": "test_col"}},
     )
     assert response.status_code == 200
 
 
-def test_rag_endpoint_has_answer_field(client):
+def test_rag_endpoint_response_shape(client):
     response = client.post(
-        "/rag", json={"input": "How tall is the Eiffel Tower?", "collection_name": _COLLECTION}
+        "/rag",
+        json={"input": {"input": "How tall is the Eiffel Tower?", "collection_name": "test_col"}},
     )
     data = response.json()
-    assert "answer" in data
-    assert isinstance(data["answer"], str)
-    assert len(data["answer"]) > 0
+    assert set(data.keys()) == {"input", "context", "answer"}
+    assert data["answer"] == "Paris."
 
 
-def test_rag_endpoint_missing_field_returns_422(client):
-    response = client.post("/rag", json={"input": "What is RAG?"})
+def test_rag_endpoint_collection_name_optional(client):
+    """InnerInput.collection_name is Optional — request should succeed without it."""
+    response = client.post("/rag", json={"input": {"input": "What is RAG?"}})
+    assert response.status_code == 200
+
+
+def test_rag_endpoint_missing_outer_input_returns_422(client):
+    response = client.post("/rag", json={})
     assert response.status_code == 422
+
+
+def test_rag_endpoint_missing_inner_input_returns_422(client):
+    response = client.post("/rag", json={"input": {"collection_name": "test_col"}})
+    assert response.status_code == 422
+
+
+def test_rag_endpoint_invokes_pipeline_with_inner_dict(client):
+    """The endpoint should call rag_chain.invoke() with the inner input dict."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "x", "context": "y", "answer": "z",
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+
+    tc.post("/rag", json={"input": {"input": "test query", "collection_name": "my_col"}})
+
+    mock_pipeline.rag_chain.invoke.assert_called_once_with(
+        {"input": "test query", "collection_name": "my_col"}
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /health
+# ---------------------------------------------------------------------------
+
+
+def test_health_check_returns_200(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
