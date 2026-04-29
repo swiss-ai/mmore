@@ -26,14 +26,14 @@ from typing import Dict, List
 # Use the local source tree, not any installed copy.
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from mmore.index.indexer import DBConfig, Indexer, IndexerConfig
-from mmore.rag.model.dense.base import DenseModelConfig
-from mmore.rag.model.sparse.base import SparseModelConfig
-from mmore.rag.retriever import Retriever, RetrieverConfig
-from mmore.type import MultimodalSample
+from langchain_milvus.utils.sparse import BaseSparseEmbedding  # noqa: E402
 
-# ── Stub sparse model so we don't need to download SPLADE for a smoke test ──
-from langchain_milvus.utils.sparse import BaseSparseEmbedding
+import mmore.rag.model.sparse.base as _sparse_base  # noqa: E402
+from mmore.index.indexer import DBConfig, Indexer, IndexerConfig  # noqa: E402
+from mmore.rag.model.dense.base import DenseModelConfig  # noqa: E402
+from mmore.rag.model.sparse.base import SparseModelConfig  # noqa: E402
+from mmore.rag.retriever import Retriever, RetrieverConfig  # noqa: E402
+from mmore.type import MultimodalSample  # noqa: E402
 
 
 class StubSparseEmbedding(BaseSparseEmbedding):
@@ -45,8 +45,6 @@ class StubSparseEmbedding(BaseSparseEmbedding):
     def embed_documents(self, texts: List[str]) -> List[Dict[int, float]]:
         return [self.embed_query(t) for t in texts]
 
-
-import mmore.rag.model.sparse.base as _sparse_base
 
 _orig_sparse_from_config = _sparse_base.SparseModel.from_config
 
