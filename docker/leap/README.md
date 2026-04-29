@@ -1,6 +1,6 @@
 # openSUSE Leap
 
-Based on `opensuse/leap:15.6`. This image targets CSCS rather than RCP, and therefore does not create a non-root user.
+Based on `opensuse/leap:15.6`.
 
 ## Build
 
@@ -24,12 +24,17 @@ Custom extras (overrides the default `--extra all,cu126` or `--extra all,cpu`):
 sudo docker build -f docker/leap/Dockerfile --build-arg UV_OVERRIDE="--extra all,cu126" -t mmore:leap .
 ```
 
+Custom user UID/GID (e.g. for RCP):
+```bash
+sudo docker build -f docker/leap/Dockerfile --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -t mmore:leap .
+```
+
 ## Run
 
 ```bash
 # GPU
-sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/root/.cache mmore:leap
+sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:leap
 
 # CPU-only
-sudo docker run -it -v ./examples:/app/examples -v ./.cache:/root/.cache mmore:leap-cpu
+sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:leap-cpu
 ```

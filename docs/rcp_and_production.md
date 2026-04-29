@@ -2,6 +2,8 @@
 
 This document provides comprehensive guidelines for deploying MMORE on the RCP (and later to production).
 
+> **Deploying on CSCS?** A dedicated Docker image is available: see the [CSCS Dockerfile README](../docker/cscs/README.md).
+
 ## Docker Image Requirements
 
 **Important**: You must build your own Docker image with your specific user ID and group ID to avoid permission issues in the production environment.
