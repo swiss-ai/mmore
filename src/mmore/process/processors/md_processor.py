@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import tempfile
 from typing import Optional, Tuple
 
 import markdown
@@ -75,7 +74,7 @@ class MarkdownProcessor(Processor):
                 content,
                 file_path,
                 self.config.attachment_tag,
-                self.config.custom_config.get("extract_images", True),
+                self.config.extract_images,
             )
             return self.create_sample(
                 [all_text], embedded_images, {"file_path": file_path}
@@ -129,14 +128,6 @@ class MarkdownProcessor(Processor):
                         # Save to temp directory or process as needed
                         image_data = response.content
                         image = Image.open(io.BytesIO(image_data))
-
-                        def save_temp_image(image: Image.Image, base_path: str) -> str:
-                            os.makedirs(base_path, exist_ok=True)
-                            with tempfile.NamedTemporaryFile(
-                                mode="w", delete=True, dir=base_path, suffix=".png"
-                            ) as tmp:
-                                image.save(tmp.name)
-                            return tmp.name
 
                         embedded_images.append(image)
                     else:
