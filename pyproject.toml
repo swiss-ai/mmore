@@ -50,6 +50,7 @@ process = [
     # Document processing + post-processing
     "transformers>=4.44",
     "PyMuPDF",
+    "pymupdf4llm>=0.0.17",
     "marker-pdf>=1.6",
     "surya-ocr>=0.8.3",
     "moviepy>=2.0",

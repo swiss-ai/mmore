@@ -23,3 +23,11 @@ processors:
     normal_model: openai/whisper-large-v3-turbo
     fast_model: openai/whisper-tiny
     frame_sample_rate: 10
+  PDFProcessor:
+    # PDF extraction backend. One of:
+    #   marker       (default) - marker-pdf, GPU-accelerated OCR, slow but
+    #                            accurate; supports scanned documents.
+    #   pymupdf4llm  - LLM-friendly markdown via pymupdf4llm; much faster
+    #                  but does not OCR scanned documents.
+    #                  See https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
+    backend: marker

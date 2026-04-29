@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+from dataclasses import dataclass
 from multiprocessing import Manager, Process, set_start_method
 from typing import List, Optional, Tuple, cast
 
@@ -18,12 +19,41 @@ from .base import Processor, ProcessorConfig
 
 IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
+PDF_BACKEND_MARKER = "marker"
+PDF_BACKEND_PYMUPDF4LLM = "pymupdf4llm"
+
+
+@dataclass
+class PDFProcessorConfig(ProcessorConfig):
+    """Configuration for :class:`PDFProcessor`.
+
+    Inherits all fields from :class:`ProcessorConfig`.
+
+    Attributes:
+        backend: Which PDF extraction engine to use. One of:
+
+            * ``"marker"`` (default) - marker-pdf with GPU-accelerated OCR;
+              slower but supports scanned documents.
+            * ``"pymupdf4llm"`` - LLM-friendly markdown extraction via
+              `pymupdf4llm <https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/>`_;
+              much faster, but does **not** OCR scanned documents.
+
+    Example YAML (inside the ``processors:`` block of your config file)::
+
+        processors:
+          PDFProcessor:
+            backend: pymupdf4llm
+    """
+
+    backend: str = PDF_BACKEND_MARKER
+
 
 class PDFProcessor(Processor):
+    CONFIG_CLASS = PDFProcessorConfig
     artifact_dict = None
 
     def __init__(self, config=None):
-        super().__init__(config=config or ProcessorConfig())
+        super().__init__(config=config or PDFProcessorConfig())
         self.converter = None
 
     @classmethod
@@ -132,6 +162,14 @@ class PDFProcessor(Processor):
     _PAGE_SEP_RE = re.compile(r"\n\n\{(\d+)\}-{3,}\n\n")
 
     def process(self, file_path: str) -> MultimodalSample:
+        backend = getattr(self.config, "backend", PDF_BACKEND_MARKER)
+        if backend == PDF_BACKEND_PYMUPDF4LLM:
+            return self._process_pymupdf4llm(file_path)
+        if backend != PDF_BACKEND_MARKER:
+            logging.warning(
+                f"Unknown PDF backend '{backend}', falling back to '{PDF_BACKEND_MARKER}'."
+            )
+
         if self.converter is None:
             self.converter = PDFProcessor.load_models(
                 disable_image_extraction=not self.config.extract_images
@@ -149,6 +187,100 @@ class PDFProcessor(Processor):
             metadata["paragraph_starts"] = paragraph_starts
 
         return self.create_sample([text], images, metadata)
+
+    def _process_pymupdf4llm(self, file_path: str) -> MultimodalSample:
+        try:
+            import pymupdf4llm
+        except ImportError as e:
+            raise ImportError(
+                "pymupdf4llm is required when PDFProcessor.backend='pymupdf4llm'. "
+                "Install it with `pip install pymupdf4llm` or reinstall the "
+                "`process` extra: `pip install -e .[process]`."
+            ) from e
+
+        page_chunks = pymupdf4llm.to_markdown(
+            file_path,
+            page_chunks=True,
+            write_images=False,
+            embed_images=False,
+            show_progress=False,
+        )
+
+        all_text_parts: List[str] = []
+        embedded_images: List[Image.Image] = []
+        paragraph_starts: List[Tuple[int, int, int]] = []
+        current_position = 0
+
+        pdf_doc = pymupdf.Document(file_path) if self.config.extract_images else None
+
+        try:
+            for chunk in page_chunks:
+                chunk_metadata = chunk.get("metadata", {}) or {}
+                page_num = int(chunk_metadata.get("page", 0))
+                text = chunk.get("text", "") or ""
+
+                if text.strip():
+                    para_idx = 0
+                    offset_in_page = 0
+                    for segment in text.split("\n\n"):
+                        if segment.strip():
+                            paragraph_starts.append(
+                                (current_position + offset_in_page, page_num, para_idx)
+                            )
+                            para_idx += 1
+                        offset_in_page += len(segment) + 2
+
+                    all_text_parts.append(text)
+                    current_position += len(text)
+
+                if self.config.extract_images and pdf_doc is not None:
+                    page_index = page_num - 1 if page_num > 0 else page_num
+                    if 0 <= page_index < pdf_doc.page_count:
+                        page = pdf_doc[page_index]
+                        for img_info in page.get_images(full=False):
+                            image = self._extract_pymupdf_image(pdf_doc, img_info[0])
+                            if image and clean_image(image):
+                                embedded_images.append(image)
+                                attachment_text = self.config.attachment_tag
+                                all_text_parts.append(attachment_text)
+                                current_position += len(attachment_text)
+        finally:
+            if pdf_doc is not None:
+                pdf_doc.close()
+
+        paragraph_starts.append((current_position, -1, -1))
+
+        metadata = {
+            "file_path": file_path,
+            "paragraph_starts": paragraph_starts,
+            "document_type": "pdf",
+        }
+
+        full_text = "".join(all_text_parts)
+        return self.create_sample([full_text], embedded_images, metadata)
+
+    @staticmethod
+    def _extract_pymupdf_image(pdf_doc, xref) -> Optional[Image.Image]:
+        try:
+            base_image = pdf_doc.extract_image(xref)
+            image_bytes = base_image.get("image")
+            if image_bytes is None:
+                logging.error(f"No image data found for xref {xref}")
+                return None
+            return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except KeyError as e:
+            logging.error(f"KeyError while extracting image for xref {xref}: {e}")
+            return None
+        except UnidentifiedImageError as e:
+            logging.error(
+                f"UnidentifiedImageError: could not identify image for xref {xref}: {e}"
+            )
+            return None
+        except Exception as e:
+            logging.error(
+                f"Unexpected error while extracting image for xref {xref}: {e}"
+            )
+            return None
 
     @classmethod
     def _parse_pagination(

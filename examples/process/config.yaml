@@ -57,14 +57,20 @@ distributed: false
 # Optional: per-processor settings
 # ---------------------------------------------------------------------------
 # Override model or behaviour for a specific processor.
-# Only MediaProcessor has additional settings today; other processors use
-# the global extract_images / use_fast_processors flags above.
 #
 # processors:
 #   MediaProcessor:
 #     normal_model: openai/whisper-large-v3-turbo  # HuggingFace model ID
 #     fast_model:   openai/whisper-tiny             # model used in fast mode
 #     frame_sample_rate: 10                         # video: 1 frame every N sec
+#   PDFProcessor:
+#     # PDF extraction backend. One of:
+#     #   marker       (default) - marker-pdf, GPU-accelerated OCR, slow but
+#     #                            accurate; supports scanned documents.
+#     #   pymupdf4llm  - LLM-friendly markdown via pymupdf4llm; much faster
+#     #                  but does not OCR scanned documents.
+#     #                  See https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
+#     backend: marker
 
 # ---------------------------------------------------------------------------
 # Optional: batch sizes
