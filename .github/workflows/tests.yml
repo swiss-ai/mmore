@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies (using uv)
         run: |
           source .venv/bin/activate
-          uv pip install -e ".[process,index,rag,api,cpu,dev]"
+          uv pip install -e ".[process,index,rag,api,cpu,dev,websearch]"
 
       - name: Show installed cohere and langchain-cohere versions
         run: |

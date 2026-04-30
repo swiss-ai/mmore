@@ -4,7 +4,11 @@ from dataclasses import dataclass
 # from getpass import getpass
 from typing import ClassVar, Optional, cast
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
+
 from langchain_anthropic import ChatAnthropic
 from langchain_cohere import ChatCohere
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -146,9 +150,16 @@ class LLM(BaseChatModel):
     """Class parsing the model name and arguments to load the correct LangChain model"""
 
     device_count: ClassVar[int] = 0
-    nb_devices: ClassVar[int] = (
-        torch.cuda.device_count() if torch.cuda.is_available() else 1
-    )
+    nb_devices: ClassVar[Optional[int]] = None
+
+    @classmethod
+    def _get_nb_devices(cls) -> int:
+        if cls.nb_devices is None:
+            if torch is not None and torch.cuda.is_available():
+                cls.nb_devices = torch.cuda.device_count()
+            else:
+                cls.nb_devices = 1
+        return cls.nb_devices
 
     @staticmethod
     def _check_key(provider):
@@ -165,6 +176,11 @@ class LLM(BaseChatModel):
             config = load_config(config, LLMConfig)
 
         if config.provider == "HF":
+            if torch is None:
+                raise ImportError(
+                    "torch is required for HuggingFace models. "
+                    "Install it with: uv pip install 'mmore[cpu]' or uv pip install 'mmore[cu126]'"
+                )
             if torch.backends.mps.is_available():
                 return ChatHuggingFace(
                     llm=HuggingFacePipeline.from_model_id(
@@ -176,7 +192,7 @@ class LLM(BaseChatModel):
                 )
             if torch.cuda.is_available():
                 current_device = cls.device_count
-                cls.device_count = (cls.device_count + 1) % cls.nb_devices
+                cls.device_count = (cls.device_count + 1) % cls._get_nb_devices()
             else:
                 current_device = -1
 

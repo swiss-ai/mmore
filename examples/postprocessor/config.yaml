@@ -1,3 +1,5 @@
+previous_results: null  # Path to a previously post-processed JSONL to reuse when documents are unchanged
+
 pp_modules:
   - type: chunker
     args:

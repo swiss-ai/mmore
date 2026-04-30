@@ -104,9 +104,7 @@ class MultimodalChunker(BasePostProcessor):
 
     def _get_chunk_size(self) -> int:
         """Get the max chunk size from the text chunker."""
-        if hasattr(self.text_chunker, "chunk_size"):
-            return self.text_chunker.chunk_size
-        return _DEFAULT_CHUNK_SIZE
+        return getattr(self.text_chunker, "chunk_size", _DEFAULT_CHUNK_SIZE)
 
     def _chunk_with_table_awareness(
         self, text: str, tables: Optional[List[TableRegion]] = None
@@ -219,17 +217,14 @@ class MultimodalChunker(BasePostProcessor):
 
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
-        page_info_chunks = self._assign_page_numbers(sample, text_chunks)
-        para_info_chunks = self._assign_paragraph_numbers(sample, text_chunks)
+        para_info_chunks = self._assign_paragraph_positions(sample, text_chunks)
 
         chunks = []
-        for i, (chunk, mods, page_info, para_info) in enumerate(
-            zip(text_chunks, modalities_chunks, page_info_chunks, para_info_chunks)
+        for i, (chunk, mods, para_info) in enumerate(
+            zip(text_chunks, modalities_chunks, para_info_chunks)
         ):
             chunk_metadata = sample.metadata.copy()
-            chunk_metadata.update(page_info)
             chunk_metadata.update(para_info)
-            chunk_metadata.pop("page_starts", None)
             chunk_metadata.pop("paragraph_starts", None)
 
             # Add table metadata if this chunk comes from a table
@@ -248,35 +243,7 @@ class MultimodalChunker(BasePostProcessor):
 
         return chunks
 
-    def _assign_page_numbers(
-        self, sample: MultimodalSample, text_chunks: List[Chunk]
-    ) -> List[Dict[str, Any]]:
-        """Assign page numbers using page start positions."""
-        page_info_chunks = []
-        page_starts = cast(
-            List[Tuple[int, int]], sample.metadata.get("page_starts", [])
-        )
-
-        if len(page_starts) == 0:
-            for chunk in text_chunks:
-                page_info_chunks.append({})
-            return page_info_chunks
-
-        for chunk in text_chunks:
-            chunk_page_numbers = set()
-
-            for i in range(len(page_starts) - 1):
-                page_start, page_num = page_starts[i]
-                next_start, _ = page_starts[i + 1]
-                if chunk.start_index < next_start and chunk.end_index > page_start:
-                    chunk_page_numbers.add(page_num)
-
-            sorted_pages = sorted(chunk_page_numbers)
-            page_info_chunks.append({"page_numbers": sorted_pages})
-
-        return page_info_chunks
-
-    def _assign_paragraph_numbers(
+    def _assign_paragraph_positions(
         self, sample: MultimodalSample, text_chunks: List[Chunk]
     ) -> List[Dict[str, Any]]:
         """Assign paragraph numbers (per-page) using paragraph start positions."""
@@ -300,7 +267,7 @@ class MultimodalChunker(BasePostProcessor):
                 if chunk.start_index < next_start and chunk.end_index > para_start:
                     chunk_paragraphs.append([page_num, para_idx])
 
-            para_info_chunks.append({"paragraph_numbers": chunk_paragraphs})
+            para_info_chunks.append({"paragraph_positions": chunk_paragraphs})
 
         return para_info_chunks
 

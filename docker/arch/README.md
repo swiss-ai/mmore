@@ -33,8 +33,8 @@ sudo docker build -f docker/arch/Dockerfile --build-arg USER_UID=$(id -u) --buil
 
 ```bash
 # GPU
-sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:arch
+sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/home/mmoreuser/.cache mmore:arch
 
 # CPU-only
-sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:arch-cpu
+sudo docker run -it -v ./examples:/app/examples -v ./.cache:/home/mmoreuser/.cache mmore:arch-cpu
 ```

@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import tempfile
@@ -7,7 +8,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -17,11 +21,61 @@ from .config import WebsearchConfig
 from .logging_config import logger
 from .websearch import WebsearchOnly
 
+# --- Prompt constants ---
+
+SUMMARY_SYSTEM_MSG = (
+    "You are an extractive summarizer. Use only the provided context, no external knowledge. "
+    "Keep the summary concise and factual."
+)
+SUMMARY_PREFIX = "Question: {query}\n\n---CONTEXT---\n"
+SUMMARY_SUFFIX = (
+    "\n---END CONTEXT---\n\n"
+    "Extract and summarize only the information relevant to the question above.\n"
+    "If the context contains no useful information, respond exactly with: 'NO_USEFUL_INFORMATION'"
+)
+
+RELEVANCE_SYSTEM_MSG = "You are a binary classifier. You must respond with exactly one word: 'yes' or 'no'."
+RELEVANCE_PROMPT = (
+    "Original query:\n{query}\n\n"
+    "Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
+    "New subqueries:\n{current_subqueries}\n\n"
+    "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
+    "Respond with a single word: 'yes' or 'no'."
+)
+
+SUBQUERY_SYSTEM_MSG = "You are a search query generator. Output only the requested subqueries in the specified format."
+SUBQUERY_TASK = (
+    "Generate exactly {n} independent web-search subqueries that together cover the question comprehensively.\n"
+    "Each subquery must be concise (≤30 words) and search-engine friendly.\n\n"
+    "Output format (one per line, no extra text):\n"
+    "subquery <i>: <query>\n"
+)
+SUBQUERY_TASK_WITH_CONTEXT = (
+    "Partial answer so far:\n{current_context}\n\n"
+    "Generate exactly {n} independent web-search subqueries to fill gaps in the partial answer.\n"
+    "Each subquery must be concise (≤30 words) and search-engine friendly.\n"
+    "Do not repeat aspects already covered by the partial answer.\n\n"
+    "Output format (one per line, no extra text):\n"
+    "subquery <i>: <query>\n"
+)
+
+SYNTHESIS_SYSTEM_MSG = (
+    "You are a research assistant. Synthesize the provided sources into a clear answer. "
+    "Do not introduce information beyond what is given."
+)
+SYNTHESIS_PREFIX = "Question: {original}\n\n---RAG SOURCES---\n{rag_doc}\n---END RAG SOURCES---\n\n---WEB SOURCES---\n"
+SYNTHESIS_SUFFIX = (
+    "\n---END WEB SOURCES---\n\n"
+    "Respond in exactly this format (keep the labels):\n"
+    "short answer: <1-2 sentence answer>\n"
+    "detailed answer: <comprehensive answer with key details>"
+)
+
 
 @dataclass
 class ProcessedResponse:
     query: str
-    rag_informations: str
+    rag_informations: str | None
     rag_summary: str | None
     web_summary: str
     short_answer: str
@@ -54,6 +108,8 @@ class WebsearchPipeline:
     def __init__(self, config: WebsearchConfig):
         self.config = config
         self.llm = self._initialize_llm()
+        self._tokenizer = self._get_tokenizer()
+        self._warned_fallback_tokenizer = False
         self.rag_results = None
         self.searcher = WebsearchOnly(
             provider=self.config.search_provider,
@@ -75,25 +131,16 @@ class WebsearchPipeline:
             base_conf = base_conf.__dict__
             return LLM.from_config(LLMConfig(**base_conf))
 
-    def generate_summary(self, rag_answer: str | None, query: str):
-        """
-        Summarize the RAG answer (used when rag_summary=True)
-        """
-        prompt = (
-            "You have only the following context to answer the question, do not use any external knowledge.\n\n"
-            f"Question: {query}\n\n"
-            "Context:\n"
-            f"{rag_answer or 'No context yet'}\n\n"
-            "If the context contains the answer or any useful information, respond with that information. \n"
-            "If no useful informations are, answer: no useful informations\n"
-            "Answer: \n"
-            "---------------------------"
+    def generate_summary(self, content: str | None, query: str):
+        """Summarize content relevant to the query."""
+        prefix = SUMMARY_PREFIX.format(query=query)
+        fitted = self._fit_to_budget(
+            content or "No context yet", SUMMARY_SYSTEM_MSG, prefix, SUMMARY_SUFFIX
         )
+        prompt = prefix + fitted + SUMMARY_SUFFIX
 
         messages = [
-            SystemMessage(
-                content="You are a helpful assistant that summarizes text relevant to the question."
-            ),
+            SystemMessage(content=SUMMARY_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
 
@@ -105,38 +152,101 @@ class WebsearchPipeline:
     def evaluate_subquery_relevance(
         self, query, current_subqueries, previous_subqueries
     ):
-        prompt = (
-            f"Original query:\n{query}\n\n"
-            f"Previous subqueries that contribute to understanding:\n{previous_subqueries}\n\n"
-            f"New subqueries:\n{current_subqueries}\n\n"
-            "Are any of the new subqueries relevant in the context of the original query and previous subqueries? "
-            "Respond strictly with 'yes' if at least one is relevant, or 'no' if none are."
+        prompt = RELEVANCE_PROMPT.format(
+            query=query,
+            previous_subqueries=previous_subqueries,
+            current_subqueries=current_subqueries,
         )
         messages = [
-            SystemMessage(content="You are a helpful assistant"),
+            SystemMessage(content=RELEVANCE_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(messages)
         response_content = extract_response(response_llm.content)
-        response = self._clean_llm_output(response_content)
-
-        if "no" in response:
-            return False
-        else:
+        response = self._clean_llm_output(response_content).strip().lower()
+        if re.match(r"^yes\b", response):
             return True
+        if re.match(r"^no\b", response):
+            return False
+        logger.warning(
+            f"Unexpected LLM relevance response (expected 'yes'/'no'): '{response}'"
+        )
+        return False
 
     def _clean_llm_output(self, content: str):
         delimiter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
         if delimiter not in content:
             return content
         # Extract the section after the delimiter
-        cleaned_section = content.split(delimiter, 1)[-1].lower().strip()
+        cleaned_section = content.split(delimiter, 1)[-1].strip()
         return cleaned_section
 
+    def _get_tokenizer(self):
+        """Try to get a local tokenizer."""
+        return getattr(self.llm, "tokenizer", None)
+
+    def _encode(self, text: str) -> list[int]:
+        """Encode text to token IDs using the llm tokenizer."""
+        if self._tokenizer is None:
+            raise RuntimeError("No tokenizer is available for encoding text.")
+        return self._tokenizer.encode(text, add_special_tokens=False)
+
+    def _decode(self, token_ids: list[int]) -> str:
+        """Decode token IDs back to text using the llm tokenizer."""
+        if self._tokenizer is None:
+            raise RuntimeError("No tokenizer is available for decoding token IDs.")
+        return self._tokenizer.decode(token_ids, skip_special_tokens=True)
+
+    def _count_tokens(self, text: str) -> int:
+        """Count tokens using heuristic, local tokenizer, or LLM."""
+        if self.config.fast_tokenizer:
+            return math.ceil(len(text) / 4)
+        if self._tokenizer is not None:
+            return len(self._encode(text))
+        if not self._warned_fallback_tokenizer:
+            logger.warning(
+                "No local tokenizer available; token counts may be inaccurate. "
+                "Consider setting fast_tokenizer=True in your config."
+            )
+            self._warned_fallback_tokenizer = True
+        return self.llm.get_num_tokens(text)
+
     def _truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
-        """Fallback character truncation (roughly 4 chars per token) to prevent segfaults."""
-        char_limit = max_tokens * 4
-        return text[:char_limit] if len(text) > char_limit else text
+        """Truncate text to fit within a token budget."""
+        if self.config.fast_tokenizer:
+            char_limit = max_tokens * 4
+            if len(text) <= char_limit:
+                return text
+            return text[:char_limit]
+
+        if self._tokenizer is not None:
+            token_ids = self._encode(text)
+            if len(token_ids) <= max_tokens:
+                return text
+            else:
+                return self._decode(token_ids[:max_tokens])
+
+        # Fallback when no local tokenizer: proportional char cut with a 10% safety
+        # margin because uneven token/char ratios can produce results that are too long.
+        total_tokens = self._count_tokens(text)
+        if total_tokens <= max_tokens:
+            return text
+        ratio = max_tokens / total_tokens * 0.9
+        cut = int(len(text) * ratio)
+        return text[:cut] if cut > 0 else ""
+
+    def _fit_to_budget(self, content: str, *fixed_parts: str) -> str:
+        """Truncate content so that prompt fits within max_context_tokens."""
+        fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
+        available = self.config.max_context_tokens - fixed_tokens
+        if available <= 0:
+            raise ValueError(
+                "Prompt fixed parts exceed max_context_tokens: "
+                f"max_context_tokens={self.config.max_context_tokens}, "
+                f"fixed_tokens={fixed_tokens}. "
+                "Reduce the fixed prompt size or increase max_context_tokens."
+            )
+        return self._truncate_to_token_limit(content, available)
 
     def generate_subqueries(
         self, original_query: str, current_context: Optional[str] = None
@@ -145,32 +255,26 @@ class WebsearchPipeline:
         Generate concise search subqueries
         """
         n = self.config.n_subqueries
-        instruction = f"You have the question and partial answer below:\nQuestion: {original_query}\n\n"
+        instruction = f"Question: {original_query}\n\n"
         if current_context is None:
-            task = (
-                f"Generate {n}-independant subqueries based on the original query, in order to generate the most complete research. Each subquery must be concise and ≤30 words.\n"
-                f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
-            )
+            task = SUBQUERY_TASK.format(n=n)
         else:
-            task = (
-                f"Partial answer: {current_context}\n\n"
-                f"Generate {n}-independant subqueries to refine the answer based on the original query. Each subquery must be concise and ≤30 words.\n"
-                f"The subqueries should print in this format: subquery 1: new question,  subquery 2: new question, etc. \n"
-                f"---ANSWER ---"
+            task = SUBQUERY_TASK_WITH_CONTEXT.format(
+                n=n, current_context=current_context
             )
 
         prompt = instruction + task
         messages = [
-            SystemMessage(
-                content="You are an assistant specializing in generating search queries."
-            ),
+            SystemMessage(content=SUBQUERY_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
 
         response_llm = self.llm.invoke(messages)
         response = extract_response(response_llm.content)
         cleaned_answer = self._clean_llm_output(response)
-        cleaned_answer = re.findall(r"subquery \d+: (.*)", cleaned_answer)
+        cleaned_answer = re.findall(
+            r"subquery \d+: (.*)", cleaned_answer, flags=re.IGNORECASE
+        )
         return cleaned_answer
 
     def web_search(self, query: str) -> List[Dict[str, str]]:
@@ -189,24 +293,23 @@ class WebsearchPipeline:
             for r in results
         ]
 
+    def _compute_content_budget(self, *fixed_parts: str) -> int:
+        """Compute how many tokens are available for content given fixed prompt parts."""
+        fixed_tokens = sum(self._count_tokens(p) for p in fixed_parts)
+        return max(0, self.config.max_context_tokens - fixed_tokens)
+
     def integrate_with_llm(
-        self, original: str, rag_doc: str | None, web_snippets: List[str]
+        self, original: str, rag_doc: str | None, web_content: str
     ) -> Dict[str, str]:
-        # Build prompt for short & detailed answer
-        sources = self._truncate_to_token_limit(
-            "\n".join(web_snippets), self.config.max_context_tokens
+        rag_text = rag_doc or "No RAG sources"
+        prefix = SYNTHESIS_PREFIX.format(original=original, rag_doc=rag_text)
+        fitted = self._fit_to_budget(
+            web_content, SYNTHESIS_SYSTEM_MSG, prefix, SYNTHESIS_SUFFIX
         )
-        prompt = (
-            f"Original Query: {original}\n"
-            f"RAG Document Information:\n{rag_doc}\n\n"
-            f"Web Information:\n{sources}\n\n"
-            "Provide the response in the following format:\n"
-            "short answer: <your concise answer>\n"
-            "detailed answer: <your detailed answer>"
-        )
+        prompt = prefix + fitted + SYNTHESIS_SUFFIX
 
         msgs = [
-            SystemMessage(content="You are a research assistant."),
+            SystemMessage(content=SYNTHESIS_SYSTEM_MSG),
             HumanMessage(content=prompt),
         ]
         response_llm = self.llm.invoke(msgs)
@@ -229,13 +332,14 @@ class WebsearchPipeline:
 
     def process_record(self, rec: Dict[str, Any]) -> Dict[str, Any]:
         qr = rec.get("input", "").strip()
-        rag_ans = rec.get("answer", "") if self.config.use_rag else ""
+        rag_ans = rec.get("answer", "") if self.config.use_rag else None
         self.rag_results = rag_ans
         rag_summary = (
             self.generate_summary(rag_ans, qr) if self.config.use_rag else None
         )
 
         source_map = {}
+        seen_results = set()
         current_context = rag_summary
         final_short, final_detailed = "", ""
         web_summary = ""
@@ -258,69 +362,108 @@ class WebsearchPipeline:
             ):
                 break
 
+            # Build RAG context: RAG summary + prior loop answer when available
+            rag_for_llm = rag_summary or ""
+            if current_context and current_context != rag_summary:
+                rag_for_llm += f"\n\nPrior answer:\n{current_context}"
+
+            # Token-aware accumulation: use effective budget that accounts for
+            # the fixed prompt overhead in the downstream prompt.
+            # snippet_budget caps total snippets (for integrate_with_llm when not summarizing).
+            if self.config.use_summary:
+                snippet_budget = self.config.max_context_tokens
+            else:
+                synthesis_prefix = SYNTHESIS_PREFIX.format(
+                    original=qr, rag_doc=rag_for_llm or "No RAG sources"
+                )
+                snippet_budget = self._compute_content_budget(
+                    SYNTHESIS_SYSTEM_MSG, synthesis_prefix, SYNTHESIS_SUFFIX
+                )
+            total_tokens = 0
+            budget_exhausted = False
+
             for sq in subs:
+                if budget_exhausted:
+                    break
+
+                # Compute per-subquery summary budget using the current subquery
+                sq_prefix = SUMMARY_PREFIX.format(query=sq)
+                summary_budget = self._compute_content_budget(
+                    SUMMARY_SYSTEM_MSG, sq_prefix, SUMMARY_SUFFIX
+                )
+
                 # Only sleep for DDG, and make it 2 seconds instead of 10
                 if self.config.search_provider == "duckduckgo":
                     time.sleep(2)
                 res = self.web_search(query=sq)
 
                 subquery_snippets = []
+                subquery_tokens = 0
 
                 for r in res:
-                    if r["url"] not in source_map:
-                        source_map[r["url"]] = []
+                    url = r["url"]
+                    snippet = r["snippet"]
+                    title = r["title"]
 
-                    if r["title"] not in source_map[r["url"]]:
-                        source_map[r["url"]].append(r["title"])
+                    # Prevent duplicated results
+                    if (url, snippet) in seen_results:
+                        continue
 
-                    snippet = f"{r['snippet']}"
+                    snippet_tokens = self._count_tokens(snippet + "\n")
+
+                    if total_tokens + snippet_tokens > snippet_budget:
+                        logger.debug(
+                            "Token budget reached (%d/%d tokens), skipping remaining searches on the web",
+                            total_tokens,
+                            snippet_budget,
+                        )
+                        budget_exhausted = True
+                        break
+
+                    if subquery_tokens + snippet_tokens > summary_budget:
+                        break
+
+                    if url not in source_map:
+                        source_map[url] = []
+
+                    if title not in source_map[url]:
+                        source_map[url].append(title)
+
                     snippets.append(snippet)
                     subquery_snippets.append(snippet)
+                    total_tokens += snippet_tokens
+                    subquery_tokens += snippet_tokens
+                    seen_results.add((url, snippet))
 
                 # Run this ONCE per subquery!
                 if subquery_snippets:
                     combined_snippets = "\n".join(subquery_snippets)
-                    # APPLY TRUNCATION HERE
-                    combined_snippets = self._truncate_to_token_limit(
-                        combined_snippets, self.config.max_context_tokens
-                    )
                     summary = self.generate_summary(combined_snippets, sq)
                     subquery_summaries.append(summary)
 
             previous_sub = subs
 
-            # CLEAR MEMORY HERE
+            # Clear memory
             if torch is not None and torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
             combined_sub_summaries = "\n".join(
                 [str(s) if s else "" for s in subquery_summaries]
             )
-            combined_sub_summaries = self._truncate_to_token_limit(
-                combined_sub_summaries, self.config.max_context_tokens
-            )
             web_summary = self.generate_summary(combined_sub_summaries, qr)
             web_summaries.append(web_summary)
 
             if self.config.use_summary:
-                # Combine rag summary, web summary, and original query for final answer
-                context_for_llm = f"RAG informations:\n{rag_summary or ''}\n\nWeb informations:\n{web_summary}"
+                web_for_llm = web_summary
             else:
-                # If not summarizing subqueries, use rag summary or current context with snippets
-                context_for_llm = current_context
+                web_for_llm = "\n".join(snippets)
 
             combined_web_summaries = "\n".join(
                 [str(s) if s else "" for s in web_summaries]
             )
-            combined_web_summaries = self._truncate_to_token_limit(
-                combined_web_summaries, self.config.max_context_tokens
-            )
             web_summary_all = self.generate_summary(combined_web_summaries, qr)
 
-            # Current context, web content  to generate the answer
-            out = self.integrate_with_llm(
-                qr, context_for_llm, [] if self.config.use_summary else snippets
-            )
+            out = self.integrate_with_llm(qr, rag_for_llm, web_for_llm)
             final_short, final_detailed = out["short"], out["detailed"]
 
             # Prepare context for next search loop

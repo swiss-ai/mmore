@@ -48,6 +48,8 @@ Users can adjust the pipeline according to their [requirements](/examples/websea
 - `use_summary`: Activates summarization of retrieved web snippets.
 - `n_loops`: Defines the number of search iterations to refine results.
 - `n_subqueries`: Specifies the number of subqueries generated for each input query.
+- `max_context_tokens`: Maximum token budget for prompts (default: 2048).
+- `fast_tokenizer`: If true, estimates tokens as ~4 chars/token instead of using the LLM tokenizer, faster but approximate (default: false).
 
 ### Workflow
 
@@ -56,7 +58,7 @@ Users can adjust the pipeline according to their [requirements](/examples/websea
 1. **Input Query Processing:**
    - The pipeline processes the user query and generates subqueries for web searches in order to complete the current knowledge.
 2. **WebSearch Execution:**
-   - DuckDuckGo searches are performed for each subquery
+   - Web searches are performed for each subquery using the configured provider
 3. **Summarization:**
    - Retrieved web snippets are summarized using an LLM if `use_summary` is enabled.
 4. **Integration with RAG (if use_rag):**

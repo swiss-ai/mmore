@@ -48,7 +48,7 @@ class MultimodalSample:
 
     text: str
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, Union[str, Dict, List]] = field(default_factory=dict)
+    metadata: Dict[str, Union[str, Dict, List, bool]] = field(default_factory=dict)
     id: str = ""
     document_id: str = ""
 

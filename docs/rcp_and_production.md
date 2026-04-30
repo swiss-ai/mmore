@@ -63,6 +63,7 @@ mkdir -p /lightscratch/users/$GASPAR/mmore-data/out
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/out/db
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/out/process/outputs/images
 mkdir -p /lightscratch/users/$GASPAR/mmore-data/in/sample_data/
+mkdir -p /lightscratch/users/$GASPAR/.cache
 ```
 
 ### Interactive Development Session
@@ -104,6 +105,9 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e XDG_CACHE_HOME=/lightscratch/users/$GASPAR/.cache \
+  -e HF_HOME=/lightscratch/users/$GASPAR/.cache/huggingface \
+  -e TORCH_HOME=/lightscratch/users/$GASPAR/.cache/torch \
   --command "python3 -m mmore process --config-file production-config/process/config.yaml"
 ```
 
@@ -122,6 +126,9 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e XDG_CACHE_HOME=/lightscratch/users/$GASPAR/.cache \
+  -e HF_HOME=/lightscratch/users/$GASPAR/.cache/huggingface \
+  -e TORCH_HOME=/lightscratch/users/$GASPAR/.cache/torch \
   --command "python3 -m mmore postprocess --config-file production-config/postprocessor/config.yaml --input-data /lightscratch/users/$GASPAR/mmore-data/out/process/outputs/merged/merged_results.jsonl"
 ```
 
@@ -140,6 +147,9 @@ runai submit \
   --gpu 1 \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
+  -e XDG_CACHE_HOME=/lightscratch/users/$GASPAR/.cache \
+  -e HF_HOME=/lightscratch/users/$GASPAR/.cache/huggingface \
+  -e TORCH_HOME=/lightscratch/users/$GASPAR/.cache/torch \
   --command "python3 -m mmore index --config-file production-config/index/config.yaml --documents-path /lightscratch/users/$GASPAR/mmore-data/out/postprocessor/outputs/merged/final_pp.jsonl"
 ```
 
@@ -159,6 +169,9 @@ runai submit \
   -e ROOT_IN_DIR=/lightscratch/users/$GASPAR/mmore-data/in \
   -e ROOT_OUT_DIR=/lightscratch/users/$GASPAR/mmore-data/out \
   -e HF_TOKEN=$HF_TOKEN \
+  -e XDG_CACHE_HOME=/lightscratch/users/$GASPAR/.cache \
+  -e HF_HOME=/lightscratch/users/$GASPAR/.cache/huggingface \
+  -e TORCH_HOME=/lightscratch/users/$GASPAR/.cache/torch \
   --command "python3 -m mmore live-retrieval --config-file production-config/retriever_api/config.yaml"
 ```
 

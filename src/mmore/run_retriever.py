@@ -6,13 +6,14 @@ load_dotenv()
 
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import List, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from tqdm import tqdm
@@ -120,6 +121,14 @@ class RetrieverQuery(BaseModel):
     )
     query: str = Field(..., description="Search query")
 
+_ID_PATTERN = re.compile(r'^[^"+]+$')
+
+def _chunk_metadata(paragraph_positions) -> Optional[dict]:
+    if not paragraph_positions:
+        return None
+    (fp, fi), (lp, li) = paragraph_positions[0], paragraph_positions[-1]
+    return {"first": {"page": fp, "paragraph": fi}, "last": {"page": lp, "paragraph": li}}
+
 
 def make_router(config_file: str) -> APIRouter:
     router = APIRouter()
@@ -153,7 +162,7 @@ def make_router(config_file: str) -> APIRouter:
         for doc in docs_for_query:
             meta = doc.metadata
             if "+" in meta["id"]:
-                fileId, chunkId = meta["id"].split("+")
+                fileId, chunkId = meta["id"].rsplit("+", 1)
             else:
                 fileId = meta["id"]
                 chunkId = None
@@ -164,12 +173,38 @@ def make_router(config_file: str) -> APIRouter:
                     "chunkId": chunkId,
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
-                    "pageNumbers": meta.get("page_numbers", []),
-                    "paragraphNumbers": meta.get("paragraph_numbers", []),
+                    "metadata": _chunk_metadata(meta.get("paragraph_positions")),
                 }
             )
 
         return docs_info
+
+    @router.get("/v1/chunks/{fileId}/{chunkId}", tags=["Retrieval"])
+    def get_chunk(fileId: str, chunkId: str):
+        """Fetch a chunk's content and positional metadata by reference."""
+        if not _ID_PATTERN.match(fileId) or not _ID_PATTERN.match(chunkId):
+            raise HTTPException(
+                400, "fileId and chunkId must not contain '+' or '\"'"
+            )
+        chunk_ref_literal = json.dumps(f"{fileId}+{chunkId}")
+        results = retriever_obj.client.query(
+            collection_name=config.collection_name,
+            filter=f"id in [{chunk_ref_literal}]",
+            output_fields=["text", "paragraph_positions"],
+            limit=1,
+        )
+        if not results:
+            raise HTTPException(404, f"Chunk {chunkId} not found for file {fileId}")
+        row = results[0]
+        entity = row.get("entity", {})
+        return {
+            "fileId": fileId,
+            "chunkId": chunkId,
+            "content": row.get("text") or entity.get("text", ""),
+            "metadata": _chunk_metadata(
+                row.get("paragraph_positions") or entity.get("paragraph_positions")
+            ),
+        }
 
     return router
 

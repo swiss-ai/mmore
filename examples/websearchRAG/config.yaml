@@ -11,6 +11,7 @@ websearch:
   search_provider: duckduckgo
   max_retries: 3
   max_context_tokens: 2048
+  fast_tokenizer: false
   mode: local
   llm_config:
     llm_name: OpenMeditron/meditron3-8b # Qwen/Qwen2-0.5B 

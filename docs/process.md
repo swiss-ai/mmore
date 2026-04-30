@@ -43,11 +43,6 @@ We provide [a simple bash script](/scripts/process_distributed.sh) to run the pr
 bash scripts/process_distributed.sh -f /path/to/my/input/folder 
 ```
 
-#### :hourglass: Dashboard UI
-Getting a sense of the overall progress of the pipeline can be challenging when running on a large dataset, and especially in a distributed environment. You can optionally use the dashboard to monitor the progress of the pipeline.
-You will be able to visualize results :chart_with_upwards_trend:. The dashboard also lets you gently stop workers :chart_with_downwards_trend: and monitor their progression.
-
-Check the docs in the [dashboard documentation](./dashboard.md).
 
 #### :scroll: Examples
 You can find more examples scripts in [the `/examples` directory](/examples).
@@ -70,6 +65,20 @@ Many parameters are hardware-dependent and can be customized to suit your needs.
 You can configure parameters by providing a custom config file. You can find an example of a config file in the [examples folder](/examples/process/config.yaml).
 
 :rotating_light: Not all parameters are configurable yet :wink:
+
+### :recycle: Incremental reprocessing
+
+The optional top-level `previous_results` parameter lets you reuse results from a prior run to avoid reprocessing unchanged files so as to save time and compute costs.
+
+```yaml
+previous_results: examples/process/outputs/merged/merged_results.jsonl
+```
+
+Point it to a `merged_results.jsonl` produced by an earlier run. On the next run, each local input file is compared against that JSONL (meanwhile URL inputs are always reprocessed):
+
+- Unchanged files: their previous samples are reused as-is.
+- New or modified files: they are processed normally.
+- Removed files: their samples are dropped from the output.
 
 ## :scroll: More information on what's under the hood
 
@@ -126,5 +135,13 @@ python3 -m mmore postprocess --config-file examples/postprocessor/config.yaml --
 ```
 
 Specify with `--input-data` the path (absolute or relative to the root of the repository) to the JSONL recoding of the output of the initial processing phase.
+
+### :recycle: Incremental post-processing
+
+Like the processing pipeline, the post-processor accepts an optional `previous_results` parameter to reuse results from a prior post-processing run and skip unchanged documents.
+
+```yaml
+previous_results: examples/postprocessor/outputs/merged/results.jsonl
+```
 
 New post-processors can easily be implemented, and pipelines can be configured through lightweight YAML files. The post-processing stage produces a new JSONL file containing cleaned and optionally enhanced document samples.

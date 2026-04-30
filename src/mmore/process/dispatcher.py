@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from operator import itemgetter
 from typing import Dict, Iterator, List, Optional, Tuple, Type, Union, cast
 
@@ -73,7 +74,6 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
-    dashboard_backend_url: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -90,7 +90,6 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
-            dashboard_backend_url=config.get("dashboard_backend_url", None),
         )
 
     @staticmethod
@@ -116,7 +115,6 @@ class DispatcherConfig:
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,
-            "dashboard_backend_url": self.dashboard_backend_url,
         }
 
     def __str__(self) -> str:
@@ -131,7 +129,6 @@ class DispatcherConfig:
             f"process_batch_sizes={self.process_batch_sizes}, "
             f"batch_multiplier={self.batch_multiplier}"
             f"extract_images={self.extract_images}"
-            f"dashboard_backend_url={self.dashboard_backend_url}"
             f")"
         )
 
@@ -209,7 +206,6 @@ class Dispatcher:
                     processor_config["extract_images"] = self.config.extract_images
 
                     full_config = ProcessorConfig(
-                        dashboard_backend_url=self.config.dashboard_backend_url,
                         custom_config=processor_config,
                     )
 
@@ -269,7 +265,6 @@ class Dispatcher:
             )
 
             processor_config = ProcessorConfig(
-                dashboard_backend_url=self.config.dashboard_backend_url,
                 custom_config=processor_config,
             )
 
@@ -321,10 +316,24 @@ class Dispatcher:
 
         return results
 
+    def _clear_per_processor_results(self) -> None:
+        """Clear per-processor result JSONL files.
+        This is needed because :meth:`MultimodalSample.to_jsonl` uses append by default."""
+        if not self.config.output_path:
+            return
+        processors_dir = os.path.join(self.config.output_path, "processors")
+        if not os.path.isdir(processors_dir):
+            return
+        for processor_name in os.listdir(processors_dir):
+            results_path = os.path.join(processors_dir, processor_name, "results.jsonl")
+            if os.path.exists(results_path):
+                os.remove(results_path)
+
     def dispatch(self) -> List[List[MultimodalSample]]:
         """
         Dispatches the result to the appropriate processor.
         """
+        self._clear_per_processor_results()
 
         def batch_list(
             lst: List, obj_batch_size: int, processor: Type[Processor]
@@ -402,6 +411,11 @@ class Dispatcher:
     ) -> None:
         if not self.config.output_path:
             return
+
+        processed_at = datetime.now().isoformat()
+        for sample in results:
+            sample.metadata["processed_at"] = processed_at
+            sample.metadata["processor_type"] = cls_name
 
         processor_output_path = os.path.join(
             self.config.output_path, "processors", cls_name

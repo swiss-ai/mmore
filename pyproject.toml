@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.2.1"
+version = "1.2.2"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ authors = [
     { name = "Charlotte Meyer", email = "charlotte.meyer@epfl.ch" },
     { name = "Grieder Lea", email = "lea.grieder@epfl.ch" },
     { name = "Matthew Meyer", email = "matthew.meyer@epfl.ch" },
+    { name = "Laetitia Wilhelm", email = "laetitia.wilhelm@epfl.ch" },
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
@@ -112,7 +113,7 @@ rag = [
 ]
 
 api = [
-    # API servers + dashboard
+    # API servers
     "fastapi[standard]>=0.110",
     "uvicorn>=0.29",
     "starlette>=0.36",
@@ -125,7 +126,7 @@ api = [
 # --- Composite + variant extras ---
 
 all = [
-    "mmore[process,rag,api]",
+    "mmore[process,rag,api,websearch]",
 ]
 
 cpu = [
