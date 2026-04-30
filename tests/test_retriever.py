@@ -1,33 +1,26 @@
 """
-Real integration tests for the Retriever: indexes documents into Milvus Lite,
+Integration tests for the Retriever: indexes documents into Milvus Lite,
 then queries via the actual hybrid_search pipeline.
-
-Nothing is mocked except SparseModel.from_config (avoids ~500 MB SPLADE download).
-The reranker is disabled (reranker_model=None) to avoid the bge-reranker download.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from langchain_community.embeddings import FakeEmbeddings
 from langchain_core.documents import Document
 from pymilvus import MilvusClient
 
-from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.rag.retriever import Retriever
-
 
 _COLLECTION = "test_col"
 
 
 @pytest.fixture(scope="module")
 def populated_db(tmp_path_factory):
-    """
-    Indexes SAMPLE_DOCS into Milvus Lite once and shares the db path across all
-    tests in this module — avoids re-indexing for every test.
-    """
+    """Initial Milvus database population."""
     db_path = str(tmp_path_factory.mktemp("retriever_db") / "test.db")
 
     with patch(
@@ -49,10 +42,7 @@ def populated_db(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def retriever(populated_db):
-    """
-    Retriever pointing at the populated DB.
-    Uses FakeEmbeddings (same dim as indexing) and no reranker.
-    """
+    """Retriever pointing at the populated DB."""
     client = MilvusClient(populated_db)
     return Retriever(
         dense_model=FakeEmbeddings(size=2048),
@@ -135,7 +125,9 @@ def test_batch_retrieve_empty_queries(retriever):
 
 
 def test_get_documents_by_ids_returns_correct_docs(retriever):
-    docs = retriever.get_documents_by_ids(["doc-1", "doc-3"], collection_name=_COLLECTION)
+    docs = retriever.get_documents_by_ids(
+        ["doc-1", "doc-3"], collection_name=_COLLECTION
+    )
     assert len(docs) == 2
     returned_ids = {d.metadata["id"] for d in docs}
     assert returned_ids == {"doc-1", "doc-3"}
@@ -148,7 +140,9 @@ def test_get_documents_by_ids_empty_input(retriever):
 
 
 def test_get_documents_by_ids_unknown_id(retriever):
-    docs = retriever.get_documents_by_ids(["nonexistent-id"], collection_name=_COLLECTION)
+    docs = retriever.get_documents_by_ids(
+        ["nonexistent-id"], collection_name=_COLLECTION
+    )
     assert docs == []
 
 
@@ -165,7 +159,7 @@ def test_list_files_returns_all_documents(retriever):
 
 
 # ---------------------------------------------------------------------------
-# _get_relevant_documents() — LangChain interface
+# _get_relevant_documents()
 # ---------------------------------------------------------------------------
 
 

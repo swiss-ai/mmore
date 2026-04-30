@@ -33,8 +33,8 @@ def sample_jsonl(tmp_path):
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_insert(mock_sparse, tmp_path):
-    """Documents are actually written to a local Milvus Lite .db file."""
+def test_indexer_insert(mock_sparse, tmp_path):
+    """Check that documents are written to the Milvus database."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
@@ -54,8 +54,8 @@ def test_indexer_real_insert(mock_sparse, tmp_path):
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path):
-    """Metadata fields are stored as Milvus dynamic fields and retrievable."""
+def test_indexer_insert_preserves_metadata(mock_sparse, tmp_path):
+    """Check that metadata fields are stored and retrievable."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
@@ -79,8 +79,8 @@ def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path):
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_idempotent_collection(mock_sparse, tmp_path):
-    """Calling index_documents twice on the same collection appends rather than recreating."""
+def test_indexer_idempotent_collection(mock_sparse, tmp_path):
+    """Check that calling index_documents twice on the same collection appends."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
@@ -110,8 +110,8 @@ def test_indexer_real_idempotent_collection(mock_sparse, tmp_path):
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_run_index_real(mock_sparse, tmp_path, sample_jsonl):
-    """run_index.index() reads a real YAML config and populates a real Milvus Lite DB."""
+def test_run_index(mock_sparse, tmp_path, sample_jsonl):
+    """Check that run_index.index() reads config file and write to Milvus DB."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     db_path = str(tmp_path / "test.db")
@@ -140,7 +140,7 @@ def test_run_index_real(mock_sparse, tmp_path, sample_jsonl):
 
 @patch("mmore.index.indexer.SparseModel.from_config")
 def test_indexer_error_on_missing_collection(mock_sparse, tmp_path):
-    """Inserting directly to a non-existent collection raises an exception."""
+    """Check that inserting to a non-existent collection raises an exception."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)

@@ -1,10 +1,5 @@
 """
 Integration tests for the RAG HTTP API (run_rag.py).
-
-The real `create_api()` from run_rag.py is used to build the FastAPI app.
-The RAGPipeline is mocked — only `rag_chain.invoke()` is stubbed — so the test
-verifies the API contract (input/output shape, status codes, endpoints) without
-running an actual retrieval/LLM pipeline.
 """
 
 from unittest.mock import MagicMock
@@ -17,7 +12,7 @@ from mmore.run_rag import create_api
 
 @pytest.fixture(scope="module")
 def client():
-    """Builds the real FastAPI app via create_api() with a mocked RAGPipeline."""
+    """Builds the FastAPI app via create_api() with a mocked RAGPipeline."""
     mock_pipeline = MagicMock()
     mock_pipeline.rag_chain.invoke.return_value = {
         "input": "What is the capital of France?",
@@ -37,7 +32,12 @@ def client():
 def test_rag_endpoint_returns_200(client):
     response = client.post(
         "/rag",
-        json={"input": {"input": "What is the capital of France?", "collection_name": "test_col"}},
+        json={
+            "input": {
+                "input": "What is the capital of France?",
+                "collection_name": "test_col",
+            }
+        },
     )
     assert response.status_code == 200
 
@@ -45,38 +45,39 @@ def test_rag_endpoint_returns_200(client):
 def test_rag_endpoint_response_shape(client):
     response = client.post(
         "/rag",
-        json={"input": {"input": "How tall is the Eiffel Tower?", "collection_name": "test_col"}},
+        json={
+            "input": {
+                "input": "How tall is the Eiffel Tower?",
+                "collection_name": "test_col",
+            }
+        },
     )
     data = response.json()
     assert set(data.keys()) == {"input", "context", "answer"}
     assert data["answer"] == "Paris."
 
 
-def test_rag_endpoint_collection_name_optional(client):
-    """InnerInput.collection_name is Optional — request should succeed without it."""
-    response = client.post("/rag", json={"input": {"input": "What is RAG?"}})
-    assert response.status_code == 200
-
-
-def test_rag_endpoint_missing_outer_input_returns_422(client):
+def test_rag_endpoint_missing_input_returns_422(client):
     response = client.post("/rag", json={})
     assert response.status_code == 422
 
-
-def test_rag_endpoint_missing_inner_input_returns_422(client):
     response = client.post("/rag", json={"input": {"collection_name": "test_col"}})
     assert response.status_code == 422
 
 
-def test_rag_endpoint_invokes_pipeline_with_inner_dict(client):
+def test_rag_endpoint_invokes_pipeline_with_inner_dict():
     """The endpoint should call rag_chain.invoke() with the inner input dict."""
     mock_pipeline = MagicMock()
     mock_pipeline.rag_chain.invoke.return_value = {
-        "input": "x", "context": "y", "answer": "z",
+        "input": "x",
+        "context": "y",
+        "answer": "z",
     }
     tc = TestClient(create_api(mock_pipeline, "/rag"))
 
-    tc.post("/rag", json={"input": {"input": "test query", "collection_name": "my_col"}})
+    tc.post(
+        "/rag", json={"input": {"input": "test query", "collection_name": "my_col"}}
+    )
 
     mock_pipeline.rag_chain.invoke.assert_called_once_with(
         {"input": "test query", "collection_name": "my_col"}

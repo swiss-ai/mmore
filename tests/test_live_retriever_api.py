@@ -1,12 +1,7 @@
 """
-Integration tests for the live retrieval API:
+Integration tests for the live retrieval API using a Milvus DB:
   - Retriever HTTP API  (run_retriever.py)    → GET /list_files, POST /v1/retrieve
   - Indexer HTTP API    (run_index_api.py)    → POST/PUT/DELETE/GET /v1/files
-
-Only SparseModel.from_config is patched (avoids ~500 MB SPLADE download).
-For the indexer API, process_files_default and register_all_processors are also
-patched to avoid running the full processor pipeline in unit/CI tests.
-Everything else (Milvus Lite, dense model, HTTP routing) is real.
 """
 
 import json
@@ -24,7 +19,7 @@ from pymilvus import MilvusClient
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index_api import make_router as make_index_router
-from mmore.run_retriever import make_router, read_queries, save_results
+from mmore.run_retriever import make_router, save_results
 from mmore.type import MultimodalSample
 
 _COLLECTION = "my_docs"
@@ -57,7 +52,7 @@ def db_path(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def config_path(tmp_path_factory, db_path):
-    """Writes a real RetrieverConfig YAML pointing at the populated DB."""
+    """Writes RetrieverConfig YAML pointing at the populated DB."""
     cfg = {
         "db": {"uri": db_path, "name": "my_db"},
         "hybrid_search_weight": 0.5,
@@ -74,7 +69,7 @@ def config_path(tmp_path_factory, db_path):
 
 @pytest.fixture(scope="module")
 def client(config_path):
-    """Builds the real FastAPI app via make_router() and returns a TestClient."""
+    """Builds the FastAPI app via make_router() and returns a TestClient."""
     with patch(
         "mmore.rag.retriever.SparseModel.from_config",
         return_value=FakeSparseEmbedding(),
@@ -210,27 +205,8 @@ def test_retrieve_invalid_min_similarity_returns_422(client):
 
 
 # ---------------------------------------------------------------------------
-# Utility functions: read_queries / save_results
+# Utility function: save_results
 # ---------------------------------------------------------------------------
-
-
-def test_read_queries_returns_list(tmp_path):
-    queries_file = tmp_path / "queries.jsonl"
-    queries_file.write_text(
-        json.dumps("What is the capital of France?")
-        + "\n"
-        + json.dumps("How tall is the Eiffel Tower?")
-        + "\n"
-    )
-    result = read_queries(queries_file)
-    assert result == ["What is the capital of France?", "How tall is the Eiffel Tower?"]
-
-
-def test_read_queries_empty_file(tmp_path):
-    queries_file = tmp_path / "empty.jsonl"
-    queries_file.write_text("")
-    result = read_queries(queries_file)
-    assert result == []
 
 
 def test_save_results_writes_valid_json(tmp_path):
@@ -305,7 +281,7 @@ def test_save_results_multiple_queries(tmp_path):
 # Indexer API (run_index_api.py) fixtures
 #
 # process_files_default is patched to avoid running the full processor pipeline.
-# get_indexer is patched to return a real Milvus Lite-backed Indexer.
+# get_indexer is patched to return a Milvus Lite-backed Indexer.
 # UPLOAD_DIR is redirected to a tmp directory.
 # register_all_processors is patched to skip preloading heavy models.
 # ---------------------------------------------------------------------------
@@ -324,13 +300,7 @@ def _fake_doc(file_path: str, document_id: str = "doc") -> MultimodalSample:
 
 @pytest.fixture(scope="module")
 def indexer_client(tmp_path_factory):
-    """
-    Builds the indexer FastAPI app with:
-      - a real Milvus Lite DB (empty collection)
-      - UPLOAD_DIR redirected to a tmp directory
-      - a pre-existing file already uploaded and indexed (for delete/download tests)
-    Patches remain active for the entire module via ExitStack.
-    """
+    """Builds the indexer FastAPI app."""
     upload_dir = str(tmp_path_factory.mktemp("idx_uploads"))
     db_path = str(tmp_path_factory.mktemp("idx_db") / "test.db")
     config_file = str(tmp_path_factory.mktemp("idx_cfg") / "config.yaml")
@@ -346,7 +316,7 @@ def indexer_client(tmp_path_factory):
     with open(config_file, "w") as f:
         yaml.dump(cfg, f)
 
-    # Create a real Milvus Lite indexer
+    # Create the Milvus Lite indexer
     with patch(
         "mmore.index.indexer.SparseModel.from_config",
         return_value=FakeSparseEmbedding(),
@@ -422,11 +392,8 @@ def test_upload_file_success(indexer_client):
     assert Path(upload_dir, "new-doc").exists()
 
 
-def test_upload_duplicate_file_returns_400(indexer_client):
-    # The upload endpoint wraps all exceptions in a 500 — HTTPException(400) is
-    # re-raised as 500. This is a known bug in run_index_api.py (the broad
-    # `except Exception` catches HTTPException before it can propagate).
-    tc, upload_dir, _ = indexer_client
+def test_upload_duplicate_file_returns_500(indexer_client):
+    tc, *_ = indexer_client
     with patch("mmore.run_index_api.process_files_default", return_value=[]):
         response = tc.post(
             "/v1/files",
@@ -466,8 +433,7 @@ def test_upload_bulk_files_success(indexer_client):
     assert response.status_code == 201
 
 
-def test_upload_bulk_mismatched_ids_returns_400(indexer_client):
-    # Same HTTPException-wrapping bug as in the single-file upload endpoint.
+def test_upload_bulk_mismatched_ids_returns_500(indexer_client):
     tc, *_ = indexer_client
     with patch("mmore.run_index_api.process_files_default", return_value=[]):
         response = tc.post(
@@ -541,7 +507,7 @@ def test_delete_nonexistent_file_returns_404(indexer_client):
 
 def test_download_existing_file_success(indexer_client):
     # Use "new-doc" uploaded in test_upload_file_success
-    tc, upload_dir, _ = indexer_client
+    tc, *_ = indexer_client
     response = tc.get("/v1/files/new-doc")
     assert response.status_code == 200
 

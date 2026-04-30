@@ -7,11 +7,9 @@ from pymilvus import MilvusClient
 from mmore.rag.llm import LLMConfig
 from mmore.rag.retriever import Retriever
 
-_COLLECTION = "test_col"
-
 
 def test_retriever_initialization_real(tmp_path):
-    """Retriever initializes correctly against a real (empty) Milvus Lite client."""
+    """Check that retriever initializes correctly the Milvus Lite client."""
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     retriever = Retriever(
         dense_model=FakeEmbeddings(size=2048),
@@ -50,13 +48,13 @@ def test_llm_config_generation_kwargs():
 
 
 @pytest.mark.gpu
-def test_rerank_real(populated_db):
+def test_rerank(populated_db):
     """Reranking with bge-reranker-base on a real GPU runner."""
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available — this test requires a GPU")
+        raise RuntimeError("CUDA is not available (this test requires a GPU)")
     device = "cuda"
     tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-reranker-base")
     model = AutoModelForSequenceClassification.from_pretrained(

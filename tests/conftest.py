@@ -8,7 +8,7 @@ from mmore.type import MultimodalSample
 
 
 class FakeSparseEmbedding(BaseSparseEmbedding):
-    """Deterministic sparse embedder — no model download, runs on CPU."""
+    """Fake sparse embedder for test purposes."""
 
     def embed_query(self, query: str) -> Dict[int, float]:
         return {0: 1.0, 1: float(len(query))}
