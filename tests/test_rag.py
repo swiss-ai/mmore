@@ -1,11 +1,10 @@
+import pytest
+from conftest import FakeSparseEmbedding
 from langchain_community.embeddings import FakeEmbeddings
+from langchain_core.documents import Document
 from pymilvus import MilvusClient
-from unittest.mock import patch
 
-from conftest import SAMPLE_DOCS, FakeSparseEmbedding
-from mmore.index.indexer import Indexer
 from mmore.rag.llm import LLMConfig
-from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.rag.retriever import Retriever
 
 _COLLECTION = "test_col"
@@ -49,6 +48,7 @@ def test_llm_config_generation_kwargs():
     assert openai_config.provider == "OPENAI"
     assert openai_config.generation_kwargs["max_completion_tokens"] == 2000
 
+
 @pytest.mark.gpu
 def test_rerank_real(populated_db):
     """Reranking with bge-reranker-base on a real GPU runner."""
@@ -76,8 +76,24 @@ def test_rerank_real(populated_db):
     )
 
     docs = [
-        Document(page_content="Paris is the capital of France.", metadata={"rank": 1, "similarity": 0.9, "id": "1", "page_numbers": [], "paragraph_numbers": []}),
-        Document(page_content="Milvus is an open-source vector database.", metadata={"rank": 2, "similarity": 0.8, "id": "2", "page_numbers": [], "paragraph_numbers": []}),
+        Document(
+            page_content="Paris is the capital of France.",
+            metadata={
+                "rank": 1,
+                "similarity": 0.9,
+                "id": "1",
+                "paragraph_positions": [],
+            },
+        ),
+        Document(
+            page_content="Milvus is an open-source vector database.",
+            metadata={
+                "rank": 2,
+                "similarity": 0.8,
+                "id": "2",
+                "paragraph_positions": [],
+            },
+        ),
     ]
 
     reranked = retriever.rerank("France capital", docs)

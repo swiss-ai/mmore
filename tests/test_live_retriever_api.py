@@ -16,11 +16,11 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pymilvus import MilvusClient
 
-from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index_api import make_router as make_index_router
@@ -138,8 +138,6 @@ def test_retrieve_response_shape(client):
     assert "fileId" in result
     assert "content" in result
     assert "similarity" in result
-    assert "pageNumbers" in result
-    assert "paragraphNumbers" in result
 
 
 def test_retrieve_with_file_ids_filter(client):
@@ -219,8 +217,10 @@ def test_retrieve_invalid_min_similarity_returns_422(client):
 def test_read_queries_returns_list(tmp_path):
     queries_file = tmp_path / "queries.jsonl"
     queries_file.write_text(
-        json.dumps("What is the capital of France?") + "\n"
-        + json.dumps("How tall is the Eiffel Tower?") + "\n"
+        json.dumps("What is the capital of France?")
+        + "\n"
+        + json.dumps("How tall is the Eiffel Tower?")
+        + "\n"
     )
     result = read_queries(queries_file)
     assert result == ["What is the capital of France?", "How tall is the Eiffel Tower?"]
@@ -237,7 +237,18 @@ def test_save_results_writes_valid_json(tmp_path):
     from langchain_core.documents import Document
 
     queries = ["What is Paris?"]
-    docs = [Document(page_content="Paris is the capital.", metadata={"rank": 1, "similarity": 0.9, "id": "1", "page_numbers": [], "paragraph_numbers": []})]
+    docs = [
+        Document(
+            page_content="Paris is the capital.",
+            metadata={
+                "rank": 1,
+                "similarity": 0.9,
+                "id": "1",
+                "page_numbers": [],
+                "paragraph_numbers": [],
+            },
+        )
+    ]
     results = [docs]
     output_file = tmp_path / "results.json"
 
@@ -256,8 +267,30 @@ def test_save_results_multiple_queries(tmp_path):
 
     queries = ["query 1", "query 2"]
     results = [
-        [Document(page_content="doc A", metadata={"rank": 1, "similarity": 0.8, "id": "a", "page_numbers": [], "paragraph_numbers": []})],
-        [Document(page_content="doc B", metadata={"rank": 1, "similarity": 0.7, "id": "b", "page_numbers": [], "paragraph_numbers": []})],
+        [
+            Document(
+                page_content="doc A",
+                metadata={
+                    "rank": 1,
+                    "similarity": 0.8,
+                    "id": "a",
+                    "page_numbers": [],
+                    "paragraph_numbers": [],
+                },
+            )
+        ],
+        [
+            Document(
+                page_content="doc B",
+                metadata={
+                    "rank": 1,
+                    "similarity": 0.7,
+                    "id": "b",
+                    "page_numbers": [],
+                    "paragraph_numbers": [],
+                },
+            )
+        ],
     ]
     output_file = tmp_path / "results.json"
     save_results(results, queries, output_file)
@@ -314,11 +347,16 @@ def indexer_client(tmp_path_factory):
         yaml.dump(cfg, f)
 
     # Create a real Milvus Lite indexer
-    with patch("mmore.index.indexer.SparseModel.from_config", return_value=FakeSparseEmbedding()):
+    with patch(
+        "mmore.index.indexer.SparseModel.from_config",
+        return_value=FakeSparseEmbedding(),
+    ):
         milvus_client = MilvusClient(db_path, enable_sparse=True)
         the_indexer = Indexer(
             dense_model_config=DenseModelConfig(model_name="debug"),
-            sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
+            sparse_model_config=SparseModelConfig(
+                model_name="naver/splade-cocondenser-selfdistil"
+            ),
             client=milvus_client,
         )
 
@@ -334,7 +372,9 @@ def indexer_client(tmp_path_factory):
     stack = ExitStack()
     stack.enter_context(patch("mmore.run_index_api.UPLOAD_DIR", upload_dir))
     stack.enter_context(patch("mmore.run_index_api.register_all_processors"))
-    stack.enter_context(patch("mmore.run_index_api.get_indexer", return_value=the_indexer))
+    stack.enter_context(
+        patch("mmore.run_index_api.get_indexer", return_value=the_indexer)
+    )
 
     router = make_index_router(config_file)
     app = FastAPI()
@@ -409,7 +449,10 @@ def test_upload_bulk_files_success(indexer_client):
 
     with patch(
         "mmore.run_index_api.process_files_default",
-        return_value=[_fake_doc(fake_path_1, "bulk-1"), _fake_doc(fake_path_2, "bulk-2")],
+        return_value=[
+            _fake_doc(fake_path_1, "bulk-1"),
+            _fake_doc(fake_path_2, "bulk-2"),
+        ],
     ):
         response = tc.post(
             "/v1/files/bulk",
@@ -448,7 +491,6 @@ def test_update_existing_file_success(indexer_client):
     tc, upload_dir, _ = indexer_client
     update_id = "update-doc"
     Path(upload_dir, update_id).write_bytes(b"Original content.")
-    the_indexer = tc.app.router.routes  # not used, just confirming setup
 
     fake_path = str(Path(upload_dir) / "update-doc.txt")
     with patch(
