@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from pymilvus import MilvusClient
 
-from conftest import FakeSparseEmbedding
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index import index
@@ -15,38 +15,16 @@ from mmore.type import MultimodalSample
 
 
 @pytest.fixture
-def sample_documents():
-    return [
-        MultimodalSample(
-            id="doc-1",
-            document_id="doc-1",
-            text="Paris is the capital of France.",
-            modalities=[],
-            metadata={},
-        ),
-        MultimodalSample(
-            id="doc-2",
-            document_id="doc-2",
-            text="The Eiffel Tower stands 330 metres tall.",
-            modalities=[],
-            metadata={"author": "Alice"},
-        ),
-        MultimodalSample(
-            id="doc-3",
-            document_id="doc-3",
-            text="Milvus is an open-source vector database.",
-            modalities=[],
-            metadata={},
-        ),
-    ]
-
-
-@pytest.fixture
 def sample_jsonl(tmp_path):
     path = tmp_path / "sample_docs.jsonl"
     sample_data = [
         {"id": "1", "text": "Document text 1", "modalities": [], "metadata": {}},
-        {"id": "2", "text": "Document text 2", "modalities": [], "metadata": {"author": "Alice"}},
+        {
+            "id": "2",
+            "text": "Document text 2",
+            "modalities": [],
+            "metadata": {"author": "Alice"},
+        },
     ]
     with open(path, "w", encoding="utf-8") as f:
         for entry in sample_data:
@@ -54,38 +32,41 @@ def sample_jsonl(tmp_path):
     return path
 
 
-
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_insert(mock_sparse, tmp_path, sample_documents):
+def test_indexer_real_insert(mock_sparse, tmp_path):
     """Documents are actually written to a local Milvus Lite .db file."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
         dense_model_config=DenseModelConfig(model_name="debug"),
-        sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
         client=client,
     )
 
-    inserted = indexer.index_documents(sample_documents, collection_name="test_col")
+    inserted = indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
 
-    assert inserted == len(sample_documents)
+    assert inserted == len(SAMPLE_DOCS)
     stats = client.get_collection_stats("test_col")
-    assert int(stats["row_count"]) == len(sample_documents)
+    assert int(stats["row_count"]) == len(SAMPLE_DOCS)
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path, sample_documents):
+def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path):
     """Metadata fields are stored as Milvus dynamic fields and retrievable."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
         dense_model_config=DenseModelConfig(model_name="debug"),
-        sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
         client=client,
     )
-    indexer.index_documents(sample_documents, collection_name="test_col")
+    indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
 
     results = client.query(
         collection_name="test_col",
@@ -98,29 +79,34 @@ def test_indexer_real_insert_preserves_metadata(mock_sparse, tmp_path, sample_do
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_real_idempotent_collection(mock_sparse, tmp_path, sample_documents):
+def test_indexer_real_idempotent_collection(mock_sparse, tmp_path):
     """Calling index_documents twice on the same collection appends rather than recreating."""
     mock_sparse.return_value = FakeSparseEmbedding()
 
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
         dense_model_config=DenseModelConfig(model_name="debug"),
-        sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
         client=client,
     )
 
     extra = [
         MultimodalSample(
-            id="doc-4", document_id="doc-4", text="A fourth document.",
-            modalities=[], metadata={},
+            id="doc-4",
+            document_id="doc-4",
+            text="A fourth document.",
+            modalities=[],
+            metadata={},
         )
     ]
 
-    indexer.index_documents(sample_documents, collection_name="test_col")
+    indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
     indexer.index_documents(extra, collection_name="test_col")
 
     stats = client.get_collection_stats("test_col")
-    assert int(stats["row_count"]) == len(sample_documents) + len(extra)
+    assert int(stats["row_count"]) == len(SAMPLE_DOCS) + len(extra)
 
 
 @patch("mmore.index.indexer.SparseModel.from_config")
@@ -160,7 +146,9 @@ def test_indexer_error_on_missing_collection(mock_sparse, tmp_path):
     client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
     indexer = Indexer(
         dense_model_config=DenseModelConfig(model_name="debug"),
-        sparse_model_config=SparseModelConfig(model_name="naver/splade-cocondenser-selfdistil"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
         client=client,
     )
 
