@@ -1,14 +1,15 @@
 import logging
 import re
-from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import List, Optional, Tuple, cast
 
 from chonkie import BaseChunker, Chunk
 
-from ....type import DocumentMetadata, MultimodalSample
+from ....type import MultimodalSample
 from .. import BasePostProcessor
 from .utils import (
+    ChunkMetadata,
+    MultimodalChunkerConfig,
     TableRegion,
     _strip_table_row,
     _strip_table_text,
@@ -31,30 +32,6 @@ class TableHandlingMode(str, Enum):
     MULTI_ROWS = "multi_rows"
     KEEP_WHOLE = "keep_whole"
     NONE = "none"
-
-
-@dataclass
-class ChunkMetadata(DocumentMetadata):
-    paragraph_positions: List[List[int]] = field(default_factory=list)
-    is_table_chunk: bool = False
-    table_header: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        metadata = super().to_dict()
-        if self.paragraph_positions:
-            metadata["paragraph_positions"] = self.paragraph_positions
-        if self.is_table_chunk:
-            metadata["is_table_chunk"] = self.is_table_chunk
-        if self.table_header is not None:
-            metadata["table_header"] = self.table_header
-        return metadata
-
-
-@dataclass
-class MultimodalChunkerConfig:
-    chunking_strategy: str = "sentence"
-    text_chunker_config: Dict[str, Any] = field(default_factory=dict)
-    table_handling: str = "single_row"
 
 
 class MultimodalChunker(BasePostProcessor):

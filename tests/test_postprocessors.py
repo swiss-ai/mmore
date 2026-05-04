@@ -4,12 +4,11 @@ from typing import Dict, List, cast
 import pytest
 
 from mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
-from mmore.process.post_processor.chunker.multimodal import (
-    MultimodalChunker,
-    MultimodalChunkerConfig,
-)
+from mmore.process.post_processor.chunker.multimodal import MultimodalChunker
 from mmore.process.post_processor.chunker.utils import (
     _TABLE_ROW_RE,
+    ChunkMetadata,
+    MultimodalChunkerConfig,
     _strip_separator_cell,
     _strip_table_row,
     _strip_table_text,
@@ -197,14 +196,16 @@ def test_ner_process():
     recognizer = NERecognizer.from_config(config)
 
     sample = MultimodalSample(
-        text="Some irrelevant text", modalities=[], metadata=DocumentMetadata, id="1"
+        text="Some irrelevant text", modalities=[], metadata=ChunkMetadata(), id="1"
     )
     processed_samples = recognizer.process(sample)
 
     # The process() method should return a list with one sample.
     assert isinstance(processed_samples, list), "Expected process() to return a list."
     # The sample's metadata should include an 'ner' key.
-    assert "ner" in sample.metadata, "Expected sample.metadata to include key 'ner'."
+    assert "ner" in sample.metadata.extra, (
+        "Expected sample.metadata to include key 'ner'."
+    )
 
     ner_entities: List[Dict[str, str]] = cast(
         List[Dict[str, str]], sample.metadata.extra["ner"]
@@ -295,13 +296,16 @@ def test_tagger_process_words_counter():
     config = BaseTaggerConfig(type="words_counter", args={})
     tagger = load_tagger(config)
     sample = MultimodalSample(
-        text="Hello world, this is a test", modalities=[], metadata={}, id="1"
+        text="Hello world, this is a test",
+        modalities=[],
+        metadata=DocumentMetadata(),
+        id="1",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.text.split())
     # WordsCounter's default metadata_key is set in its __init__ to 'word_count'
-    assert sample.metadata.get("word_count") == expected_count, (
-        f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
+    assert sample.metadata.extra.get("word_count") == expected_count, (
+        f"Expected word_count {expected_count}, got {sample.metadata.extra.get('word_count')}"
     )
     assert isinstance(processed, list), "Expected process() to return a list."
 
@@ -320,14 +324,14 @@ def test_tagger_process_modalities_counter():
             MultimodalRawInput(type="image", value="img2"),
             MultimodalRawInput(type="video", value="video1"),
         ],
-        metadata={},
+        metadata=DocumentMetadata(),
         id="2",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.modalities)
     # ModalitiesCounter's default metadata_key is 'modalities_count'
-    assert sample.metadata.get("modalities_count") == expected_count, (
-        f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
+    assert sample.metadata.extra.get("modalities_count") == expected_count, (
+        f"Expected modalities_count {expected_count}, got {sample.metadata.extra.get('modalities_count')}"
     )
     assert isinstance(processed, list), "Expected process() to return a list."
 
@@ -343,11 +347,11 @@ def test_tagger_process_lang_detector():
     sample = MultimodalSample(
         text="Hello world, this is an English sentence.",
         modalities=[],
-        metadata={},
+        metadata=DocumentMetadata(),
         id="3",
     )
     processed = tagger.process(sample)
-    detected_lang = sample.metadata.get("lang")
+    detected_lang = sample.metadata.extra.get("lang")
     # langdetect typically returns "en" for English.
     assert detected_lang in [
         "en",
