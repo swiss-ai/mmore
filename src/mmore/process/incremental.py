@@ -74,7 +74,6 @@ def is_reusable_process(file_path: str, previous: Dict[str, MultimodalSample]) -
     if processed_at_str is None:
         return False
 
-    processed_at_str = str(processed_at_value)
     processed_at = datetime.fromisoformat(processed_at_str)
     if not os.path.exists(file_path):
         return False
@@ -103,7 +102,6 @@ def is_reusable_postprocess(
         timestamp_str = s.metadata.processed_at
         if timestamp_str is None:
             return False
-        timestamp_str = str(timestamp_value)
         timestamps.append(datetime.fromisoformat(timestamp_str))
 
     return datetime.fromisoformat(input_processed_at) <= min(timestamps)
