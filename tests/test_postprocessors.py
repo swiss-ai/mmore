@@ -585,32 +585,40 @@ class TestMultimodalChunkerTableHandling:
     def test_no_tables_unchanged_behavior(self):
         chunker = self._make_chunker()
         sample = MultimodalSample(
-            text="Hello world. This is a test.", modalities=[], metadata={}
+            text="Hello world. This is a test.",
+            modalities=[],
+            metadata=DocumentMetadata(),
         )
         chunks = chunker.chunk(sample)
         assert len(chunks) >= 1
         for c in chunks:
-            assert "is_table_chunk" not in c.metadata
+            assert isinstance(c.metadata, ChunkMetadata)
 
     def test_large_table_split_with_headers(self):
         big_table = _make_long_table(50)
         chunker = self._make_chunker(table_handling="multi_rows", chunk_size=30)
-        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=big_table, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) > 1
         # Every chunk has the header prepended
         for c in chunks:
-            assert c.metadata.get("is_table_chunk") is True
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is True
             assert c.text.startswith(LARGE_TABLE_HEADER)
 
     def test_table_handling_single_row(self):
         chunker = self._make_chunker(table_handling="single_row", chunk_size=512)
-        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=SIMPLE_TABLE, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) == 3
         # Every chunk has the header prepended
         for c in chunks:
-            assert c.metadata.get("is_table_chunk") is True
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is True
             assert c.text.startswith("| Name | Age | City |")
         assert "Alice" in chunks[0].text
         assert "Bob" in chunks[1].text
@@ -618,29 +626,45 @@ class TestMultimodalChunkerTableHandling:
 
     def test_mixed_content_chunking(self):
         chunker = self._make_chunker(chunk_size=512)
-        sample = MultimodalSample(text=MIXED_TEXT, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=MIXED_TEXT, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) >= 2  # at least text + table
-        table_chunks = [c for c in chunks if c.metadata.get("is_table_chunk")]
-        non_table_chunks = [c for c in chunks if not c.metadata.get("is_table_chunk")]
+
+        table_chunks = []
+        non_table_chunks = []
+        for c in chunks:
+            assert isinstance(c.metadata, ChunkMetadata)
+            if c.metadata.is_table_chunk:
+                table_chunks.append(c)
+            else:
+                non_table_chunks.append(c)
+
         assert len(table_chunks) >= 1
         assert len(non_table_chunks) >= 1
 
     def test_table_handling_none(self):
         chunker = self._make_chunker(table_handling="none", chunk_size=512)
-        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=SIMPLE_TABLE, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         for c in chunks:
-            assert "is_table_chunk" not in c.metadata
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is False
 
     def test_table_handling_keep_whole(self):
         big_table = _make_long_table(50)
         chunker = self._make_chunker(table_handling="keep_whole", chunk_size=30)
-        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=big_table, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         # Should be a single chunk even though it exceeds chunk_size
         assert len(chunks) == 1
-        assert chunks[0].metadata.get("is_table_chunk") is True
+        assert isinstance(chunks[0].metadata, ChunkMetadata)
+        assert chunks[0].metadata.is_table_chunk is True
 
     def test_invalid_table_handling_mode(self):
         with pytest.raises(ValueError, match="Invalid table_handling mode"):
