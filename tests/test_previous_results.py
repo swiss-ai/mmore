@@ -259,7 +259,7 @@ class TestMergeResults:
 
         result = merge_results(reused, new_results, current_files)
         assert len(result) == 2
-        file_paths = {r.metadata["file_path"] for r in result}
+        file_paths = {str(r.metadata["file_path"]) for r in result}
         assert file_paths == {"/data/a.pdf", "/data/b.txt"}
 
     def test_drops_deleted_files(self, make_sample):

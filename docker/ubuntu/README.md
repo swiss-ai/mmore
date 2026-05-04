@@ -40,8 +40,8 @@ sudo docker build -f docker/ubuntu/Dockerfile --build-arg USER_UID=$(id -u) --bu
 
 ```bash
 # GPU
-sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore
+sudo docker run --gpus all -it -v ./examples:/app/examples -v ./.cache:/home/mmoreuser/.cache mmore
 
 # CPU-only
-sudo docker run -it -v ./examples:/app/examples -v ./.cache:/mmoreuser/.cache mmore:cpu
+sudo docker run -it -v ./examples:/app/examples -v ./.cache:/home/mmoreuser/.cache mmore:cpu
 ```

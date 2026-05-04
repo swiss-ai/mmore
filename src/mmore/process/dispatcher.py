@@ -74,7 +74,6 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
-    dashboard_backend_url: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -91,7 +90,6 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
-            dashboard_backend_url=config.get("dashboard_backend_url", None),
         )
 
     @staticmethod
@@ -117,7 +115,6 @@ class DispatcherConfig:
             "process_batch_sizes": self.process_batch_sizes,
             "batch_multiplier": self.batch_multiplier,
             "extract_images": self.extract_images,
-            "dashboard_backend_url": self.dashboard_backend_url,
         }
 
     def __str__(self) -> str:
@@ -132,7 +129,6 @@ class DispatcherConfig:
             f"process_batch_sizes={self.process_batch_sizes}, "
             f"batch_multiplier={self.batch_multiplier}"
             f"extract_images={self.extract_images}"
-            f"dashboard_backend_url={self.dashboard_backend_url}"
             f")"
         )
 
@@ -210,7 +206,6 @@ class Dispatcher:
                     processor_config["extract_images"] = self.config.extract_images
 
                     full_config = ProcessorConfig(
-                        dashboard_backend_url=self.config.dashboard_backend_url,
                         custom_config=processor_config,
                     )
 
@@ -270,7 +265,6 @@ class Dispatcher:
             )
 
             processor_config = ProcessorConfig(
-                dashboard_backend_url=self.config.dashboard_backend_url,
                 custom_config=processor_config,
             )
 

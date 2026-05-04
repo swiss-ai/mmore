@@ -26,7 +26,8 @@ def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
     keeping the latest ``processed_at`` if there are any duplicates."""
     samples_by_file_path: Dict[str, List[MultimodalSample]] = {}
     for sample in _iter_samples_jsonl(path):
-        samples_by_file_path.setdefault(sample.metadata.file_path, []).append(sample)
+        filepath = str(sample.metadata["file_path"])
+        samples_by_file_path.setdefault(filepath, []).append(sample)
 
     index: Dict[str, MultimodalSample] = {}
     for file_path, samples in samples_by_file_path.items():
@@ -73,6 +74,7 @@ def is_reusable_process(file_path: str, previous: Dict[str, MultimodalSample]) -
     if processed_at_str is None:
         return False
 
+    processed_at_str = str(processed_at_value)
     processed_at = datetime.fromisoformat(processed_at_str)
     if not os.path.exists(file_path):
         return False
@@ -101,6 +103,7 @@ def is_reusable_postprocess(
         timestamp_str = s.metadata.processed_at
         if timestamp_str is None:
             return False
+        timestamp_str = str(timestamp_value)
         timestamps.append(datetime.fromisoformat(timestamp_str))
 
     return datetime.fromisoformat(input_processed_at) <= min(timestamps)
