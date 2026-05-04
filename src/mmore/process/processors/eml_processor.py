@@ -105,4 +105,6 @@ class EMLProcessor(Processor):
                 else:
                     embedded_images = []
 
-        return self.create_sample(all_text, embedded_images, DocumentMetadata(file_path=file_path))
+        return self.create_sample(
+            all_text, embedded_images, DocumentMetadata(file_path=file_path)
+        )

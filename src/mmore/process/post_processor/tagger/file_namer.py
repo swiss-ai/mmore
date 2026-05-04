@@ -25,7 +25,7 @@ class FileNamer(BaseTagger):
     def tag(self, sample):
         if not sample.metadata.file_path:
             return "unknown"
-    
+
         return os.path.basename(sample.metadata.file_path)
 
     @classmethod

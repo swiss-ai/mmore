@@ -111,4 +111,6 @@ class PPTXProcessor(Processor):
         except Exception as e:
             logger.error(f"[PPTX] Error processing slides in {file_path}: {e}")
 
-        return self.create_sample(all_text, embedded_images, DocumentMetadata(file_path=file_path))
+        return self.create_sample(
+            all_text, embedded_images, DocumentMetadata(file_path=file_path)
+        )

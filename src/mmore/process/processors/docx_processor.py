@@ -13,7 +13,12 @@ from mammoth.documents import Image as m_Image
 from markdownify import markdownify
 from PIL import Image
 
-from ...type import DocumentMetadata, FileDescriptor, MultimodalRawInput, MultimodalSample
+from ...type import (
+    DocumentMetadata,
+    FileDescriptor,
+    MultimodalRawInput,
+    MultimodalSample,
+)
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)

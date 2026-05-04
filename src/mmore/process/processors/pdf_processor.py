@@ -1,8 +1,8 @@
 import io
 import logging
 import re
-from multiprocessing import Manager, Process, set_start_method
 from dataclasses import dataclass, field
+from multiprocessing import Manager, Process, set_start_method
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import pymupdf

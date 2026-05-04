@@ -32,6 +32,7 @@ class TableHandlingMode(str, Enum):
     KEEP_WHOLE = "keep_whole"
     NONE = "none"
 
+
 @dataclass
 class ChunkMetadata(DocumentMetadata):
     paragraph_positions: List[List[int]] = field(default_factory=list)
@@ -250,7 +251,9 @@ class MultimodalChunker(BasePostProcessor):
                 extra=sample.metadata.extra.copy(),
                 paragraph_positions=para_positions,
                 is_table_chunk=table is not None,
-                table_header=_strip_table_text(table.header) if table is not None else None,
+                table_header=_strip_table_text(table.header)
+                if table is not None
+                else None,
             )
 
             s = MultimodalSample(
