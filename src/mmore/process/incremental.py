@@ -26,7 +26,7 @@ def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
     keeping the latest ``processed_at`` if there are any duplicates."""
     samples_by_file_path: Dict[str, List[MultimodalSample]] = {}
     for sample in _iter_samples_jsonl(path):
-        filepath = str(sample.metadata["file_path"])
+        filepath = str(sample.metadata.file_path)
         samples_by_file_path.setdefault(filepath, []).append(sample)
 
     index: Dict[str, MultimodalSample] = {}

@@ -26,7 +26,7 @@ from mmore.process.post_processor.tagger.lang_detector import LangDetector
 from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
 from mmore.process.post_processor.tagger.words import WordsCounter
 from mmore.rag.llm import LLM, LLMConfig
-from mmore.type import MultimodalRawInput, MultimodalSample
+from mmore.type import DocumentMetadata, MultimodalRawInput, MultimodalSample
 
 
 # ------------------ Chunker Tests ------------------
@@ -52,7 +52,7 @@ def test_chunker_process():
     )
     chunker = MultimodalChunker.from_config(config)
     sample = MultimodalSample(
-        text="Hello world. This is a test.", modalities=[], metadata={}
+        text="Hello world. This is a test.", modalities=[], metadata=DocumentMetadata()
     )
     chunks = chunker.process(sample)
     # Expect 2 chunks for the 2 sentences
@@ -122,7 +122,9 @@ def test_filter_process():
         def filter(self, sample: MultimodalSample) -> bool:
             return False
 
-    sample = MultimodalSample(text="Sample text", modalities=[], metadata={}, id="1")
+    sample = MultimodalSample(
+        text="Sample text", modalities=[], metadata=DocumentMetadata(), id="1"
+    )
 
     accept_filter = DummyAcceptFilter("dummy_accept")
     accepted = accept_filter.process(sample)
@@ -195,7 +197,7 @@ def test_ner_process():
     recognizer = NERecognizer.from_config(config)
 
     sample = MultimodalSample(
-        text="Some irrelevant text", modalities=[], metadata={}, id="1"
+        text="Some irrelevant text", modalities=[], metadata=DocumentMetadata, id="1"
     )
     processed_samples = recognizer.process(sample)
 
@@ -205,7 +207,7 @@ def test_ner_process():
     assert "ner" in sample.metadata, "Expected sample.metadata to include key 'ner'."
 
     ner_entities: List[Dict[str, str]] = cast(
-        List[Dict[str, str]], sample.metadata["ner"]
+        List[Dict[str, str]], sample.metadata.extra["ner"]
     )
     # We expect one entity: HELLO WORLD as an ORGANIZATION with the given description.
     assert len(ner_entities) == 1, f"Expected 1 entity, got {len(ner_entities)}."

@@ -259,7 +259,7 @@ class TestMergeResults:
 
         result = merge_results(reused, new_results, current_files)
         assert len(result) == 2
-        file_paths = {str(r.metadata["file_path"]) for r in result}
+        file_paths = {r.metadata.file_path for r in result}
         assert file_paths == {"/data/a.pdf", "/data/b.txt"}
 
     def test_drops_deleted_files(self, make_sample):
@@ -273,7 +273,7 @@ class TestMergeResults:
 
         result = merge_results(reused, new_results, current_files)
         assert len(result) == 1
-        assert result[0].metadata["file_path"] == "/data/b.txt"
+        assert result[0].metadata.file_path == "/data/b.txt"
 
     def test_empty_reused_returns_only_new(self, make_sample):
         current_files = {"/data/b.txt"}
@@ -281,7 +281,7 @@ class TestMergeResults:
 
         result = merge_results({}, new_results, current_files)
         assert len(result) == 1
-        assert result[0].metadata["file_path"] == "/data/b.txt"
+        assert result[0].metadata.file_path == "/data/b.txt"
 
     def test_empty_new_returns_only_reused(self, make_sample):
         current_files = {"/data/a.pdf"}
@@ -293,7 +293,7 @@ class TestMergeResults:
 
         result = merge_results(reused, [], current_files)
         assert len(result) == 1
-        assert result[0].metadata["file_path"] == "/data/a.pdf"
+        assert result[0].metadata.file_path == "/data/a.pdf"
 
     def test_both_empty_returns_empty_list(self):
         assert merge_results({}, [], set()) == []
@@ -319,4 +319,4 @@ class TestMergeResults:
 
         result = merge_results({}, new_results, current_files)
         assert len(result) == 1
-        assert result[0].metadata["file_path"] == "/data/a.pdf"
+        assert result[0].metadata.file_path == "/data/a.pdf"
