@@ -23,14 +23,12 @@ IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 @dataclass
 class PDFMetadata(DocumentMetadata):
     paragraph_starts: List[Tuple[int, int, int]] = field(default_factory=list)
-    document_type: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         metadata = super().to_dict()
         if self.paragraph_starts:
             metadata["paragraph_starts"] = self.paragraph_starts
-        if self.document_type is not None:
-            metadata["document_type"] = self.document_type
+
         return metadata
 
 
@@ -281,11 +279,7 @@ class PDFProcessor(Processor):
                 embedded_images = []
 
         paragraph_starts.append((current_position, -1, -1))
-        metadata = PDFMetadata(
-            file_path=file_path,
-            paragraph_starts=paragraph_starts,
-            document_type="pdf",
-        )
+        metadata = PDFMetadata(file_path=file_path, paragraph_starts=paragraph_starts)
 
         full_text = "".join(all_text_parts)
         return self.create_sample([full_text], embedded_images, metadata)
