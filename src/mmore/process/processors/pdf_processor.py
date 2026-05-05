@@ -1,8 +1,9 @@
 import io
 import logging
 import re
+from dataclasses import dataclass, field
 from multiprocessing import Manager, Process, set_start_method
-from typing import List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import pymupdf
 import torch
@@ -12,11 +13,23 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from PIL import Image, UnidentifiedImageError
 
-from ...type import FileDescriptor, MultimodalSample
+from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
 from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
 IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
+
+
+@dataclass
+class PDFMetadata(DocumentMetadata):
+    paragraph_starts: List[Tuple[int, int, int]] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        metadata = super().to_dict()
+        if self.paragraph_starts:
+            metadata["paragraph_starts"] = self.paragraph_starts
+
+        return metadata
 
 
 class PDFProcessor(Processor):
@@ -148,9 +161,9 @@ class PDFProcessor(Processor):
 
         paragraph_starts, text = self._parse_pagination(cast(str, text))
 
-        metadata = {"file_path": file_path}
+        metadata = PDFMetadata(file_path=file_path)
         if paragraph_starts:
-            metadata["paragraph_starts"] = paragraph_starts
+            metadata.paragraph_starts = paragraph_starts
 
         return self.create_sample([text], images, metadata)
 
@@ -266,11 +279,7 @@ class PDFProcessor(Processor):
                 embedded_images = []
 
         paragraph_starts.append((current_position, -1, -1))
-        metadata = {
-            "file_path": file_path,
-            "paragraph_starts": paragraph_starts,
-            "document_type": "pdf",
-        }
+        metadata = PDFMetadata(file_path=file_path, paragraph_starts=paragraph_starts)
 
         full_text = "".join(all_text_parts)
         return self.create_sample([full_text], embedded_images, metadata)
