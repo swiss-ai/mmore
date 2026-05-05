@@ -1,11 +1,12 @@
 import logging
 import re
 from enum import Enum
-from typing import List, Optional, Tuple, cast
+from typing import List, Optional
 
 from chonkie import BaseChunker, Chunk
 
 from ....type import MultimodalSample
+from ...processors.pdf_processor import PDFMetadata
 from .. import BasePostProcessor
 from .utils import (
     ChunkMetadata,
@@ -249,10 +250,11 @@ class MultimodalChunker(BasePostProcessor):
     ) -> List[List[List[int]]]:
         """Assign paragraph numbers (per-page) using paragraph start positions."""
         para_info_chunks: List[List[List[int]]] = []
-        paragraph_starts = cast(
-            List[Tuple[int, int, int]],
-            getattr(sample.metadata, "paragraph_starts", []),
-        )
+
+        if isinstance(sample.metadata, PDFMetadata):
+            paragraph_starts = sample.metadata.paragraph_starts
+        else:
+            paragraph_starts = []
 
         if len(paragraph_starts) == 0:
             return [[] for _ in text_chunks]
