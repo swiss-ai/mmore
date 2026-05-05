@@ -211,7 +211,9 @@ class MultimodalChunker(BasePostProcessor):
 
         # Chunk modalities according to the text chunks
         modalities_chunks = MultimodalChunker._chunk_modalities(sample, text_chunks)
-        para_info_chunks = self._assign_paragraph_positions(sample, text_chunks)
+        para_info_chunks = MultimodalChunker._assign_paragraph_positions(
+            sample, text_chunks
+        )
 
         chunks = []
         for i, (chunk, mods, para_positions) in enumerate(
@@ -241,8 +243,9 @@ class MultimodalChunker(BasePostProcessor):
 
         return chunks
 
+    @staticmethod
     def _assign_paragraph_positions(
-        self, sample: MultimodalSample, text_chunks: List[Chunk]
+        sample: MultimodalSample, text_chunks: List[Chunk]
     ) -> List[List[List[int]]]:
         """Assign paragraph numbers (per-page) using paragraph start positions."""
         para_info_chunks: List[List[List[int]]] = []
