@@ -277,4 +277,3 @@ def _text_index_to_chunk_index(index: int, chunks: List[Chunk]) -> Optional[int]
     for i, chunk in enumerate(chunks):
         if chunk.start_index <= index < chunk.end_index:
             return i
-    return None
