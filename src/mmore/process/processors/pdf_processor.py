@@ -1,6 +1,10 @@
+import asyncio
+import base64
 import io
 import logging
+import os
 import re
+import time
 from dataclasses import dataclass
 from multiprocessing import Manager, Process, set_start_method
 from typing import List, Optional, Tuple, cast
@@ -21,6 +25,7 @@ IMG_REGEX = r"!\[\]\(_page_\d+_[A-Za-z0-9_]+\.(jpeg|jpg|png|gif)\)"
 
 PDF_BACKEND_MARKER = "marker"
 PDF_BACKEND_PYMUPDF4LLM = "pymupdf4llm"
+PDF_BACKEND_MISTRAL = "mistral"
 
 
 @dataclass
@@ -37,15 +42,30 @@ class PDFProcessorConfig(ProcessorConfig):
             * ``"pymupdf4llm"`` - LLM-friendly markdown extraction via
               `pymupdf4llm <https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/>`_;
               much faster, but does **not** OCR scanned documents.
+            * ``"mistral"`` - cloud OCR via Mistral's ``mistral-ocr-latest``
+              endpoint. Sends each PDF to the API; reads the API key from the
+              ``MISTRAL_API_KEY`` environment variable (loaded from a ``.env``
+              file at the project root by :mod:`mmore.run_process`).
+
+        mistral_model: Mistral OCR model name (default
+            ``"mistral-ocr-latest"``).
+        mistral_max_calls_per_second: Outbound rate limit when batch-processing
+            with the Mistral backend.
+        mistral_max_retries: Number of retries (with exponential backoff) on
+            transient Mistral API failures.
 
     Example YAML (inside the ``processors:`` block of your config file)::
 
         processors:
           PDFProcessor:
-            backend: pymupdf4llm
+            backend: mistral
+            mistral_model: mistral-ocr-latest
     """
 
     backend: str = PDF_BACKEND_MARKER
+    mistral_model: str = "mistral-ocr-latest"
+    mistral_max_calls_per_second: int = 5
+    mistral_max_retries: int = 3
 
 
 class PDFProcessor(Processor):
@@ -55,6 +75,7 @@ class PDFProcessor(Processor):
     def __init__(self, config=None):
         super().__init__(config=config or PDFProcessorConfig())
         self.converter = None
+        self._mistral_client = None
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -86,6 +107,20 @@ class PDFProcessor(Processor):
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
     ) -> List[MultimodalSample]:
+        backend = getattr(self.config, "backend", PDF_BACKEND_MARKER)
+
+        if backend == PDF_BACKEND_MISTRAL and not fast_mode:
+            return self._process_batch_mistral(files_paths)
+
+        if backend == PDF_BACKEND_PYMUPDF4LLM and not fast_mode:
+            results: List[MultimodalSample] = []
+            for file_path in files_paths:
+                try:
+                    results.append(self.process(file_path))
+                except Exception as e:
+                    logging.error(f"Failed to process {file_path}: {str(e)}")
+            return results
+
         if fast_mode:  # No GPU available - fallback to default
             return super().process_batch(files_paths, fast_mode, num_workers)
         else:
@@ -165,6 +200,8 @@ class PDFProcessor(Processor):
         backend = getattr(self.config, "backend", PDF_BACKEND_MARKER)
         if backend == PDF_BACKEND_PYMUPDF4LLM:
             return self._process_pymupdf4llm(file_path)
+        if backend == PDF_BACKEND_MISTRAL:
+            return self._process_mistral(file_path)
         if backend != PDF_BACKEND_MARKER:
             logging.warning(
                 f"Unknown PDF backend '{backend}', falling back to '{PDF_BACKEND_MARKER}'."
@@ -281,6 +318,129 @@ class PDFProcessor(Processor):
                 f"Unexpected error while extracting image for xref {xref}: {e}"
             )
             return None
+
+    def _get_mistral_client(self):
+        if self._mistral_client is not None:
+            return self._mistral_client
+        try:
+            from mistralai import Mistral
+        except ImportError as e:
+            raise ImportError(
+                "mistralai is required when PDFProcessor.backend='mistral'. "
+                "Install it with `pip install mistralai` or reinstall the "
+                "`process` extra: `pip install -e .[process]`."
+            ) from e
+
+        api_key = os.environ.get("MISTRAL_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "Mistral backend requires the MISTRAL_API_KEY environment "
+                "variable. Add it to your .env file at the project root."
+            )
+        self._mistral_client = Mistral(api_key=api_key)
+        return self._mistral_client
+
+    @staticmethod
+    def _encode_pdf_b64(pdf_path: str) -> str:
+        with open(pdf_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+
+    @staticmethod
+    def _decode_b64_image(image_base64: str) -> Optional[Image.Image]:
+        try:
+            if image_base64.startswith("data:"):
+                image_base64 = image_base64.split(",", 1)[1]
+            return Image.open(io.BytesIO(base64.b64decode(image_base64))).convert("RGB")
+        except Exception as e:
+            logging.error(f"Error decoding image from base64: {e}")
+            return None
+
+    def _mistral_call_with_retry(self, func, *args, **kwargs):
+        max_retries = self.config.mistral_max_retries
+        for i in range(max_retries + 1):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if i == max_retries:
+                    logging.error(
+                        f"Mistral API call failed after {max_retries + 1} attempts: {e}"
+                    )
+                    raise
+                wait_time = min(2**i, 60)
+                time.sleep(wait_time)
+
+    def _process_batch_mistral(
+        self, files_paths: List[str]
+    ) -> List[MultimodalSample]:
+        rate = max(1, self.config.mistral_max_calls_per_second)
+        min_interval = 1.0 / rate
+
+        async def run() -> List[MultimodalSample]:
+            loop = asyncio.get_event_loop()
+            results: List[MultimodalSample] = []
+            tasks: List[Tuple[asyncio.Task, str]] = []
+
+            for file_path in files_paths:
+                task = loop.run_in_executor(None, self._process_mistral, file_path)
+                tasks.append((cast(asyncio.Task, task), file_path))
+                await asyncio.sleep(min_interval)
+
+            for task, file_path in tasks:
+                try:
+                    results.append(await task)
+                except Exception as e:
+                    logging.error(f"Failed to process {file_path}: {e}")
+            return results
+
+        return asyncio.run(run())
+
+    def _process_mistral(self, file_path: str) -> MultimodalSample:
+        client = self._get_mistral_client()
+        b64 = self._encode_pdf_b64(file_path)
+
+        ocr_response = self._mistral_call_with_retry(
+            client.ocr.process,
+            model=self.config.mistral_model,
+            document={
+                "type": "document_url",
+                "document_url": f"data:application/pdf;base64,{b64}",
+            },
+            include_image_base64=True,
+        )
+
+        all_text_parts: List[str] = []
+        embedded_images: List[Image.Image] = []
+        attachment_tag = self.config.attachment_tag
+
+        pages = getattr(ocr_response, "pages", None)
+        if pages is None and isinstance(ocr_response, dict):
+            pages = ocr_response.get("pages", [])
+
+        for page in pages or []:
+            text = getattr(page, "markdown", None)
+            page_images = getattr(page, "images", None)
+            if text is None and isinstance(page, dict):
+                text = page.get("markdown", "")
+                page_images = page.get("images", [])
+
+            for img in page_images or []:
+                img_id = getattr(img, "id", None) or img.get("id")
+                img_b64 = getattr(img, "image_base64", None) or img.get("image_base64")
+                if img_id and text:
+                    text = text.replace(img_id, attachment_tag)
+                if self.config.extract_images and img_b64:
+                    decoded = self._decode_b64_image(img_b64)
+                    if decoded is not None:
+                        embedded_images.append(decoded)
+
+            if text:
+                all_text_parts.append(text)
+
+        return self.create_sample(
+            all_text_parts,
+            embedded_images,
+            {"file_path": file_path, "document_type": "pdf"},
+        )
 
     @classmethod
     def _parse_pagination(

@@ -30,4 +30,14 @@ processors:
     #   pymupdf4llm  - LLM-friendly markdown via pymupdf4llm; much faster
     #                  but does not OCR scanned documents.
     #                  See https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
+    #   mistral      - cloud OCR via Mistral's `mistral-ocr-latest` API;
+    #                  high quality on scanned documents and multilingual
+    #                  content. Requires a Mistral API key
+    #                  (mistral_api_key field below or MISTRAL_API_KEY env var).
     backend: marker
+    # Mistral backend options (only used when backend: mistral)
+    # mistral_api_key: $MISTRAL_API_KEY
+    # mistral_model: mistral-ocr-latest
+    # mistral_max_calls_per_second: 5
+    # mistral_max_retries: 3
+
