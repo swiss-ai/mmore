@@ -15,16 +15,36 @@ This lets the model answer using textual context and visual evidence from your i
 
 To use multimodal RAG:
 
-1. process and index documents that contain images
-2. choose a vision-capable model in `llm_name` (for example `Qwen/Qwen2.5-VL-3B-Instruct`)
-3. enable vision mode in the RAG config with `use_vision: true`
-4. run the regular RAG command
+1. Process documents that contain images, then **index** them. Set `indexer.dense_model.is_multimodal: true` only if you want multimodal **dense** retrieval; re-index after changing the dense model.
+2. In the RAG config, pick a vision-capable `llm_name` (for example `Qwen/Qwen2.5-VL-3B-Instruct`) when using vision generation.
+3. Set `rag.llm.use_vision: true` so answers receive loaded images; use `rag.max_images_per_request` to cap how many images per query. With `use_vision: false`, generation stays text-only.
+4. Run `python3 -m mmore index --config_file /path/to/index.yaml`, then `python3 -m mmore rag --config-file /path/to/rag.yaml` (batch/API as in [RAG](rag.md)).
 
-When `use_vision: false`, MMORE falls back to text-only RAG.
+`is_multimodal` (index → dense embeddings) and `use_vision` (RAG → generation) are independent.
 
-## Minimal Example
+### Minimal Example
 
-### 1. Configure RAG for vision mode
+#### 1. Configure indexer for vision mode
+
+To enable retrieval-time multimodal embeddings, set `is_multimodal: true` in your indexing config, then re-index.
+Use the same structure as `examples/index/config.yaml`:
+
+```yaml
+indexer:
+  dense_model:
+    model_name: Qwen/Qwen2.5-VL-3B-Instruct
+    is_multimodal: true
+  sparse_model:
+    model_name: splade
+    is_multimodal: false
+  db:
+    uri: ./proc_demo.db
+    name: my_db
+collection_name: my_docs
+documents_path: examples/postprocessor/outputs/merged/results.jsonl
+```
+
+#### 2. Configure RAG for vision mode
 
 Start from `[examples/rag/config.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml)` and update the `rag` section:
 
@@ -52,7 +72,7 @@ mode_args:
   output_file: examples/rag/output.json
 ```
 
-### 2. Run the RAG pipeline
+#### 3. Run the RAG pipeline
 
 ```bash
 python3 -m mmore rag --config-file /path/to/config.yaml
@@ -62,18 +82,14 @@ You can run in batch mode (from an input file) or API mode, exactly like the sta
 
 ## How it works
 
-At inference time, MMORE:
+**Indexing** persists each chunk’s text and `**image_paths`** in Milvus. Dense vectors come from `indexer.dense_model` (`is_multimodal` affects dense only). Sparse vectors are text-based; `**search_type: hybrid**` combines dense (possibly multimodal) with sparse; `**search_type: sparse**` alone does not use image signals for retrieval.
 
-1. retrieves relevant chunks
-2. extracts associated image paths from metadata
-3. loads up to `max_images_per_request` images
-4. sends text context + images to the multimodal adapter
-
-If no image is available for a query, the model still receives the text context.
+**At inference**, MMORE retrieves chunks, builds the text prompt from them. If `use_vision`is activated, it loads up to `max_images_per_request` images from metadata and passes text + images to the multimodal adapter. If no images load, the model still gets the text context only.
 
 ## Notes
 
 - `use_vision` is the switch between text-only and multimodal execution.
+- `is_multimodal` is configured in the indexing config (dense model) and controls multimodal embeddings for retrieval.
 - `max_images_per_request` controls memory/latency trade-offs.
 - You can also use larger vision models (for example `Qwen/Qwen2.5-VL-32B-Instruct` or `Qwen/Qwen2.5-VL-72B-Instruct`), provided your GPU resources are sufficient.
 

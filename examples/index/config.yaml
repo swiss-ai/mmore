@@ -2,6 +2,9 @@ indexer:
   dense_model:
     model_name: sentence-transformers/all-MiniLM-L6-v2
     is_multimodal: false
+    # To enable vision mode
+    # model_name: Qwen/Qwen2.5-VL-3B-Instruct
+    # is_multimodal: true
   sparse_model:
     model_name: splade
     is_multimodal: false
