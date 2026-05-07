@@ -2,10 +2,9 @@ rag:
   llm: 
     llm_name: OpenMeditron/meditron3-8b
     max_new_tokens: 1200
-    # Vision test example (Qwen VL):
+    # Optional vision mode (requires a vision-capable model):
     # llm_name: Qwen/Qwen2.5-VL-3B-Instruct
     # use_vision: true
-    # max_new_tokens: 512
   retriever:
     db:
       uri: ./proc_demo.db
@@ -14,9 +13,9 @@ rag:
     k: 5
     use_web: false
     reranker_model_name: BAAI/bge-reranker-base   
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
   # For vision mode only:
   # max_images_per_request: 20
-  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
 mode: local
 mode_args:
   input_file: examples/rag/queries.jsonl
