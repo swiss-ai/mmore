@@ -41,10 +41,12 @@ def _build_vision_content(text: str, image_data_urls: List[str]) -> List[dict]:
     """Build content list for HumanMessage: one text block then one image_url per image."""
     content: List[dict] = [{"type": "text", "text": text}]
     for url in image_data_urls:
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": url, "detail": "auto"},
-        })
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": url, "detail": "auto"},
+            }
+        )
     return content
 
 
@@ -107,14 +109,12 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
             return
         try:
             import transformers
-
             from transformers import AutoProcessor
 
             # Qwen2.5-VL / Qwen2-VL: model class name depends on transformers version
-            model_cls = (
-                getattr(transformers, "Qwen2_5_VLForConditionalGeneration", None)
-                or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
-            )
+            model_cls = getattr(
+                transformers, "Qwen2_5_VLForConditionalGeneration", None
+            ) or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
             if model_cls is None:
                 from transformers import AutoModelForImageTextToText
 

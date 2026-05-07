@@ -30,7 +30,7 @@ class MultimodalContext:
 def format_docs_multimodal(docs: List[Document]) -> MultimodalContext:
     """Build multimodal context from retrieved documents: formatted text + aggregated image paths."""
     text_parts = [
-        f"[{doc.metadata.get('rank', i+1)}] {doc.page_content}"
+        f"[{doc.metadata.get('rank', i + 1)}] {doc.page_content}"
         for i, doc in enumerate(docs)
     ]
     text = "\n\n".join(text_parts)

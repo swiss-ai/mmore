@@ -14,8 +14,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
-from .llm import LLM, LLMConfig
 from .context import format_docs_multimodal, load_images_from_paths
+from .llm import LLM, LLMConfig
 from .multimodal_llm import BaseMultimodalLLM, get_multimodal_llm
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
@@ -145,7 +145,9 @@ class RAGPipeline:
                     f"Context:\n{mm_context.text}\n\n"
                     f"Question:\n{x['input']}"
                 )
-                return multimodal_llm.invoke_with_images(text=prompt_text, images=images)
+                return multimodal_llm.invoke_with_images(
+                    text=prompt_text, images=images
+                )
 
             rag_chain_from_docs: Runnable = RunnableLambda(answer_with_vision)
         else:

@@ -3,8 +3,8 @@ Simple vector database indexer using Milvus for document storage.
 Supports multimodal documents with chunking capabilities.
 """
 
-import logging
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional, cast
 
