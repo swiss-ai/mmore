@@ -68,7 +68,13 @@ class RAGPipeline:
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(
-            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm, use_vision=self.use_vision, multimodal_llm=self.multimodal_llm, max_images_per_request=self.max_images_per_request,
+            self.retriever,
+            RAGPipeline.format_docs,
+            self.prompt,
+            self.llm,
+            use_vision=self.use_vision,
+            multimodal_llm=self.multimodal_llm,
+            max_images_per_request=self.max_images_per_request,
         )
 
     def __str__(self):
@@ -90,7 +96,14 @@ class RAGPipeline:
             [("system", config.system_prompt), ("human", "{input}")]
         )
 
-        return cls(retriever, chat_template, llm, use_vision=config.llm.use_vision, multimodal_llm=multimodal_llm, max_images_per_request=config.max_images_per_request)
+        return cls(
+            retriever,
+            chat_template,
+            llm,
+            use_vision=config.llm.use_vision,
+            multimodal_llm=multimodal_llm,
+            max_images_per_request=config.max_images_per_request,
+        )
 
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
@@ -100,7 +113,15 @@ class RAGPipeline:
         )
 
     @staticmethod
-    def _build_chain(retriever, format_docs, prompt, llm, use_vision=False, multimodal_llm=None, max_images_per_request=20) -> Runnable:
+    def _build_chain(
+        retriever,
+        format_docs,
+        prompt,
+        llm,
+        use_vision=False,
+        multimodal_llm=None,
+        max_images_per_request=20,
+    ) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
@@ -108,7 +129,7 @@ class RAGPipeline:
         def make_output(x):
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
-            
+
             return res_dict
 
         validate_output = RunnableLambda(make_output)
