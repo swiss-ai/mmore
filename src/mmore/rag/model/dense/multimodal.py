@@ -28,6 +28,8 @@ from ...llm import LLM, LLMConfig
 
 logger = logging.getLogger(__name__)
 DEFAULT_HF_VISION_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+
+
 class MultimodalEmbeddings(Embeddings):
     """Dense embedding model that can consume text and optional images."""
 
@@ -197,7 +199,9 @@ def _build_vision_content(text: str, image_data_urls: List[str]) -> List[dict]:
     """Build content list for HumanMessage."""
     content: List[dict] = [{"type": "text", "text": text}]
     for url in image_data_urls:
-        content.append({"type": "image_url", "image_url": {"url": url, "detail": "auto"}})
+        content.append(
+            {"type": "image_url", "image_url": {"url": url, "detail": "auto"}}
+        )
     return content
 
 
@@ -210,8 +214,7 @@ class BaseMultimodalLLM(ABC):
         text: str,
         images: Optional[List[Any]] = None,
         system_prompt: Optional[str] = None,
-    ) -> str:
-        ...
+    ) -> str: ...
 
 
 class OpenAIMultimodalAdapter(BaseMultimodalLLM):
@@ -290,7 +293,11 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
         messages = [{"role": "user", "content": content}]
         if system_prompt:
             messages.insert(
-                0, {"role": "system", "content": [{"type": "text", "text": system_prompt}]}
+                0,
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": system_prompt}],
+                },
             )
 
         try:
@@ -318,7 +325,8 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
                 max_new_tokens=self.max_new_tokens,
             )
         generated_ids_trimmed = [
-            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+            out_ids[len(in_ids) :]
+            for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
         output_text = self._processor.batch_decode(
             generated_ids_trimmed,
