@@ -1,7 +1,7 @@
 """
 Example implementation:
 RAG pipeline.
-Integrates Milvus retrieval with HuggingFace text generation.
+Integrates Milvus retrieval with text-only and vision-enabled generation backends.
 """
 
 from dataclasses import dataclass, field
@@ -14,9 +14,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
-from .context import format_docs_multimodal, load_images_from_paths
 from .llm import LLM, LLMConfig
-from .multimodal_llm import BaseMultimodalLLM, get_multimodal_llm
+from .model.dense.multimodal import (
+    BaseMultimodalLLM,
+    aggregate_image_paths,
+    get_multimodal_llm,
+    load_images_from_paths,
+)
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
 
@@ -64,13 +68,7 @@ class RAGPipeline:
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(
-            self.retriever,
-            RAGPipeline.format_docs,
-            self.prompt,
-            self.llm,
-            use_vision=self.use_vision,
-            multimodal_llm=self.multimodal_llm,
-            max_images_per_request=self.max_images_per_request,
+            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm, use_vision=self.use_vision, multimodal_llm=self.multimodal_llm, max_images_per_request=self.max_images_per_request,
         )
 
     def __str__(self):
@@ -92,14 +90,7 @@ class RAGPipeline:
             [("system", config.system_prompt), ("human", "{input}")]
         )
 
-        return cls(
-            retriever,
-            chat_template,
-            llm,
-            use_vision=config.llm.use_vision,
-            multimodal_llm=multimodal_llm,
-            max_images_per_request=config.max_images_per_request,
-        )
+        return cls(retriever, chat_template, llm, use_vision=config.llm.use_vision, multimodal_llm=multimodal_llm, max_images_per_request=config.max_images_per_request)
 
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
@@ -109,15 +100,7 @@ class RAGPipeline:
         )
 
     @staticmethod
-    def _build_chain(
-        retriever,
-        format_docs,
-        prompt,
-        llm,
-        use_vision: bool = False,
-        multimodal_llm: Optional[BaseMultimodalLLM] = None,
-        max_images_per_request: int = 20,
-    ) -> Runnable:
+    def _build_chain(retriever, format_docs, prompt, llm, use_vision=False, multimodal_llm=None, max_images_per_request=20) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
@@ -125,10 +108,7 @@ class RAGPipeline:
         def make_output(x):
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
-            split_marker = "<|im_start|>assistant\n"
-            if split_marker in res_dict["answer"]:
-                res_dict["answer"] = res_dict["answer"].split(split_marker)[-1]
-
+            
             return res_dict
 
         validate_output = RunnableLambda(make_output)
@@ -136,15 +116,15 @@ class RAGPipeline:
         if use_vision and multimodal_llm is not None:
 
             def answer_with_vision(x: Dict[str, Any]) -> str:
-                mm_context = format_docs_multimodal(x["docs"])
+                # Aggregate and load images linked to retrieved chunks.
+                image_paths = aggregate_image_paths(x["docs"])
                 images = load_images_from_paths(
-                    mm_context.image_paths, max_images=max_images_per_request
+                    image_paths, max_images=max_images_per_request
                 )
-                prompt_text = (
-                    f"Use the following context to answer the question.\n\n"
-                    f"Context:\n{mm_context.text}\n\n"
-                    f"Question:\n{x['input']}"
-                )
+                # Keep prompt formatting identical to text-only mode.
+                prompt_text = prompt.invoke(
+                    {"context": x["context"], "input": x["input"]}
+                ).to_string()
                 return multimodal_llm.invoke_with_images(
                     text=prompt_text, images=images
                 )
