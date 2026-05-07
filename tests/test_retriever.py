@@ -43,7 +43,7 @@ def populated_db(tmp_path_factory):
 @pytest.fixture(scope="module")
 def retriever(populated_db):
     """Retriever pointing at the populated DB."""
-    client = MilvusClient(populated_db)
+    client = MilvusClient(populated_db, enable_sparse=True)
     return Retriever(
         dense_model=FakeEmbeddings(size=2048),
         sparse_model=FakeSparseEmbedding(),

@@ -392,15 +392,17 @@ def test_upload_file_success(indexer_client):
     assert Path(upload_dir, "new-doc").exists()
 
 
-def test_upload_duplicate_file_returns_500(indexer_client):
-    tc, *_ = indexer_client
+def test_upload_duplicate_file_returns_400(indexer_client):
+    tc, upload_dir, _ = indexer_client
+    duplicate_id = "duplicate-doc"
+    Path(upload_dir, duplicate_id).write_bytes(b"Existing content.")
     with patch("mmore.run_index_api.process_files_default", return_value=[]):
         response = tc.post(
             "/v1/files",
-            data={"fileId": "new-doc"},
-            files={"file": ("new-doc.txt", b"Hello again", "text/plain")},
+            data={"fileId": duplicate_id},
+            files={"file": ("duplicate-doc.txt", b"Hello again", "text/plain")},
         )
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert "already exists" in response.json()["detail"]
 
 
@@ -433,7 +435,7 @@ def test_upload_bulk_files_success(indexer_client):
     assert response.status_code == 201
 
 
-def test_upload_bulk_mismatched_ids_returns_500(indexer_client):
+def test_upload_bulk_mismatched_ids_returns_400(indexer_client):
     tc, *_ = indexer_client
     with patch("mmore.run_index_api.process_files_default", return_value=[]):
         response = tc.post(
@@ -444,7 +446,7 @@ def test_upload_bulk_mismatched_ids_returns_500(indexer_client):
                 ("files", ("b.txt", b"Content B", "text/plain")),
             ],
         )
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert "doesn't match" in response.json()["detail"]
 
 
@@ -506,8 +508,8 @@ def test_delete_nonexistent_file_returns_404(indexer_client):
 
 
 def test_download_existing_file_success(indexer_client):
-    # Use "new-doc" uploaded in test_upload_file_success
-    tc, *_ = indexer_client
+    tc, upload_dir, _ = indexer_client
+    Path(upload_dir, "new-doc").write_bytes(b"Downloadable content.")
     response = tc.get("/v1/files/new-doc")
     assert response.status_code == 200
 

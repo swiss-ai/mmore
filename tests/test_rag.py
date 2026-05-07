@@ -1,11 +1,37 @@
+from unittest.mock import patch
+
 import pytest
-from conftest import FakeSparseEmbedding
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
 from langchain_community.embeddings import FakeEmbeddings
 from langchain_core.documents import Document
 from pymilvus import MilvusClient
 
+from mmore.index.indexer import Indexer
 from mmore.rag.llm import LLMConfig
+from mmore.rag.model.dense.base import DenseModelConfig
+from mmore.rag.model.sparse.base import SparseModelConfig
 from mmore.rag.retriever import Retriever
+
+_COLLECTION = "test_col"
+
+
+@pytest.fixture(scope="module")
+def populated_db(tmp_path_factory):
+    db_path = str(tmp_path_factory.mktemp("rag_db") / "test.db")
+    with patch(
+        "mmore.index.indexer.SparseModel.from_config",
+        return_value=FakeSparseEmbedding(),
+    ):
+        client = MilvusClient(db_path, enable_sparse=True)
+        indexer = Indexer(
+            dense_model_config=DenseModelConfig(model_name="debug"),
+            sparse_model_config=SparseModelConfig(
+                model_name="naver/splade-cocondenser-selfdistil"
+            ),
+            client=client,
+        )
+        indexer.index_documents(SAMPLE_DOCS, collection_name=_COLLECTION)
+    return db_path
 
 
 def test_retriever_initialization_real(tmp_path):
@@ -61,7 +87,7 @@ def test_rerank(populated_db):
         "BAAI/bge-reranker-base"
     ).to(device)
 
-    client = MilvusClient(populated_db)
+    client = MilvusClient(populated_db, enable_sparse=True)
     retriever = Retriever(
         dense_model=FakeEmbeddings(size=2048),
         sparse_model=FakeSparseEmbedding(),
