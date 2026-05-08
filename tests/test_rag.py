@@ -7,11 +7,12 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import MilvusClient
+from pymilvus.exceptions import MilvusException
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils_base import BatchEncoding, PreTrainedTokenizerBase
 
 from mmore.rag.llm import LLMConfig
-from mmore.rag.retriever import Retriever
+from mmore.rag.retriever import Retriever, _parse_image_paths
 
 # Mock Classes
 
@@ -201,6 +202,107 @@ def test_get_relevant_documents(mock_rerank, mock_retrieve):
     assert docs[0].metadata["similarity"] == pytest.approx(0.95)
     assert docs[1].page_content == "doc2 content"
     assert docs[1].metadata["similarity"] == pytest.approx(0.85)
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (None, []),
+        (["/tmp/a.png", "/tmp/b.png"], ["/tmp/a.png", "/tmp/b.png"]),
+        ('["/tmp/a.png", "/tmp/b.png"]', ["/tmp/a.png", "/tmp/b.png"]),
+        ('"/tmp/single.png"', ["/tmp/single.png"]),
+        ("/tmp/literal.png", ["/tmp/literal.png"]),
+        ("", []),
+        ("   ", []),
+    ],
+)
+def test_parse_image_paths(raw, expected):
+    assert _parse_image_paths(raw) == expected
+
+
+@patch("mmore.rag.retriever.Retriever.rerank")
+@patch("mmore.rag.retriever.Retriever.retrieve")
+def test_get_relevant_documents_fallback_when_image_paths_field_missing(
+    mock_retrieve, mock_rerank
+):
+    fallback_results = [
+        {
+            "id": "1",
+            "distance": 0.7,
+            "entity": {
+                "text": "doc content",
+                "paragraph_positions": [[1, 0], [1, 1]],
+                "page_numbers": [1],
+                "paragraph_numbers": [0, 1],
+            },
+        }
+    ]
+    mock_retrieve.side_effect = [
+        MilvusException(message="field image_paths not found in schema"),
+        fallback_results,
+    ]
+    mock_rerank.side_effect = lambda query, docs, **kwargs: docs
+
+    retriever = Retriever(
+        dense_model=MockEmbeddings(),
+        sparse_model=MockSparse(),
+        client=MockMilvus(),
+        hybrid_search_weight=0.5,
+        k=2,
+        use_web=False,
+        reranker_model=MockModel(),
+        reranker_tokenizer=MockTokenizer(),
+    )
+
+    docs = retriever._get_relevant_documents("query", run_manager=MagicMock())
+
+    assert len(docs) == 1
+    assert docs[0].metadata["image_paths"] == []
+    assert docs[0].metadata["paragraph_positions"] == [[1, 0], [1, 1]]
+    assert docs[0].metadata["page_numbers"] == [1]
+    assert docs[0].metadata["paragraph_numbers"] == [0, 1]
+    assert mock_retrieve.call_count == 2
+
+    first_call_output_fields = mock_retrieve.call_args_list[0].kwargs["output_fields"]
+    second_call_output_fields = mock_retrieve.call_args_list[1].kwargs["output_fields"]
+    assert first_call_output_fields == [
+        "text",
+        "image_paths",
+        "paragraph_positions",
+        "page_numbers",
+        "paragraph_numbers",
+    ]
+    assert second_call_output_fields == [
+        "text",
+        "paragraph_positions",
+        "page_numbers",
+        "paragraph_numbers",
+    ]
+
+
+@patch("mmore.rag.retriever.Retriever.rerank")
+@patch("mmore.rag.retriever.Retriever.retrieve")
+def test_get_relevant_documents_reraises_unexpected_retrieve_errors(
+    mock_retrieve, mock_rerank
+):
+    mock_retrieve.side_effect = RuntimeError("network failure")
+    mock_rerank.side_effect = lambda query, docs, **kwargs: docs
+
+    retriever = Retriever(
+        dense_model=MockEmbeddings(),
+        sparse_model=MockSparse(),
+        client=MockMilvus(),
+        hybrid_search_weight=0.5,
+        k=2,
+        use_web=False,
+        reranker_model=MockModel(),
+        reranker_tokenizer=MockTokenizer(),
+    )
+
+    with pytest.raises(RuntimeError, match="network failure"):
+        retriever._get_relevant_documents("query", run_manager=MagicMock())
+
+    assert mock_retrieve.call_count == 1
 
 
 def test_llm_config_generation_kwargs():

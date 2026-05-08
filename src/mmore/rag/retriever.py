@@ -16,6 +16,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+from pymilvus.exceptions import MilvusException
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
@@ -46,6 +47,13 @@ def _parse_image_paths(raw_image_paths: Any) -> List[str]:
         if isinstance(parsed, str) and parsed.strip():
             return [parsed.strip()]
     return []
+
+
+def _is_missing_image_paths_field_error(error: Exception) -> bool:
+    """Return True when Milvus fails because output field image_paths is unknown."""
+    if isinstance(error, MilvusException):
+        return "image_paths" in str(error).lower()
+    return False
 
 
 @dataclass
@@ -362,9 +370,14 @@ class Retriever(BaseRetriever):
                 min_score=min_score,
                 k=k,
                 document_ids=document_ids,
-                output_fields=["text", "image_paths"],
+                output_fields=["text", "image_paths", "paragraph_positions", "page_numbers", "paragraph_numbers"],
             )
-        except Exception:
+        except Exception as e:
+            if not _is_missing_image_paths_field_error(e):
+                logger.exception(
+                    "Milvus retrieval failed with unexpected error; re-raising."
+                )
+                raise
             logger.debug(
                 "Milvus output field `image_paths` unavailable, fallback to text-only fields."
             )
@@ -375,7 +388,7 @@ class Retriever(BaseRetriever):
                 min_score=min_score,
                 k=k,
                 document_ids=document_ids,
-                output_fields=["text"],
+                output_fields=["text", "paragraph_positions", "page_numbers", "paragraph_numbers"],
             )
 
         def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
