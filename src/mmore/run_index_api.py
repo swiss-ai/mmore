@@ -120,6 +120,9 @@ def make_router(config_path: str) -> APIRouter:
                     "filename": file.filename,
                 }
 
+        except HTTPException:
+            raise
+
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -208,6 +211,9 @@ def make_router(config_path: str) -> APIRouter:
                         for doc in modified_documents
                     ],
                 }
+
+        except HTTPException:
+            raise
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
