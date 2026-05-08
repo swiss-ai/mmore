@@ -24,7 +24,8 @@ authors = [
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
     { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"},
-    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"}
+    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"},
+    { name = "Arthur Perrin", email="arthur.perrin@telecom-sudparis.eu" }
 ]
 requires-python = ">=3.10"
 dependencies = [
