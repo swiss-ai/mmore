@@ -15,7 +15,7 @@ from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrou
 
 from ..utils import load_config
 from .llm import LLM, LLMConfig
-from .model.dense.multimodal import (
+from .model.vision import (
     BaseMultimodalLLM,
     aggregate_image_paths,
     get_multimodal_llm,
