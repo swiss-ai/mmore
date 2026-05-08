@@ -128,7 +128,18 @@ class RAGPipeline:
 
         def make_output(x):
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
-            res_dict = MMOREOutput.model_validate(x).model_dump()
+            if use_vision and multimodal_llm is not None:
+                image_paths = aggregate_image_paths(x["docs"])[:max_images_per_request]
+            else:
+                image_paths = []
+            out = {
+                "input": x["input"],
+                "docs": x["docs"],
+                "answer": x["answer"],
+                "image_paths": image_paths,
+            }
+            res_dict = MMOREOutput.model_validate(out).model_dump()
+            res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
 
             return res_dict
 

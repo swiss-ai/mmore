@@ -32,6 +32,7 @@ class MMOREOutput(BaseModel):
     input: str
     docs: List[Document]
     answer: str
+    image_paths: List[str] = Field(default_factory=list)
 
 
 # -------------------------------- CitedAnswer ------------------------------- #
