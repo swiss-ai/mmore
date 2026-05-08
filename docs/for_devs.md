@@ -180,12 +180,127 @@ Key Modules
 pytest tests/
 ```
 
+### GPU tests and the `--gpu` flag
+
+A few tests require a CUDA GPU (e.g. `test_rerank` in `tests/test_rag.py` which
+loads `bge-reranker-base`, and the end-to-end pipeline test in
+`tests/test_full_pipeline_gpu.py`). They are marked with `@pytest.mark.gpu` and
+**skipped by default** so the suite stays runnable on a laptop or in CPU-only
+CI.
+
+To run them, pass the `--gpu` flag (registered in `tests/conftest.py`):
+
+```bash
+pytest --gpu                                  # full suite, including GPU tests
+pytest --gpu -m gpu                           # only the GPU-marked tests
+pytest --gpu tests/test_full_pipeline_gpu.py  # one specific GPU test file
+```
+
+Without `--gpu`, a `pytest_collection_modifyitems` hook adds a
+`pytest.mark.skip(reason="Pass --gpu to run GPU tests")` to every test carrying
+the `gpu` marker — they appear as **skipped**, not failed.
+
+`--gpu` is a declaration that a CUDA device is actually available. If CUDA
+isn't present despite the flag, the GPU tests will fail loudly (`RuntimeError`)
+rather than silently skip — that's intentional, so a misconfigured CI
+environment doesn't go unnoticed.
+
+#### Running on RCP (RunAI / Kubernetes)
+
+The repo doesn't have a dedicated GPU-tests workflow yet. Adapt the pattern in
+[rcp_and_production.md](./rcp_and_production.md) for an interactive job:
+
+```bash
+runai submit mmore-tests-gpu \
+  --image ghcr.io/swiss-ai/mmore:student-uid<UID>-gid<GID>-gpu \
+  --node-pool h100 \
+  --pvc light-scratch:/lightscratch \
+  --gpu 1 \
+  --run-as-gid <GID> \
+  --preemptible \
+  --attach --interactive --tty \
+  --command /bin/bash
+```
+
+Then inside the container:
+
+```bash
+cd /workspace/mmore
+uv pip install -e ".[process,index,rag,api,cu126,dev,websearch]"
+export HF_HOME=/lightscratch/users/$USER/.cache/huggingface
+pytest --gpu -m gpu
+```
+
+For a one-shot non-interactive job, replace
+`--attach --interactive --tty --command /bin/bash` with:
+
+```
+--command "bash -lc 'cd /workspace/mmore && pytest --gpu -m gpu'"
+```
+
+#### Running on CSCS (SLURM)
+
+Standard SLURM pattern with a venv (or a singularity/sarus container):
+
+```bash
+# job_tests_gpu.sbatch
+#!/bin/bash
+#SBATCH --job-name=mmore-tests-gpu
+#SBATCH --gres=gpu:1
+#SBATCH --time=00:30:00
+#SBATCH --output=tests-%j.log
+
+module load <cuda-modules>          # cluster-specific
+source $SCRATCH/venvs/mmore/bin/activate
+export HF_HOME=$SCRATCH/.cache/huggingface
+cd $SCRATCH/mmore
+pytest --gpu -m gpu
+```
+
+Submit with `sbatch job_tests_gpu.sbatch`. For interactive iteration on a
+GPU node:
+
+```bash
+srun --gres=gpu:1 --pty --time=01:00:00 bash
+source $SCRATCH/venvs/mmore/bin/activate
+pytest --gpu
+```
+
+#### Marking a new GPU-only test
+
+When you add a test that needs a GPU, mark it explicitly:
+
+```python
+import pytest
+
+@pytest.mark.gpu
+def test_something_on_gpu():
+    ...
+```
+
+The `gpu` marker is registered in `pyproject.toml` under
+`[tool.pytest.ini_options].markers`, so no `PytestUnknownMarkWarning` is
+emitted on collection.
+
+#### Cheat sheet
+
+| Target | Command |
+|---|---|
+| Local CPU, all non-GPU | `pytest` |
+| Local CPU, single file | `pytest tests/test_retriever.py` |
+| Local GPU, all | `pytest --gpu` |
+| Local GPU, GPU-only | `pytest --gpu -m gpu` |
+| Stop on first failure, verbose | `pytest -xv [...]` |
+| RCP interactive | `runai submit ... --attach --interactive`, then `pytest --gpu -m gpu` |
+| CSCS one-shot | `sbatch job_tests_gpu.sbatch` |
+
 ### Writing tests
 
 - Place tests in the `tests/` directory
 - Use descriptive test names
 - Cover edge cases and error conditions
 - Mock external dependencies when appropriate
+- Mark GPU-only tests with `@pytest.mark.gpu` (see above)
 
 ## Pull Request Process
 
