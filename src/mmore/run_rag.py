@@ -56,7 +56,11 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
 
 def save_results(results: List[Dict], output_file: Union[Path, str]):
     results = [
-        {key: d[key] for key in {"input", "context", "answer", "image_paths"} if key in d}
+        {
+            key: d[key]
+            for key in {"input", "context", "answer", "image_paths"}
+            if key in d
+        }
         for d in results
     ]
     with open(output_file, "w") as f:
