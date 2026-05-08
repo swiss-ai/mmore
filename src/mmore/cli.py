@@ -265,6 +265,14 @@ def ragcli(config_file: str):
     my_rag_cli.launch_cli()
 
 
+@main.command()
+def tui():
+    """Launch the interactive Terminal UI."""
+    from .tui import run
+
+    run()
+
+
 @main.group()
 def colpali():
     """ColPali pipeline commands for PDF processing, indexing, and retrieval."""

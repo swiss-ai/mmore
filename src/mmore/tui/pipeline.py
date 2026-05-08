@@ -1,0 +1,103 @@
+"""Chain process -> postprocess -> index from the TUI."""
+from __future__ import annotations
+
+import os
+import time
+
+import questionary
+import yaml
+from rich.spinner import Spinner
+from rich.live import Live
+from rich.table import Table
+from rich.text import Text
+
+from mmore.tui.commands import REGISTRY
+from mmore.tui.config_builder import pick_or_build_config
+from mmore.tui.theme import ACCENT, ACCENT2, MUTED, OK, console, section, step_header
+
+
+def _process_output_jsonl(config_path: str) -> str:
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    out = cfg["dispatcher_config"]["output_path"]
+    return os.path.join(out, "merged", "merged_results.jsonl")
+
+
+def _postprocess_output_jsonl(config_path: str) -> str:
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    return cfg["output"]["output_path"]
+
+
+def _run_step(label: str, fn, **kwargs) -> float:
+    start = time.time()
+    spinner = Spinner("dots", text=Text(f"  {label}…", style=ACCENT))
+    with Live(spinner, console=console, refresh_per_second=12, transient=True):
+        fn(**kwargs)
+    elapsed = time.time() - start
+    console.print(f"  [{OK}]✓[/] {label} [dim]({elapsed:.1f}s)[/dim]")
+    return elapsed
+
+
+def _summary_table(rows: list[tuple[str, str, float]]) -> Table:
+    table = Table(
+        title="[bold]Pipeline summary[/bold]",
+        title_style=ACCENT2,
+        border_style=ACCENT,
+        header_style=f"bold {ACCENT}",
+        show_lines=False,
+    )
+    table.add_column("Step", style="bold")
+    table.add_column("Output", style=MUTED)
+    table.add_column("Duration", justify="right")
+    total = 0.0
+    for name, out, dur in rows:
+        table.add_row(name, out, f"{dur:.1f}s")
+        total += dur
+    table.add_section()
+    table.add_row("[bold]Total[/bold]", "", f"[bold]{total:.1f}s[/bold]")
+    return table
+
+
+def run_full_pipeline() -> None:
+    console.print()
+    console.print(section(
+        "Full pipeline",
+        Text("process → postprocess → index → (optional) chat", style=ACCENT),
+        style=ACCENT2,
+    ))
+
+    rows: list[tuple[str, str, float]] = []
+
+    # process
+    step_header(1, 3, "process")
+    process_cfg = pick_or_build_config(REGISTRY["process"])
+    elapsed = _run_step("Crawling + extracting documents",
+                        REGISTRY["process"].run, config_file=process_cfg)
+    process_jsonl = _process_output_jsonl(process_cfg)
+    rows.append(("process", process_jsonl, elapsed))
+
+    # postprocess
+    step_header(2, 3, "postprocess")
+    pp_cfg = pick_or_build_config(REGISTRY["postprocess"])
+    elapsed = _run_step("Chunking + cleaning",
+                        REGISTRY["postprocess"].run,
+                        config_file=pp_cfg, input_data=process_jsonl)
+    pp_jsonl = _postprocess_output_jsonl(pp_cfg)
+    rows.append(("postprocess", pp_jsonl, elapsed))
+
+    # index
+    step_header(3, 3, "index")
+    index_cfg = pick_or_build_config(REGISTRY["index"], documents_path=pp_jsonl)
+    elapsed = _run_step("Embedding + indexing into Milvus",
+                        REGISTRY["index"].run,
+                        config_file=index_cfg, documents_path=pp_jsonl)
+    rows.append(("index", "(vector DB)", elapsed))
+
+    console.print()
+    console.print(_summary_table(rows))
+    console.print()
+
+    if questionary.confirm("Open the RAG chat now?", default=True).ask():
+        rag_cfg = pick_or_build_config(REGISTRY["ragcli"])
+        REGISTRY["ragcli"].run(config_file=rag_cfg)
