@@ -4,12 +4,11 @@ from typing import Dict, List, cast
 import pytest
 
 from mmore.process.post_processor import BasePostProcessorConfig, load_postprocessor
-from mmore.process.post_processor.chunker.multimodal import (
-    MultimodalChunker,
-    MultimodalChunkerConfig,
-)
+from mmore.process.post_processor.chunker.multimodal import MultimodalChunker
 from mmore.process.post_processor.chunker.utils import (
     _TABLE_ROW_RE,
+    ChunkMetadata,
+    MultimodalChunkerConfig,
     _strip_separator_cell,
     _strip_table_row,
     _strip_table_text,
@@ -26,7 +25,7 @@ from mmore.process.post_processor.tagger.lang_detector import LangDetector
 from mmore.process.post_processor.tagger.modalities import ModalitiesCounter
 from mmore.process.post_processor.tagger.words import WordsCounter
 from mmore.rag.llm import LLM, LLMConfig
-from mmore.type import MultimodalRawInput, MultimodalSample
+from mmore.type import DocumentMetadata, MultimodalRawInput, MultimodalSample
 
 
 # ------------------ Chunker Tests ------------------
@@ -52,7 +51,7 @@ def test_chunker_process():
     )
     chunker = MultimodalChunker.from_config(config)
     sample = MultimodalSample(
-        text="Hello world. This is a test.", modalities=[], metadata={}
+        text="Hello world. This is a test.", modalities=[], metadata=DocumentMetadata()
     )
     chunks = chunker.process(sample)
     # Expect 2 chunks for the 2 sentences
@@ -122,7 +121,9 @@ def test_filter_process():
         def filter(self, sample: MultimodalSample) -> bool:
             return False
 
-    sample = MultimodalSample(text="Sample text", modalities=[], metadata={}, id="1")
+    sample = MultimodalSample(
+        text="Sample text", modalities=[], metadata=DocumentMetadata(), id="1"
+    )
 
     accept_filter = DummyAcceptFilter("dummy_accept")
     accepted = accept_filter.process(sample)
@@ -195,17 +196,19 @@ def test_ner_process():
     recognizer = NERecognizer.from_config(config)
 
     sample = MultimodalSample(
-        text="Some irrelevant text", modalities=[], metadata={}, id="1"
+        text="Some irrelevant text", modalities=[], metadata=ChunkMetadata(), id="1"
     )
     processed_samples = recognizer.process(sample)
 
     # The process() method should return a list with one sample.
     assert isinstance(processed_samples, list), "Expected process() to return a list."
     # The sample's metadata should include an 'ner' key.
-    assert "ner" in sample.metadata, "Expected sample.metadata to include key 'ner'."
+    assert "ner" in sample.metadata.extra, (
+        "Expected sample.metadata to include key 'ner'."
+    )
 
     ner_entities: List[Dict[str, str]] = cast(
-        List[Dict[str, str]], sample.metadata["ner"]
+        List[Dict[str, str]], sample.metadata.extra["ner"]
     )
     # We expect one entity: HELLO WORLD as an ORGANIZATION with the given description.
     assert len(ner_entities) == 1, f"Expected 1 entity, got {len(ner_entities)}."
@@ -293,13 +296,16 @@ def test_tagger_process_words_counter():
     config = BaseTaggerConfig(type="words_counter", args={})
     tagger = load_tagger(config)
     sample = MultimodalSample(
-        text="Hello world, this is a test", modalities=[], metadata={}, id="1"
+        text="Hello world, this is a test",
+        modalities=[],
+        metadata=DocumentMetadata(),
+        id="1",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.text.split())
     # WordsCounter's default metadata_key is set in its __init__ to 'word_count'
-    assert sample.metadata.get("word_count") == expected_count, (
-        f"Expected word_count {expected_count}, got {sample.metadata.get('word_count')}"
+    assert sample.metadata.extra.get("word_count") == expected_count, (
+        f"Expected word_count {expected_count}, got {sample.metadata.extra.get('word_count')}"
     )
     assert isinstance(processed, list), "Expected process() to return a list."
 
@@ -318,14 +324,14 @@ def test_tagger_process_modalities_counter():
             MultimodalRawInput(type="image", value="img2"),
             MultimodalRawInput(type="video", value="video1"),
         ],
-        metadata={},
+        metadata=DocumentMetadata(),
         id="2",
     )
     processed = tagger.process(sample)
     expected_count = len(sample.modalities)
     # ModalitiesCounter's default metadata_key is 'modalities_count'
-    assert sample.metadata.get("modalities_count") == expected_count, (
-        f"Expected modalities_count {expected_count}, got {sample.metadata.get('modalities_count')}"
+    assert sample.metadata.extra.get("modalities_count") == expected_count, (
+        f"Expected modalities_count {expected_count}, got {sample.metadata.extra.get('modalities_count')}"
     )
     assert isinstance(processed, list), "Expected process() to return a list."
 
@@ -341,11 +347,11 @@ def test_tagger_process_lang_detector():
     sample = MultimodalSample(
         text="Hello world, this is an English sentence.",
         modalities=[],
-        metadata={},
+        metadata=DocumentMetadata(),
         id="3",
     )
     processed = tagger.process(sample)
-    detected_lang = sample.metadata.get("lang")
+    detected_lang = sample.metadata.extra.get("lang")
     # langdetect typically returns "en" for English.
     assert detected_lang in [
         "en",
@@ -579,32 +585,40 @@ class TestMultimodalChunkerTableHandling:
     def test_no_tables_unchanged_behavior(self):
         chunker = self._make_chunker()
         sample = MultimodalSample(
-            text="Hello world. This is a test.", modalities=[], metadata={}
+            text="Hello world. This is a test.",
+            modalities=[],
+            metadata=DocumentMetadata(),
         )
         chunks = chunker.chunk(sample)
         assert len(chunks) >= 1
         for c in chunks:
-            assert "is_table_chunk" not in c.metadata
+            assert isinstance(c.metadata, ChunkMetadata)
 
     def test_large_table_split_with_headers(self):
         big_table = _make_long_table(50)
         chunker = self._make_chunker(table_handling="multi_rows", chunk_size=30)
-        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=big_table, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) > 1
         # Every chunk has the header prepended
         for c in chunks:
-            assert c.metadata.get("is_table_chunk") is True
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is True
             assert c.text.startswith(LARGE_TABLE_HEADER)
 
     def test_table_handling_single_row(self):
         chunker = self._make_chunker(table_handling="single_row", chunk_size=512)
-        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=SIMPLE_TABLE, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) == 3
         # Every chunk has the header prepended
         for c in chunks:
-            assert c.metadata.get("is_table_chunk") is True
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is True
             assert c.text.startswith("| Name | Age | City |")
         assert "Alice" in chunks[0].text
         assert "Bob" in chunks[1].text
@@ -612,29 +626,45 @@ class TestMultimodalChunkerTableHandling:
 
     def test_mixed_content_chunking(self):
         chunker = self._make_chunker(chunk_size=512)
-        sample = MultimodalSample(text=MIXED_TEXT, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=MIXED_TEXT, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         assert len(chunks) >= 2  # at least text + table
-        table_chunks = [c for c in chunks if c.metadata.get("is_table_chunk")]
-        non_table_chunks = [c for c in chunks if not c.metadata.get("is_table_chunk")]
+
+        table_chunks = []
+        non_table_chunks = []
+        for c in chunks:
+            assert isinstance(c.metadata, ChunkMetadata)
+            if c.metadata.is_table_chunk:
+                table_chunks.append(c)
+            else:
+                non_table_chunks.append(c)
+
         assert len(table_chunks) >= 1
         assert len(non_table_chunks) >= 1
 
     def test_table_handling_none(self):
         chunker = self._make_chunker(table_handling="none", chunk_size=512)
-        sample = MultimodalSample(text=SIMPLE_TABLE, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=SIMPLE_TABLE, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         for c in chunks:
-            assert "is_table_chunk" not in c.metadata
+            assert isinstance(c.metadata, ChunkMetadata)
+            assert c.metadata.is_table_chunk is False
 
     def test_table_handling_keep_whole(self):
         big_table = _make_long_table(50)
         chunker = self._make_chunker(table_handling="keep_whole", chunk_size=30)
-        sample = MultimodalSample(text=big_table, modalities=[], metadata={})
+        sample = MultimodalSample(
+            text=big_table, modalities=[], metadata=DocumentMetadata()
+        )
         chunks = chunker.chunk(sample)
         # Should be a single chunk even though it exceeds chunk_size
         assert len(chunks) == 1
-        assert chunks[0].metadata.get("is_table_chunk") is True
+        assert isinstance(chunks[0].metadata, ChunkMetadata)
+        assert chunks[0].metadata.is_table_chunk is True
 
     def test_invalid_table_handling_mode(self):
         with pytest.raises(ValueError, match="Invalid table_handling mode"):

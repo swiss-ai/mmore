@@ -18,6 +18,12 @@ MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retr
 
 👉 Read the paper for more details (OpenReview): [MMORE: Massive Multimodal Open RAG & Extraction](https://openreview.net/forum?id=6j1HjfIdKn)
 
+
+### Documentation
+
+👉 Read the full documentation here: [MMORE Documentation](https://swiss-ai.github.io/mmore/).
+
+
 ## :bulb: Quickstart
 
 ### Installation

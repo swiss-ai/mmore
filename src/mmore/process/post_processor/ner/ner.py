@@ -26,6 +26,6 @@ class NERecognizer(BasePostProcessor):
         ]
 
         # Add the relations to the sample metadata
-        sample.metadata["ner"] = entities
+        sample.metadata.extra["ner"] = entities
 
         return [sample]

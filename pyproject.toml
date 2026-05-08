@@ -23,7 +23,8 @@ authors = [
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
-    { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"}
+    { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"},
+    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"}
 ]
 requires-python = ">=3.10"
 dependencies = [
