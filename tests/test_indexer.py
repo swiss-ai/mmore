@@ -1,21 +1,21 @@
 # tests/test_indexer.py
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import numpy as np
 import pytest
+import yaml
+from conftest import SAMPLE_DOCS, FakeSparseEmbedding
+from pymilvus import MilvusClient
 
-from mmore.index.indexer import Indexer, IndexerConfig
-
-# Import run_index from the correct package path:
+from mmore.index.indexer import Indexer
+from mmore.rag.model import DenseModelConfig, SparseModelConfig
 from mmore.run_index import index
 from mmore.type import MultimodalSample
 
 
 @pytest.fixture
 def sample_jsonl(tmp_path):
-    """Creates a temporary JSONL file with sample documents."""
     path = tmp_path / "sample_docs.jsonl"
     sample_data = [
         {"id": "1", "text": "Document text 1", "modalities": [], "metadata": {}},
@@ -32,105 +32,129 @@ def sample_jsonl(tmp_path):
     return path
 
 
-@patch("mmore.run_index.Indexer.from_documents")
-def test_index_invocation(mock_from_documents, sample_jsonl):
-    """
-    Tests that index function loads the config and calls Indexer.from_documents.
-    """
-    mock_indexer_config = MagicMock()
-    mock_indexer_config.collection_name = "test_collection"
-    mock_indexer_config.documents_path = str(sample_jsonl)
-
-    # Patch load_config so it returns the mock config
-    with patch("mmore.run_index.load_config", return_value=mock_indexer_config):
-        index(config_file="fake_config.yml")
-    mock_from_documents.assert_called_once()
-
-    # Confirm the correct collection name is passed
-    call_args = mock_from_documents.call_args[1]  # call_args is (args, kwargs)
-    assert call_args["collection_name"] == "test_collection"
-
-
-@patch("mmore.index.indexer.MilvusClient")
-@patch("mmore.index.indexer.DenseModel.from_config")
 @patch("mmore.index.indexer.SparseModel.from_config")
-def test_indexer_integration(
-    mock_sparse_model, mock_dense_model, mock_milvus_client, sample_jsonl
-):
-    """
-    Tests the Indexer class with mocked embeddings & Milvus.
-    """
-    mock_dense_model.return_value.embed_documents.return_value = [
-        np.array([0.01, 0.02]),
-        np.array([0.03, 0.04]),
-    ]
-    mock_sparse_model.return_value.embed_documents.return_value = [
-        np.array([0, 1]),
-        np.array([1, 0]),
-    ]
+def test_indexer_insert(mock_sparse, tmp_path):
+    """Check that documents are written to the Milvus database."""
+    mock_sparse.return_value = FakeSparseEmbedding()
 
-    # Mock Milvus
-    client_instance = mock_milvus_client.return_value
-    client_instance.has_collection.return_value = False
-    client_instance.insert.return_value = {"insert_count": 2}
-
-    # Build IndexerConfig
-    dense_cfg = MagicMock()
-    sparse_cfg = MagicMock()
-    db_cfg = MagicMock()
-    test_indexer_config = IndexerConfig(
-        dense_model=dense_cfg, sparse_model=sparse_cfg, db=db_cfg
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    indexer = Indexer(
+        dense_model_config=DenseModelConfig(model_name="debug"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
+        client=client,
     )
 
-    # Load sample documents
-    documents = MultimodalSample.from_jsonl(str(sample_jsonl))
+    inserted = indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
 
-    # Index them
-    Indexer.from_documents(
-        config=test_indexer_config,
-        documents=documents,
-        collection_name="test_collection",
-        batch_size=2,
+    assert inserted == len(SAMPLE_DOCS)
+    stats = client.get_collection_stats("test_col")
+    assert int(stats["row_count"]) == len(SAMPLE_DOCS)
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_insert_preserves_metadata(mock_sparse, tmp_path):
+    """Check that metadata fields are stored and retrievable."""
+    mock_sparse.return_value = FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    indexer = Indexer(
+        dense_model_config=DenseModelConfig(model_name="debug"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
+        client=client,
+    )
+    indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
+
+    results = client.query(
+        collection_name="test_col",
+        filter='id == "doc-2"',
+        output_fields=["id", "text", "author"],
+    )
+    assert len(results) == 1
+    assert results[0]["author"] == "Alice"
+    assert results[0]["text"] == "The Eiffel Tower stands 330 metres tall."
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_idempotent_collection(mock_sparse, tmp_path):
+    """Check that calling index_documents twice on the same collection appends."""
+    mock_sparse.return_value = FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    indexer = Indexer(
+        dense_model_config=DenseModelConfig(model_name="debug"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
+        client=client,
     )
 
-    # Verify the client did what we expect
-    assert client_instance.create_collection.called, (
-        "Should create collection if it does not exist"
-    )
-    assert client_instance.insert.called, "Should insert documents into Milvus"
-
-
-@patch("mmore.index.indexer.MilvusClient")
-def test_index_documents_error(mock_milvus_client, sample_jsonl):
-    """
-    Tests that an exception is raised if insertion fails.
-    """
-    # Mock Milvus
-    client_instance = mock_milvus_client.return_value
-    client_instance.has_collection.return_value = False
-    client_instance.insert.side_effect = Exception("Insertion error")
-
-    # Minimal config
-    test_indexer_config = IndexerConfig(
-        dense_model=MagicMock(), sparse_model=MagicMock()
-    )
-
-    # Patch the embeddings to return arrays
-    with (
-        patch("mmore.index.indexer.DenseModel.from_config") as mock_dense_model,
-        patch("mmore.index.indexer.SparseModel.from_config") as mock_sparse_model,
-    ):
-        mock_dense_model.return_value.embed_documents.return_value = [
-            np.array([0.01, 0.02])
-        ]
-        mock_sparse_model.return_value.embed_documents.return_value = [np.array([0, 1])]
-
-        indexer = Indexer(
-            dense_model_config=test_indexer_config.dense_model,
-            sparse_model_config=test_indexer_config.sparse_model,
-            client=client_instance,
+    extra = [
+        MultimodalSample(
+            id="doc-4",
+            document_id="doc-4",
+            text="A fourth document.",
+            modalities=[],
+            metadata={},
         )
-        docs = MultimodalSample.from_jsonl(str(sample_jsonl))[:1]
+    ]
 
-        with pytest.raises(Exception, match="Insertion error"):
-            indexer.index_documents(docs)
+    indexer.index_documents(SAMPLE_DOCS, collection_name="test_col")
+    indexer.index_documents(extra, collection_name="test_col")
+
+    stats = client.get_collection_stats("test_col")
+    assert int(stats["row_count"]) == len(SAMPLE_DOCS) + len(extra)
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_run_index(mock_sparse, tmp_path, sample_jsonl):
+    """Check that run_index.index() reads config file and write to Milvus DB."""
+    mock_sparse.return_value = FakeSparseEmbedding()
+
+    db_path = str(tmp_path / "test.db")
+    config = {
+        "indexer": {
+            "dense_model": {"model_name": "debug", "is_multimodal": False},
+            "sparse_model": {
+                "model_name": "naver/splade-cocondenser-selfdistil",
+                "is_multimodal": False,
+            },
+            "db": {"uri": db_path, "name": "my_db"},
+        },
+        "collection_name": "test_col",
+        "documents_path": str(sample_jsonl),
+    }
+    config_path = tmp_path / "config.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config, f)
+
+    index(config_file=str(config_path))
+
+    client = MilvusClient(db_path)
+    stats = client.get_collection_stats("test_col")
+    assert int(stats["row_count"]) == 2  # sample_jsonl has 2 documents
+
+
+@patch("mmore.index.indexer.SparseModel.from_config")
+def test_indexer_error_on_missing_collection(mock_sparse, tmp_path):
+    """Check that inserting to a non-existent collection raises an exception."""
+    mock_sparse.return_value = FakeSparseEmbedding()
+
+    client = MilvusClient(str(tmp_path / "test.db"), enable_sparse=True)
+    indexer = Indexer(
+        dense_model_config=DenseModelConfig(model_name="debug"),
+        sparse_model_config=SparseModelConfig(
+            model_name="naver/splade-cocondenser-selfdistil"
+        ),
+        client=client,
+    )
+
+    doc = MultimodalSample(
+        id="x", document_id="x", text="test", modalities=[], metadata={}
+    )
+    with pytest.raises(Exception):
+        # Bypasses index_documents (which creates the collection) and inserts directly
+        indexer._index_documents([doc], collection_name="nonexistent_collection")
