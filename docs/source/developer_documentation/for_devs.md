@@ -27,6 +27,7 @@ This guide will help you set up your development environment and contribute to t
     - [Key Modules](#key-modules)
   - [🧪 Testing](#-testing)
     - [Running tests in the terminal](#running-tests-in-the-terminal)
+    - [GPU tests](#gpu-tests)
     - [Writing tests](#writing-tests)
   - [🔀 Pull Request Process](#-pull-request-process)
     - [PR checklist](#pr-checklist)
@@ -209,12 +210,33 @@ mmore/
 pytest tests/
 ```
 
+### GPU tests
+
+Tests requiring a CUDA GPU are marked `@pytest.mark.gpu` and **skipped by
+default**. Pass `--gpu` to run them:
+
+```bash
+pytest --gpu          # full suite, including GPU tests
+pytest --gpu -m gpu   # only the GPU-marked tests
+```
+
+To mark a new GPU-only test:
+
+```python
+import pytest
+
+@pytest.mark.gpu
+def test_something_on_gpu():
+    ...
+```
+
 ### Writing tests
 
 - Place tests in the `tests/` directory
 - Use descriptive test names
 - Cover edge cases and error conditions
 - Mock external dependencies when appropriate
+- Mark GPU-only tests with `@pytest.mark.gpu` (see above)
 
 ## 🔀 Pull Request Process
 
