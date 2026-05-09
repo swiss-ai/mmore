@@ -1,28 +1,29 @@
 """mmore TUI entry point."""
+
 from __future__ import annotations
 
 import time
 
 import questionary
-from questionary import Style
-from rich.spinner import Spinner
 from rich.live import Live
+from rich.spinner import Spinner
 from rich.text import Text
 
 from mmore.tui.commands import REGISTRY
 from mmore.tui.config_builder import pick_or_build_config
+from mmore.tui.paths import cwd_default
 from mmore.tui.pipeline import run_full_pipeline
-from mmore.tui.theme import ACCENT, ACCENT2, MUTED, OK, console, section, show_banner
-
-QSTYLE = Style([
-    ("qmark", "fg:#5fd7ff bold"),
-    ("question", "bold"),
-    ("answer", "fg:#ff5fd7 bold"),
-    ("pointer", "fg:#5fd7ff bold"),
-    ("highlighted", "fg:#5fd7ff bold"),
-    ("selected", "fg:#ff5fd7"),
-    ("instruction", "fg:#808080 italic"),
-])
+from mmore.tui.theme import (
+    ACCENT,
+    ACCENT2,
+    MUTED,
+    OK,
+    QMARK,
+    QSTYLE,
+    console,
+    section,
+    show_banner,
+)
 
 
 def _run_with_spinner(label: str, fn, **kwargs) -> None:
@@ -30,9 +31,7 @@ def _run_with_spinner(label: str, fn, **kwargs) -> None:
     spinner = Spinner("dots", text=Text(f"  {label}…", style=ACCENT))
     with Live(spinner, console=console, refresh_per_second=12, transient=True):
         fn(**kwargs)
-    console.print(
-        f"  [{OK}]✓[/] {label} [dim]({time.time() - start:.1f}s)[/dim]"
-    )
+    console.print(f"  [{OK}]✓[/] {label} [dim]({time.time() - start:.1f}s)[/dim]")
 
 
 def _run_single_command() -> None:
@@ -41,7 +40,10 @@ def _run_single_command() -> None:
         for spec in REGISTRY.values()
     ]
     name = questionary.select(
-        "Pick a command", choices=choices, style=QSTYLE, qmark="▸",
+        "Pick a command",
+        choices=choices,
+        style=QSTYLE,
+        qmark=QMARK,
     ).ask()
     if name is None:
         return
@@ -51,19 +53,22 @@ def _run_single_command() -> None:
     if spec.needs_input_data:
         input_data = questionary.text(
             "Input JSONL path",
-            default="examples/process/outputs/merged/merged_results.jsonl",
-            style=QSTYLE, qmark="▸",
+            default=cwd_default("outputs/process/merged/merged_results.jsonl"),
+            style=QSTYLE,
+            qmark=QMARK,
         ).ask()
         if input_data is None:
             return
         kwargs["input_data"] = input_data
 
     console.print()
-    console.print(section(
-        f"Running {name}",
-        Text(f"config: {config_file}", style=MUTED),
-        style=ACCENT2,
-    ))
+    console.print(
+        section(
+            f"Running {name}",
+            Text(f"config: {config_file}", style=MUTED),
+            style=ACCENT2,
+        )
+    )
     interactive = name in {"ragcli", "retrieve", "rag"}
     if interactive:
         spec.run(**kwargs)
@@ -93,7 +98,7 @@ def _main_menu() -> str | None:
             questionary.Choice("✕  Quit", value="quit"),
         ],
         style=QSTYLE,
-        qmark="▸",
+        qmark=QMARK,
     ).ask()
 
 

@@ -1,32 +1,56 @@
 """Chain process -> postprocess -> index from the TUI."""
+
 from __future__ import annotations
 
 import os
 import time
 
 import questionary
-import yaml
-from rich.spinner import Spinner
 from rich.live import Live
+from rich.spinner import Spinner
 from rich.table import Table
 from rich.text import Text
 
 from mmore.tui.commands import REGISTRY
 from mmore.tui.config_builder import pick_or_build_config
-from mmore.tui.theme import ACCENT, ACCENT2, MUTED, OK, console, section, step_header
+from mmore.tui.theme import (
+    ACCENT,
+    ACCENT2,
+    MUTED,
+    OK,
+    console,
+    section,
+    step_header,
+)
 
 
 def _process_output_jsonl(config_path: str) -> str:
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    out = cfg["dispatcher_config"]["output_path"]
+    """Resolve the JSONL path the `process` step writes to.
+
+    Goes through `mmore.utils.load_config` so env-var expansion ($ROOT_OUT_DIR,
+    etc.) matches what the underlying command sees.
+    """
+    from mmore.run_process import ProcessInference
+    from mmore.utils import load_config
+
+    cfg: ProcessInference = load_config(config_path, ProcessInference)
+    out = cfg.dispatcher_config.output_path
     return os.path.join(out, "merged", "merged_results.jsonl")
 
 
 def _postprocess_output_jsonl(config_path: str) -> str:
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    return cfg["output"]["output_path"]
+    """Resolve the JSONL path `postprocess` writes to.
+
+    Mirrors `PPPipeline`'s use of `mmore.process.utils.jsonl_path`: if the
+    configured `output_path` is a directory, the pipeline writes to
+    `<dir>/final.jsonl`; if it already ends in `.jsonl`, it's used as-is.
+    """
+    from mmore.process.post_processor.pipeline import PPPipelineConfig
+    from mmore.process.utils import jsonl_path
+    from mmore.utils import load_config
+
+    cfg: PPPipelineConfig = load_config(config_path, PPPipelineConfig)
+    return jsonl_path(cfg.output.output_path)
 
 
 def _run_step(label: str, fn, **kwargs) -> float:
@@ -61,37 +85,48 @@ def _summary_table(rows: list[tuple[str, str, float]]) -> Table:
 
 def run_full_pipeline() -> None:
     console.print()
-    console.print(section(
-        "Full pipeline",
-        Text("process → postprocess → index → (optional) chat", style=ACCENT),
-        style=ACCENT2,
-    ))
+    console.print(
+        section(
+            "Full pipeline",
+            Text("process → postprocess → index → (optional) chat", style=ACCENT),
+            style=ACCENT2,
+        )
+    )
 
     rows: list[tuple[str, str, float]] = []
 
     # process
     step_header(1, 3, "process")
     process_cfg = pick_or_build_config(REGISTRY["process"])
-    elapsed = _run_step("Crawling + extracting documents",
-                        REGISTRY["process"].run, config_file=process_cfg)
+    elapsed = _run_step(
+        "Crawling + extracting documents",
+        REGISTRY["process"].run,
+        config_file=process_cfg,
+    )
     process_jsonl = _process_output_jsonl(process_cfg)
     rows.append(("process", process_jsonl, elapsed))
 
     # postprocess
     step_header(2, 3, "postprocess")
     pp_cfg = pick_or_build_config(REGISTRY["postprocess"])
-    elapsed = _run_step("Chunking + cleaning",
-                        REGISTRY["postprocess"].run,
-                        config_file=pp_cfg, input_data=process_jsonl)
+    elapsed = _run_step(
+        "Chunking + cleaning",
+        REGISTRY["postprocess"].run,
+        config_file=pp_cfg,
+        input_data=process_jsonl,
+    )
     pp_jsonl = _postprocess_output_jsonl(pp_cfg)
     rows.append(("postprocess", pp_jsonl, elapsed))
 
     # index
     step_header(3, 3, "index")
     index_cfg = pick_or_build_config(REGISTRY["index"], documents_path=pp_jsonl)
-    elapsed = _run_step("Embedding + indexing into Milvus",
-                        REGISTRY["index"].run,
-                        config_file=index_cfg, documents_path=pp_jsonl)
+    elapsed = _run_step(
+        "Embedding + indexing into Milvus",
+        REGISTRY["index"].run,
+        config_file=index_cfg,
+        documents_path=pp_jsonl,
+    )
     rows.append(("index", "(vector DB)", elapsed))
 
     console.print()

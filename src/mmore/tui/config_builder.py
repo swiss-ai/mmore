@@ -5,6 +5,7 @@ asked only for the fields most likely to change between runs; everything else
 falls back to the example defaults. The resulting dict is dumped to a YAML
 file under `./tui-configs/`.
 """
+
 from __future__ import annotations
 
 import os
@@ -14,35 +15,29 @@ from typing import Any, Optional
 
 import questionary
 import yaml
-from questionary import Style
 from rich.panel import Panel
 from rich.text import Text
 
 from mmore.tui.commands import CommandSpec
+from mmore.tui.paths import cwd_default, repo_root, resolve_example
+from mmore.tui.theme import QMARK, QSTYLE, console
 
 CONFIG_DIR = Path("./tui-configs")
 
-QSTYLE = Style([
-    ("qmark", "fg:#5fd7ff bold"),
-    ("question", "bold"),
-    ("answer", "fg:#ff5fd7 bold"),
-    ("pointer", "fg:#5fd7ff bold"),
-    ("highlighted", "fg:#5fd7ff bold"),
-    ("selected", "fg:#ff5fd7"),
-    ("instruction", "fg:#808080 italic"),
-])
-QMARK = "▸"
-
 
 def _prompt(question: str, default: str = "") -> str:
-    answer = questionary.text(question, default=default, style=QSTYLE, qmark=QMARK).ask()
+    answer = questionary.text(
+        question, default=default, style=QSTYLE, qmark=QMARK
+    ).ask()
     if answer is None:
         raise KeyboardInterrupt
     return answer
 
 
 def _confirm(question: str, default: bool = False) -> bool:
-    answer = questionary.confirm(question, default=default, style=QSTYLE, qmark=QMARK).ask()
+    answer = questionary.confirm(
+        question, default=default, style=QSTYLE, qmark=QMARK
+    ).ask()
     if answer is None:
         raise KeyboardInterrupt
     return answer
@@ -57,9 +52,14 @@ def _save(name: str, data: dict[str, Any]) -> str:
 
 
 def build_process_config() -> str:
-    data_path = _prompt("Data path (folder with documents to process)", "examples/sample_data/")
-    output_path = _prompt("Output path (where merged_results.jsonl will be written)",
-                          "examples/process/outputs/")
+    data_path = _prompt(
+        "Data path (folder with documents to process)",
+        cwd_default("data"),
+    )
+    output_path = _prompt(
+        "Output path (where merged_results.jsonl will be written)",
+        cwd_default("outputs/process"),
+    )
     use_fast = _confirm("Use fast (lower-quality) processors?", default=False)
     distributed = _confirm("Use distributed processing (Dask)?", default=False)
     extract_images = _confirm("Extract images from documents?", default=True)
@@ -116,7 +116,8 @@ def build_postprocess_config() -> str:
         "Chunking strategy",
         choices=["sentence", "token", "word", "semantic"],
         default="sentence",
-        style=QSTYLE, qmark=QMARK,
+        style=QSTYLE,
+        qmark=QMARK,
     ).ask()
     if strategy is None:
         raise KeyboardInterrupt
@@ -124,20 +125,26 @@ def build_postprocess_config() -> str:
         "Table handling",
         choices=["single_row", "multi_rows", "keep_whole", "none"],
         default="single_row",
-        style=QSTYLE, qmark=QMARK,
+        style=QSTYLE,
+        qmark=QMARK,
     ).ask()
     if table_handling is None:
         raise KeyboardInterrupt
-    output_path = _prompt("Output JSONL path",
-                          "examples/postprocessor/outputs/merged/results.jsonl")
+    output_path = _prompt(
+        "Output JSONL path",
+        cwd_default("outputs/postprocess/results.jsonl"),
+    )
 
     cfg = {
         "previous_results": None,
         "pp_modules": [
-            {"type": "chunker", "args": {
-                "chunking_strategy": strategy,
-                "table_handling": table_handling,
-            }},
+            {
+                "type": "chunker",
+                "args": {
+                    "chunking_strategy": strategy,
+                    "table_handling": table_handling,
+                },
+            },
         ],
         "output": {"output_path": output_path, "save_each_step": True},
     }
@@ -145,15 +152,16 @@ def build_postprocess_config() -> str:
 
 
 def build_index_config(documents_path: Optional[str] = None) -> str:
-    dense = _prompt("Dense embedding model",
-                    "sentence-transformers/all-MiniLM-L6-v2")
+    dense = _prompt("Dense embedding model", "sentence-transformers/all-MiniLM-L6-v2")
     sparse = _prompt("Sparse embedding model", "splade")
-    db_uri = _prompt("DB URI (Milvus Lite file or server URL)", "./proc_demo.db")
+    db_uri = _prompt(
+        "DB URI (Milvus Lite file or server URL)", cwd_default("proc_demo.db")
+    )
     db_name = _prompt("DB name", "my_db")
     collection = _prompt("Collection name", "my_docs")
     docs = documents_path or _prompt(
         "Documents JSONL path",
-        "examples/postprocessor/outputs/merged/results.jsonl",
+        cwd_default("outputs/postprocess/results.jsonl"),
     )
     cfg = {
         "indexer": {
@@ -174,20 +182,20 @@ BUILDERS = {
 }
 
 
-def find_yaml_configs(spec: CommandSpec, root: str = ".") -> list[str]:
+def find_yaml_configs(spec: CommandSpec) -> list[str]:
     """Find candidate YAML configs scoped to this stage.
 
-    Includes:
-    - files matching any of `spec.config_globs`
-    - previously-generated `tui-configs/<stage>-*.yaml`
+    Globs are evaluated against the resolved repo root (looked up by walking
+    up from CWD), so the TUI works from any working directory. Generated
+    configs in `./tui-configs/` (CWD-relative) are always included so users
+    keep access to configs they just built.
     """
-    root_path = Path(root)
+    root = repo_root() or Path.cwd()
     matches: list[str] = []
     for pattern in spec.config_globs:
-        for p in root_path.glob(pattern):
+        for p in root.glob(pattern):
             matches.append(str(p))
-    # Generated configs from previous TUI runs
-    generated = root_path / "tui-configs"
+    generated = Path.cwd() / "tui-configs"
     if generated.exists():
         for p in sorted(generated.glob(f"{spec.name}-*.yaml")):
             matches.append(str(p))
@@ -207,6 +215,7 @@ def _validate_yaml(path: str, spec: CommandSpec) -> Optional[str]:
         return None
     try:
         from mmore.utils import load_config
+
         dataclass_cls = spec.config_dataclass()
         load_config(path, dataclass_cls)
         return None
@@ -215,28 +224,35 @@ def _validate_yaml(path: str, spec: CommandSpec) -> Optional[str]:
 
 
 def _show_error_panel(path: str, err: str) -> None:
-    from mmore.tui.theme import console
-    console.print(Panel(
-        Text.assemble(
-            (f"{path}\n\n", "bold"),
-            (err, "red"),
-        ),
-        title="[bold red]invalid config[/]",
-        border_style="red",
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel(
+            Text.assemble(
+                (f"{path}\n\n", "bold"),
+                (err, "red"),
+            ),
+            title="[bold red]invalid config[/]",
+            border_style="red",
+            padding=(1, 2),
+        )
+    )
 
 
 def _ranked_choices(spec: CommandSpec, candidates: list[str]) -> list[Any]:
     """Put `spec.example_config` first as ★ recommended; rest under a separator."""
     choices: list[Any] = []
-    rec = spec.example_config
+    rec_resolved: Optional[str] = None
+    if spec.example_config:
+        rec_resolved = resolve_example(spec.example_config)
     rest = list(candidates)
-    if rec and rec in rest:
-        choices.append(questionary.Choice(f"★ {rec}  (recommended)", value=rec))
-        rest.remove(rec)
-    elif rec and Path(rec).exists():
-        choices.append(questionary.Choice(f"★ {rec}  (recommended)", value=rec))
+    if rec_resolved and rec_resolved in rest:
+        choices.append(
+            questionary.Choice(f"★ {rec_resolved}  (recommended)", value=rec_resolved)
+        )
+        rest.remove(rec_resolved)
+    elif rec_resolved and Path(rec_resolved).exists():
+        choices.append(
+            questionary.Choice(f"★ {rec_resolved}  (recommended)", value=rec_resolved)
+        )
     if rest:
         if choices:
             choices.append(questionary.Separator("── other configs ──"))
@@ -245,7 +261,9 @@ def _ranked_choices(spec: CommandSpec, candidates: list[str]) -> list[Any]:
     return choices
 
 
-def pick_or_build_config(spec: CommandSpec, documents_path: Optional[str] = None) -> str:
+def pick_or_build_config(
+    spec: CommandSpec, documents_path: Optional[str] = None
+) -> str:
     """Ask the user to either pick an existing YAML or generate one.
 
     Validates the chosen YAML against the stage's dataclass and re-prompts
@@ -259,7 +277,8 @@ def pick_or_build_config(spec: CommandSpec, documents_path: Optional[str] = None
                 questionary.Choice("✨ Generate new YAML (guided)", value="build"),
                 questionary.Choice("⌨  Type a path manually", value="manual"),
             ],
-            style=QSTYLE, qmark=QMARK,
+            style=QSTYLE,
+            qmark=QMARK,
         ).ask()
         if choice is None:
             raise KeyboardInterrupt
@@ -271,7 +290,8 @@ def pick_or_build_config(spec: CommandSpec, documents_path: Optional[str] = None
             ranked = _ranked_choices(spec, candidates)
             if not ranked:
                 questionary.print(
-                    f"No YAML configs found for `{spec.name}`, falling back to manual entry.",
+                    f"No YAML configs found for `{spec.name}`, "
+                    "falling back to manual entry.",
                     style="fg:yellow",
                 )
                 choice = "manual"
@@ -279,7 +299,8 @@ def pick_or_build_config(spec: CommandSpec, documents_path: Optional[str] = None
                 picked = questionary.select(
                     f"Select a config for `{spec.name}`",
                     choices=ranked,
-                    style=QSTYLE, qmark=QMARK,
+                    style=QSTYLE,
+                    qmark=QMARK,
                 ).ask()
                 if picked is None:
                     raise KeyboardInterrupt

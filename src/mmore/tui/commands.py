@@ -3,6 +3,7 @@
 Each entry mirrors a Click command in `mmore.cli` so the TUI is a thin wrapper:
 the `run` callable is the same `run_*` function the CLI uses.
 """
+
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
@@ -22,58 +23,73 @@ class CommandSpec:
 
 def _process(config_file: str, **_):
     from mmore.run_process import process
+
     process(config_file)
 
 
 def _postprocess(config_file: str, input_data: str, **_):
     from mmore.run_postprocess import postprocess
+
     postprocess(config_file, input_data)
 
 
-def _index(config_file: str, documents_path: Optional[str] = None,
-           collection_name: Optional[str] = None, **_):
+def _index(
+    config_file: str,
+    documents_path: Optional[str] = None,
+    collection_name: Optional[str] = None,
+    **_,
+):
     from mmore.run_index import index
+
     index(config_file, documents_path, collection_name)
 
 
 def _retrieve(config_file: str, **_):
     from mmore.run_retriever import run_api
+
     run_api(config_file, "0.0.0.0", 8001)
 
 
 def _rag(config_file: str, **_):
     from mmore.run_rag import rag
+
     rag(config_file)
 
 
 def _ragcli(config_file: str, **_):
     from mmore.run_ragcli import RagCLI
+
     RagCLI(config_file).launch_cli()
 
 
 def _websearch(config_file: str, **_):
     from mmore.run_websearch import run_websearch
+
     run_websearch(config_file)
 
 
 # Lazy dataclass importers — keeps heavy deps out of TUI startup.
 def _dc_process():
     from mmore.run_process import ProcessInference
+
     return ProcessInference
 
 
 def _dc_postprocess():
     from mmore.process.post_processor.pipeline import PPPipelineConfig
+
     return PPPipelineConfig
 
 
 def _dc_index():
     from mmore.run_index import IndexConfig
+
     return IndexConfig
 
 
 def _dc_rag():
     from mmore.run_rag import RAGInferenceConfig
+
     return RAGInferenceConfig
 
 
