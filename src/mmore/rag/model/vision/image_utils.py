@@ -1,13 +1,10 @@
 import base64
 import io
-import logging
 from pathlib import Path
 from typing import Any, List
 
 from langchain_core.documents import Document
 from PIL import Image
-
-logger = logging.getLogger(__name__)
 
 
 def aggregate_image_paths(docs: List[Document]) -> List[str]:
@@ -30,12 +27,11 @@ def load_images_from_paths(paths: List[str], max_images: int = 20) -> List[Any]:
         try:
             p = Path(path)
             if not p.exists():
-                logger.debug("Image path does not exist: %s", path)
                 continue
             with Image.open(path) as img:
                 loaded.append(img.convert("RGB").copy())
-        except Exception as e:
-            logger.debug("Failed to load image %s: %s", path, e)
+        except Exception:
+            continue
     return loaded
 
 
@@ -51,8 +47,8 @@ def images_to_base64_data_urls(images: List[Any]) -> List[str]:
                 raise TypeError("Image object must have save() (e.g. PIL.Image)")
             b64 = base64.standard_b64encode(buf.getvalue()).decode("ascii")
             urls.append(f"data:image/png;base64,{b64}")
-        except Exception as e:
-            logger.warning("Skip image in multimodal message: %s", e)
+        except Exception:
+            pass
     return urls
 
 
