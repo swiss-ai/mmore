@@ -74,7 +74,7 @@ class MultimodalEmbeddings(Embeddings):
             # Qwen2-VL processors expect <|image_pad|> (processor.image_token), not <|image|>.
             # Otherwise vision features are built but input_ids get no image placeholders → mismatch.
             vision_placeholder = getattr(self.processor, "image_token", None)
-            if vision_placeholder:
+            if isinstance(vision_placeholder, str) and vision_placeholder:
                 prompt = prompt.replace("<|image|>", vision_placeholder)
 
             if images:
