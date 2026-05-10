@@ -394,12 +394,6 @@ class Retriever(BaseRetriever):
                 min_score=min_score,
                 k=k,
                 document_ids=document_ids,
-                output_fields=[
-                    "text",
-                    "paragraph_positions",
-                    "page_numbers",
-                    "paragraph_numbers",
-                ],
             )
 
         def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:

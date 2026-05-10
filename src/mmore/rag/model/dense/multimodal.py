@@ -1,9 +1,3 @@
-"""Multimodal dense embeddings for retrieval/indexing.
-
-Generation-specific vision helpers/adapters live in `rag.model.vision`.
-"""
-
-import logging
 import re
 from typing import Optional
 
@@ -15,8 +9,6 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 
 from ....type import MultimodalSample
 from ..vision.image_utils import load_images_from_paths
-
-logger = logging.getLogger(__name__)
 
 
 class MultimodalEmbeddings(Embeddings):
@@ -32,17 +24,19 @@ class MultimodalEmbeddings(Embeddings):
 
         """Interface for embedding models.
 
-        This implementation follows the standard embedding abstraction, while extending
-        it with multimodal inputs (text plus optional images).
+        This is an interface meant for implementing multimodal embedding models.
 
-        Embedding models map content to a vector (a point in n-dimensional space).
+        Text embedding models are used to map text to a vector (a point in n-dimensional
+        space).
 
-        Similar inputs are usually mapped to nearby points in that space. The exact
-        notion of "similarity" and distance depends on the specific model.
+        Texts that are similar will usually be mapped to points that are close to each
+        other in this space. The exact details of what's considered "similar" and how
+        "distance" is measured in this space are dependent on the specific embedding model.
 
-        The abstraction provides a method for embedding a list of documents and a method
-        for embedding a query text. The query embedding is expected to be a single vector,
-        while document embeddings are expected to be a list of vectors.
+        This abstraction contains a method for embedding a list of documents and a method
+        for embedding a query text. The embedding of a query text is expected to be a single
+        vector, while the embedding of a list of documents is expected to be a list of
+        vectors.
 
         Usually the query embedding is identical to the document embedding, but the
         abstraction allows treating them independently.
@@ -56,10 +50,12 @@ class MultimodalEmbeddings(Embeddings):
         """
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        """Embed a list of documents for dense retrieval.
+        """Embed search docs.
 
         Args:
-            texts: Serialized document payloads. They can include multimodal tags.
+            texts: One text string per chunk. Image paths may appear inside
+                ``<|image|>…<|image|>`` pairs; those are stripped to the model’s
+                image token and the files are loaded. Plain text chunks work too.
 
         Returns:
             List of embeddings.
@@ -67,13 +63,19 @@ class MultimodalEmbeddings(Embeddings):
         embeddings = []
 
         for text in texts:
-            # Legacy placeholder used upstream in processed text chunks.
+            # Parsers mark image positions with "<attachment>" in the text, but that string has no file path—only <|image|>path<|image|> does.
+            # Remove it so it does not end up as junk tokens in the model prompt.
             text = text.replace("<attachment>", "")
             prompt, extracted_paths = MultimodalEmbeddings._extract_multimodal_inputs(
                 text, proc_token="<|image|>"
             )
             # Missing/invalid images are skipped by helper; text-only embedding still works.
             images = load_images_from_paths(extracted_paths)
+            # Qwen2-VL processors expect <|image_pad|> (processor.image_token), not <|image|>.
+            # Otherwise vision features are built but input_ids get no image placeholders → mismatch.
+            vision_placeholder = getattr(self.processor, "image_token", None)
+            if vision_placeholder:
+                prompt = prompt.replace("<|image|>", vision_placeholder)
 
             if images:
                 inputs = self.processor(
@@ -106,7 +108,11 @@ class MultimodalEmbeddings(Embeddings):
 
     @staticmethod
     def _multimodal_to_text(sample: MultimodalSample):
-        """Serialize modalities and text into the retrieval-time text format."""
+        """Build one string for embedding: modality lines then chunk text.
+
+        Each modality becomes ``<|type|>value<|type|>`` on its own line (paths for
+        images). ``sample.text`` is appended as-is.
+        """
         s = "\n".join(
             [
                 f"<|{modality.type}|>{modality.value}<|{modality.type}|>"
@@ -118,9 +124,12 @@ class MultimodalEmbeddings(Embeddings):
 
     @staticmethod
     def _multimodal_to_doc(sample: MultimodalSample) -> Document:
-        return Document(
-            MultimodalEmbeddings._multimodal_to_text(sample), metadata=sample.metadata
+        meta = (
+            sample.metadata.to_dict()
+            if hasattr(sample.metadata, "to_dict")
+            else dict(sample.metadata or {})
         )
+        return Document(MultimodalEmbeddings._multimodal_to_text(sample), metadata=meta)
 
     @staticmethod
     def _extract_multimodal_inputs(

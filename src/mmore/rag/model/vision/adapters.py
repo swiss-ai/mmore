@@ -1,4 +1,3 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Union
 
@@ -10,7 +9,6 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 from ...llm import LLM, LLMConfig
 from .image_utils import build_vision_content, images_to_base64_data_urls
 
-logger = logging.getLogger(__name__)
 DEFAULT_HF_VISION_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 
 
@@ -66,25 +64,20 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
     def _load(self) -> None:
         if self._model is not None:
             return
-        try:
-            import transformers
+        import transformers
 
-            model_cls = getattr(
-                transformers, "Qwen2_5_VLForConditionalGeneration", None
-            ) or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
-            if model_cls is None:
-                model_cls = AutoModelForImageTextToText
+        model_cls = getattr(
+            transformers, "Qwen2_5_VLForConditionalGeneration", None
+        ) or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
+        if model_cls is None:
+            model_cls = AutoModelForImageTextToText
 
-            self._processor = AutoProcessor.from_pretrained(self.model_id)
-            self._model = model_cls.from_pretrained(
-                self.model_id,
-                torch_dtype="auto",
-                device_map=self.device_map,
-            )
-            logger.info("Loaded Hugging Face vision model: %s", self.model_id)
-        except Exception as e:
-            logger.exception("Failed to load HF vision model %s: %s", self.model_id, e)
-            raise
+        self._processor = AutoProcessor.from_pretrained(self.model_id)
+        self._model = model_cls.from_pretrained(
+            self.model_id,
+            torch_dtype="auto",
+            device_map=self.device_map,
+        )
 
     def invoke_with_images(
         self,

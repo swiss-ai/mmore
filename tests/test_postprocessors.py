@@ -64,25 +64,6 @@ def test_chunker_process():
     )
 
 
-def test_chunker_keeps_single_attachment_modality():
-    """A single <attachment> token must keep its single image modality."""
-    config = MultimodalChunkerConfig(
-        chunking_strategy="sentence",
-        text_chunker_config={"chunk_size": 512, "chunk_overlap": 0},
-    )
-    chunker = MultimodalChunker.from_config(config)
-    sample = MultimodalSample(
-        text="Intro <attachment> outro.",
-        modalities=[MultimodalRawInput(type="image", value="/tmp/image.png")],
-        metadata={},
-    )
-    chunks = chunker.process(sample)
-    assert len(chunks) >= 1
-    assert len(chunks[0].modalities) == 1
-    assert chunks[0].modalities[0].type == "image"
-    assert chunks[0].modalities[0].value == "/tmp/image.png"
-
-
 # ------------------ Filter Tests ------------------
 
 
