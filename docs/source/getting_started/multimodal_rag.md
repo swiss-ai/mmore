@@ -72,17 +72,22 @@ mode_args:
   output_file: examples/rag/output.json
 ```
 
-#### 3. Run the RAG pipeline
+#### 3. Index 
+```bash
+python -m mmore index --config-file examples/index/config.yaml --documents-path examples/postprocessor/outputs/merged/results.jsonl
+```
+
+#### 4. Run the RAG pipeline
 
 ```bash
-python3 -m mmore rag --config-file /path/to/config.yaml
+python -m mmore rag --config-file examples/rag/config.yaml
 ```
 
 You can run in batch mode (from an input file) or API mode, exactly like the standard [RAG](rag.md) page.
 
 ## How it works
 
-**Indexing** persists each chunk’s text and `**image_paths`** in Milvus. Dense vectors come from `indexer.dense_model` (`is_multimodal` affects dense only). Sparse vectors are text-based; `**search_type: hybrid**` combines dense (possibly multimodal) with sparse; `**search_type: sparse**` alone does not use image signals for retrieval.
+**Indexing** persists each chunk’s text and `**image_paths`** in Milvus. Dense vectors come from `indexer.dense_model` (`is_multimodal` affects dense only). Sparse vectors are text-based; `**search_type: hybrid`** combines dense (possibly multimodal) with sparse; `**search_type: sparse**` alone does not use image signals for retrieval.
 
 **At inference**, MMORE retrieves chunks, builds the text prompt from them. If `use_vision`is activated, it loads up to `max_images_per_request` images from metadata and passes text + images to the multimodal adapter. If no images load, the model still gets the text context only.
 
