@@ -93,11 +93,17 @@ def make_router(config_path: str) -> APIRouter:
                     documents = process_files_default(
                         temp_dir, COLLECTION_NAME, [file_extension]
                     )
-                except Exception:
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process file '%s' with extension '%s'",
+                        file.filename,
+                        file_extension,
+                        exc_info=True,
+                    )
                     raise HTTPException(
                         status_code=422,
                         detail=f"Could not process file '{file.filename}'",
-                    )
+                    ) from e
 
                 # Save a permanent copy for later retrieval
                 os.makedirs(os.path.dirname(file_storage_path), exist_ok=True)
@@ -188,11 +194,16 @@ def make_router(config_path: str) -> APIRouter:
                     documents = process_files_default(
                         temp_dir, COLLECTION_NAME, file_extensions
                     )
-                except Exception:
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process one of the uploaded files with extensions %s",
+                        file_extensions,
+                        exc_info=True,
+                    )
                     raise HTTPException(
                         status_code=422,
                         detail="Could not process one of the uploaded files",
-                    )
+                    ) from e
 
                 # Save permanent copies
                 for temp_path, file_id in zip(temp_paths, listIds):
