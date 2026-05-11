@@ -4,7 +4,6 @@ prompt before calling the LLM.
 """
 
 import threading
-from dataclasses import replace
 from typing import (
     Annotated,
     Any,
@@ -37,7 +36,6 @@ class _LLMCacheKey(NamedTuple):
     base_url: str | None
     provider: str | None
     max_new_tokens: int | None
-    temperature: float
 
 
 _llm_cache: Dict[_LLMCacheKey, BaseChatModel] = {}
@@ -50,7 +48,6 @@ def _llm_cache_key(cfg: LLMConfig) -> _LLMCacheKey:
         base_url=cfg.base_url,
         provider=cfg.provider,
         max_new_tokens=cfg.max_new_tokens,
-        temperature=cfg.temperature,
     )
 
 
@@ -107,10 +104,9 @@ class BaseAgent:
             checkpointer = build_checkpointer(config)
             owns_checkpointer = True
 
-        llm_config = replace(config.llm, temperature=config.resolve_temperature())
         tools = resolve_tools(config.tools) if config.tools else []
 
-        agent = cls(config, llm_config, tools, checkpointer)
+        agent = cls(config, config.llm, tools, checkpointer)
         agent._owns_checkpointer = owns_checkpointer
         return agent
 

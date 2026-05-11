@@ -14,12 +14,5 @@ class AgentConfig:
     name: str = "agent"
     system_prompt: str = ""
     tools: List[str] = field(default_factory=list)
-    temperature: Optional[float] = None
     checkpointer: Optional[str] = None
     checkpoint_path: Optional[str] = None
-
-    def resolve_temperature(self) -> float:
-        """Return the agent-level temperature, falling back to the LLM config."""
-        if self.temperature is not None:
-            return self.temperature
-        return self.llm.temperature

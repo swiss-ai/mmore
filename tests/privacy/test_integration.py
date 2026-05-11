@@ -68,27 +68,12 @@ def test_unknown_tool_in_config_raises_at_from_config(isolated_tool_registry):
         BaseAgent.from_config(_cfg(tools=["does_not_exist"]))
 
 
-def test_temperature_override_on_agent_config_wins_over_llm():
-    captured = {}
-
-    def factory(llm_cfg):
-        captured["llm_cfg"] = llm_cfg
-        return FakeListChatModel(responses=["ok"])
-
-    with patch("mmore.privacy.agents.base.LLM.from_config", side_effect=factory):
-        agent = BaseAgent.from_config(_cfg(temperature=0.0))
-        agent.invoke("trigger")
-
-    assert captured["llm_cfg"].temperature == 0.0
-
-
 def test_agent_config_loads_from_dict_via_dacite():
     raw = {
-        "llm": {"llm_name": "gpt2", "max_new_tokens": 32},
+        "llm": {"llm_name": "gpt2", "max_new_tokens": 32, "temperature": 0.0},
         "name": "sanitizer",
         "system_prompt": "Strip PII.",
         "tools": [],
-        "temperature": 0.0,
         "checkpointer": "memory",
     }
 
@@ -97,7 +82,7 @@ def test_agent_config_loads_from_dict_via_dacite():
     assert isinstance(cfg, AgentConfig) and isinstance(cfg.llm, LLMConfig)
     assert cfg.name == "sanitizer"
     assert cfg.checkpointer == "memory"
-    assert cfg.resolve_temperature() == 0.0
+    assert cfg.llm.temperature == 0.0
 
 
 def test_memory_checkpointer_persists_state_in_a_thread():
