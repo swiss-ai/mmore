@@ -211,6 +211,19 @@ paths:
                       type: string
                       nullable: true
                       description: Id of the chunk. `null` for a full document.
+                    documentId:
+                      type: string
+                      description: |
+                        Source document identifier as stored at indexing time
+                        (the canonical `document_id` field in Milvus). Empty
+                        string when the collection was indexed before this
+                        field was tracked.
+                    filePath:
+                      type: string
+                      description: |
+                        Path of the source file used during indexing. Useful
+                        for human-readable citations. Empty string when the
+                        post-processor did not record one.
                     content:
                       type: string
                     similarity:
@@ -265,6 +278,16 @@ paths:
                     type: string
                   chunkId:
                     type: string
+                  documentId:
+                    type: string
+                    description: |
+                      Source document identifier as stored at indexing time.
+                      Empty string when not recorded.
+                  filePath:
+                    type: string
+                    description: |
+                      Path of the source file used during indexing. Empty
+                      string when not recorded.
                   content:
                     type: string
                   metadata:
