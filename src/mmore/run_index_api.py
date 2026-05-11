@@ -87,15 +87,21 @@ def make_router(config_path: str) -> APIRouter:
 
                 await file.close()
 
+                # Process and index the file
+                file_extension = FilePath(file.filename).suffix.lower()
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, [file_extension]
+                    )
+                except Exception:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Could not process file '{file.filename}'",
+                    )
+
                 # Save a permanent copy for later retrieval
                 os.makedirs(os.path.dirname(file_storage_path), exist_ok=True)
                 shutil.copy2(temp_file_path, file_storage_path)
-
-                # Process and index the file
-                file_extension = FilePath(file.filename).suffix.lower()
-                documents = process_files_default(
-                    temp_dir, COLLECTION_NAME, [file_extension]
-                )
 
                 for doc in documents:
                     defDocId = doc.document_id
@@ -147,6 +153,7 @@ def make_router(config_path: str) -> APIRouter:
             with tempfile.TemporaryDirectory() as temp_dir:
                 logging.info(f"Starting to process {len(files)} files with custom IDs")
 
+                temp_paths: List[FilePath] = []
                 for file, file_id in zip(files, listIds):
                     if file.filename is None:
                         raise HTTPException(
@@ -166,9 +173,7 @@ def make_router(config_path: str) -> APIRouter:
                     file_name = FilePath(temp_dir) / file.filename
                     with file_name.open("wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
-
-                    # Save a permanent copy
-                    shutil.copy2(file_name, file_storage_path)
+                    temp_paths.append(file_name)
 
                     # Close the file
                     await file.close()
@@ -179,9 +184,20 @@ def make_router(config_path: str) -> APIRouter:
                 file_extensions = [
                     FilePath(cast(str, file.filename)).suffix.lower() for file in files
                 ]
-                documents = process_files_default(
-                    temp_dir, COLLECTION_NAME, file_extensions
-                )
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, file_extensions
+                    )
+                except Exception:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Could not process one of the uploaded files",
+                    )
+
+                # Save permanent copies
+                for temp_path, file_id in zip(temp_paths, listIds):
+                    file_storage_path = FilePath(UPLOAD_DIR) / file_id
+                    shutil.copy2(temp_path, file_storage_path)
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
