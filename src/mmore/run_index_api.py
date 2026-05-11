@@ -176,7 +176,7 @@ def make_router(config_path: str) -> APIRouter:
                         )
 
                     # Save to temp directory
-                    file_name = FilePath(temp_dir) / file.filename
+                    file_name = FilePath(temp_dir) / f"{file_id}_{file.filename}"
                     with file_name.open("wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
                     temp_paths.append(file_name)
