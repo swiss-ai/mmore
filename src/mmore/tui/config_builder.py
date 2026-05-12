@@ -9,6 +9,7 @@ file under `./tui-configs/`.
 from __future__ import annotations
 
 import os
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -18,12 +19,13 @@ import yaml
 from rich.live import Live
 from rich.panel import Panel
 from rich.spinner import Spinner
+from rich.syntax import Syntax
 from rich.text import Text
 
 from mmore.tui.commands import CommandSpec
 from mmore.tui.exceptions import UserCancelledError
 from mmore.tui.paths import cwd_default, repo_root, resolve_example
-from mmore.tui.theme import ACCENT2, QMARK, QSTYLE, console, section
+from mmore.tui.theme import ACCENT, ACCENT2, QMARK, QSTYLE, console, section
 
 
 def _ask(prompt_obj: Any) -> Any:
@@ -60,6 +62,58 @@ def _save(name: str, data: dict[str, Any]) -> str:
     with open(path, "w") as f:
         yaml.safe_dump(data, f, sort_keys=False)
     return str(path)
+
+
+def _preview_config(path: str) -> None:
+    """Display a YAML file with syntax highlighting."""
+    content = Path(path).read_text()
+    console.print(
+        Panel(
+            Syntax(content, "yaml", theme="monokai", line_numbers=True),
+            title=f"[bold]{path}[/bold]",
+            border_style=ACCENT,
+            padding=(1, 2),
+        )
+    )
+
+
+def _edit_config(path: str) -> None:
+    """Open a config file in $EDITOR (falls back to vi)."""
+    editor = os.environ.get("EDITOR", "vi")
+    subprocess.call([editor, path])
+
+
+def _post_validation_menu(path: str, spec: CommandSpec) -> str:
+    """After validation, let the user preview, edit, or run the config.
+
+    Returns the (potentially re-validated) path.
+    """
+    while True:
+        action = _ask(
+            questionary.select(
+                "What next?",
+                choices=[
+                    questionary.Choice("▶  Run with this config", value="run"),
+                    questionary.Choice("👁  Preview config", value="preview"),
+                    questionary.Choice("✎  Edit in $EDITOR", value="edit"),
+                ],
+                default="▶  Run with this config",
+                style=QSTYLE,
+                qmark=QMARK,
+            )
+        )
+        if action == "run":
+            return path
+        if action == "preview":
+            _preview_config(path)
+            continue
+        if action == "edit":
+            _edit_config(path)
+            err = _validate_with_spinner(path, spec)
+            if err:
+                _show_error_panel(path, err)
+            continue
+    return path  # unreachable but keeps mypy happy
 
 
 def build_process_config() -> str:
@@ -422,10 +476,19 @@ def build_process_config_wizard() -> str:
         name: cfg for name, cfg in _PROCESSOR_DEFAULT_CONFIG.items() if name in selected
     }
 
+    # Incremental resume: detect previous results
+    previous_results = None
+    prev_path = os.path.join(output_path, "merged", "merged_results.jsonl")
+    if os.path.exists(prev_path) and _confirm(
+        f"Previous results found at {prev_path}. Resume (skip unchanged files)?",
+        default=True,
+    ):
+        previous_results = prev_path
+
     cfg = {
         "data_path": data_path,
         "google_drive_ids": [],
-        "previous_results": None,
+        "previous_results": previous_results,
         "dispatcher_config": {
             "output_path": output_path,
             "use_fast_processors": use_fast,
@@ -510,8 +573,22 @@ def build_postprocess_config_wizard() -> str:
         "Output JSONL path",
         cwd_default("outputs/postprocess/results.jsonl"),
     )
+
+    # Incremental resume: detect previous results
+    previous_results = None
+    # Resolve the actual JSONL path (dir → dir/final.jsonl, .jsonl → as-is)
+    if output_path.endswith(".jsonl"):
+        pp_prev_path = output_path
+    else:
+        pp_prev_path = os.path.join(output_path, "final.jsonl")
+    if os.path.exists(pp_prev_path) and _confirm(
+        f"Previous results found at {pp_prev_path}. Resume (skip unchanged)?",
+        default=True,
+    ):
+        previous_results = pp_prev_path
+
     cfg = {
-        "previous_results": None,
+        "previous_results": previous_results,
         "pp_modules": modules,
         "output": {"output_path": output_path, "save_each_step": True},
     }
@@ -694,22 +771,25 @@ def pick_or_build_config(
     on failure rather than letting the run blow up later.
     """
     while True:
-        choice = questionary.select(
-            f"Config for `{spec.name}`?",
-            choices=[
-                questionary.Choice("📂 Pick existing YAML", value="pick"),
-                questionary.Choice("✨ Generate new YAML (guided)", value="build"),
-                questionary.Choice("⌨  Type a path manually", value="manual"),
-            ],
-            style=QSTYLE,
-            qmark=QMARK,
-        ).ask()
-        if choice is None:
-            raise UserCancelledError("cancelled")
+        choice = _ask(
+            questionary.select(
+                f"Config for `{spec.name}`?",
+                choices=[
+                    questionary.Choice("📂 Pick existing YAML", value="pick"),
+                    questionary.Choice("✨ Generate new YAML (guided)", value="build"),
+                    questionary.Choice(
+                        "✎  Edit an existing YAML in $EDITOR", value="edit"
+                    ),
+                    questionary.Choice("⌨  Type a path manually", value="manual"),
+                ],
+                style=QSTYLE,
+                qmark=QMARK,
+            )
+        )
 
         path: Optional[str] = None
 
-        if choice == "pick":
+        if choice in ("pick", "edit"):
             candidates = find_yaml_configs(spec)
             ranked = _ranked_choices(spec, candidates)
             if not ranked:
@@ -720,15 +800,17 @@ def pick_or_build_config(
                 )
                 choice = "manual"
             else:
-                picked = questionary.select(
-                    f"Select a config for `{spec.name}`",
-                    choices=ranked,
-                    style=QSTYLE,
-                    qmark=QMARK,
-                ).ask()
-                if picked is None:
-                    raise UserCancelledError("cancelled")
+                picked = _ask(
+                    questionary.select(
+                        f"Select a config for `{spec.name}`",
+                        choices=ranked,
+                        style=QSTYLE,
+                        qmark=QMARK,
+                    )
+                )
                 path = picked
+                if choice == "edit":
+                    _edit_config(path)
 
         if choice == "manual":
             manual = _prompt("Path to YAML config")
@@ -753,7 +835,7 @@ def pick_or_build_config(
         assert path is not None
         err = _validate_yaml(path, spec)
         if err is None:
-            return path
+            return _post_validation_menu(path, spec)
         _show_error_panel(path, err)
         if not _confirm("Try a different config?", default=True):
             raise UserCancelledError("cancelled")

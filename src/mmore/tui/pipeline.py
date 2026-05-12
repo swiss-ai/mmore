@@ -13,6 +13,7 @@ from rich.text import Text
 
 from mmore.tui.commands import REGISTRY
 from mmore.tui.config_builder import pick_or_build_config
+from mmore.tui.inspector import inspect_jsonl
 from mmore.tui.theme import (
     ACCENT,
     ACCENT2,
@@ -104,6 +105,7 @@ def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> 
     )
     process_jsonl = _process_output_jsonl(process_cfg)
     rows.append(("process", process_jsonl, elapsed))
+    inspect_jsonl(process_jsonl)
 
     step_header(2, 3, "postprocess")
     elapsed = _run_step(
@@ -114,6 +116,7 @@ def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> 
     )
     pp_jsonl = _postprocess_output_jsonl(pp_cfg)
     rows.append(("postprocess", pp_jsonl, elapsed))
+    inspect_jsonl(pp_jsonl)
 
     step_header(3, 3, "index")
     elapsed = _run_step(
@@ -154,6 +157,7 @@ def run_full_pipeline() -> None:
     )
     process_jsonl = _process_output_jsonl(process_cfg)
     rows.append(("process", process_jsonl, elapsed))
+    inspect_jsonl(process_jsonl)
 
     step_header(2, 3, "postprocess")
     pp_cfg = pick_or_build_config(REGISTRY["postprocess"])
@@ -165,6 +169,7 @@ def run_full_pipeline() -> None:
     )
     pp_jsonl = _postprocess_output_jsonl(pp_cfg)
     rows.append(("postprocess", pp_jsonl, elapsed))
+    inspect_jsonl(pp_jsonl)
 
     step_header(3, 3, "index")
     index_cfg = pick_or_build_config(REGISTRY["index"], documents_path=pp_jsonl)
