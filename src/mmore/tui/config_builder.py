@@ -97,7 +97,7 @@ def _post_validation_menu(path: str, spec: CommandSpec) -> str:
                     questionary.Choice("👁  Preview config", value="preview"),
                     questionary.Choice("✎  Edit in $EDITOR", value="edit"),
                 ],
-                default="▶  Run with this config",
+                default="run",
                 style=QSTYLE,
                 qmark=QMARK,
             )
@@ -503,11 +503,19 @@ def build_process_config_wizard() -> str:
 
 
 def _postprocessor_choices() -> list[str]:
-    """Enumerate every post-processor `type` string the loader accepts."""
-    from mmore.process.post_processor.filter import FILTER_TYPES
-    from mmore.process.post_processor.tagger import TAGGER_TYPES
+    """Enumerate every post-processor `type` string the loader accepts.
 
-    return ["chunker", "ner", "translator", "metafuse", *TAGGER_TYPES, *FILTER_TYPES]
+    The wizard is reachable without the `process` extra installed (it only
+    writes YAML), so we fall back to the core set if the extra modules are
+    missing instead of crashing mid-wizard with an ImportError.
+    """
+    base = ["chunker", "ner", "translator", "metafuse"]
+    try:
+        from mmore.process.post_processor.filter import FILTER_TYPES
+        from mmore.process.post_processor.tagger import TAGGER_TYPES
+    except ImportError:
+        return base
+    return [*base, *TAGGER_TYPES, *FILTER_TYPES]
 
 
 def _ask_module_args(pp_type: str) -> dict[str, Any]:

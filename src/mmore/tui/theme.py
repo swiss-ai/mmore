@@ -19,6 +19,7 @@ QSTYLE = Style(
         ("highlighted", "fg:#5fd7ff bold"),
         ("selected", "fg:#ff5fd7"),
         ("instruction", "fg:#808080 italic"),
+        ("disabled", "fg:#ffaf00 italic"),
     ]
 )
 QMARK = "▸"

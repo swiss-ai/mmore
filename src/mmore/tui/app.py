@@ -45,6 +45,39 @@ def _show_missing_extras(spec_name: str, hint: str) -> None:
     )
 
 
+def _missing_extras_notice() -> Panel | None:
+    """One-line-per-install-command notice — kept compact so the banner stays visible."""
+    install_to_stages: dict[str, list[str]] = {}
+    for name, spec in REGISTRY.items():
+        hint = check_stage_available(spec)
+        if hint and "Install with: " in hint:
+            cmd = hint.split("Install with: ", 1)[1].strip()
+            install_to_stages.setdefault(cmd, []).append(name)
+
+    if not install_to_stages:
+        return None
+
+    body = Text()
+    for i, (cmd, stages) in enumerate(install_to_stages.items()):
+        if i > 0:
+            body.append("\n")
+        body.append(", ".join(stages), style="bold white")
+        body.append("  →  ", style="yellow")
+        body.append(cmd, style="cyan")
+
+    return Panel(
+        body,
+        title="[bold yellow]⚠  missing extras[/]",
+        border_style="yellow",
+        padding=(0, 1),
+    )
+
+
+def _disabled_label(label: str) -> str:
+    """Prefix a menu label so its disabled state is immediately readable."""
+    return f"⚠  {label}"
+
+
 def _run_with_spinner(label: str, fn, **kwargs) -> None:
     start = time.time()
     spinner = Spinner("dots", text=Text(f"  {label}…", style=ACCENT))
@@ -55,14 +88,29 @@ def _run_with_spinner(label: str, fn, **kwargs) -> None:
 
 def _run_single_command() -> None:
     choices = []
+    enabled_count = 0
     for spec in REGISTRY.values():
         hint = check_stage_available(spec)
         label = f"{spec.name:<12} — {spec.description}"
         if hint:
-            label += "  [dim](extras missing)[/dim]"
-            choices.append(questionary.Choice(label, value=spec.name, disabled=hint))
+            choices.append(
+                questionary.Choice(
+                    _disabled_label(label), value=spec.name, disabled="missing extras"
+                )
+            )
         else:
             choices.append(questionary.Choice(label, value=spec.name))
+            enabled_count += 1
+
+    # questionary crashes ("InquirerControl has no attribute 'pointed_at'") when
+    # every choice is disabled because it can't pick an initial pointer. Bail
+    # out with a clear notice instead.
+    if enabled_count == 0:
+        notice = _missing_extras_notice()
+        if notice is not None:
+            console.print(notice)
+        return
+
     name = questionary.select(
         "Pick a command",
         choices=choices,
@@ -149,24 +197,35 @@ def _pipeline_hint() -> str | None:
 
 
 def _main_menu() -> str | None:
+    notice = _missing_extras_notice()
+    if notice is not None:
+        console.print(notice)
+
     pipeline_hint = _pipeline_hint()
     chat_hint = check_stage_available(REGISTRY["ragcli"])
+    # The wizard validates each generated YAML against the stage's dataclass,
+    # which transitively imports torch / transformers / etc. — so it needs the
+    # same extras as the full pipeline. Reuse `_pipeline_hint()` to stay aligned.
+    wizard_hint = _pipeline_hint()
+
+    pipeline_label = "🚀 Run full pipeline  (process → postprocess → index)"
+    wizard_label = "🧙  Build a full pipeline config (guided wizard)"
+    chat_label = "💬 Chat with indexed documents"
 
     pipeline_choice = questionary.Choice(
-        "🚀 Run full pipeline  (process → postprocess → index)"
-        + ("  [dim](extras missing)[/dim]" if pipeline_hint else ""),
+        _disabled_label(pipeline_label) if pipeline_hint else pipeline_label,
         value="pipeline",
-        disabled=pipeline_hint,
+        disabled="missing extras" if pipeline_hint else None,
     )
     wizard_choice = questionary.Choice(
-        "🧙  Build a full pipeline config (guided wizard)",
+        _disabled_label(wizard_label) if wizard_hint else wizard_label,
         value="wizard",
-    )  # wizard only writes YAML, no heavy imports needed
+        disabled="missing extras" if wizard_hint else None,
+    )
     chat_choice = questionary.Choice(
-        "💬 Chat with indexed documents"
-        + ("  [dim](extras missing)[/dim]" if chat_hint else ""),
+        _disabled_label(chat_label) if chat_hint else chat_label,
         value="chat",
-        disabled=chat_hint,
+        disabled="missing extras" if chat_hint else None,
     )
 
     return questionary.select(
