@@ -268,8 +268,14 @@ def ragcli(config_file: str):
 @main.command()
 def tui():
     """Launch the interactive Terminal UI."""
-    from .tui import run
-
+    try:
+        from .tui import run
+    except ImportError as e:
+        click.echo(
+            f"TUI dependencies missing ({e.name or e}). "
+            "Install with: uv sync --extra tui"
+        )
+        raise SystemExit(1)
     run()
 
 

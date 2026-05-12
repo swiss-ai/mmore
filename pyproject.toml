@@ -41,8 +41,6 @@ dependencies = [
     "typing_extensions>=4.15.0,<5.0",
     "PyYAML>=6.0",
     "setuptools<81",
-    "questionary>=2.0",
-    "rich>=13"
 ]
 
 [project.optional-dependencies]
@@ -128,8 +126,14 @@ api = [
 
 # --- Composite + variant extras ---
 
+tui = [
+    # Interactive terminal launcher (`mmore tui`)
+    "questionary>=2.0",
+    "rich>=13",
+]
+
 all = [
-    "mmore[process,rag,api,websearch]",
+    "mmore[process,rag,api,websearch,tui]",
 ]
 
 cpu = [

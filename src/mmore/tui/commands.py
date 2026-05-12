@@ -4,6 +4,7 @@ Each entry mirrors a Click command in `mmore.cli` so the TUI is a thin wrapper:
 the `run` callable is the same `run_*` function the CLI uses.
 """
 
+import importlib.util
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
@@ -19,6 +20,31 @@ class CommandSpec:
     # Lazy importer returning the dataclass to validate YAML against.
     # Returns None if no validation is wired up for this stage.
     config_dataclass: Optional[Callable[[], Any]] = None
+    # Extras the user has to `uv sync --extra ...` for this stage to import.
+    # Used only to build a friendly install hint.
+    required_extras: list[str] = field(default_factory=list)
+    # Module names probed via `importlib.util.find_spec` to verify the extras
+    # are actually installed. If any is missing, the stage is disabled in the
+    # menu with an install hint.
+    canary_imports: list[str] = field(default_factory=list)
+
+
+def check_stage_available(spec: "CommandSpec") -> Optional[str]:
+    """Return None if all canary imports resolve, else an install-hint string."""
+    missing: list[str] = []
+    for mod in spec.canary_imports:
+        try:
+            if importlib.util.find_spec(mod) is None:
+                missing.append(mod)
+        except (ImportError, ValueError):
+            missing.append(mod)
+    if not missing:
+        return None
+    extras = " ".join(f"--extra {e}" for e in spec.required_extras)
+    return (
+        f"Missing: {', '.join(missing)}. "
+        f"Install with: uv sync {extras}".strip()
+    )
 
 
 def _process(config_file: str, **_):
@@ -104,6 +130,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/process/**/*.yml",
         ],
         config_dataclass=_dc_process,
+        required_extras=["process", "cpu"],
+        canary_imports=["torch", "marker", "transformers"],
     ),
     "postprocess": CommandSpec(
         name="postprocess",
@@ -116,6 +144,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/postprocessor/**/*.yml",
         ],
         config_dataclass=_dc_postprocess,
+        required_extras=["process", "cpu"],
+        canary_imports=["torch", "transformers"],
     ),
     "index": CommandSpec(
         name="index",
@@ -127,6 +157,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/index/**/*.yml",
         ],
         config_dataclass=_dc_index,
+        required_extras=["index", "cpu"],
+        canary_imports=["pymilvus", "sentence_transformers", "torch"],
     ),
     "retrieve": CommandSpec(
         name="retrieve",
@@ -138,6 +170,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/rag/**/*.yml",
         ],
         config_dataclass=_dc_rag,
+        required_extras=["rag", "api", "cpu"],
+        canary_imports=["fastapi", "pymilvus", "torch"],
     ),
     "rag": CommandSpec(
         name="rag",
@@ -149,6 +183,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/rag/**/*.yml",
         ],
         config_dataclass=_dc_rag,
+        required_extras=["rag", "cpu"],
+        canary_imports=["langchain", "pymilvus", "torch"],
     ),
     "ragcli": CommandSpec(
         name="ragcli",
@@ -160,6 +196,8 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/rag/**/*.yml",
         ],
         config_dataclass=_dc_rag,
+        required_extras=["rag", "cpu"],
+        canary_imports=["langchain", "pymilvus", "torch"],
     ),
     "websearch": CommandSpec(
         name="websearch",
@@ -170,5 +208,7 @@ REGISTRY: dict[str, CommandSpec] = {
             "examples/websearchRAG/**/*.yaml",
             "examples/websearchRAG/**/*.yml",
         ],
+        required_extras=["websearch"],
+        canary_imports=["ddgs"],
     ),
 }

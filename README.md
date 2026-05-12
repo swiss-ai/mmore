@@ -103,6 +103,24 @@ uv pip install "mmore[process,cpu]"
 
 > :warning: **Check the instructions for contributors directly at [`docs/for_devs.md`](./docs/for_devs.md)**
 
+### Interactive TUI
+
+Prefer a guided experience over editing YAML by hand? Install the `tui` extra and launch the interactive Terminal UI:
+
+```bash
+uv sync --extra tui --extra process --extra index --extra cpu
+mmore tui
+```
+
+From the launcher you can:
+
+- run any stage (process / postprocess / index / rag / chat) interactively,
+- chain the full pipeline (process → postprocess → index → chat),
+- generate stage YAML configs through a guided wizard,
+- pick from existing example configs without leaving the terminal.
+
+Generated configs land in `./tui-configs/` and are validated against the stage's dataclass before any run. Stages whose extras are missing are greyed out in the menu with the exact `uv sync --extra ...` command to enable them. Press `Ctrl-C` inside a sub-flow to cancel and return to the main menu; press it at the main menu to quit.
+
 ### Minimal Example
 
 You can use our predefined CLI commands to execute parts of the pipeline. Note that you might need to prepend `python -m` to the command if the package does not properly create bash aliases.

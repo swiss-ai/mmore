@@ -3634,8 +3634,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "questionary" },
-    { name = "rich" },
     { name = "setuptools" },
     { name = "typing-extensions" },
     { name = "validators" },
@@ -3690,9 +3688,11 @@ all = [
     { name = "pymupdf" },
     { name = "python-docx" },
     { name = "python-pptx" },
+    { name = "questionary" },
     { name = "ragas" },
     { name = "rarfile" },
     { name = "requests" },
+    { name = "rich" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
     { name = "sentence-transformers" },
@@ -3800,6 +3800,10 @@ rag = [
     { name = "sentence-transformers" },
     { name = "transformers" },
 ]
+tui = [
+    { name = "questionary" },
+    { name = "rich" },
+]
 websearch = [
     { name = "ddgs" },
     { name = "tavily-python" },
@@ -3846,7 +3850,7 @@ requires-dist = [
     { name = "marker-pdf", marker = "extra == 'process'", specifier = ">=1.6" },
     { name = "milvus-model", marker = "extra == 'index'", specifier = ">=0.2.12" },
     { name = "mmore", extras = ["index"], marker = "extra == 'rag'" },
-    { name = "mmore", extras = ["process", "rag", "api", "websearch"], marker = "extra == 'all'" },
+    { name = "mmore", extras = ["process", "rag", "api", "websearch", "tui"], marker = "extra == 'all'" },
     { name = "motor", marker = "extra == 'api'", specifier = ">=3.5" },
     { name = "moviepy", marker = "extra == 'process'", specifier = ">=2.0" },
     { name = "nltk", marker = "extra == 'rag'", specifier = ">=3.9" },
@@ -3868,12 +3872,12 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-pptx", marker = "extra == 'process'" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "questionary", specifier = ">=2.0" },
+    { name = "questionary", marker = "extra == 'tui'", specifier = ">=2.0" },
     { name = "ragas", marker = "extra == 'rag'", specifier = ">=0.2" },
     { name = "rarfile", marker = "extra == 'process'", specifier = ">=4.1" },
     { name = "requests", marker = "extra == 'api'", specifier = ">=2.31" },
     { name = "requests", marker = "extra == 'process'", specifier = ">=2.31" },
-    { name = "rich", specifier = ">=13" },
+    { name = "rich", marker = "extra == 'tui'", specifier = ">=13" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "scipy", marker = "extra == 'index'", specifier = ">=1.8" },
     { name = "sentence-transformers", marker = "extra == 'index'" },
@@ -3898,7 +3902,7 @@ requires-dist = [
     { name = "validators", specifier = ">=0.28" },
     { name = "xlrd", marker = "extra == 'process'", specifier = ">=2.0.1" },
 ]
-provides-extras = ["process", "index", "rag", "api", "all", "cpu", "cu126", "websearch", "dev"]
+provides-extras = ["process", "index", "rag", "api", "tui", "all", "cpu", "cu126", "websearch", "dev"]
 
 [[package]]
 name = "motor"

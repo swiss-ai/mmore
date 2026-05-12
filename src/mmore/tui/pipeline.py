@@ -83,6 +83,58 @@ def _summary_table(rows: list[tuple[str, str, float]]) -> Table:
     return table
 
 
+def run_pipeline_with_configs(
+    process_cfg: str, pp_cfg: str, index_cfg: str
+) -> None:
+    """Execute the three stages given already-built YAML paths."""
+    console.print()
+    console.print(
+        section(
+            "Full pipeline",
+            Text("process → postprocess → index → (optional) chat", style=ACCENT),
+            style=ACCENT2,
+        )
+    )
+
+    rows: list[tuple[str, str, float]] = []
+
+    step_header(1, 3, "process")
+    elapsed = _run_step(
+        "Crawling + extracting documents",
+        REGISTRY["process"].run,
+        config_file=process_cfg,
+    )
+    process_jsonl = _process_output_jsonl(process_cfg)
+    rows.append(("process", process_jsonl, elapsed))
+
+    step_header(2, 3, "postprocess")
+    elapsed = _run_step(
+        "Chunking + cleaning",
+        REGISTRY["postprocess"].run,
+        config_file=pp_cfg,
+        input_data=process_jsonl,
+    )
+    pp_jsonl = _postprocess_output_jsonl(pp_cfg)
+    rows.append(("postprocess", pp_jsonl, elapsed))
+
+    step_header(3, 3, "index")
+    elapsed = _run_step(
+        "Embedding + indexing into Milvus",
+        REGISTRY["index"].run,
+        config_file=index_cfg,
+        documents_path=pp_jsonl,
+    )
+    rows.append(("index", "(vector DB)", elapsed))
+
+    console.print()
+    console.print(_summary_table(rows))
+    console.print()
+
+    if questionary.confirm("Open the RAG chat now?", default=True).ask():
+        rag_cfg = pick_or_build_config(REGISTRY["ragcli"])
+        REGISTRY["ragcli"].run(config_file=rag_cfg)
+
+
 def run_full_pipeline() -> None:
     console.print()
     console.print(
@@ -95,7 +147,6 @@ def run_full_pipeline() -> None:
 
     rows: list[tuple[str, str, float]] = []
 
-    # process
     step_header(1, 3, "process")
     process_cfg = pick_or_build_config(REGISTRY["process"])
     elapsed = _run_step(
@@ -106,7 +157,6 @@ def run_full_pipeline() -> None:
     process_jsonl = _process_output_jsonl(process_cfg)
     rows.append(("process", process_jsonl, elapsed))
 
-    # postprocess
     step_header(2, 3, "postprocess")
     pp_cfg = pick_or_build_config(REGISTRY["postprocess"])
     elapsed = _run_step(
@@ -118,7 +168,6 @@ def run_full_pipeline() -> None:
     pp_jsonl = _postprocess_output_jsonl(pp_cfg)
     rows.append(("postprocess", pp_jsonl, elapsed))
 
-    # index
     step_header(3, 3, "index")
     index_cfg = pick_or_build_config(REGISTRY["index"], documents_path=pp_jsonl)
     elapsed = _run_step(
