@@ -21,13 +21,13 @@ from rich.spinner import Spinner
 from rich.text import Text
 
 from mmore.tui.commands import CommandSpec
-from mmore.tui.exceptions import CancelledByUser
+from mmore.tui.exceptions import UserCancelledError
 from mmore.tui.paths import cwd_default, repo_root, resolve_example
 from mmore.tui.theme import ACCENT2, QMARK, QSTYLE, console, section
 
 
 def _ask(prompt_obj: Any) -> Any:
-    """Call .ask() and translate Ctrl-C / Esc into CancelledByUser.
+    """Call .ask() and translate Ctrl-C / Esc into UserCancelledError.
 
     questionary raises KeyboardInterrupt on Ctrl-C and returns None on Esc.
     Both should land us back at the main menu, not exit the TUI.
@@ -35,10 +35,11 @@ def _ask(prompt_obj: Any) -> Any:
     try:
         answer = prompt_obj.ask()
     except KeyboardInterrupt as e:
-        raise CancelledByUser("cancelled") from e
+        raise UserCancelledError("cancelled") from e
     if answer is None:
-        raise CancelledByUser("cancelled")
+        raise UserCancelledError("cancelled")
     return answer
+
 
 CONFIG_DIR = Path("./tui-configs")
 
@@ -130,7 +131,7 @@ def build_postprocess_config() -> str:
         qmark=QMARK,
     ).ask()
     if strategy is None:
-        raise CancelledByUser("cancelled")
+        raise UserCancelledError("cancelled")
     table_handling = questionary.select(
         "Table handling",
         choices=["single_row", "multi_rows", "keep_whole", "none"],
@@ -139,7 +140,7 @@ def build_postprocess_config() -> str:
         qmark=QMARK,
     ).ask()
     if table_handling is None:
-        raise CancelledByUser("cancelled")
+        raise UserCancelledError("cancelled")
     output_path = _prompt(
         "Output JSONL path",
         cwd_default("outputs/postprocess/results.jsonl"),
@@ -251,7 +252,7 @@ def build_process_config_wizard() -> str:
         qmark=QMARK,
     ).ask()
     if selected is None:
-        raise CancelledByUser("cancelled")
+        raise UserCancelledError("cancelled")
     if not selected:
         selected = names  # empty would mean a no-op pipeline; fall back to all
 
@@ -271,9 +272,7 @@ def build_process_config_wizard() -> str:
         sizes.append({name: value})
 
     processor_config = {
-        name: cfg
-        for name, cfg in _PROCESSOR_DEFAULT_CONFIG.items()
-        if name in selected
+        name: cfg for name, cfg in _PROCESSOR_DEFAULT_CONFIG.items() if name in selected
     }
 
     cfg = {
@@ -311,7 +310,7 @@ def _ask_module_args(pp_type: str) -> dict[str, Any]:
             qmark=QMARK,
         ).ask()
         if strategy is None:
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
         table_handling = questionary.select(
             "Table handling",
             choices=["single_row", "multi_rows", "keep_whole", "none"],
@@ -320,7 +319,7 @@ def _ask_module_args(pp_type: str) -> dict[str, Any]:
             qmark=QMARK,
         ).ask()
         if table_handling is None:
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
         return {
             "chunking_strategy": strategy,
             "table_handling": table_handling,
@@ -354,7 +353,7 @@ def build_postprocess_config_wizard() -> str:
             qmark=QMARK,
         ).ask()
         if pp_type is None:
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
         if pp_type == "(done)":
             break
         args = _ask_module_args(pp_type)
@@ -415,9 +414,11 @@ def build_full_pipeline_wizard() -> dict[str, str]:
             break
         _show_error_panel(process_path, err)
         if not _confirm("Retry the process step?", default=True):
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
 
-    console.print(section("Pipeline wizard", Text("step 2/3 — postprocess", style=ACCENT2)))
+    console.print(
+        section("Pipeline wizard", Text("step 2/3 — postprocess", style=ACCENT2))
+    )
     while True:
         pp_path = build_postprocess_config_wizard()
         err = _validate_with_spinner(pp_path, REGISTRY["postprocess"])
@@ -425,7 +426,7 @@ def build_full_pipeline_wizard() -> dict[str, str]:
             break
         _show_error_panel(pp_path, err)
         if not _confirm("Retry the postprocess step?", default=True):
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
 
     try:
         docs_jsonl = _postprocess_output_jsonl(pp_path)
@@ -440,7 +441,7 @@ def build_full_pipeline_wizard() -> dict[str, str]:
             break
         _show_error_panel(index_path, err)
         if not _confirm("Retry the index step?", default=True):
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
 
     return {"process": process_path, "postprocess": pp_path, "index": index_path}
 
@@ -557,7 +558,7 @@ def pick_or_build_config(
             qmark=QMARK,
         ).ask()
         if choice is None:
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")
 
         path: Optional[str] = None
 
@@ -579,7 +580,7 @@ def pick_or_build_config(
                     qmark=QMARK,
                 ).ask()
                 if picked is None:
-                    raise CancelledByUser("cancelled")
+                    raise UserCancelledError("cancelled")
                 path = picked
 
         if choice == "manual":
@@ -608,4 +609,4 @@ def pick_or_build_config(
             return path
         _show_error_panel(path, err)
         if not _confirm("Try a different config?", default=True):
-            raise CancelledByUser("cancelled")
+            raise UserCancelledError("cancelled")

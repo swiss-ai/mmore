@@ -83,9 +83,7 @@ def _summary_table(rows: list[tuple[str, str, float]]) -> Table:
     return table
 
 
-def run_pipeline_with_configs(
-    process_cfg: str, pp_cfg: str, index_cfg: str
-) -> None:
+def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> None:
     """Execute the three stages given already-built YAML paths."""
     console.print()
     console.print(

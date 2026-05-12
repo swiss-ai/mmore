@@ -6,17 +6,16 @@ import time
 
 import questionary
 from rich.live import Live
+from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.text import Text
-
-from rich.panel import Panel
 
 from mmore.tui.commands import REGISTRY, check_stage_available
 from mmore.tui.config_builder import (
     build_full_pipeline_wizard,
     pick_or_build_config,
 )
-from mmore.tui.exceptions import CancelledByUser
+from mmore.tui.exceptions import UserCancelledError
 from mmore.tui.paths import cwd_default
 from mmore.tui.pipeline import run_full_pipeline, run_pipeline_with_configs
 from mmore.tui.theme import (
@@ -61,9 +60,7 @@ def _run_single_command() -> None:
         label = f"{spec.name:<12} — {spec.description}"
         if hint:
             label += "  [dim](extras missing)[/dim]"
-            choices.append(
-                questionary.Choice(label, value=spec.name, disabled=hint)
-            )
+            choices.append(questionary.Choice(label, value=spec.name, disabled=hint))
         else:
             choices.append(questionary.Choice(label, value=spec.name))
     name = questionary.select(
@@ -137,14 +134,15 @@ def _run_full_wizard() -> None:
         style=QSTYLE,
         qmark=QMARK,
     ).ask():
-        run_pipeline_with_configs(paths["process"], paths["postprocess"], paths["index"])
+        run_pipeline_with_configs(
+            paths["process"], paths["postprocess"], paths["index"]
+        )
 
 
 def _pipeline_hint() -> str | None:
     """Return a combined hint if any of process/postprocess/index is missing."""
     hints = [
-        check_stage_available(REGISTRY[s])
-        for s in ("process", "postprocess", "index")
+        check_stage_available(REGISTRY[s]) for s in ("process", "postprocess", "index")
     ]
     hints = [h for h in hints if h]
     return " | ".join(hints) if hints else None
@@ -210,7 +208,7 @@ def run() -> None:
                 _run_full_wizard()
             elif mode == "chat":
                 _chat_only()
-        except (CancelledByUser, KeyboardInterrupt):
+        except (UserCancelledError, KeyboardInterrupt):
             console.print(f"[{ACCENT2}]cancelled — back to menu.[/]")
             continue
         except Exception as e:  # noqa: BLE001

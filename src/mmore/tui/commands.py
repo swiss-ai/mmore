@@ -41,10 +41,7 @@ def check_stage_available(spec: "CommandSpec") -> Optional[str]:
     if not missing:
         return None
     extras = " ".join(f"--extra {e}" for e in spec.required_extras)
-    return (
-        f"Missing: {', '.join(missing)}. "
-        f"Install with: uv sync {extras}".strip()
-    )
+    return f"Missing: {', '.join(missing)}. Install with: uv sync {extras}".strip()
 
 
 def _process(config_file: str, **_):
