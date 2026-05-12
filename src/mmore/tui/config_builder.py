@@ -186,10 +186,157 @@ def build_index_config(documents_path: Optional[str] = None) -> str:
     return _save("index", cfg)
 
 
+def build_rag_config() -> str:
+    """Wizard for `rag` / `retrieve` / `ragcli` configs."""
+    llm_name = _prompt("LLM name", "OpenMeditron/meditron3-8b")
+    max_new_tokens_raw = _prompt("Max new tokens", "1200")
+    try:
+        max_new_tokens = int(max_new_tokens_raw)
+    except ValueError:
+        max_new_tokens = 1200
+
+    db_uri = _prompt(
+        "DB URI (Milvus Lite file or server URL)", cwd_default("proc_demo.db")
+    )
+    db_name = _prompt("DB name", "my_db")
+    collection = _prompt("Collection name", "my_docs")
+    k_raw = _prompt("Number of docs to retrieve (k)", "5")
+    try:
+        k = int(k_raw)
+    except ValueError:
+        k = 5
+    hybrid_raw = _prompt("Hybrid search weight (0.0 dense — 1.0 sparse)", "0.5")
+    try:
+        hybrid = float(hybrid_raw)
+    except ValueError:
+        hybrid = 0.5
+    use_web = _confirm("Augment retrieval with web search?", default=False)
+    reranker = _prompt("Reranker model (blank to skip)", "BAAI/bge-reranker-base")
+
+    mode = questionary.select(
+        "Run mode",
+        choices=["local", "api"],
+        default="local",
+        style=QSTYLE,
+        qmark=QMARK,
+    ).ask()
+    if mode is None:
+        raise UserCancelledError("cancelled")
+
+    cfg: dict[str, Any] = {
+        "rag": {
+            "llm": {"llm_name": llm_name, "max_new_tokens": max_new_tokens},
+            "retriever": {
+                "db": {"uri": db_uri, "name": db_name},
+                "hybrid_search_weight": hybrid,
+                "k": k,
+                "collection_name": collection,
+                "use_web": use_web,
+                "reranker_model_name": reranker or None,
+            },
+            "system_prompt": (
+                "Use the following context to answer the questions.\n\n"
+                "Context:\n{context}"
+            ),
+        },
+        "mode": mode,
+    }
+    if mode == "local":
+        input_file = _prompt(
+            "Queries JSONL path", cwd_default("examples/rag/queries.jsonl")
+        )
+        output_file = _prompt(
+            "Output JSON path", cwd_default("outputs/rag/output.json")
+        )
+        cfg["mode_args"] = {"input_file": input_file, "output_file": output_file}
+    else:
+        port_raw = _prompt("API port", "8000")
+        try:
+            port = int(port_raw)
+        except ValueError:
+            port = 8000
+        cfg["mode_args"] = {
+            "endpoint": "/rag",
+            "host": "0.0.0.0",
+            "port": port,
+        }
+    return _save("rag", cfg)
+
+
+def build_websearch_config() -> str:
+    """Wizard for `websearch` configs."""
+    use_rag = _confirm("Combine web search with RAG?", default=True)
+    rag_path = ""
+    if use_rag:
+        rag_path = _prompt(
+            "Path to a RAG config YAML",
+            cwd_default("examples/rag/config.yaml"),
+        )
+    llm_name = _prompt("LLM name", "OpenMeditron/meditron3-8b")
+    max_new_tokens_raw = _prompt("Max new tokens", "1200")
+    try:
+        max_new_tokens = int(max_new_tokens_raw)
+    except ValueError:
+        max_new_tokens = 1200
+    input_queries = _prompt(
+        "Input queries JSONL", cwd_default("examples/rag/queries.jsonl")
+    )
+    output_file = _prompt(
+        "Output JSON path",
+        cwd_default("outputs/websearch/enhanced_results.json"),
+    )
+    n_subqueries_raw = _prompt("Number of sub-queries per question", "2")
+    try:
+        n_subqueries = int(n_subqueries_raw)
+    except ValueError:
+        n_subqueries = 2
+    max_searches_raw = _prompt("Max searches per query", "5")
+    try:
+        max_searches = int(max_searches_raw)
+    except ValueError:
+        max_searches = 5
+    provider = questionary.select(
+        "Search provider",
+        choices=["duckduckgo"],
+        default="duckduckgo",
+        style=QSTYLE,
+        qmark=QMARK,
+    ).ask()
+    if provider is None:
+        raise UserCancelledError("cancelled")
+
+    cfg: dict[str, Any] = {
+        "websearch": {
+            "use_rag": use_rag,
+            "rag_config_path": rag_path,
+            "use_summary": True,
+            "n_subqueries": n_subqueries,
+            "input_queries": input_queries,
+            "output_file": output_file,
+            "n_loops": 2,
+            "max_searches": max_searches,
+            "search_provider": provider,
+            "max_retries": 3,
+            "max_context_tokens": 2048,
+            "fast_tokenizer": False,
+            "mode": "local",
+            "llm_config": {
+                "llm_name": llm_name,
+                "max_new_tokens": max_new_tokens,
+            },
+        }
+    }
+    return _save("websearch", cfg)
+
+
 BUILDERS = {
     "process": build_process_config,
     "postprocess": build_postprocess_config,
     "index": build_index_config,
+    "rag": build_rag_config,
+    "retrieve": build_rag_config,
+    "ragcli": build_rag_config,
+    "websearch": build_websearch_config,
 }
 
 
