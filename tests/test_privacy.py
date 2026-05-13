@@ -25,7 +25,7 @@ def _cfg(**args: Any) -> AgentConfig:
     return AgentConfig(**base)
 
 
-def test_system_prompt_is_prepended_to_messages():
+def test_system_prompt_is_prepended_to_messages(isolate_llm_cache):
     captured = {}
 
     class Capturing(FakeListChatModel):
@@ -43,7 +43,9 @@ def test_system_prompt_is_prepended_to_messages():
     assert isinstance(sent[1], HumanMessage) and sent[1].content == "hello"
 
 
-def test_registered_tools_are_bound_to_llm_at_first_invoke(isolated_tool_registry):
+def test_registered_tools_are_bound_to_llm_at_first_invoke(
+    isolate_llm_cache, isolated_tool_registry
+):
     bound_with = {}
 
     class Binding(FakeListChatModel):
@@ -63,7 +65,9 @@ def test_registered_tools_are_bound_to_llm_at_first_invoke(isolated_tool_registr
     assert bound_with["tools"] == [greet]
 
 
-def test_unknown_tool_in_config_raises_at_from_config(isolated_tool_registry):
+def test_unknown_tool_in_config_raises_at_from_config(
+    isolate_llm_cache, isolated_tool_registry
+):
     with pytest.raises(ToolNotRegisteredError):
         BaseAgent.from_config(_cfg(tools=["does_not_exist"]))
 
@@ -85,7 +89,7 @@ def test_agent_config_loads_from_dict_via_dacite():
     assert cfg.llm.temperature == 0.0
 
 
-def test_memory_checkpointer_persists_state_in_a_thread():
+def test_memory_checkpointer_persists_state_in_a_thread(isolate_llm_cache):
     fake = FakeListChatModel(responses=["first", "second"])
     cfg = _cfg(checkpointer="memory")
     thread: RunnableConfig = {"configurable": {"thread_id": "t-1"}}
@@ -104,7 +108,7 @@ def test_memory_checkpointer_persists_state_in_a_thread():
     ]
 
 
-def test_sqlite_checkpointer_persists_state_across_agents(tmp_path):
+def test_sqlite_checkpointer_persists_state_across_agents(tmp_path, isolate_llm_cache):
     db = tmp_path / "check.db"
     fake = FakeListChatModel(responses=["a"])
     cfg = _cfg(checkpointer="sqlite", checkpoint_path=str(db))
@@ -120,7 +124,7 @@ def test_sqlite_checkpointer_persists_state_across_agents(tmp_path):
     assert [m.content for m in snapshot.values["messages"]] == ["hello", "a"]
 
 
-def test_lazy_loading_and_dedup_minimize_load_calls():
+def test_lazy_loading_and_dedup_minimize_load_calls(isolate_llm_cache):
     fake = FakeListChatModel(responses=["x"] * 10)
     with patch("mmore.privacy.agents.base.LLM.from_config", return_value=fake) as mock:
         agent_x = BaseAgent.from_config(_cfg(name="x"))
@@ -132,7 +136,7 @@ def test_lazy_loading_and_dedup_minimize_load_calls():
         assert mock.call_count == 1
 
 
-def test_clear_llm_cache():
+def test_clear_llm_cache(isolate_llm_cache):
     fake = FakeListChatModel(responses=["x"] * 10)
     with patch("mmore.privacy.agents.base.LLM.from_config", return_value=fake) as mock:
         agent = BaseAgent.from_config(_cfg())
