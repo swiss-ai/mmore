@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 import torch
-from colpali_engine.models import ColPali, ColPaliProcessor
 from colpali_engine.utils.torch_utils import ListDataset
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -18,6 +17,7 @@ from langchain_core.retrievers import BaseRetriever
 from torch.utils.data import DataLoader
 
 from .milvuscolpali import MilvusColpaliManager
+from .model_utils import get_model_dim, load_model_and_processor
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +30,13 @@ class ColPaliRetrieverConfig:
     collection_name: str = "pdf_pages"
     model_name: str = "vidore/colpali-v1.3"
     top_k: int = 3
-    dim: int = 128
+    dim: int = 128  # overridden in __post_init__ — set automatically from model_name
     max_workers: int = 4
     metric_type: str = "IP"
     text_parquet_path: Optional[str] = None
+
+    def __post_init__(self):
+        self.dim = get_model_dim(self.model_name)
 
 
 def get_device() -> str:
@@ -48,27 +51,6 @@ def get_device() -> str:
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
-
-
-def load_model(model_name: str, device: str):
-    """
-    Load ColPali model and processor for embedding generation.
-
-    Args:
-        model_name: HuggingFace model identifier (e.g., "vidore/colpali-v1.3")
-        device: Target device for model ("cuda:0", "mps", or "cpu")
-
-    Returns:
-        Tuple of (model, processor) ready for inference
-    """
-    logger.info(f"Loading ColPali model: {model_name}")
-    model = ColPali.from_pretrained(
-        model_name,
-        torch_dtype=torch.bfloat16,
-        device_map=device,
-    ).eval()
-    processor = ColPaliProcessor.from_pretrained(model_name)
-    return model, processor
 
 
 def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:
@@ -229,7 +211,7 @@ class ColPaliRetriever(BaseRetriever):
         """
         # Load model and processor
         device = get_device()
-        model, processor = load_model(config.model_name, device)
+        model, processor = load_model_and_processor(config.model_name, device)
 
         # Initialize manager
         manager = MilvusColpaliManager(

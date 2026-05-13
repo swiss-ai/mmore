@@ -3,6 +3,8 @@ data_path:
 
 output_path: "./output"
 
+# Supported models: vidore/colpali-v1.3, vidore/colqwen2-v1.0,
+#   vidore/colqwen2.5-v0.2, vidore/colqwen3-v0.1, Cognitive-Lab/ColNetraEmbed
 model_name: "vidore/colpali-v1.3"
 
 skip_already_processed: true

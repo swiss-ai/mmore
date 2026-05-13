@@ -9,6 +9,7 @@ import torch
 from PIL import Image
 
 from mmore.colpali.milvuscolpali import MilvusColpaliManager
+from mmore.colpali.model_utils import get_model_dim, resolve_model_classes
 from mmore.colpali.retriever import (
     ColPaliRetriever,
     ColPaliRetrieverConfig,
@@ -23,6 +24,59 @@ This is required because the project follows a "src" layout, and setting PYTHONP
 """
 
 SAMPLES_DIR = "examples/sample_data/"
+
+
+# ------------------ Model Resolution Tests ------------------
+def test_resolve_model_classes_colpali():
+    """Test that ColPali model names resolve to ColPali classes."""
+    model_cls, proc_cls = resolve_model_classes("vidore/colpali-v1.3")
+    assert model_cls.__name__ == "ColPali"
+    assert proc_cls.__name__ == "ColPaliProcessor"
+
+
+def test_resolve_model_classes_colqwen2():
+    """Test that ColQwen2 model names resolve to ColQwen2 classes."""
+    model_cls, proc_cls = resolve_model_classes("vidore/colqwen2-v1.0")
+    assert model_cls.__name__ == "ColQwen2"
+    assert proc_cls.__name__ == "ColQwen2Processor"
+
+
+def test_resolve_model_classes_colqwen2_5():
+    """Test that ColQwen2.5 model names resolve to ColQwen2_5 classes."""
+    model_cls, proc_cls = resolve_model_classes("vidore/colqwen2.5-v0.2")
+    assert model_cls.__name__ == "ColQwen2_5"
+    assert proc_cls.__name__ == "ColQwen2_5_Processor"
+
+
+def test_resolve_model_classes_colqwen3():
+    """Test that ColQwen3 model names resolve to ColQwen3 classes."""
+    model_cls, proc_cls = resolve_model_classes("vidore/colqwen3-v0.1")
+    assert model_cls.__name__ == "ColQwen3"
+    assert proc_cls.__name__ == "ColQwen3Processor"
+
+
+def test_resolve_model_classes_colgemma():
+    """Test that ColGemma model names resolve to ColGemma3 classes."""
+    model_cls, proc_cls = resolve_model_classes("Cognitive-Lab/ColNetraEmbed")
+    assert model_cls.__name__ == "ColGemma3"
+    assert proc_cls.__name__ == "ColGemmaProcessor3"
+
+
+def test_resolve_model_classes_unknown_falls_back():
+    """Test that unknown model names fall back to ColPali."""
+    model_cls, proc_cls = resolve_model_classes("some/unknown-model")
+    assert model_cls.__name__ == "ColPali"
+    assert proc_cls.__name__ == "ColPaliProcessor"
+
+
+def test_get_model_dim():
+    """ColQwen3 produces 320-dim embeddings; all other models default to 128."""
+    assert get_model_dim("vidore/colqwen3-v0.1") == 320
+    assert get_model_dim("vidore/colpali-v1.3") == 128
+    assert get_model_dim("vidore/colqwen2-v1.0") == 128
+    assert get_model_dim("vidore/colqwen2.5-v0.2") == 128
+    assert get_model_dim("Cognitive-Lab/ColNetraEmbed") == 128
+    assert get_model_dim("some/unknown-model") == 128
 
 
 # ------------------ PDFConverter Tests ------------------
@@ -61,9 +115,8 @@ def test_colpali_embedder_embed_images():
             img.save(img_path)
             image_paths.append(str(img_path))
 
-        # Mock the model and processor
-        original_colpali = run_process.ColPali.from_pretrained
-        original_processor = run_process.ColPaliProcessor.from_pretrained
+        # Mock the model loader to bypass actual HuggingFace download
+        original_loader = run_process.load_model_and_processor
 
         embedding_dim = 128
         mock_embeddings = [
@@ -98,9 +151,9 @@ def test_colpali_embedder_embed_images():
         mock_processor_instance = MagicMock()
         mock_processor_instance.process_images.side_effect = mock_process_images
 
-        run_process.ColPali.from_pretrained = MagicMock(return_value=mock_model)
-        run_process.ColPaliProcessor.from_pretrained = MagicMock(
-            return_value=mock_processor_instance
+        run_process.load_model_and_processor = lambda name, device: (
+            mock_model,
+            mock_processor_instance,
         )
 
         try:
@@ -139,8 +192,7 @@ def test_colpali_embedder_embed_images():
                 )
 
         finally:
-            run_process.ColPali.from_pretrained = original_colpali
-            run_process.ColPaliProcessor.from_pretrained = original_processor
+            run_process.load_model_and_processor = original_loader
 
 
 def test_colpali_embedder_embed_images_invalid_input():
@@ -149,9 +201,8 @@ def test_colpali_embedder_embed_images_invalid_input():
 
     from mmore.colpali import run_process
 
-    # Mock the model and processor
-    original_colpali = run_process.ColPali.from_pretrained
-    original_processor = run_process.ColPaliProcessor.from_pretrained
+    # Mock the model loader to bypass actual HuggingFace download
+    original_loader = run_process.load_model_and_processor
 
     mock_model = MagicMock()
     mock_model.device = torch.device("cpu")
@@ -162,9 +213,9 @@ def test_colpali_embedder_embed_images_invalid_input():
         "pixel_values": torch.empty(0, 3, 224, 224)
     }
 
-    run_process.ColPali.from_pretrained = MagicMock(return_value=mock_model)
-    run_process.ColPaliProcessor.from_pretrained = MagicMock(
-        return_value=mock_processor_instance
+    run_process.load_model_and_processor = lambda name, device: (
+        mock_model,
+        mock_processor_instance,
     )
 
     try:
@@ -185,8 +236,7 @@ def test_colpali_embedder_embed_images_invalid_input():
                 embedder.embed_images([str(corrupted_path)], batch_size=5)
 
     finally:
-        run_process.ColPali.from_pretrained = original_colpali
-        run_process.ColPaliProcessor.from_pretrained = original_processor
+        run_process.load_model_and_processor = original_loader
 
 
 # ------------------ Process Single PDF Tests ------------------
@@ -432,7 +482,6 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
     """Test that _get_relevant_documents correctly integrates text content from text_map."""
     from mmore.colpali import milvuscolpali, retriever
 
-    original_load_model = retriever.load_model
     original_milvus_client = milvuscolpali.MilvusClient
     original_embed_queries = retriever.embed_queries
 
@@ -490,7 +539,6 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
             "load_collection": lambda self, name: None,
         },
     )()
-    retriever.load_model = lambda *args, **kwargs: (mock_model, mock_processor)
     retriever.embed_queries = mock_embed_queries
 
     try:
@@ -499,7 +547,6 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
             collection_name="test_collection",
             model_name="vidore/colpali-v1.3",
             top_k=2,
-            dim=128,
         )
 
         retriever_instance = ColPaliRetriever(
@@ -533,7 +580,6 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
         )
 
     finally:
-        retriever.load_model = original_load_model
         milvuscolpali.MilvusClient = original_milvus_client
         retriever.embed_queries = original_embed_queries
 

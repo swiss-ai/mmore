@@ -13,4 +13,5 @@ sudo apt install -y ffmpeg libsm6 libxext6 libnss3 libxi6 libxrandr2 libxcomposi
 curl -LsSf https://astral.sh/uv/install.sh | sh
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrcuv sync
 uv venv
+uv sync --extra process
 source .venv/bin/activate

@@ -1,7 +1,7 @@
 import argparse
 import logging
 from dataclasses import dataclass
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -9,6 +9,7 @@ from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager
+from .model_utils import get_model_dim
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -32,6 +33,11 @@ class MilvusConfig:
 class IndexConfig:
     milvus: MilvusConfig
     parquet_path: str
+    model_name: Optional[str] = None  # if set, overrides milvus.dim automatically
+
+    def __post_init__(self):
+        if self.model_name is not None:
+            self.milvus.dim = get_model_dim(self.model_name)
 
 
 @profile_function()

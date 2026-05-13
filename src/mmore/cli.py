@@ -278,18 +278,27 @@ def colpali():
     required=True,
     help="Path to the ColPali process configuration file.",
 )
-def colpali_process(config_file: str):
+@click.option(
+    "--model",
+    "-m",
+    type=str,
+    required=False,
+    default=None,
+    help="Override the model_name from the config file (e.g. vidore/colqwen2.5-v0.2).",
+)
+def colpali_process(config_file: str, model: Optional[str]):
     """Process PDFs and generate page embeddings using ColPali.
 
     Args:
       config_file: Path to the ColPali process configuration file.
+      model: Optional model name override.
 
     Returns:
 
     """
     from .colpali.run_process import run_process
 
-    run_process(config_file)
+    run_process(config_file, model_name_override=model)
 
 
 @colpali.command(name="index")
@@ -323,6 +332,14 @@ def colpali_index(config_file: str):
     help="Path to the ColPali retriever configuration file.",
 )
 @click.option(
+    "--model",
+    "-m",
+    type=str,
+    required=False,
+    default=None,
+    help="Override the model_name from the config file (e.g. vidore/colqwen2.5-v0.2).",
+)
+@click.option(
     "--input-file",
     "-f",
     type=str,
@@ -346,6 +363,7 @@ def colpali_index(config_file: str):
 )
 def colpali_retrieve(
     config_file: str,
+    model: Optional[str],
     input_file: Optional[str],
     output_file: Optional[str],
     host: str,
@@ -355,6 +373,7 @@ def colpali_retrieve(
 
     Args:
       config_file: Path to the ColPali retriever configuration file.
+      model: Optional model name override.
       input_file: Path to the JSONL file of the input queries.
       output_file: Path to which save the results of the retriever as a JSON.
       host: Host on which the API should be run.
@@ -371,9 +390,9 @@ def colpali_retrieve(
             raise ValueError(
                 "Both --input-file and --output-file must be provided together."
             )
-        run_colpali_retrieve(config_file, input_file, output_file)
+        run_colpali_retrieve(config_file, input_file, output_file, model_name_override=model)
     else:
-        run_colpali_api(config_file, host, port)
+        run_colpali_api(config_file, host, port, model_name_override=model)
 
 
 if __name__ == "__main__":

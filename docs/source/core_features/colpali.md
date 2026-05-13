@@ -1,10 +1,37 @@
-# 🖼️ ColPali Integration
+# 🖼️ ColVision Integration
 
-## Overview
+PDF retrieval pipeline using ColVision embeddings, stored in Milvus.
 
-This module provides a complete pipeline for processing PDF documents with ColPali embeddings, storing them in a Milvus vector database, and performing semantic search.
+## Installation
 
-It is designed for efficient document retrieval and RAG applications.
+The `[colpali]` extra is mutually exclusive with `[process]` — use a dedicated venv.
+
+```bash
+uv sync --extra colpali
+```
+
+## Supported Models
+
+| Model | `model_name` | Dim |
+|---|---|---|
+| ColPali v1.3 | `vidore/colpali-v1.3` | 128 |
+| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` | 128 |
+| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` | 128 |
+| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` | 320 |
+| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` | 128 |
+
+Model class and embedding dimension are auto-detected from `model_name`.
+
+## Choosing a Model
+
+Set `model_name` in the YAML config, or override it via the `-m` / `--model` CLI flag on the `process` and `retrieve` commands (the `index` command reads `model_name` from its config only).
+
+```bash
+python3 -m mmore colpali process -c config_process.yml -m vidore/colqwen2.5-v0.2
+python3 -m mmore colpali retrieve -c config_retrieval.yml -m vidore/colqwen2.5-v0.2
+```
+
+> **Important:** the same model must be used across `process`, `index`, and `retrieve` — mixing produces incorrect results.
 
 ## 🧭 Architecture
 
@@ -18,9 +45,10 @@ The system consists of three main components:
 
 ```
 src/mmore/colpali/
+├── model_utils.py        # Model/processor class resolution and dim detection
 ├── milvuscolpali.py      # Milvus database management
 ├── run_index.py          # Indexing pipeline
-├── run_process.py        # PDF processing pipeline  
+├── run_process.py        # PDF processing pipeline
 ├── run_retriever.py      # Search and retrieval API
 └── retriever.py          # ColPaliRetriever class for RAG integration
 ```
@@ -31,6 +59,9 @@ src/mmore/colpali/
 
 ```bash
 python3 -m mmore colpali process --config-file examples/colpali/config_process.yml
+
+# Or override the model from the command line
+python3 -m mmore colpali process --config-file examples/colpali/config_process.yml --model vidore/colqwen2.5-v0.2
 ```
 
 **Example config (`config_process.yml`):**
@@ -53,11 +84,11 @@ python3 -m mmore colpali index --config-file examples/colpali/config_index.yml
 **Example config (`config_index.yml`):**
 ```yaml
 parquet_path: ./output/pdf_page_objects.parquet
+model_name: "vidore/colpali-v1.3"  # used to auto-detect the Milvus collection dimension
 milvus:
     db_path: ./output/milvus_data.db
     collection_name: pdf_pages
     create_collection: true
-    dim: 128
     metric_type: IP
 ```
 
@@ -76,13 +107,12 @@ python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieva
 
 **Example config (`config_retrieval.yml`):**
 ```yaml
-db_path: "./milvus_data"
+db_path: "./output/milvus_data.db"
 collection_name: "pdf_pages"
 model_name: "vidore/colpali-v1.3"
 top_k: 3
-dim: 128
-max_workers: 16
 metric_type: "IP"
+max_workers: 16
 text_parquet_path: "./output/pdf_page_text.parquet"
 ```
 
@@ -119,17 +149,6 @@ Each line should be a JSON-encoded string (one query per line):
 
 Each line must be a valid JSON string, including quotes, since the file is parsed line by line with `json.loads()`.
 
-**Example config (`config_retrieval.yml`):**
-```yaml
-db_path: "./milvus_data"
-collection_name: "pdf_pages"
-model_name: "vidore/colpali-v1.3"
-top_k: 5
-dim: 128
-max_workers: 16
-text_parquet_path: "./output/pdf_page_text.parquet"
-```
-
 ## 🔧 Core Components
 
 ### MilvusColpaliManager
@@ -146,14 +165,14 @@ text_parquet_path: "./output/pdf_page_text.parquet"
 
 ### PDF Processor
 - converts PDF pages to images
-- generates ColPali embeddings
+- generates ColVision embeddings
 - handles parallel processing
 - supports stop-and-resume workflows for large datasets
 
 **Processing Flow:**
 1. Crawl PDF files from specified directories
 2. Convert each page to high-resolution PNG
-3. Generate embeddings using ColPali model
+3. Generate embeddings using the configured model
 4. Store results in Parquet format
 
 ### Retriever
@@ -194,23 +213,21 @@ curl -X POST "http://localhost:8001/v1/retrieve" \
 ### RAG Pipeline Integration
 ```python
 from mmore.colpali.retriever import ColPaliRetriever, ColPaliRetrieverConfig
-from mmore.rag.pipeline import RAGPipeline, RAGConfig
 
-# Create ColPali retriever with text support
-colpali_config = ColPaliRetrieverConfig(
+# Embedding dim is auto-detected from model_name
+config = ColPaliRetrieverConfig(
     db_path="./output/milvus_data.db",
     collection_name="pdf_pages",
     model_name="vidore/colpali-v1.3",
     text_parquet_path="./output/pdf_page_text.parquet",
     top_k=3,
-    dim=128,
     max_workers=16,
     metric_type="IP",
 )
-colpali_retriever = ColPaliRetriever.from_config(colpali_config)
+retriever = ColPaliRetriever.from_config(config)
 
 # Use with RAG pipeline (requires LLM config)
-# rag_config = RAGConfig(retriever=colpali_retriever, ...)
+# rag_config = RAGConfig(retriever=retriever, ...)
 # rag_pipeline = RAGPipeline.from_config(rag_config)
 ```
 
@@ -319,7 +336,7 @@ python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieva
 ### For better accuracy
 - use higher DPI in PDF conversion, default is 200
 - increase `top_k` in retrieval to inspect more candidate pages
-- consider using larger ColPali models if available
+- consider using more recent ColVision models (ColQwen2.5, ColQwen3)
 
 ### For production
 - run Milvus in distributed mode for larger datasets

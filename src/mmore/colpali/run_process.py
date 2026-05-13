@@ -5,13 +5,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence, Union, cast
+from typing import List, Optional, Sequence, Union
 
 import click
 import fitz
 import pandas as pd
 import torch
-from colpali_engine.models import ColPali, ColPaliProcessor
 from colpali_engine.utils.torch_utils import ListDataset
 from PIL import Image
 from torch.utils.data import DataLoader
@@ -21,6 +20,7 @@ from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config
+from .model_utils import load_model_and_processor
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
@@ -86,11 +86,7 @@ class PDFConverter:
 class ColPaliEmbedder:
     def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
         self.device = device
-        dtype = torch.bfloat16
-        self.model = ColPali.from_pretrained(
-            model_name, torch_dtype=dtype, device_map=device
-        ).eval()
-        self.processor = ColPaliProcessor.from_pretrained(model_name)
+        self.model, self.processor = load_model_and_processor(model_name, device)
 
     def get_images(self, paths: list[Union[str, Path]]) -> List[Image.Image]:
         return [Image.open(path) for path in paths]
@@ -103,9 +99,7 @@ class ColPaliEmbedder:
             dataset=ListDataset(images),
             batch_size=batch_size,
             shuffle=False,
-            collate_fn=lambda x: cast(ColPaliProcessor, self.processor).process_images(
-                x
-            ),
+            collate_fn=lambda x: self.processor.process_images(x),
         )
         ds: List[torch.Tensor] = []
         for batch_doc in tqdm(dataloader):
@@ -241,11 +235,14 @@ def process_pdf_batch(
 
 
 @profile_function()
-def run_process(config_file: str):
+def run_process(config_file: str, model_name_override: Optional[str] = None):
     click.echo(f"Processing configuration file path: {config_file}")
     overall_start_time = time.time()
 
     config = load_config(config_file, PDFProcessConfig)
+    if model_name_override:
+        config.model_name = model_name_override
+        logger.info(f"Model overridden via CLI: {model_name_override}")
     output_dir = Path(config.output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 

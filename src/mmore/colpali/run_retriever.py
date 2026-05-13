@@ -3,7 +3,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import uvicorn
 from fastapi import APIRouter, FastAPI
@@ -53,10 +53,18 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
 
 
 @profile_function()
-def retrieve(config_file: str, input_file: str, output_file: str):
+def retrieve(
+    config_file: str,
+    input_file: str,
+    output_file: str,
+    model_name_override: Optional[str] = None,
+):
     """Retrieve documents for specified queries via ColPali-based similarity search."""
     # Load the config file
     config = load_config(config_file, ColPaliRetrieverConfig)
+    if model_name_override:
+        config.model_name = model_name_override
+        logger.info(f"Model overridden via CLI: {model_name_override}")
 
     logger.info("Running ColPali retriever...")
     retriever = ColPaliRetriever.from_config(config)
@@ -92,12 +100,15 @@ class RetrieverQuery(BaseModel):
     )
 
 
-def make_router(config_file: str) -> APIRouter:
+def make_router(config_file: str, model_name_override: Optional[str] = None) -> APIRouter:
     """Create API router with retriever endpoint."""
     router = APIRouter()
 
     # Load the config file
     config = load_config(config_file, ColPaliRetrieverConfig)
+    if model_name_override:
+        config.model_name = model_name_override
+        logger.info(f"Model overridden via CLI: {model_name_override}")
 
     logger.info("Running ColPali retriever...")
     retriever_obj = ColPaliRetriever.from_config(config)
@@ -125,9 +136,14 @@ def make_router(config_file: str) -> APIRouter:
 
 
 @profile_function()
-def run_api(config_file: str, host: str, port: int):
+def run_api(
+    config_file: str,
+    host: str,
+    port: int,
+    model_name_override: Optional[str] = None,
+):
     """Run the ColPali retriever API server."""
-    router = make_router(config_file)
+    router = make_router(config_file, model_name_override=model_name_override)
 
     app = FastAPI(
         title="ColPali Retriever API",

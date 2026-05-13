@@ -81,7 +81,6 @@ process = [
     "google-api-python-client>=2.120",
     "datatrove>=0.3; python_version < '3.12'",
     "datatrove>=0.7; python_version >= '3.12'",
-    "colpali-engine>=0.3",
     "bokeh",
 ]
 
@@ -95,6 +94,16 @@ index = [
     "sentence-transformers",
     "transformers>=4.44",
     "scipy>=1.8",
+]
+
+colpali = [
+    # Vision-based RAG with ColVision models
+    "mmore[index]",
+    "colpali-engine>=0.3.15",
+    "transformers>=5.0.0,<6.0.0",
+    "PyMuPDF",
+    "accelerate>=0.30",
+    "pyarrow",
 ]
 
 rag = [
@@ -153,6 +162,14 @@ conflicts = [
   [
     { extra = "cpu" },
     { extra = "cu126" },
+  ],
+  [
+    { extra = "process" },
+    { extra = "colpali" },
+  ],
+  [
+    { extra = "all" },
+    { extra = "colpali" },
   ],
 ]
 
