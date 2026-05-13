@@ -3598,7 +3598,7 @@ name = "milvus-lite"
 version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "tqdm", marker = "python_full_version < '3.11' or sys_platform != 'win32' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
+    { name = "tqdm" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/b2/acc5024c8e8b6a0b034670b8e8af306ebd633ede777dcbf557eac4785937/milvus_lite-2.5.1-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:6b014453200ba977be37ba660cb2d021030375fa6a35bc53c2e1d92980a0c512", size = 27934713, upload-time = "2025-06-30T04:23:37.028Z" },
@@ -3644,7 +3644,7 @@ wheels = [
 
 [[package]]
 name = "mmore"
-version = "1.2.2"
+version = "1.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -3701,13 +3701,14 @@ all = [
     { name = "markdown" },
     { name = "markdownify" },
     { name = "marker-pdf" },
+    { name = "milvus-lite" },
     { name = "milvus-model" },
     { name = "motor" },
     { name = "moviepy" },
     { name = "nltk" },
     { name = "openpyxl" },
     { name = "py7zr" },
-    { name = "pymilvus", extra = ["milvus-lite"] },
+    { name = "pymilvus" },
     { name = "pymilvus-model" },
     { name = "pymongo" },
     { name = "pymupdf" },
@@ -3757,8 +3758,9 @@ dev = [
 ]
 index = [
     { name = "langchain-milvus" },
+    { name = "milvus-lite" },
     { name = "milvus-model" },
-    { name = "pymilvus", extra = ["milvus-lite"] },
+    { name = "pymilvus" },
     { name = "pymilvus-model" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
@@ -3837,9 +3839,10 @@ rag = [
     { name = "langchain-milvus" },
     { name = "langchain-mistralai" },
     { name = "langchain-openai" },
+    { name = "milvus-lite" },
     { name = "milvus-model" },
     { name = "nltk" },
-    { name = "pymilvus", extra = ["milvus-lite"] },
+    { name = "pymilvus" },
     { name = "pymilvus-model" },
     { name = "ragas" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
@@ -3893,6 +3896,7 @@ requires-dist = [
     { name = "markdown", marker = "extra == 'process'", specifier = ">=3.5" },
     { name = "markdownify", marker = "extra == 'process'", specifier = ">=0.12" },
     { name = "marker-pdf", marker = "extra == 'process'", specifier = ">=1.6" },
+    { name = "milvus-lite", marker = "extra == 'index'", specifier = "==2.5.1" },
     { name = "milvus-model", marker = "extra == 'index'", specifier = ">=0.2.12" },
     { name = "mmore", extras = ["index", "llm"], marker = "extra == 'rag'" },
     { name = "mmore", extras = ["llm"], marker = "extra == 'privacy'" },
@@ -3907,7 +3911,7 @@ requires-dist = [
     { name = "pillow" },
     { name = "py7zr", marker = "extra == 'process'", specifier = ">=0.22" },
     { name = "pydantic", specifier = ">=2.6" },
-    { name = "pymilvus", extras = ["milvus-lite"], marker = "extra == 'index'", specifier = "==2.6.6" },
+    { name = "pymilvus", marker = "extra == 'index'", specifier = "==2.6.6" },
     { name = "pymilvus-model", marker = "extra == 'index'", specifier = ">=0.3.2" },
     { name = "pymongo", marker = "extra == 'api'", specifier = ">=4.6" },
     { name = "pymupdf", marker = "extra == 'process'" },
@@ -6508,11 +6512,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/64/a3/66781567d1067f1fbf7dc5dc12f6af1c4b05bf17f81fe6d6b644353b9b72/pymilvus-2.6.6.tar.gz", hash = "sha256:2522617ea34dcc9adaad0128d230f0306962a122f08366a24dd0e84bdada1f60", size = 1380350, upload-time = "2025-12-30T09:11:28.477Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/ab/890c3e258c09981a4df875fe762166b92111fc1f9fb1e646025ebe3acb1b/pymilvus-2.6.6-py3-none-any.whl", hash = "sha256:0e61daa573b0025650f072493cb978a9ada9cdb1d450594707592174b1f297c0", size = 285098, upload-time = "2025-12-30T09:11:27.099Z" },
-]
-
-[package.optional-dependencies]
-milvus-lite = [
-    { name = "milvus-lite", marker = "sys_platform != 'win32' or (extra == 'extra-5-mmore-cpu' and extra == 'extra-5-mmore-cu126')" },
 ]
 
 [[package]]
