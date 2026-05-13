@@ -9,6 +9,7 @@ file under `./tui-configs/`.
 from __future__ import annotations
 
 import os
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -58,7 +59,7 @@ def _confirm(question: str, default: bool = False) -> bool:
 
 def _save(name: str, data: dict[str, Any]) -> str:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    path = CONFIG_DIR / f"{name}-{int(time.time())}.yaml"
+    path = CONFIG_DIR / f"{name}-{time.time_ns()}.yaml"
     with open(path, "w") as f:
         yaml.safe_dump(data, f, sort_keys=False)
     return str(path)
@@ -78,9 +79,12 @@ def _preview_config(path: str) -> None:
 
 
 def _edit_config(path: str) -> None:
-    """Open a config file in $EDITOR (falls back to vi)."""
+    """Open a config file in $EDITOR (falls back to vi).
+
+    Supports editors with flags like ``EDITOR="code -w"`` via shlex.split.
+    """
     editor = os.environ.get("EDITOR", "vi")
-    subprocess.call([editor, path])
+    subprocess.call([*shlex.split(editor), path])
 
 
 def _post_validation_menu(path: str, spec: CommandSpec) -> str:
@@ -297,7 +301,7 @@ def build_rag_config() -> str:
     }
     if mode == "local":
         input_file = _prompt(
-            "Queries JSONL path", cwd_default("examples/rag/queries.jsonl")
+            "Queries JSONL path", resolve_example("examples/rag/queries.jsonl")
         )
         output_file = _prompt(
             "Output JSON path", cwd_default("outputs/rag/output.json")
@@ -324,7 +328,7 @@ def build_websearch_config() -> str:
     if use_rag:
         rag_path = _prompt(
             "Path to a RAG config YAML",
-            cwd_default("examples/rag/config.yaml"),
+            resolve_example("examples/rag/config.yaml"),
         )
     llm_name = _prompt("LLM name", "OpenMeditron/meditron3-8b")
     max_new_tokens_raw = _prompt("Max new tokens", "1200")
@@ -333,7 +337,7 @@ def build_websearch_config() -> str:
     except ValueError:
         max_new_tokens = 1200
     input_queries = _prompt(
-        "Input queries JSONL", cwd_default("examples/rag/queries.jsonl")
+        "Input queries JSONL", resolve_example("examples/rag/queries.jsonl")
     )
     output_file = _prompt(
         "Output JSON path",
@@ -822,6 +826,7 @@ def pick_or_build_config(
 
         if choice == "manual":
             manual = _prompt("Path to YAML config")
+            manual = os.path.expandvars(os.path.expanduser(manual))
             if not os.path.exists(manual):
                 _show_error_panel(manual, "file not found")
                 continue
@@ -841,7 +846,7 @@ def pick_or_build_config(
                 path = builder()
 
         assert path is not None
-        err = _validate_yaml(path, spec)
+        err = _validate_with_spinner(path, spec)
         if err is None:
             return _post_validation_menu(path, spec)
         _show_error_panel(path, err)

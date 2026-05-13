@@ -270,12 +270,13 @@ def tui():
     """Launch the interactive Terminal UI."""
     try:
         from .tui import run
-    except ImportError as e:
-        click.echo(
-            f"TUI dependencies missing ({e.name or e}). "
-            "Install with: uv sync --extra tui"
-        )
-        raise SystemExit(1)
+    except ModuleNotFoundError as e:
+        if e.name in ("questionary", "rich", "prompt_toolkit"):
+            click.echo(
+                f"TUI dependency missing ({e.name}). Install with: uv sync --extra tui"
+            )
+            raise SystemExit(1)
+        raise
     run()
 
 

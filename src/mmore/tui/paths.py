@@ -1,10 +1,8 @@
-"""Locate bundled example configs regardless of CWD or install layout.
+"""Locate bundled example configs regardless of CWD.
 
 Strategy:
-- If `examples/` exists relative to CWD (source checkout), use it.
-- Else, walk up from CWD looking for a repo root that contains `examples/`.
-- Else, fall back to `importlib.resources` to read examples shipped with the
-  package (only available if the wheel actually bundles them).
+- Walk up from CWD looking for a directory that contains ``examples/``
+  (works from any subdirectory of a source checkout).
 - If nothing is found, return the original repo-relative path so error
   messages stay readable; callers handle "missing" gracefully.
 """
