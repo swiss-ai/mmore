@@ -80,7 +80,6 @@ class RAGPipeline:
         return "\n\n".join(
             f"[{doc.metadata['rank']}] {doc.page_content}" for doc in docs
         )
-        # return "\n\n".join(f"[#{doc.metadata['rank']}, sim={doc.metadata['similarity']:.2f}] {doc.page_content}" for doc in docs)
 
     @staticmethod
     def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:

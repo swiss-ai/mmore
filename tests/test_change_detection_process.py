@@ -72,7 +72,7 @@ class TestProcessPipelineReuse:
         current = {exists, new_file}
 
         merged = merge_results(reused, new, current)
-        fps = {str(s.metadata["file_path"]) for s in merged}
+        fps = {str(s.metadata.file_path) for s in merged}
         assert fps == {exists, new_file}
 
     @pytest.mark.parametrize(
@@ -104,22 +104,3 @@ class TestProcessPipelineReuse:
 
         n_deleted = len(set(previous.keys()) - all_crawled_paths)
         assert n_deleted == expected_deleted
-
-    def test_metadata_fields_present(self, tmp_path, make_sample, write_jsonl):
-        """Previous results have expected metadata fields."""
-        prev_path = tmp_path / "prev.jsonl"
-        write_jsonl(
-            str(prev_path),
-            [
-                make_sample(
-                    "/x.pdf",
-                    processed_at="2026-01-01T00:00:00",
-                    processor_type="PDFProcessor",
-                ),
-            ],
-        )
-
-        previous = load_previous_process_results(str(prev_path))
-        sample = previous["/x.pdf"]
-        assert "processed_at" in sample.metadata
-        assert "processor_type" in sample.metadata

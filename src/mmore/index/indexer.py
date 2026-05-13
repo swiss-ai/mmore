@@ -197,7 +197,7 @@ class Indexer:
                     "text": sample.text,
                     "dense_embedding": d,
                     "sparse_embedding": s,
-                    **sample.metadata,
+                    **sample.metadata.to_dict(),
                 }
                 for sample, d, s in zip(batch, dense_embeddings, sparse_embeddings)
             ]

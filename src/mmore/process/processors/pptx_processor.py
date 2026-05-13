@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.shapes.autoshape import Shape
 from pptx.shapes.picture import Picture
 
-from ...type import FileDescriptor, MultimodalSample
+from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
 from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
@@ -62,7 +62,7 @@ class PPTXProcessor(Processor):
             prs = Presentation(file_path)
         except Exception as e:
             logger.error(f"Failed to open PowerPoint file {file_path}: {e}")
-            return self.create_sample([], [], {"file_path": file_path})
+            return self.create_sample([], [], DocumentMetadata(file_path=file_path))
 
         all_text: list[str] = []
         embedded_images: list[Image.Image] = []
@@ -111,4 +111,6 @@ class PPTXProcessor(Processor):
         except Exception as e:
             logger.error(f"[PPTX] Error processing slides in {file_path}: {e}")
 
-        return self.create_sample(all_text, embedded_images, {"file_path": file_path})
+        return self.create_sample(
+            all_text, embedded_images, DocumentMetadata(file_path=file_path)
+        )
