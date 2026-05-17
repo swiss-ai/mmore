@@ -31,12 +31,11 @@ def _process_output_jsonl(config_path: str) -> str:
     Goes through `mmore.utils.load_config` so env-var expansion ($ROOT_OUT_DIR,
     etc.) matches what the underlying command sees.
     """
-    from mmore.run_process import ProcessInference
+    from mmore.run_process import ProcessInference, merged_results_path
     from mmore.utils import load_config
 
     cfg: ProcessInference = load_config(config_path, ProcessInference)
-    out = cfg.dispatcher_config.output_path
-    return os.path.join(out, "merged", "merged_results.jsonl")
+    return merged_results_path(cfg.dispatcher_config.output_path)
 
 
 def _postprocess_output_jsonl(config_path: str) -> str:

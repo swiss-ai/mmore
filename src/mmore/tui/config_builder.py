@@ -481,8 +481,10 @@ def build_process_config_wizard() -> str:
     }
 
     # Incremental resume: detect previous results
+    from mmore.run_process import merged_results_path
+
     previous_results = None
-    prev_path = os.path.join(output_path, "merged", "merged_results.jsonl")
+    prev_path = merged_results_path(output_path)
     if os.path.exists(prev_path) and _confirm(
         f"Previous results found at {prev_path}. Resume (skip unchanged files)?",
         default=True,
