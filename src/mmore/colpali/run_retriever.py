@@ -100,7 +100,9 @@ class RetrieverQuery(BaseModel):
     )
 
 
-def make_router(config_file: str, model_name_override: Optional[str] = None) -> APIRouter:
+def make_router(
+    config_file: str, model_name_override: Optional[str] = None
+) -> APIRouter:
     """Create API router with retriever endpoint."""
     router = APIRouter()
 

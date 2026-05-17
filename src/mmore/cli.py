@@ -390,7 +390,9 @@ def colpali_retrieve(
             raise ValueError(
                 "Both --input-file and --output-file must be provided together."
             )
-        run_colpali_retrieve(config_file, input_file, output_file, model_name_override=model)
+        run_colpali_retrieve(
+            config_file, input_file, output_file, model_name_override=model
+        )
     else:
         run_colpali_api(config_file, host, port, model_name_override=model)
 
