@@ -11,8 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+        config:
+          - name: process
+            extras: "process,index,rag,api,cpu,dev,websearch"
+            pytest-args: "--ignore=tests/test_colpali.py"
+          - name: colpali
+            extras: "colpali,cpu,dev"
+            pytest-args: "tests/test_colpali.py"
+
+    name: test (${{ matrix.config.name }}, py${{ matrix.python-version }})
 
     steps:
       - name: Checkout code
@@ -31,7 +41,7 @@ jobs:
       - name: Install dependencies (using uv)
         run: |
           source .venv/bin/activate
-          uv pip install -e ".[process,index,rag,api,cpu,dev,websearch]"
+          uv pip install -e ".[${{ matrix.config.extras }}]"
 
       - name: Show installed cohere and langchain-cohere versions
         run: |
@@ -42,4 +52,4 @@ jobs:
       - name: Run tests
         run: |
           source .venv/bin/activate
-          pytest
+          pytest ${{ matrix.config.pytest-args }}
