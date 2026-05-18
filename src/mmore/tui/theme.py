@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import time
+from typing import Any, Callable
+
 from questionary import Style
 from rich.align import Align
 from rich.console import Console, Group
@@ -75,6 +78,21 @@ def section(title: str, body: str | Text, style: str = ACCENT) -> Panel:
         border_style=style,
         padding=(1, 2),
     )
+
+
+def run_step(label: str, fn: Callable[..., Any], **kwargs: Any) -> float:
+    """Print a start line, call fn(**kwargs), print a timed done line.
+
+    Heavy pipeline commands emit their own logs via logging/click which bypass
+    rich.Console — a Live spinner would clash with them. Plain prints keep the
+    output readable while still showing progress.
+    """
+    start = time.time()
+    console.print(f"  [{ACCENT}]▸[/] {label}…")
+    fn(**kwargs)
+    elapsed = time.time() - start
+    console.print(f"  [{OK}]✓[/] {label} [dim]({elapsed:.1f}s)[/dim]")
+    return elapsed
 
 
 def step_header(idx: int, total: int, name: str) -> None:

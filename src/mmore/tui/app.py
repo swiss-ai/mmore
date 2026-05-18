@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import time
+import threading
 
 import questionary
 from rich.panel import Panel
@@ -24,9 +24,34 @@ from mmore.tui.theme import (
     QMARK,
     QSTYLE,
     console,
+    run_step,
     section,
     show_banner,
 )
+
+_PIPELINE_STAGES = ("process", "postprocess", "index")
+
+
+def _warm_pipeline_dataclasses() -> None:
+    """Pre-load process/postprocess/index dataclasses in a daemon thread.
+
+    Called when entering the wizard or full-pipeline flows, where several YAML
+    validations happen back-to-back. The import cost then overlaps with the
+    wizard's own prompts. Daemon = no impact on exit. Stages whose canary
+    imports are missing are skipped so partial installs don't crash the warm-up.
+    """
+
+    def _warm() -> None:
+        for stage in _PIPELINE_STAGES:
+            spec = REGISTRY[stage]
+            if check_stage_available(spec) is not None or spec.config_dataclass is None:
+                continue
+            try:
+                spec.config_dataclass()
+            except Exception:  # noqa: BLE001
+                pass
+
+    threading.Thread(target=_warm, daemon=True).start()
 
 
 def _show_missing_extras(spec_name: str, hint: str) -> None:
@@ -74,15 +99,6 @@ def _missing_extras_notice() -> Panel | None:
 def _disabled_label(label: str) -> str:
     """Prefix a menu label so its disabled state is immediately readable."""
     return f"⚠  {label}"
-
-
-def _run_with_spinner(label: str, fn, **kwargs) -> None:
-    # See pipeline._run_step: heavy underlying commands log to stdout in ways
-    # that clash with a rich Live spinner. Plain prints keep output readable.
-    start = time.time()
-    console.print(f"  [{ACCENT}]▸[/] {label}…")
-    fn(**kwargs)
-    console.print(f"  [{OK}]✓[/] {label} [dim]({time.time() - start:.1f}s)[/dim]")
 
 
 def _run_single_command() -> None:
@@ -149,7 +165,7 @@ def _run_single_command() -> None:
     if interactive:
         spec.run(**kwargs)
     else:
-        _run_with_spinner(spec.description, spec.run, **kwargs)
+        run_step(spec.description, spec.run, **kwargs)
     console.print(f"[{OK}]✓ {name} finished[/]")
 
 
@@ -161,6 +177,7 @@ def _chat_only() -> None:
 
 
 def _run_full_wizard() -> None:
+    _warm_pipeline_dataclasses()
     paths = build_full_pipeline_wizard()
     console.print()
     console.print(
@@ -261,6 +278,7 @@ def run() -> None:
             if mode == "single":
                 _run_single_command()
             elif mode == "pipeline":
+                _warm_pipeline_dataclasses()
                 run_full_pipeline()
             elif mode == "wizard":
                 _run_full_wizard()

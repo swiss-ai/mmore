@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import os
-import time
-
 import questionary
 from rich.table import Table
 from rich.text import Text
@@ -16,8 +13,8 @@ from mmore.tui.theme import (
     ACCENT,
     ACCENT2,
     MUTED,
-    OK,
     console,
+    run_step,
     section,
     step_header,
 )
@@ -49,18 +46,6 @@ def _postprocess_output_jsonl(config_path: str) -> str:
 
     cfg: PPPipelineConfig = load_config(config_path, PPPipelineConfig)
     return jsonl_path(cfg.output.output_path)
-
-
-def _run_step(label: str, fn, **kwargs) -> float:
-    # No Live spinner here: run_process / run_index emit their own logs via
-    # `logging` and `click.echo`, which bypass rich.Console and clash with a
-    # refreshing spinner. Plain prints keep the output readable.
-    start = time.time()
-    console.print(f"  [{ACCENT}]▸[/] {label}…")
-    fn(**kwargs)
-    elapsed = time.time() - start
-    console.print(f"  [{OK}]✓[/] {label} [dim]({elapsed:.1f}s)[/dim]")
-    return elapsed
 
 
 def _summary_table(rows: list[tuple[str, str, float]]) -> Table:
@@ -97,7 +82,7 @@ def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> 
     rows: list[tuple[str, str, float]] = []
 
     step_header(1, 3, "process")
-    elapsed = _run_step(
+    elapsed = run_step(
         "Crawling + extracting documents",
         REGISTRY["process"].run,
         config_file=process_cfg,
@@ -107,7 +92,7 @@ def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> 
     inspect_jsonl(process_jsonl)
 
     step_header(2, 3, "postprocess")
-    elapsed = _run_step(
+    elapsed = run_step(
         "Chunking + cleaning",
         REGISTRY["postprocess"].run,
         config_file=pp_cfg,
@@ -118,7 +103,7 @@ def run_pipeline_with_configs(process_cfg: str, pp_cfg: str, index_cfg: str) -> 
     inspect_jsonl(pp_jsonl)
 
     step_header(3, 3, "index")
-    elapsed = _run_step(
+    elapsed = run_step(
         "Embedding + indexing into Milvus",
         REGISTRY["index"].run,
         config_file=index_cfg,
@@ -149,7 +134,7 @@ def run_full_pipeline() -> None:
 
     step_header(1, 3, "process")
     process_cfg = pick_or_build_config(REGISTRY["process"])
-    elapsed = _run_step(
+    elapsed = run_step(
         "Crawling + extracting documents",
         REGISTRY["process"].run,
         config_file=process_cfg,
@@ -160,7 +145,7 @@ def run_full_pipeline() -> None:
 
     step_header(2, 3, "postprocess")
     pp_cfg = pick_or_build_config(REGISTRY["postprocess"])
-    elapsed = _run_step(
+    elapsed = run_step(
         "Chunking + cleaning",
         REGISTRY["postprocess"].run,
         config_file=pp_cfg,
@@ -172,7 +157,7 @@ def run_full_pipeline() -> None:
 
     step_header(3, 3, "index")
     index_cfg = pick_or_build_config(REGISTRY["index"], documents_path=pp_jsonl)
-    elapsed = _run_step(
+    elapsed = run_step(
         "Embedding + indexing into Milvus",
         REGISTRY["index"].run,
         config_file=index_cfg,
