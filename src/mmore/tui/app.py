@@ -5,9 +5,7 @@ from __future__ import annotations
 import time
 
 import questionary
-from rich.live import Live
 from rich.panel import Panel
-from rich.spinner import Spinner
 from rich.text import Text
 
 from mmore.tui.commands import REGISTRY, check_stage_available
@@ -79,10 +77,11 @@ def _disabled_label(label: str) -> str:
 
 
 def _run_with_spinner(label: str, fn, **kwargs) -> None:
+    # See pipeline._run_step: heavy underlying commands log to stdout in ways
+    # that clash with a rich Live spinner. Plain prints keep output readable.
     start = time.time()
-    spinner = Spinner("dots", text=Text(f"  {label}…", style=ACCENT))
-    with Live(spinner, console=console, refresh_per_second=12, transient=True):
-        fn(**kwargs)
+    console.print(f"  [{ACCENT}]▸[/] {label}…")
+    fn(**kwargs)
     console.print(f"  [{OK}]✓[/] {label} [dim]({time.time() - start:.1f}s)[/dim]")
 
 

@@ -6,8 +6,6 @@ import os
 import time
 
 import questionary
-from rich.live import Live
-from rich.spinner import Spinner
 from rich.table import Table
 from rich.text import Text
 
@@ -54,10 +52,12 @@ def _postprocess_output_jsonl(config_path: str) -> str:
 
 
 def _run_step(label: str, fn, **kwargs) -> float:
+    # No Live spinner here: run_process / run_index emit their own logs via
+    # `logging` and `click.echo`, which bypass rich.Console and clash with a
+    # refreshing spinner. Plain prints keep the output readable.
     start = time.time()
-    spinner = Spinner("dots", text=Text(f"  {label}…", style=ACCENT))
-    with Live(spinner, console=console, refresh_per_second=12, transient=True):
-        fn(**kwargs)
+    console.print(f"  [{ACCENT}]▸[/] {label}…")
+    fn(**kwargs)
     elapsed = time.time() - start
     console.print(f"  [{OK}]✓[/] {label} [dim]({elapsed:.1f}s)[/dim]")
     return elapsed
