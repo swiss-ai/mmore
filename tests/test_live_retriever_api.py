@@ -314,11 +314,12 @@ def _fake_doc(file_path: str, document_id: str = "doc") -> MultimodalSample:
 
 def test_apply_uploaded_file_metadata_preserves_chunk_suffix():
     doc = _fake_doc("/tmp/original-name.txt", document_id="default-doc")
+    doc.id = "processor-generated-id+7"
 
     _apply_uploaded_file_metadata([doc], "client-doc", "original-name.txt")
 
     assert doc.document_id == "client-doc"
-    assert doc.id == "client-doc+0"
+    assert doc.id == "client-doc+7"
     assert doc.metadata.extra["filename"] == "original-name.txt"
 
 
