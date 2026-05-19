@@ -34,6 +34,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _apply_uploaded_file_metadata(documents, file_id: str, filename: str) -> None:
+    """Bind processed chunks to the API file ID and persist the original filename."""
+    for doc in documents:
+        default_doc_id = doc.document_id
+        doc.document_id = file_id
+        if default_doc_id and doc.id.startswith(default_doc_id):
+            doc.id = f"{file_id}{doc.id[len(default_doc_id) :]}"
+        else:
+            doc.id = file_id
+
+        doc.metadata.extra["filename"] = filename
+
+
 def make_router(config_path: str) -> APIRouter:
     router = APIRouter()
 
@@ -97,10 +110,7 @@ def make_router(config_path: str) -> APIRouter:
                     temp_dir, COLLECTION_NAME, [file_extension]
                 )
 
-                for doc in documents:
-                    defDocId = doc.document_id
-                    doc.document_id = fileId
-                    doc.id = doc.id.replace(defDocId, fileId)
+                _apply_uploaded_file_metadata(documents, fileId, file.filename)
 
                 # Get indexer and index the document
                 try:
@@ -257,9 +267,8 @@ def make_router(config_path: str) -> APIRouter:
                     temp_dir, COLLECTION_NAME, [file_extension]
                 )
 
-                # Set the custom ID
-                for doc in documents:
-                    doc.id = fileId
+                # Set the custom ID and preserve the original upload filename
+                _apply_uploaded_file_metadata(documents, fileId, file.filename)
 
                 # Get indexer and reindex the document
                 try:
