@@ -505,6 +505,32 @@ def test_upload_duplicate_file_returns_400(indexer_client):
     assert "already exists" in response.json()["detail"]
 
 
+def test_upload_failed_processing_does_not_consume_id(indexer_client):
+    tc, upload_dir, _ = indexer_client
+    file_id = "id"
+
+    response = tc.post(
+        "/v1/files",
+        data={"fileId": file_id},
+        files={"file": ("file.xyz", b"bad", "application/octet-stream")},
+    )
+    assert response.status_code == 422
+    assert not Path(upload_dir, file_id).exists()
+
+    fake_path = str(Path(upload_dir) / "good.txt")
+    with patch(
+        "mmore.run_index_api.process_files_default",
+        return_value=[_fake_doc(fake_path, file_id)],
+    ):
+        response = tc.post(
+            "/v1/files",
+            data={"fileId": file_id},
+            files={"file": ("file.txt", b"good", "text/plain")},
+        )
+    assert response.status_code == 201
+    assert Path(upload_dir, file_id).read_bytes() == b"good"
+
+
 # ---------------------------------------------------------------------------
 # POST /v1/files/bulk
 # ---------------------------------------------------------------------------
@@ -547,6 +573,40 @@ def test_upload_bulk_mismatched_ids_returns_400(indexer_client):
         )
     assert response.status_code == 400
     assert "doesn't match" in response.json()["detail"]
+
+
+def test_upload_bulk_failed_processing_does_not_consume_ids(indexer_client):
+    tc, upload_dir, _ = indexer_client
+    ids = ["id-1", "id-2"]
+
+    response = tc.post(
+        "/v1/files/bulk",
+        data={"listIds": ",".join(ids)},
+        files=[
+            ("files", ("file.xyz", b"bad A", "application/octet-stream")),
+            ("files", ("file.xyz", b"bad B", "application/octet-stream")),
+        ],
+    )
+    assert response.status_code == 422
+    for file_id in ids:
+        assert not Path(upload_dir, file_id).exists()
+
+    fake_paths = [str(Path(upload_dir) / f"{i}_file.txt") for i in ids]
+    with patch(
+        "mmore.run_index_api.process_files_default",
+        return_value=[_fake_doc(p, i) for p, i in zip(fake_paths, ids)],
+    ):
+        response = tc.post(
+            "/v1/files/bulk",
+            data={"listIds": ",".join(ids)},
+            files=[
+                ("files", ("file.txt", b"good A", "text/plain")),
+                ("files", ("file.txt", b"good B", "text/plain")),
+            ],
+        )
+    assert response.status_code == 201
+    assert Path(upload_dir, ids[0]).read_bytes() == b"good A"
+    assert Path(upload_dir, ids[1]).read_bytes() == b"good B"
 
 
 # ---------------------------------------------------------------------------
