@@ -16,7 +16,6 @@ from mmore.tui.config_builder import (
 from mmore.tui.exceptions import UserCancelledError
 from mmore.tui.paths import cwd_default
 from mmore.tui.pipeline import run_full_pipeline, run_pipeline_with_configs
-from mmore.tui.setup import run_setup_wizard
 from mmore.tui.theme import (
     ACCENT,
     ACCENT2,
@@ -253,7 +252,9 @@ def _main_menu() -> str | None:
             wizard_choice,
             chat_choice,
             questionary.Separator(),
-            questionary.Choice("🔧 Setup (install deps + generate .env)", value="setup"),
+            questionary.Choice(
+                "🔧 Setup (install deps + generate .env)", value="setup"
+            ),
             questionary.Choice("✕  Quit", value="quit"),
         ],
         style=QSTYLE,

@@ -6,11 +6,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 import questionary
 from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
@@ -72,7 +70,9 @@ _PROFILING_VARS: list[tuple[str, str, str]] = [
 
 def _detect_installed_stages() -> dict[str, bool]:
     """Check which stages have their deps installed."""
-    return {name: check_stage_available(spec) is None for name, spec in REGISTRY.items()}
+    return {
+        name: check_stage_available(spec) is None for name, spec in REGISTRY.items()
+    }
 
 
 def _pick_stages() -> list[str]:
@@ -83,7 +83,9 @@ def _pick_stages() -> list[str]:
         label = f"{name:<12} — {spec.description}"
         if installed[name]:
             label += "  [dim](installed)[/dim]"
-        choices.append(questionary.Choice(label, value=name, checked=not installed[name]))
+        choices.append(
+            questionary.Choice(label, value=name, checked=not installed[name])
+        )
 
     selected = _ask(
         questionary.checkbox(
@@ -286,7 +288,9 @@ def run_setup_wizard() -> None:
     )
     if _confirm("Install dependencies now?", default=True):
         if not _install_deps(stages, compute):
-            if not _confirm("Continue to .env setup despite install failure?", default=False):
+            if not _confirm(
+                "Continue to .env setup despite install failure?", default=False
+            ):
                 return
 
     # Step 4: collect env vars
@@ -302,6 +306,10 @@ def run_setup_wizard() -> None:
         else:
             console.print("  [dim]Skipped .env generation.[/dim]")
     else:
-        console.print("  [dim]No environment variables needed for selected stages.[/dim]")
+        console.print(
+            "  [dim]No environment variables needed for selected stages.[/dim]"
+        )
 
-    console.print(f"\n  [{OK}]✓ Setup complete![/] Run [bold]mmore tui[/bold] to start.\n")
+    console.print(
+        f"\n  [{OK}]✓ Setup complete![/] Run [bold]mmore tui[/bold] to start.\n"
+    )

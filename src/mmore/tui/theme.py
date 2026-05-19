@@ -54,7 +54,7 @@ def _mmore_logo(text: str) -> Text:
     - Elsewhere: outline characters (`╔╗╚╝═║╔╝╗`, etc.) are white and the
       filled `█` blocks are black, giving the letters a hollow look.
     """
-    OUTLINE = set("╔╗╚╝═║╠╣╦╩╬╔╝╗┌┐└┘─│")
+    outline_chars = set("╔╗╚╝═║╠╣╦╩╬╔╝╗┌┐└┘─│")
     out = Text()
     for line in text.splitlines():
         if not line.strip():
@@ -69,7 +69,7 @@ def _mmore_logo(text: str) -> Text:
                 if ch == "█":
                     # explicit hex — terminal "black" often renders as dark grey
                     out.append(ch, style="#000000")
-                elif ch in OUTLINE:
+                elif ch in outline_chars:
                     out.append(ch, style="bold #ffffff")
                 else:
                     out.append(ch)
