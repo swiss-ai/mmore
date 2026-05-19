@@ -23,6 +23,7 @@ from mmore.profiler import enable_profiling_from_env
 
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
+from .type import MultimodalSample
 from .utils import get_indexer, load_config, process_files_default
 
 UPLOAD_DIR: str = "./uploads"
@@ -34,15 +35,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _apply_uploaded_file_metadata(documents, file_id: str, filename: str) -> None:
+def _apply_uploaded_file_metadata(
+    documents: List[MultimodalSample], file_id: str, filename: str
+) -> None:
     """Bind processed chunks to the API file ID and persist the original filename."""
     for doc in documents:
-        default_doc_id = doc.document_id
+        chunk_id = doc.id.rsplit("+")[1] if "+" in doc.id else None
         doc.document_id = file_id
-        if default_doc_id and doc.id.startswith(default_doc_id):
-            doc.id = f"{file_id}{doc.id[len(default_doc_id) :]}"
-        else:
-            doc.id = file_id
+        doc.id = f"{file_id}+{chunk_id}" if chunk_id else file_id
 
         doc.metadata.extra["filename"] = filename
 
@@ -228,10 +228,9 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
-                for doc, docId in zip(documents, listIds):
-                    defDocId = doc.document_id
-                    doc.document_id = docId
-                    doc.id = doc.id.replace(defDocId, docId)
+                for doc, docId, file in zip(documents, listIds, files):
+                    filename = file.filename or ""
+                    _apply_uploaded_file_metadata([doc], docId, filename)
                     modified_documents.append(doc)
 
                 logging.info("Indexing the files")
