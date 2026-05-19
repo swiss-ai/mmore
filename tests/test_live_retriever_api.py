@@ -18,9 +18,14 @@ from pymilvus import MilvusClient
 
 from mmore.index.indexer import Indexer
 from mmore.rag.model import DenseModelConfig, SparseModelConfig
-from mmore.run_index_api import make_router as make_index_router
+from mmore.run_index_api import (
+    _apply_uploaded_file_metadata,
+)
+from mmore.run_index_api import (
+    make_router as make_index_router,
+)
 from mmore.run_retriever import make_router, save_results
-from mmore.type import MultimodalSample
+from mmore.type import DocumentMetadata, MultimodalSample
 
 _COLLECTION = "my_docs"
 
@@ -216,13 +221,16 @@ def test_save_results_writes_valid_json(tmp_path):
     docs = [
         Document(
             page_content="Paris is the capital.",
-            metadata={
-                "rank": 1,
-                "similarity": 0.9,
-                "id": "1",
-                "page_numbers": [],
-                "paragraph_numbers": [],
-            },
+            metadata=DocumentMetadata(
+                file_path="paris.txt",
+                extra={
+                    "rank": 1,
+                    "similarity": 0.9,
+                    "id": "1",
+                    "page_numbers": [],
+                    "paragraph_numbers": [],
+                },
+            ).to_dict(),
         )
     ]
     results = [docs]
@@ -246,25 +254,31 @@ def test_save_results_multiple_queries(tmp_path):
         [
             Document(
                 page_content="doc A",
-                metadata={
-                    "rank": 1,
-                    "similarity": 0.8,
-                    "id": "a",
-                    "page_numbers": [],
-                    "paragraph_numbers": [],
-                },
+                metadata=DocumentMetadata(
+                    file_path="doc-a.txt",
+                    extra={
+                        "rank": 1,
+                        "similarity": 0.8,
+                        "id": "a",
+                        "page_numbers": [],
+                        "paragraph_numbers": [],
+                    },
+                ).to_dict(),
             )
         ],
         [
             Document(
                 page_content="doc B",
-                metadata={
-                    "rank": 1,
-                    "similarity": 0.7,
-                    "id": "b",
-                    "page_numbers": [],
-                    "paragraph_numbers": [],
-                },
+                metadata=DocumentMetadata(
+                    file_path="doc-b.txt",
+                    extra={
+                        "rank": 1,
+                        "similarity": 0.7,
+                        "id": "b",
+                        "page_numbers": [],
+                        "paragraph_numbers": [],
+                    },
+                ).to_dict(),
             )
         ],
     ]
@@ -294,8 +308,19 @@ def _fake_doc(file_path: str, document_id: str = "doc") -> MultimodalSample:
         document_id=document_id,
         text="Test document content.",
         modalities=[],
-        metadata={"file_path": file_path},
+        metadata=DocumentMetadata(file_path=file_path),
     )
+
+
+def test_apply_uploaded_file_metadata_preserves_chunk_suffix():
+    doc = _fake_doc("/tmp/original-name.txt", document_id="default-doc")
+    doc.id = "processor-generated-id+7"
+
+    _apply_uploaded_file_metadata([doc], "client-doc", "original-name.txt")
+
+    assert doc.document_id == "client-doc"
+    assert doc.id == "client-doc+7"
+    assert doc.metadata.extra["filename"] == "original-name.txt"
 
 
 @pytest.fixture(scope="module")
@@ -392,6 +417,81 @@ def test_upload_file_success(indexer_client):
     assert Path(upload_dir, "new-doc").exists()
 
 
+def test_uploaded_file_has_filename_in_list_files(tmp_path):
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+    db_path = str(tmp_path / "uploaded_list_files.db")
+    config_file = tmp_path / "config.yaml"
+    cfg = {
+        "db": {"uri": db_path, "name": "my_db"},
+        "hybrid_search_weight": 0.5,
+        "k": 2,
+        "collection_name": _COLLECTION,
+        "use_web": False,
+        "reranker_model_name": None,
+    }
+    with open(config_file, "w") as f:
+        yaml.dump(cfg, f)
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "mmore.index.indexer.SparseModel.from_config",
+                return_value=FakeSparseEmbedding(),
+            )
+        )
+        milvus_client = MilvusClient(db_path, enable_sparse=True)
+        the_indexer = Indexer(
+            dense_model_config=DenseModelConfig(model_name="debug"),
+            sparse_model_config=SparseModelConfig(
+                model_name="naver/splade-cocondenser-selfdistil"
+            ),
+            client=milvus_client,
+        )
+        stack.enter_context(patch("mmore.run_index_api.UPLOAD_DIR", str(upload_dir)))
+        stack.enter_context(patch("mmore.run_index_api.register_all_processors"))
+        stack.enter_context(
+            patch("mmore.run_index_api.get_indexer", return_value=the_indexer)
+        )
+
+        index_app = FastAPI()
+        index_app.include_router(make_index_router(str(config_file)))
+        index_client = TestClient(index_app, raise_server_exceptions=False)
+
+        uploaded_path = str(upload_dir / "listed-doc.txt")
+        stack.enter_context(
+            patch(
+                "mmore.run_index_api.process_files_default",
+                return_value=[_fake_doc(uploaded_path)],
+            )
+        )
+        response = index_client.post(
+            "/v1/files",
+            data={"fileId": "listed-doc"},
+            files={"file": ("listed-doc.txt", b"Hello list files", "text/plain")},
+        )
+        assert response.status_code == 201
+
+        stack.enter_context(
+            patch(
+                "mmore.rag.retriever.SparseModel.from_config",
+                return_value=FakeSparseEmbedding(),
+            )
+        )
+        retriever_app = FastAPI()
+        retriever_app.include_router(make_router(str(config_file)))
+        retriever_client = TestClient(retriever_app)
+
+        response = retriever_client.get(
+            "/list_files", params={"collection_name": _COLLECTION}
+        )
+
+    assert response.status_code == 200
+    files_by_id = {file["id"]: file["filename"] for file in response.json()}
+    assert files_by_id["listed-doc"] == "listed-doc.txt"
+    assert files_by_id["listed-doc"] != "Unknown"
+
+
 def test_upload_duplicate_file_returns_400(indexer_client):
     tc, upload_dir, _ = indexer_client
     duplicate_id = "duplicate-doc"
@@ -438,16 +538,25 @@ def test_upload_failed_processing_does_not_consume_id(indexer_client):
 
 
 def test_upload_bulk_files_success(indexer_client):
-    tc, upload_dir, _ = indexer_client
-    fake_path_1 = str(Path(upload_dir) / "bulk-1.txt")
-    fake_path_2 = str(Path(upload_dir) / "bulk-2.txt")
+    tc, *_ = indexer_client
+
+    def fake_process(temp_dir, collection_name, extensions):
+        first_path, second_path = sorted(Path(temp_dir).iterdir())
+        return [
+            _fake_doc(str(first_path), "bulk-1"),
+            MultimodalSample(
+                id="bulk-1+1",
+                document_id="bulk-1",
+                text="Second chunk from the first bulk document.",
+                modalities=[],
+                metadata=DocumentMetadata(file_path=str(first_path)),
+            ),
+            _fake_doc(str(second_path), "bulk-2"),
+        ]
 
     with patch(
         "mmore.run_index_api.process_files_default",
-        return_value=[
-            _fake_doc(fake_path_1, "bulk-1"),
-            _fake_doc(fake_path_2, "bulk-2"),
-        ],
+        side_effect=fake_process,
     ):
         response = tc.post(
             "/v1/files/bulk",
@@ -459,6 +568,47 @@ def test_upload_bulk_files_success(indexer_client):
         )
 
     assert response.status_code == 201
+    data = response.json()
+    documents_by_id = {doc["fileId"]: doc for doc in data["documents"]}
+    assert set(documents_by_id) == {"bulk-1", "bulk-2"}
+    assert documents_by_id["bulk-1"]["filename"] == "bulk-1.txt"
+    assert documents_by_id["bulk-1"]["chunks"] == 2
+    assert documents_by_id["bulk-2"]["filename"] == "bulk-2.txt"
+    assert documents_by_id["bulk-2"]["chunks"] == 1
+
+
+def test_upload_bulk_files_allows_duplicate_uploaded_filenames(indexer_client):
+    tc, upload_dir, _ = indexer_client
+
+    def fake_process(temp_dir, collection_name, extensions):
+        return [
+            _fake_doc(str(path), f"processed-{path.stem}")
+            for path in sorted(Path(temp_dir).iterdir())
+        ]
+
+    with patch(
+        "mmore.run_index_api.process_files_default",
+        side_effect=fake_process,
+    ):
+        response = tc.post(
+            "/v1/files/bulk",
+            data={"listIds": "same-name-1,same-name-2"},
+            files=[
+                ("files", ("same.txt", b"First content", "text/plain")),
+                ("files", ("same.txt", b"Second content", "text/plain")),
+            ],
+        )
+
+    assert response.status_code == 201
+    data = response.json()
+    documents_by_id = {doc["fileId"]: doc for doc in data["documents"]}
+    assert set(documents_by_id) == {"same-name-1", "same-name-2"}
+    assert documents_by_id["same-name-1"]["filename"] == "same.txt"
+    assert documents_by_id["same-name-1"]["chunks"] == 1
+    assert documents_by_id["same-name-2"]["filename"] == "same.txt"
+    assert documents_by_id["same-name-2"]["chunks"] == 1
+    assert Path(upload_dir, "same-name-1").exists()
+    assert Path(upload_dir, "same-name-2").exists()
 
 
 def test_upload_bulk_mismatched_ids_returns_400(indexer_client):
