@@ -40,7 +40,7 @@ def _apply_uploaded_file_metadata(documents, file_id: str, filename: str) -> Non
         default_doc_id = doc.document_id
         doc.document_id = file_id
         if default_doc_id and doc.id.startswith(default_doc_id):
-            doc.id = f"{file_id}{doc.id[len(default_doc_id) :]}"
+            doc.id = f"{file_id}{doc.id[len(default_doc_id):]}"
         else:
             doc.id = file_id
 
