@@ -46,20 +46,44 @@ BANNER = r"""
 """
 
 
-def _gradient(text: str, start: str = "bright_cyan", end: str = "magenta") -> Text:
-    """Cheap two-color gradient — top half ACCENT, bottom half ACCENT2."""
-    lines = text.splitlines()
-    half = max(1, len(lines) // 2)
+def _mmore_logo(text: str) -> Text:
+    """Color the banner like the mmore GitHub logo.
+
+    Strategy, per character:
+    - The second `M` (columns 12:23 of every row) is rendered fully in yellow.
+    - Elsewhere: outline characters (`╔╗╚╝═║╔╝╗`, etc.) are white and the
+      filled `█` blocks are black, giving the letters a hollow look.
+    """
+    OUTLINE = set("╔╗╚╝═║╠╣╦╩╬╔╝╗┌┐└┘─│")
     out = Text()
-    for i, line in enumerate(lines):
-        style = start if i < half else end
-        out.append(line + "\n", style=style)
+    for line in text.splitlines():
+        if not line.strip():
+            out.append(line + "\n")
+            continue
+        left = line[:12]
+        mid = line[12:23]
+        right = line[23:]
+
+        def _emit(segment: str) -> None:
+            for ch in segment:
+                if ch == "█":
+                    # explicit hex — terminal "black" often renders as dark grey
+                    out.append(ch, style="#000000")
+                elif ch in OUTLINE:
+                    out.append(ch, style="bold #ffffff")
+                else:
+                    out.append(ch)
+
+        _emit(left)
+        out.append(mid, style="bold yellow")
+        _emit(right)
+        out.append("\n")
     return out
 
 
 def show_banner(subtitle: str = "interactive launcher") -> None:
     body = Group(
-        _gradient(BANNER),
+        _mmore_logo(BANNER),
         Align.center(Text(subtitle, style=f"italic {MUTED}")),
     )
     console.print(
