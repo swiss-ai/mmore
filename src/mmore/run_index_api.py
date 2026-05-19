@@ -23,6 +23,7 @@ from mmore.profiler import enable_profiling_from_env
 
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
+from .type import MultimodalSample
 from .utils import get_indexer, load_config, process_files_default
 
 UPLOAD_DIR: str = "./uploads"
@@ -34,15 +35,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _apply_uploaded_file_metadata(documents, file_id: str, filename: str) -> None:
+def _apply_uploaded_file_metadata(
+    documents: List[MultimodalSample], file_id: str, filename: str
+) -> None:
     """Bind processed chunks to the API file ID and persist the original filename."""
     for doc in documents:
-        default_doc_id = doc.document_id
+        chunk_id = doc.id.rsplit("+")[1] if "+" in doc.id else None
         doc.document_id = file_id
-        if default_doc_id and doc.id.startswith(default_doc_id):
-            doc.id = f"{file_id}{doc.id[len(default_doc_id) :]}"
-        else:
-            doc.id = file_id
+        doc.id = f"{file_id}+{chunk_id}" if chunk_id else file_id
 
         doc.metadata.extra["filename"] = filename
 
@@ -99,6 +99,24 @@ def make_router(config_path: str) -> APIRouter:
                     shutil.copyfileobj(file.file, buffer)
 
                 await file.close()
+
+                # Process and index the file
+                file_extension = FilePath(file.filename).suffix.lower()
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, [file_extension]
+                    )
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process file '%s' with extension '%s'",
+                        file.filename,
+                        file_extension,
+                        exc_info=True,
+                    )
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Could not process file '{file.filename}'",
+                    ) from e
 
                 # Save a permanent copy for later retrieval
                 os.makedirs(os.path.dirname(file_storage_path), exist_ok=True)
@@ -162,7 +180,7 @@ def make_router(config_path: str) -> APIRouter:
             with tempfile.TemporaryDirectory() as temp_dir:
                 logging.info(f"Starting to process {len(files)} files with custom IDs")
 
-                uploaded_files = []
+                uploaded_files: list[dict[str, str]] = []
                 file_info_by_temp_path = {}
                 for index, (file, file_id) in enumerate(zip(files, listIds)):
                     if file.filename is None:
@@ -195,9 +213,6 @@ def make_router(config_path: str) -> APIRouter:
                     with temp_file_path.open("wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
 
-                    # Save a permanent copy
-                    shutil.copy2(temp_file_path, file_storage_path)
-
                     # Close the file
                     await file.close()
 
@@ -208,9 +223,25 @@ def make_router(config_path: str) -> APIRouter:
                     FilePath(file_info["temp_path"]).suffix.lower()
                     for file_info in uploaded_files
                 ]
-                documents = process_files_default(
-                    temp_dir, COLLECTION_NAME, file_extensions
-                )
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, file_extensions
+                    )
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process one of the uploaded files with extensions %s",
+                        file_extensions,
+                        exc_info=True,
+                    )
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Could not process one of the uploaded files",
+                    ) from e
+
+                # Save permanent copies
+                for file_info in uploaded_files:
+                    file_storage_path = FilePath(UPLOAD_DIR) / file_info["fileId"]
+                    shutil.copy2(file_info["temp_path"], file_storage_path)
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
@@ -219,8 +250,8 @@ def make_router(config_path: str) -> APIRouter:
                     file_info["fileId"]: 0 for file_info in uploaded_files
                 }
                 for doc in documents:
-                    temp_path = str(FilePath(doc.metadata.file_path).resolve())
-                    file_info = file_info_by_temp_path.get(temp_path)
+                    doc_temp_path = str(FilePath(doc.metadata.file_path).resolve())
+                    file_info = file_info_by_temp_path.get(doc_temp_path)
                     if file_info is None:
                         raise HTTPException(
                             status_code=500,
