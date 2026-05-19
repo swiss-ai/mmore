@@ -17,7 +17,7 @@ from langchain_core.retrievers import BaseRetriever
 from torch.utils.data import DataLoader
 
 from .milvuscolpali import MilvusColpaliManager
-from .model_utils import get_model_dim, load_model_and_processor
+from .model_utils import load_model_and_processor
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,9 @@ class ColPaliRetrieverConfig:
     collection_name: str = "pdf_pages"
     model_name: str = "vidore/colpali-v1.3"
     top_k: int = 3
-    dim: int = 128  # overridden in __post_init__ — set automatically from model_name
     max_workers: int = 4
     metric_type: str = "IP"
     text_parquet_path: Optional[str] = None
-
-    def __post_init__(self):
-        self.dim = get_model_dim(self.model_name)
 
 
 def get_device() -> str:
@@ -213,11 +209,11 @@ class ColPaliRetriever(BaseRetriever):
         device = get_device()
         model, processor = load_model_and_processor(config.model_name, device)
 
-        # Initialize manager
+        # Initialize manager — dim is taken from the loaded model itself
         manager = MilvusColpaliManager(
             db_path=config.db_path,
             collection_name=config.collection_name,
-            dim=config.dim,
+            dim=model.dim,
             metric_type=config.metric_type,
             create_collection=False,
         )

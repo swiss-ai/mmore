@@ -23,12 +23,6 @@ _MODEL_REGISTRY = [
 _DEFAULT_MODEL_CLASS = "ColPali"
 _DEFAULT_PROCESSOR_CLASS = "ColPaliProcessor"
 
-# Embedding dimension overrides — default is 128.
-_MODEL_DIMS = [
-    (r"colqwen3", 320),
-]
-_DEFAULT_DIM = 128
-
 SUPPORTED_MODELS = {
     "ColPali": ["vidore/colpali-v1.2", "vidore/colpali-v1.3"],
     "ColQwen2": ["vidore/colqwen2-v0.1", "vidore/colqwen2-v1.0"],
@@ -68,20 +62,6 @@ def resolve_model_classes(model_name: str) -> Tuple[Type, Type]:
         f"Supported: {list(SUPPORTED_MODELS.keys())}"
     )
     return model_cls, proc_cls
-
-
-def get_model_dim(model_name: str) -> int:
-    """Return the embedding dimension produced by a given model.
-
-    Used internally to validate that the `dim` in a config matches the actual model output
-    before loading starts.
-    By default, returns 128, except for models matching specific patterns (e.g. ColQwen3 → 320).
-    """
-    name_lower = model_name.lower()
-    for pattern, dim in _MODEL_DIMS:
-        if re.search(pattern, name_lower):
-            return dim
-    return _DEFAULT_DIM
 
 
 def load_model_and_processor(

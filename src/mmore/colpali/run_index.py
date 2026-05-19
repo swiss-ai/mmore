@@ -1,15 +1,15 @@
 import argparse
 import logging
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Union
 
+import numpy as np
 import pandas as pd
 
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
 from .milvuscolpali import MilvusColpaliManager
-from .model_utils import get_model_dim
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ logging.basicConfig(
 class MilvusConfig:
     db_path: str = "./milvus_data"
     collection_name: str = "pdf_pages"
-    dim: int = 128
     create_collection: bool = False
     metric_type: str = "IP"
 
@@ -33,11 +32,13 @@ class MilvusConfig:
 class IndexConfig:
     milvus: MilvusConfig
     parquet_path: str
-    model_name: Optional[str] = None  # if set, overrides milvus.dim automatically
 
-    def __post_init__(self):
-        if self.model_name is not None:
-            self.milvus.dim = get_model_dim(self.model_name)
+
+def _get_embedding_dim(df: pd.DataFrame) -> int:
+    arr = np.asarray(df.iloc[0]["embedding"])
+    if arr.dtype == object:
+        arr = np.stack([np.asarray(x) for x in arr])
+    return int(arr.shape[-1])
 
 
 @profile_function()
@@ -52,10 +53,17 @@ def index(config_file: Union[IndexConfig, str]):
     df = pd.read_parquet(parquet_path)
     logger.info(f"Loaded {len(df)} rows from {parquet_path}")
 
+    if df.empty:
+        logger.info(f"Parquet {parquet_path} is empty — nothing to index, exiting.")
+        return
+
+    dim = _get_embedding_dim(df)
+    logger.info(f"Detected embedding dim={dim} from parquet")
+
     manager = MilvusColpaliManager(
         db_path=config.milvus.db_path,
         collection_name=config.milvus.collection_name,
-        dim=config.milvus.dim,
+        dim=dim,
         metric_type=config.milvus.metric_type,
         create_collection=config.milvus.create_collection,
     )

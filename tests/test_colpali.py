@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 
 from mmore.colpali.milvuscolpali import MilvusColpaliManager
-from mmore.colpali.model_utils import get_model_dim, resolve_model_classes
+from mmore.colpali.model_utils import resolve_model_classes
 from mmore.colpali.retriever import (
     ColPaliRetriever,
     ColPaliRetrieverConfig,
@@ -67,16 +67,6 @@ def test_resolve_model_classes_unknown_falls_back():
     model_cls, proc_cls = resolve_model_classes("some/unknown-model")
     assert model_cls.__name__ == "ColPali"
     assert proc_cls.__name__ == "ColPaliProcessor"
-
-
-def test_get_model_dim():
-    """ColQwen3 produces 320-dim embeddings; all other models default to 128."""
-    assert get_model_dim("vidore/colqwen3-v0.1") == 320
-    assert get_model_dim("vidore/colpali-v1.3") == 128
-    assert get_model_dim("vidore/colqwen2-v1.0") == 128
-    assert get_model_dim("vidore/colqwen2.5-v0.2") == 128
-    assert get_model_dim("Cognitive-Lab/ColNetraEmbed") == 128
-    assert get_model_dim("some/unknown-model") == 128
 
 
 # ------------------ PDFConverter Tests ------------------
@@ -434,7 +424,6 @@ def test_index_function():
                 {
                     "db_path": "./test_milvus",
                     "collection_name": "test_collection",
-                    "dim": 128,
                     "metric_type": "IP",
                     "create_collection": True,
                 },

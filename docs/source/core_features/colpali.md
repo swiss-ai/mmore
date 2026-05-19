@@ -12,26 +12,26 @@ uv sync --extra colpali
 
 ## Supported Models
 
-| Model | `model_name` | Dim |
-|---|---|---|
-| ColPali v1.3 | `vidore/colpali-v1.3` | 128 |
-| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` | 128 |
-| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` | 128 |
-| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` | 320 |
-| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` | 128 |
+| Model | `model_name` |
+|---|---|
+| ColPali v1.3 | `vidore/colpali-v1.3` |
+| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` |
+| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` |
+| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` |
+| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` |
 
-Model class and embedding dimension are auto-detected from `model_name`.
+The model/processor class is auto-detected from `model_name`, and the embedding dimension is inferred at every stage (from the loaded model at `process` / `retrieve` time, from the parquet contents at `index` time).
 
 ## Choosing a Model
 
-Set `model_name` in the YAML config, or override it via the `-m` / `--model` CLI flag on the `process` and `retrieve` commands (the `index` command reads `model_name` from its config only).
+Set `model_name` in the YAML config, or override it via the `-m` / `--model` CLI flag on the `process` and `retrieve` commands.
 
 ```bash
 python3 -m mmore colpali process -c config_process.yml -m vidore/colqwen2.5-v0.2
 python3 -m mmore colpali retrieve -c config_retrieval.yml -m vidore/colqwen2.5-v0.2
 ```
 
-> **Important:** the same model must be used across `process`, `index`, and `retrieve` — mixing produces incorrect results.
+> **Important:** the same model must be used across `process` and `retrieve` — mixing produces incorrect results.
 
 ## 🧭 Architecture
 
@@ -45,7 +45,7 @@ The system consists of three main components:
 
 ```
 src/mmore/colpali/
-├── model_utils.py        # Model/processor class resolution and dim detection
+├── model_utils.py        # Model/processor class resolution
 ├── milvuscolpali.py      # Milvus database management
 ├── run_index.py          # Indexing pipeline
 ├── run_process.py        # PDF processing pipeline
@@ -84,7 +84,6 @@ python3 -m mmore colpali index --config-file examples/colpali/config_index.yml
 **Example config (`config_index.yml`):**
 ```yaml
 parquet_path: ./output/pdf_page_objects.parquet
-model_name: "vidore/colpali-v1.3"  # used to auto-detect the Milvus collection dimension
 milvus:
     db_path: ./output/milvus_data.db
     collection_name: pdf_pages
@@ -214,7 +213,6 @@ curl -X POST "http://localhost:8001/v1/retrieve" \
 ```python
 from mmore.colpali.retriever import ColPaliRetriever, ColPaliRetrieverConfig
 
-# Embedding dim is auto-detected from model_name
 config = ColPaliRetrieverConfig(
     db_path="./output/milvus_data.db",
     collection_name="pdf_pages",
