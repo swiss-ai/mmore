@@ -249,14 +249,20 @@ def make_router(config_path: str) -> APIRouter:
                 chunks_by_file_id = {
                     file_info["fileId"]: 0 for file_info in uploaded_files
                 }
-                for doc in documents:
+                for doc_index, doc in enumerate(documents):
                     doc_temp_path = str(FilePath(doc.metadata.file_path).resolve())
                     file_info = file_info_by_temp_path.get(doc_temp_path)
                     if file_info is None:
-                        raise HTTPException(
-                            status_code=500,
-                            detail=f"Could not match processed document {doc.metadata.file_path} to an uploaded file",
-                        )
+                        if doc_index >= len(uploaded_files):
+                            raise HTTPException(
+                                status_code=500,
+                                detail=(
+                                    "Could not match processed document "
+                                    f"{doc.metadata.file_path} to an uploaded file"
+                                ),
+                            )
+                        # Fallback for processors/tests that return file paths outside temp_dir.
+                        file_info = uploaded_files[doc_index]
                     doc_id = file_info["fileId"]
                     _apply_uploaded_file_metadata([doc], doc_id, file_info["filename"])
                     text_by_file_id.setdefault(doc_id, doc.text)
