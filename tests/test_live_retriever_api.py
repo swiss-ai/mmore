@@ -519,6 +519,13 @@ def test_upload_bulk_files_success(indexer_client):
         "mmore.run_index_api.process_files_default",
         return_value=[
             _fake_doc(fake_path_1, "bulk-1"),
+            MultimodalSample(
+                id="bulk-1+1",
+                document_id="bulk-1",
+                text="Second chunk from the first bulk document.",
+                modalities=[],
+                metadata=DocumentMetadata(file_path=fake_path_1),
+            ),
             _fake_doc(fake_path_2, "bulk-2"),
         ],
     ):
@@ -532,6 +539,13 @@ def test_upload_bulk_files_success(indexer_client):
         )
 
     assert response.status_code == 201
+    data = response.json()
+    documents_by_id = {doc["fileId"]: doc for doc in data["documents"]}
+    assert set(documents_by_id) == {"bulk-1", "bulk-2"}
+    assert documents_by_id["bulk-1"]["filename"] == "bulk-1.txt"
+    assert documents_by_id["bulk-1"]["chunks"] == 2
+    assert documents_by_id["bulk-2"]["filename"] == "bulk-2.txt"
+    assert documents_by_id["bulk-2"]["chunks"] == 1
 
 
 def test_upload_bulk_mismatched_ids_returns_400(indexer_client):

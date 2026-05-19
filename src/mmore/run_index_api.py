@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path as FilePath
-from typing import List, cast
+from typing import List
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadFile
@@ -146,7 +146,12 @@ def make_router(config_path: str) -> APIRouter:
         Upload multiple files with custom IDs and index them.
         """
         try:
-            listIds = listIds[0].split(",")
+            listIds = [
+                file_id.strip()
+                for ids in listIds
+                for file_id in ids.split(",")
+                if file_id.strip()
+            ]
             # Check if IDs and files match in number
             if len(listIds) != len(files):
                 raise HTTPException(
@@ -157,12 +162,17 @@ def make_router(config_path: str) -> APIRouter:
             with tempfile.TemporaryDirectory() as temp_dir:
                 logging.info(f"Starting to process {len(files)} files with custom IDs")
 
+                uploaded_files = []
+                id_by_filename = {}
                 for file, file_id in zip(files, listIds):
                     if file.filename is None:
                         raise HTTPException(
                             status_code=422,
                             detail=f"File {file_id} does not have a filename",
                         )
+                    filename = file.filename
+                    uploaded_files.append({"fileId": file_id, "filename": filename})
+                    id_by_filename[filename] = file_id
 
                     # Check if file with this ID already exists
                     file_storage_path = FilePath(UPLOAD_DIR) / file_id
@@ -173,7 +183,7 @@ def make_router(config_path: str) -> APIRouter:
                         )
 
                     # Save to temp directory
-                    file_name = FilePath(temp_dir) / file.filename
+                    file_name = FilePath(temp_dir) / filename
                     with file_name.open("wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
 
@@ -187,7 +197,8 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Process the documents
                 file_extensions = [
-                    FilePath(cast(str, file.filename)).suffix.lower() for file in files
+                    FilePath(file_info["filename"]).suffix.lower()
+                    for file_info in uploaded_files
                 ]
                 documents = process_files_default(
                     temp_dir, COLLECTION_NAME, file_extensions
@@ -195,10 +206,21 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
-                for doc, docId in zip(documents, listIds):
-                    defDocId = doc.document_id
-                    doc.document_id = docId
-                    doc.id = doc.id.replace(defDocId, docId)
+                text_by_file_id = {}
+                chunks_by_file_id = {
+                    file_info["fileId"]: 0 for file_info in uploaded_files
+                }
+                for doc in documents:
+                    filename = FilePath(doc.metadata.file_path).name
+                    doc_id = id_by_filename.get(filename)
+                    if doc_id is None:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Could not match processed document {filename} to an uploaded file",
+                        )
+                    _apply_uploaded_file_metadata([doc], doc_id, filename)
+                    text_by_file_id.setdefault(doc_id, doc.text)
+                    chunks_by_file_id[doc_id] += 1
                     modified_documents.append(doc)
 
                 logging.info("Indexing the files")
@@ -215,10 +237,16 @@ def make_router(config_path: str) -> APIRouter:
 
                 return {
                     "status": "success",
-                    "message": f"Successfully processed and indexed {len(modified_documents)} documents",
+                    "message": f"Successfully processed and indexed {len(uploaded_files)} files",
                     "documents": [
-                        {"fileId": doc.document_id, "text": doc.text[:50] + "..."}
-                        for doc in modified_documents
+                        {
+                            "fileId": file_info["fileId"],
+                            "filename": file_info["filename"],
+                            "text": text_by_file_id.get(file_info["fileId"], "")[:50]
+                            + "...",
+                            "chunks": chunks_by_file_id[file_info["fileId"]],
+                        }
+                        for file_info in uploaded_files
                     ],
                 }
 
