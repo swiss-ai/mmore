@@ -511,23 +511,25 @@ def test_upload_duplicate_file_returns_400(indexer_client):
 
 
 def test_upload_bulk_files_success(indexer_client):
-    tc, upload_dir, _ = indexer_client
-    fake_path_1 = str(Path(upload_dir) / "bulk-1.txt")
-    fake_path_2 = str(Path(upload_dir) / "bulk-2.txt")
+    tc, *_ = indexer_client
 
-    with patch(
-        "mmore.run_index_api.process_files_default",
-        return_value=[
-            _fake_doc(fake_path_1, "bulk-1"),
+    def fake_process(temp_dir, collection_name, extensions):
+        first_path, second_path = sorted(Path(temp_dir).iterdir())
+        return [
+            _fake_doc(str(first_path), "bulk-1"),
             MultimodalSample(
                 id="bulk-1+1",
                 document_id="bulk-1",
                 text="Second chunk from the first bulk document.",
                 modalities=[],
-                metadata=DocumentMetadata(file_path=fake_path_1),
+                metadata=DocumentMetadata(file_path=str(first_path)),
             ),
-            _fake_doc(fake_path_2, "bulk-2"),
-        ],
+            _fake_doc(str(second_path), "bulk-2"),
+        ]
+
+    with patch(
+        "mmore.run_index_api.process_files_default",
+        side_effect=fake_process,
     ):
         response = tc.post(
             "/v1/files/bulk",
@@ -546,6 +548,40 @@ def test_upload_bulk_files_success(indexer_client):
     assert documents_by_id["bulk-1"]["chunks"] == 2
     assert documents_by_id["bulk-2"]["filename"] == "bulk-2.txt"
     assert documents_by_id["bulk-2"]["chunks"] == 1
+
+
+def test_upload_bulk_files_allows_duplicate_uploaded_filenames(indexer_client):
+    tc, upload_dir, _ = indexer_client
+
+    def fake_process(temp_dir, collection_name, extensions):
+        return [
+            _fake_doc(str(path), f"processed-{path.stem}")
+            for path in sorted(Path(temp_dir).iterdir())
+        ]
+
+    with patch(
+        "mmore.run_index_api.process_files_default",
+        side_effect=fake_process,
+    ):
+        response = tc.post(
+            "/v1/files/bulk",
+            data={"listIds": "same-name-1,same-name-2"},
+            files=[
+                ("files", ("same.txt", b"First content", "text/plain")),
+                ("files", ("same.txt", b"Second content", "text/plain")),
+            ],
+        )
+
+    assert response.status_code == 201
+    data = response.json()
+    documents_by_id = {doc["fileId"]: doc for doc in data["documents"]}
+    assert set(documents_by_id) == {"same-name-1", "same-name-2"}
+    assert documents_by_id["same-name-1"]["filename"] == "same.txt"
+    assert documents_by_id["same-name-1"]["chunks"] == 1
+    assert documents_by_id["same-name-2"]["filename"] == "same.txt"
+    assert documents_by_id["same-name-2"]["chunks"] == 1
+    assert Path(upload_dir, "same-name-1").exists()
+    assert Path(upload_dir, "same-name-2").exists()
 
 
 def test_upload_bulk_mismatched_ids_returns_400(indexer_client):

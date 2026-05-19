@@ -163,16 +163,14 @@ def make_router(config_path: str) -> APIRouter:
                 logging.info(f"Starting to process {len(files)} files with custom IDs")
 
                 uploaded_files = []
-                id_by_filename = {}
-                for file, file_id in zip(files, listIds):
+                file_info_by_temp_path = {}
+                for index, (file, file_id) in enumerate(zip(files, listIds)):
                     if file.filename is None:
                         raise HTTPException(
                             status_code=422,
                             detail=f"File {file_id} does not have a filename",
                         )
                     filename = file.filename
-                    uploaded_files.append({"fileId": file_id, "filename": filename})
-                    id_by_filename[filename] = file_id
 
                     # Check if file with this ID already exists
                     file_storage_path = FilePath(UPLOAD_DIR) / file_id
@@ -183,12 +181,22 @@ def make_router(config_path: str) -> APIRouter:
                         )
 
                     # Save to temp directory
-                    file_name = FilePath(temp_dir) / filename
-                    with file_name.open("wb") as buffer:
+                    temp_file_path = (
+                        FilePath(temp_dir) / f"{index}{FilePath(filename).suffix}"
+                    )
+                    file_info = {
+                        "fileId": file_id,
+                        "filename": filename,
+                        "temp_path": str(temp_file_path.resolve()),
+                    }
+                    uploaded_files.append(file_info)
+                    file_info_by_temp_path[file_info["temp_path"]] = file_info
+
+                    with temp_file_path.open("wb") as buffer:
                         shutil.copyfileobj(file.file, buffer)
 
                     # Save a permanent copy
-                    shutil.copy2(file_name, file_storage_path)
+                    shutil.copy2(temp_file_path, file_storage_path)
 
                     # Close the file
                     await file.close()
@@ -197,7 +205,7 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Process the documents
                 file_extensions = [
-                    FilePath(file_info["filename"]).suffix.lower()
+                    FilePath(file_info["temp_path"]).suffix.lower()
                     for file_info in uploaded_files
                 ]
                 documents = process_files_default(
@@ -211,14 +219,15 @@ def make_router(config_path: str) -> APIRouter:
                     file_info["fileId"]: 0 for file_info in uploaded_files
                 }
                 for doc in documents:
-                    filename = FilePath(doc.metadata.file_path).name
-                    doc_id = id_by_filename.get(filename)
-                    if doc_id is None:
+                    temp_path = str(FilePath(doc.metadata.file_path).resolve())
+                    file_info = file_info_by_temp_path.get(temp_path)
+                    if file_info is None:
                         raise HTTPException(
                             status_code=500,
-                            detail=f"Could not match processed document {filename} to an uploaded file",
+                            detail=f"Could not match processed document {doc.metadata.file_path} to an uploaded file",
                         )
-                    _apply_uploaded_file_metadata([doc], doc_id, filename)
+                    doc_id = file_info["fileId"]
+                    _apply_uploaded_file_metadata([doc], doc_id, file_info["filename"])
                     text_by_file_id.setdefault(doc_id, doc.text)
                     chunks_by_file_id[doc_id] += 1
                     modified_documents.append(doc)
