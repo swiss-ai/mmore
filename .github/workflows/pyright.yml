@@ -12,10 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install uv and create venv
         run: |
           pipx install uv
-          uv venv .venv
+          uv venv
 
       - name: Install dependencies
         run: |
