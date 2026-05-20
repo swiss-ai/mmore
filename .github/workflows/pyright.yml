@@ -20,7 +20,7 @@ jobs:
       - name: Install uv and create venv
         run: |
           pipx install uv
-          uv venv
+          uv venv .venv
 
       - name: Install dependencies
         run: |
