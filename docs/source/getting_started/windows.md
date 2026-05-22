@@ -6,7 +6,34 @@ MMORE was developed and tested mainly on Linux. It runs on Windows too, but a fe
 
 If you work on Linux or macOS, you can skip this page.
 
-## 1. `milvus-lite` is not available on Windows
+## 1. Install the prerequisites
+
+Unlike most Linux distributions, Windows does not ship Python, Git, or FFmpeg.
+Install them first with
+[winget](https://learn.microsoft.com/windows/package-manager/winget/):
+
+```powershell
+winget install Python.Python.3.11
+winget install Git.Git
+winget install astral-sh.uv
+winget install Gyan.FFmpeg
+```
+
+Then clone the repo and install MMORE into a virtual environment:
+
+```powershell
+git clone https://github.com/swiss-ai/mmore.git
+cd mmore
+uv venv
+.venv\Scripts\activate
+uv pip install -e ".[all,cu126]"
+```
+
+Use `cu126` for an NVIDIA GPU, or `cpu` otherwise. See the
+[README](https://github.com/swiss-ai/mmore#step-1--install-mmore) for the full
+list of extras.
+
+## 2. `milvus-lite` is not available on Windows
 
 Every example config whose `db.uri` is `./proc_demo.db` relies on `milvus-lite`
 (`examples/index/config.yaml`, `examples/retriever_api/config.yaml`,
@@ -24,9 +51,11 @@ matching your installed `pymilvus` version (see the
 [Milvus install docs](https://milvus.io/docs/install_standalone-docker-compose.md)):
 
 ```powershell
+# Download the Milvus docker compose file from GitHub
 Invoke-WebRequest `
   -Uri "https://github.com/milvus-io/milvus/releases/download/v2.6.6/milvus-standalone-docker-compose.yml" `
   -OutFile "milvus-docker-compose.yml"
+# Start Milvus containers
 docker compose -f milvus-docker-compose.yml up -d
 ```
 
@@ -64,7 +93,17 @@ indexer:
     name: my_db
 ```
 
-## 2. Surya OCR can crash the process on large PDFs
+### Check that the setup works
+
+Once Milvus is running, confirm the connection:
+
+```powershell
+python -c "from pymilvus import MilvusClient; c = MilvusClient(uri='http://127.0.0.1:19530', db_name='my_db'); print(c.list_collections())"
+```
+
+This returns a list of collections (empty before you index anything).
+
+## 3. Surya OCR can crash the process on large PDFs
 
 When processing large PDFs, the surya-based OCR may crash with:
 
@@ -82,26 +121,6 @@ dispatcher_config:
 ```
 
 You lose some accuracy on heavily scanned PDFs, but the pipeline no longer crashes.
-
-## 3. Keep the collection name consistent
-
-`examples/index/config.yaml` and `examples/retriever_api/config.yaml` each have a `collection_name` field. If they differ, the retriever starts fine but later fails with:
-
-```
-ValueError: The Milvus database has not been initialized yet / does not have a collection ...
-```
-
-Use the same value (for example `my_docs`) in both files.
-
-## 4. Check that the setup works
-
-Once Milvus is running and the configs use the same collection name, confirm the connection:
-
-```powershell
-python -c "from pymilvus import MilvusClient; c = MilvusClient(uri='http://127.0.0.1:19530', db_name='my_db'); print(c.list_collections())"
-```
-
-This returns a list of collections (empty before you index anything).
 
 ## See also
 
