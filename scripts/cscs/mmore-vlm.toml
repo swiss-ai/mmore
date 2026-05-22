@@ -21,7 +21,9 @@ mounts = [
 workdir = "/capstor/scratch/cscs/arthurperrin/mmore"
 
 [env]
-HF_HUB_ENABLE_HF_TRANSFER = "1"
+# Xet is the default high-perf transfer in huggingface_hub 1.x — do NOT
+# set HF_HUB_ENABLE_HF_TRANSFER=1 unless hf_transfer is also installed,
+# otherwise every model download fails immediately.
 PYTHONUNBUFFERED = "1"
 # Persistent venv path (filled with vLLM + mmore deps on first run)
 VLLM_VENV = "/capstor/scratch/cscs/arthurperrin/envs/vllm-venv"
