@@ -74,9 +74,12 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
+    pdf_backend: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
+        if self.pdf_backend:
+            os.environ["MMORE_PDF_BACKEND"] = self.pdf_backend.lower()
 
     @staticmethod
     def from_dict(config: Dict) -> "DispatcherConfig":
@@ -90,6 +93,7 @@ class DispatcherConfig:
             process_batch_sizes=config.get("process_batch_sizes"),
             batch_multiplier=config.get("batch_multiplier", 1),
             extract_images=config.get("extract_images", False),
+            pdf_backend=config.get("pdf_backend"),
         )
 
     @staticmethod
