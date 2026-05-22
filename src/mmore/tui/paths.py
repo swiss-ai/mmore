@@ -10,12 +10,10 @@ Strategy:
 from __future__ import annotations
 
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
 
-@lru_cache(maxsize=1)
 def repo_root() -> Optional[Path]:
     """Return a directory that contains an `examples/` folder, if any."""
     cwd = Path.cwd()

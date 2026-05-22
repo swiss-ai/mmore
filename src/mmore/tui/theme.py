@@ -83,7 +83,7 @@ def _mmore_logo(text: str) -> Text:
 
 def show_banner(subtitle: str = "interactive launcher") -> None:
     body = Group(
-        _mmore_logo(BANNER),
+        Align.center(_mmore_logo(BANNER)),
         Align.center(Text(subtitle, style=f"italic {MUTED}")),
     )
     console.print(

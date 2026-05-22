@@ -57,6 +57,20 @@ def _confirm(question: str, default: bool = False) -> bool:
     )
 
 
+def _prompt_int(question: str, default: int) -> int:
+    try:
+        return int(_prompt(question, str(default)))
+    except ValueError:
+        return default
+
+
+def _prompt_float(question: str, default: float) -> float:
+    try:
+        return float(_prompt(question, str(default)))
+    except ValueError:
+        return default
+
+
 def _save(name: str, data: dict[str, Any]) -> str:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     path = CONFIG_DIR / f"{name}-{time.time_ns()}.yaml"
@@ -181,24 +195,24 @@ def build_process_config() -> str:
 
 
 def build_postprocess_config() -> str:
-    strategy = questionary.select(
-        "Chunking strategy",
-        choices=["sentence", "token", "word", "semantic"],
-        default="sentence",
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
-    if strategy is None:
-        raise UserCancelledError("cancelled")
-    table_handling = questionary.select(
-        "Table handling",
-        choices=["single_row", "multi_rows", "keep_whole", "none"],
-        default="single_row",
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
-    if table_handling is None:
-        raise UserCancelledError("cancelled")
+    strategy = _ask(
+        questionary.select(
+            "Chunking strategy",
+            choices=["sentence", "token", "word", "semantic"],
+            default="sentence",
+            style=QSTYLE,
+            qmark=QMARK,
+        )
+    )
+    table_handling = _ask(
+        questionary.select(
+            "Table handling",
+            choices=["single_row", "multi_rows", "keep_whole", "none"],
+            default="single_row",
+            style=QSTYLE,
+            qmark=QMARK,
+        )
+    )
     output_path = _prompt(
         "Output JSONL path",
         cwd_default("outputs/postprocess/results.jsonl"),
@@ -247,39 +261,27 @@ def build_index_config(documents_path: Optional[str] = None) -> str:
 def build_rag_config() -> str:
     """Wizard for `rag` / `retrieve` / `ragcli` configs."""
     llm_name = _prompt("LLM name", "OpenMeditron/meditron3-8b")
-    max_new_tokens_raw = _prompt("Max new tokens", "1200")
-    try:
-        max_new_tokens = int(max_new_tokens_raw)
-    except ValueError:
-        max_new_tokens = 1200
+    max_new_tokens = _prompt_int("Max new tokens", 1200)
 
     db_uri = _prompt(
         "DB URI (Milvus Lite file or server URL)", cwd_default("proc_demo.db")
     )
     db_name = _prompt("DB name", "my_db")
     collection = _prompt("Collection name", "my_docs")
-    k_raw = _prompt("Number of docs to retrieve (k)", "5")
-    try:
-        k = int(k_raw)
-    except ValueError:
-        k = 5
-    hybrid_raw = _prompt("Hybrid search weight (0.0 dense — 1.0 sparse)", "0.5")
-    try:
-        hybrid = float(hybrid_raw)
-    except ValueError:
-        hybrid = 0.5
+    k = _prompt_int("Number of docs to retrieve (k)", 5)
+    hybrid = _prompt_float("Hybrid search weight (0.0 dense — 1.0 sparse)", 0.5)
     use_web = _confirm("Augment retrieval with web search?", default=False)
     reranker = _prompt("Reranker model (blank to skip)", "BAAI/bge-reranker-base")
 
-    mode = questionary.select(
-        "Run mode",
-        choices=["local", "api"],
-        default="local",
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
-    if mode is None:
-        raise UserCancelledError("cancelled")
+    mode = _ask(
+        questionary.select(
+            "Run mode",
+            choices=["local", "api"],
+            default="local",
+            style=QSTYLE,
+            qmark=QMARK,
+        )
+    )
 
     cfg: dict[str, Any] = {
         "rag": {
@@ -308,11 +310,7 @@ def build_rag_config() -> str:
         )
         cfg["mode_args"] = {"input_file": input_file, "output_file": output_file}
     else:
-        port_raw = _prompt("API port", "8000")
-        try:
-            port = int(port_raw)
-        except ValueError:
-            port = 8000
+        port = _prompt_int("API port", 8000)
         cfg["mode_args"] = {
             "endpoint": "/rag",
             "host": "0.0.0.0",
@@ -331,11 +329,7 @@ def build_websearch_config() -> str:
             resolve_example("examples/rag/config.yaml"),
         )
     llm_name = _prompt("LLM name", "OpenMeditron/meditron3-8b")
-    max_new_tokens_raw = _prompt("Max new tokens", "1200")
-    try:
-        max_new_tokens = int(max_new_tokens_raw)
-    except ValueError:
-        max_new_tokens = 1200
+    max_new_tokens = _prompt_int("Max new tokens", 1200)
     input_queries = _prompt(
         "Input queries JSONL", resolve_example("examples/rag/queries.jsonl")
     )
@@ -343,25 +337,17 @@ def build_websearch_config() -> str:
         "Output JSON path",
         cwd_default("outputs/websearch/enhanced_results.json"),
     )
-    n_subqueries_raw = _prompt("Number of sub-queries per question", "2")
-    try:
-        n_subqueries = int(n_subqueries_raw)
-    except ValueError:
-        n_subqueries = 2
-    max_searches_raw = _prompt("Max searches per query", "5")
-    try:
-        max_searches = int(max_searches_raw)
-    except ValueError:
-        max_searches = 5
-    provider = questionary.select(
-        "Search provider",
-        choices=["duckduckgo"],
-        default="duckduckgo",
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
-    if provider is None:
-        raise UserCancelledError("cancelled")
+    n_subqueries = _prompt_int("Number of sub-queries per question", 2)
+    max_searches = _prompt_int("Max searches per query", 5)
+    provider = _ask(
+        questionary.select(
+            "Search provider",
+            choices=["duckduckgo"],
+            default="duckduckgo",
+            style=QSTYLE,
+            qmark=QMARK,
+        )
+    )
 
     cfg: dict[str, Any] = {
         "websearch": {
@@ -450,14 +436,14 @@ def build_process_config_wizard() -> str:
     extract_images = _confirm("Extract images from documents?", default=True)
 
     names = [n for n, _ in _ALL_PROCESSORS]
-    selected = questionary.checkbox(
-        "Select processors to enable",
-        choices=[questionary.Choice(n, value=n, checked=True) for n in names],
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
-    if selected is None:
-        raise UserCancelledError("cancelled")
+    selected = _ask(
+        questionary.checkbox(
+            "Select processors to enable",
+            choices=[questionary.Choice(n, value=n, checked=True) for n in names],
+            style=QSTYLE,
+            qmark=QMARK,
+        )
+    )
     if not selected:
         selected = names  # empty would mean a no-op pipeline; fall back to all
 
@@ -466,14 +452,7 @@ def build_process_config_wizard() -> str:
     for name, default in _ALL_PROCESSORS:
         if name not in selected:
             continue
-        if customize:
-            raw = _prompt(f"Batch size for {name}", str(default))
-            try:
-                value = int(raw)
-            except ValueError:
-                value = default
-        else:
-            value = default
+        value = _prompt_int(f"Batch size for {name}", default) if customize else default
         sizes.append({name: value})
 
     processor_config = {
@@ -526,24 +505,24 @@ def _postprocessor_choices() -> list[str]:
 
 def _ask_module_args(pp_type: str) -> dict[str, Any]:
     if pp_type == "chunker":
-        strategy = questionary.select(
-            "Chunking strategy",
-            choices=["sentence", "token", "word", "semantic"],
-            default="sentence",
-            style=QSTYLE,
-            qmark=QMARK,
-        ).ask()
-        if strategy is None:
-            raise UserCancelledError("cancelled")
-        table_handling = questionary.select(
-            "Table handling",
-            choices=["single_row", "multi_rows", "keep_whole", "none"],
-            default="single_row",
-            style=QSTYLE,
-            qmark=QMARK,
-        ).ask()
-        if table_handling is None:
-            raise UserCancelledError("cancelled")
+        strategy = _ask(
+            questionary.select(
+                "Chunking strategy",
+                choices=["sentence", "token", "word", "semantic"],
+                default="sentence",
+                style=QSTYLE,
+                qmark=QMARK,
+            )
+        )
+        table_handling = _ask(
+            questionary.select(
+                "Table handling",
+                choices=["single_row", "multi_rows", "keep_whole", "none"],
+                default="single_row",
+                style=QSTYLE,
+                qmark=QMARK,
+            )
+        )
         return {
             "chunking_strategy": strategy,
             "table_handling": table_handling,
@@ -570,14 +549,14 @@ def build_postprocess_config_wizard() -> str:
             console.print(
                 f"  [dim]current modules:[/] {', '.join(m['type'] for m in modules)}"
             )
-        pp_type = questionary.select(
-            "Add a post-processor module" if not modules else "Add another module",
-            choices=[*available, questionary.Separator(), "(done)"],
-            style=QSTYLE,
-            qmark=QMARK,
-        ).ask()
-        if pp_type is None:
-            raise UserCancelledError("cancelled")
+        pp_type = _ask(
+            questionary.select(
+                "Add a post-processor module" if not modules else "Add another module",
+                choices=[*available, questionary.Separator(), "(done)"],
+                style=QSTYLE,
+                qmark=QMARK,
+            )
+        )
         if pp_type == "(done)":
             break
         args = _ask_module_args(pp_type)
@@ -847,7 +826,8 @@ def pick_or_build_config(
             else:
                 path = builder()
 
-        assert path is not None
+        if path is None:
+            raise UserCancelledError("no config selected")
         err = _validate_with_spinner(path, spec)
         if err is None:
             return _post_validation_menu(path, spec)
