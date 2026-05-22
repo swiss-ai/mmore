@@ -75,10 +75,11 @@ if [ ! -f "$VENV/.ready" ]; then
     # Use the latest transformers (Qwen2.5-VL, Llama-3.2-Vision, Nemotron-VL
     # all need recent releases). --upgrade-strategy=only-if-needed so we don't
     # touch torch/numpy/etc. from the NGC base.
-    # transformers 5.x requires torch>=2.7 (imports TransformGetItemToIndex);
-    # NGC ships 2.6.0a0+nv24.12 so we cap at 4.x. >=4.49 needed for Qwen2.5-VL.
+    # transformers 4.52+ imports TransformGetItemToIndex from torch._dynamo,
+    # which only exists in torch>=2.7. NGC ships torch 2.6.0a0+nv24.12, so we
+    # cap at 4.51.x. >=4.49 needed for Qwen2.5-VL.
     pip install --upgrade-strategy=only-if-needed --upgrade \
-        "transformers>=4.49,<5.0" "accelerate" "rapidfuzz>=3.0" "jiwer" \
+        "transformers>=4.49,<4.52" "accelerate" "rapidfuzz>=3.0" "jiwer" \
         "huggingface_hub" "Pillow"
     touch "$VENV/.ready"
 else
