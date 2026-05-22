@@ -89,6 +89,29 @@ else
 fi
 python -c "import torch, transformers; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'transformers', transformers.__version__)"
 
+# --- 0b. HF auth diagnostic --------------------------------------------------
+echo "==> HF_TOKEN set: ${HF_TOKEN:+yes}  HF_HOME=$HF_HOME"
+python <<'PYEOF'
+import os
+from huggingface_hub import HfApi, hf_hub_download
+print("HF_TOKEN in os.environ:", "yes" if os.environ.get("HF_TOKEN") else "no")
+api = HfApi()
+try:
+    info = api.model_info("Qwen/Qwen2.5-VL-7B-Instruct")
+    print(f"model_info OK: {info.id} (sha={info.sha[:8]})")
+except Exception as e:
+    print(f"model_info FAILED: {type(e).__name__}: {e}")
+
+try:
+    path = hf_hub_download("Qwen/Qwen2.5-VL-7B-Instruct", "config.json")
+    print(f"config.json downloaded to: {path}")
+    with open(path) as f:
+        head = f.read(400)
+    print("config.json head:", head)
+except Exception as e:
+    print(f"config.json download FAILED: {type(e).__name__}: {e}")
+PYEOF
+
 # --- 1. Fetch OmniDocBench (once; cached on capstor) --------------------------
 if [ ! -f "$DATASET_DIR/.ready" ]; then
     echo "==> Downloading OmniDocBench…"
