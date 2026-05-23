@@ -12,6 +12,7 @@ from mmore.rag.judge import (
     JudgeResult,
     LLMJudge,
     _metrics_for_output,
+    _record_correction_metrics,
     compute_retrieval_metrics,
     format_metrics_status,
     merge_documents,
@@ -77,6 +78,16 @@ def test_metrics_and_thresholds():
     )
     out_high = _metrics_for_output(_strong(), th_full, context_relevance_score=8.0)
     assert out_high["thresholds_met"] == 1.0
+
+    rec = _record_correction_metrics(
+        "RE_RETRIEVE",
+        [_doc(0.2)],
+        _strong(2),
+        {"min_mean_similarity": 0.3, "min_num_docs": 2},
+        context_relevance_score=5.0,
+    )
+    assert rec["delta"]["delta_mean_similarity"] > 0
+    assert rec["after"]["num_docs"] == 2.0
 
 
 @pytest.mark.parametrize(
@@ -200,11 +211,15 @@ def test_retrieve_with_judge(loop):
         )
         want_actions, want_evals = [], 1
     elif loop == "re_retrieve":
-        retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2")]]
+        retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
         judge.config = _cfg(max_corrective_steps=2)
         judge.evaluate.side_effect = [
-            JudgeResult(decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}),
-            JudgeResult(decision=JudgeDecision.PROCEED),
+            JudgeResult(
+                decision=JudgeDecision.RE_RETRIEVE,
+                retrieve_params={"k": 10},
+                context_relevance_score=4.0,
+            ),
+            JudgeResult(decision=JudgeDecision.PROCEED, context_relevance_score=8.0),
         ]
         want_actions, want_evals = ["RE_RETRIEVE"], 2
     elif loop == "metrics_after_correction":
@@ -234,3 +249,8 @@ def test_retrieve_with_judge(loop):
         assert out["retrieval_metrics"]["thresholds_met"] == 1.0
     if loop == "proceed":
         assert out["retrieval_metrics"]["context_relevance_score"] == 8.0
+    if loop == "re_retrieve":
+        assert len(out["retrieval_corrections"]) == 1
+        corr = out["retrieval_corrections"][0]
+        assert corr["action"] == "RE_RETRIEVE"
+        assert corr["delta"]["delta_max_rerank_score"] > 0

@@ -163,6 +163,69 @@ def _metrics_for_output(
     return metrics
 
 
+_CORRECTION_COMPARE_KEYS = (
+    "num_docs",
+    "mean_similarity",
+    "max_similarity",
+    "mean_rerank_score",
+    "max_rerank_score",
+    "context_relevance_score",
+)
+
+
+def _metrics_snapshot(metrics: Dict[str, float]) -> Dict[str, float]:
+    return {k: float(metrics[k]) for k in _CORRECTION_COMPARE_KEYS if k in metrics}
+
+
+def _record_correction_metrics(
+    action: str,
+    docs_before: List[Document],
+    docs_after: List[Document],
+    thresholds: Dict[str, float],
+    context_relevance_score: Optional[float],
+) -> Dict[str, Any]:
+    """Before/after retrieval metrics for one corrective action (e.g. RE_RETRIEVE)."""
+    before_full = _metrics_with_context_relevance(docs_before, context_relevance_score)
+    after_full = _metrics_with_context_relevance(docs_after, context_relevance_score)
+    before = _metrics_snapshot(before_full)
+    after = _metrics_snapshot(after_full)
+    delta = {f"delta_{k}": after.get(k, 0.0) - before.get(k, 0.0) for k in after}
+    tm_before = metrics_meet_thresholds(before_full, thresholds)
+    tm_after = metrics_meet_thresholds(after_full, thresholds)
+    return {
+        "action": action,
+        "before": before,
+        "after": after,
+        "delta": delta,
+        "thresholds_met_before": float(tm_before),
+        "thresholds_met_after": float(tm_after),
+    }
+
+
+def _log_correction_metrics(query: str, record: Dict[str, Any]) -> None:
+    b, a, d = record["before"], record["after"], record["delta"]
+    logger.info(
+        "Judge corrective %s | query=%r | num_docs %.0f→%.0f (Δ%+.0f) | "
+        "mean_sim %.4f→%.4f (Δ%+.4f) | max_rerank %.4f→%.4f (Δ%+.4f) | "
+        "context_rel %s→%s | thresholds_met %.0f→%.0f",
+        record["action"],
+        query[:120],
+        b.get("num_docs", 0),
+        a.get("num_docs", 0),
+        d.get("delta_num_docs", 0),
+        b.get("mean_similarity", 0),
+        a.get("mean_similarity", 0),
+        d.get("delta_mean_similarity", 0),
+        b.get("max_rerank_score", 0),
+        a.get("max_rerank_score", 0),
+        d.get("delta_max_rerank_score", 0),
+        b.get("context_relevance_score", "—"),
+        a.get("context_relevance_score", "—"),
+        record["thresholds_met_before"],
+        record["thresholds_met_after"],
+    )
+
+
 def _gate_proceed_on_thresholds(
     decision: JudgeDecision,
     reason: str,
@@ -408,6 +471,7 @@ def retrieve_with_judge(
     """
     docs = retriever.invoke(state)
     judge_actions: List[str] = []
+    retrieval_corrections: List[Dict[str, Any]] = []
     config = judge.config
     query = state["input"]
     thresholds = config.metric_thresholds
@@ -415,6 +479,14 @@ def retrieve_with_judge(
 
     for step in range(config.max_corrective_steps + 1):
         final_result = judge.evaluate(query, docs)
+        logger.info(
+            "Judge step %s | query=%r | decision=%s | context_relevance_score=%s | reason=%s",
+            step,
+            query[:120],
+            final_result.decision.value,
+            final_result.context_relevance_score,
+            final_result.reason,
+        )
 
         if final_result.decision == JudgeDecision.PROCEED:
             break
@@ -431,8 +503,22 @@ def retrieve_with_judge(
             )
             break
 
-        judge_actions.append(final_result.decision.value)
-        docs = _apply_corrective_action(retriever, config, state, docs, final_result)
+        action = final_result.decision.value
+        judge_actions.append(action)
+        docs_before = docs
+        docs = _apply_corrective_action(
+            retriever, config, state, docs_before, final_result
+        )
+        correction = _record_correction_metrics(
+            action,
+            docs_before,
+            docs,
+            thresholds,
+            final_result.context_relevance_score,
+        )
+        retrieval_corrections.append(correction)
+        _log_correction_metrics(query, correction)
+
         post_metrics = _metrics_with_context_relevance(
             docs, final_result.context_relevance_score
         )
@@ -444,12 +530,27 @@ def retrieve_with_judge(
             )
             break
 
-    return {
+    retrieval_metrics = _metrics_for_output(
+        docs, thresholds, final_result.context_relevance_score
+    )
+    logger.info(
+        "Judge done | query=%r | decision=%s | actions=%s | thresholds_met=%s | "
+        "context_relevance_score=%s | reason=%s",
+        query[:120],
+        final_result.decision.value,
+        judge_actions,
+        retrieval_metrics.get("thresholds_met"),
+        retrieval_metrics.get("context_relevance_score"),
+        final_result.reason,
+    )
+
+    out: Dict[str, Any] = {
         **state,
         "docs": docs,
-        "retrieval_metrics": _metrics_for_output(
-            docs, thresholds, final_result.context_relevance_score
-        ),
+        "retrieval_metrics": retrieval_metrics,
         "judge_decision": final_result.decision.value,
         "judge_actions": judge_actions,
     }
+    if retrieval_corrections:
+        out["retrieval_corrections"] = retrieval_corrections
+    return out

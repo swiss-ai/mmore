@@ -57,7 +57,12 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
 # Standard RAG fields (always written to JSON / API)
 _RAG_KEYS = ("input", "context", "answer")
 # Judge trace fields (only when rag.judge ran and set a value)
-_JUDGE_KEYS = ("judge_decision", "judge_actions", "retrieval_metrics")
+_JUDGE_KEYS = (
+    "judge_decision",
+    "judge_actions",
+    "retrieval_metrics",
+    "retrieval_corrections",
+)
 
 
 def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -91,6 +96,7 @@ class RAGOutput(BaseModel):
     judge_decision: Optional[str] = None
     judge_actions: Optional[List[str]] = None
     retrieval_metrics: Optional[Dict[str, float]] = None
+    retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 
 
 def create_api(rag: RAGPipeline, endpoint: str):
