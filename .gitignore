@@ -131,3 +131,5 @@ examples/outputs
 outputs/
 
 paper/
+chitchat/
+.claude/
