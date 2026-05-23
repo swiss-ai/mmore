@@ -5,7 +5,7 @@ Integrates Milvus retrieval with HuggingFace text generation.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -14,6 +14,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
+from .judge import JudgeConfig, LLMJudge, retrieve_with_judge
 from .llm import LLM, LLMConfig
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
@@ -33,6 +34,7 @@ class RAGConfig:
     retriever: RetrieverConfig
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt2"))
     system_prompt: str = DEFAULT_PROMPT
+    judge: Optional[JudgeConfig] = None
 
 
 class RAGPipeline:
@@ -47,15 +49,17 @@ class RAGPipeline:
         retriever: Retriever,
         prompt_template: Union[str, ChatPromptTemplate],
         llm: BaseChatModel,
+        judge: Optional[LLMJudge] = None,
     ):
         # Get modules
         self.retriever = retriever
         self.prompt = prompt_template
         self.llm = llm
+        self.judge = judge
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(
-            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm
+            self.retriever, RAGPipeline.format_docs, self.prompt, self.llm, self.judge
         )
 
     def __str__(self):
@@ -68,11 +72,16 @@ class RAGPipeline:
 
         retriever = Retriever.from_config(config.retriever)
         llm = LLM.from_config(config.llm)
+        judge = (
+            LLMJudge(llm=LLM.from_config(config.judge.llm), config=config.judge)
+            if config.judge
+            else None
+        )
         chat_template = ChatPromptTemplate.from_messages(
             [("system", config.system_prompt), ("human", "{input}")]
         )
 
-        return cls(retriever, chat_template, llm)
+        return cls(retriever, chat_template, llm, judge)
 
     @staticmethod
     def format_docs(docs: List[Document]) -> str:
@@ -82,7 +91,7 @@ class RAGPipeline:
         )
 
     @staticmethod
-    def _build_chain(retriever, format_docs, prompt, llm) -> Runnable:
+    def _build_chain(retriever, format_docs, prompt, llm, judge=None) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
         )
@@ -91,6 +100,8 @@ class RAGPipeline:
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
+            if "context" in x:
+                res_dict["context"] = x["context"]
 
             return res_dict
 
@@ -98,11 +109,19 @@ class RAGPipeline:
 
         rag_chain_from_docs = prompt | llm | StrOutputParser()
 
-        core_chain = (
-            RunnablePassthrough.assign(docs=retriever)
-            .assign(context=lambda x: format_docs(x["docs"]))
-            .assign(answer=rag_chain_from_docs)
-        )
+        if judge is not None:
+            # retrieve with judge
+            def retrieval_with_judge(state: Dict[str, Any]) -> Dict[str, Any]:
+                return retrieve_with_judge(retriever, judge, state)
+
+            retrieval_step: Runnable = RunnableLambda(retrieval_with_judge)
+        else:
+            # retrieve without judge
+            retrieval_step = RunnablePassthrough.assign(docs=retriever)
+
+        core_chain = retrieval_step.assign(
+            context=lambda x: format_docs(x["docs"])
+        ).assign(answer=rag_chain_from_docs)
 
         return validate_input | core_chain | validate_output
 

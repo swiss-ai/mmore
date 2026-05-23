@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import uvicorn
 from dotenv import load_dotenv
@@ -54,13 +54,25 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
         return [json.loads(line) for line in f]
 
 
+# Standard RAG fields (always written to JSON / API)
+_RAG_KEYS = ("input", "context", "answer")
+# Judge trace fields (only when rag.judge ran and set a value)
+_JUDGE_KEYS = ("judge_decision", "judge_actions", "retrieval_metrics")
+
+
+def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Strip pipeline dict for export: no raw docs, optional judge fields."""
+    out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
+    for key in _JUDGE_KEYS:
+        if key in pipeline_result and pipeline_result[key] is not None:
+            out[key] = pipeline_result[key]
+    return out
+
+
 def save_results(results: List[Dict], output_file: Union[Path, str]):
-    results = [
-        {key: d[key] for key in {"input", "context", "answer"} if key in d}
-        for d in results
-    ]
+    serialized = [_to_public_output(d) for d in results]
     with open(output_file, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(serialized, f, indent=2)
 
 
 class InnerInput(BaseModel):
@@ -76,6 +88,9 @@ class RAGOutput(BaseModel):
     input: Optional[str] = None
     context: Optional[str] = None
     answer: Optional[str] = None
+    judge_decision: Optional[str] = None
+    judge_actions: Optional[List[str]] = None
+    retrieval_metrics: Optional[Dict[str, float]] = None
 
 
 def create_api(rag: RAGPipeline, endpoint: str):
@@ -85,12 +100,13 @@ def create_api(rag: RAGPipeline, endpoint: str):
         version="2.0",
     )
 
-    @app.post(endpoint, response_model=RAGOutput)
+    # Omit unset judge fields (same rule as _to_public_output for JSON export).
+    @app.post(endpoint, response_model=RAGOutput, response_model_exclude_none=True)
     async def run_rag(request: RAGInput):
         # Extract the inner input dict to pass to rag_chain
         pipeline_input = request.input.model_dump()
         output_dict = rag.rag_chain.invoke(pipeline_input)
-        return RAGOutput(**output_dict)
+        return RAGOutput(**_to_public_output(output_dict))
 
     @app.get("/health")
     def health_check():
