@@ -11,6 +11,7 @@ from mmore.rag.judge import (
     JudgeDecision,
     JudgeResult,
     LLMJudge,
+    _metrics_for_output,
     compute_retrieval_metrics,
     format_metrics_status,
     merge_documents,
@@ -68,6 +69,15 @@ def test_metrics_and_thresholds():
     merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
     assert len(merged) == 2 and [d.metadata["rank"] for d in merged] == [1, 2]
 
+    th_full = {k: v for k, v in _THRESH.items() if k != "min_context_relevance"}
+    th_full["min_context_relevance"] = 7.0
+    out_low = _metrics_for_output(_strong(), th_full, context_relevance_score=5.0)
+    assert (
+        out_low["context_relevance_score"] == 5.0 and out_low["thresholds_met"] == 0.0
+    )
+    out_high = _metrics_for_output(_strong(), th_full, context_relevance_score=8.0)
+    assert out_high["thresholds_met"] == 1.0
+
 
 @pytest.mark.parametrize(
     "cfg_kw,docs,llm_json,expect_invoke,expect_decision,expect_reason",
@@ -99,7 +109,7 @@ def test_metrics_and_thresholds():
         (
             {"metric_thresholds": _THRESH},
             _strong(),
-            '{"decision":"PROCEED","reason":"ok"}',
+            '{"decision":"PROCEED","reason":"ok","context_relevance_score":8}',
             True,
             "PROCEED",
             "ok",
@@ -120,8 +130,42 @@ def test_metrics_and_thresholds():
             "PROCEED",
             "parse_error_fallback",
         ),
+        (
+            {"metric_thresholds": {"min_num_docs": 1}},
+            [],
+            '{"decision":"RE_RETRIEVE","reason":"x"}\n\nNote: reformulating query.',
+            True,
+            "RE_RETRIEVE",
+            "x",
+        ),
+        (
+            {"metric_thresholds": {"min_num_docs": 1}},
+            [],
+            '```json\n{"decision":"PROCEED","reason":"ok"}\n```\nDone.',
+            True,
+            "RE_RETRIEVE",
+            "thresholds_not_met",
+        ),
+        (
+            {"metric_thresholds": _THRESH},
+            [_doc(0.2)],
+            '{"decision":"PROCEED","reason":"ok","context_relevance_score":8}',
+            True,
+            "RE_RETRIEVE",
+            "thresholds_not_met",
+        ),
     ],
-    ids=["skip", "numeric_ok", "llm_weak", "llm_context_rel", "coerce", "parse_err"],
+    ids=[
+        "skip",
+        "numeric_ok",
+        "llm_weak",
+        "llm_context_rel",
+        "coerce",
+        "parse_err",
+        "extra_data",
+        "markdown_fence",
+        "proceed_overridden",
+    ],
 )
 def test_evaluate(
     cfg_kw, docs, llm_json, expect_invoke, expect_decision, expect_reason
@@ -133,7 +177,9 @@ def test_evaluate(
     assert llm.invoke.called == expect_invoke
     assert r.decision == JudgeDecision(expect_decision)
     if expect_reason:
-        assert r.reason == expect_reason
+        assert expect_reason in r.reason
+    if llm_json and "context_relevance_score" in llm_json:
+        assert r.context_relevance_score == 8.0
 
 
 @pytest.mark.parametrize(
@@ -148,7 +194,10 @@ def test_retrieve_with_judge(loop):
     if loop == "proceed":
         retriever.invoke.return_value = [_doc(0.9)]
         judge.config = _cfg()
-        judge.evaluate.return_value = JudgeResult(decision=JudgeDecision.PROCEED)
+        judge.evaluate.return_value = JudgeResult(
+            decision=JudgeDecision.PROCEED,
+            context_relevance_score=8.0,
+        )
         want_actions, want_evals = [], 1
     elif loop == "re_retrieve":
         retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2")]]
@@ -183,3 +232,5 @@ def test_retrieve_with_judge(loop):
     assert judge.evaluate.call_count == want_evals
     if loop == "metrics_after_correction":
         assert out["retrieval_metrics"]["thresholds_met"] == 1.0
+    if loop == "proceed":
+        assert out["retrieval_metrics"]["context_relevance_score"] == 8.0

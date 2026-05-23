@@ -1,6 +1,6 @@
 rag:
   llm:
-    llm_name: gpt-4o-mini
+    llm_name: meta-llama/Llama-3.1-8B-Instruct
     max_new_tokens: 1200
   retriever:
     db:
@@ -13,7 +13,7 @@ rag:
   # No rag.judge.mode: only LLM judge exists (LLMJudge).
   judge:
     llm:
-      llm_name: gpt-4o-mini
+      llm_name: meta-llama/Llama-3.1-8B-Instruct
       max_new_tokens: 512
     # true: never call judge LLM; false: one LLM call when numeric thresholds are not enough alone
     skip_llm_judge: false
@@ -22,15 +22,19 @@ rag:
       In one step: (1) score context relevance 1-10, (2) read Threshold check (PASS/FAIL),
       (3) pick ONE corrective action.
 
-      Respond with a single JSON object only:
+      Respond with a single valid JSON object only (no markdown fences, no commentary).
+      Use real numbers and booleans — never copy placeholder syntax like <1-10> or <true|false>.
+      decision must be exactly one of: PROCEED, ADD_QUESTIONS, ADD_CONTEXT, RE_RETRIEVE.
+
+      Example shape (replace values for the current question):
       {
-        "context_relevance_score": <1-10>,
-        "sufficient": <true|false>,
-        "decision": "PROCEED" | "ADD_QUESTIONS" | "ADD_CONTEXT" | "RE_RETRIEVE",
-        "reason": "short explanation",
-        "extra_questions": ["sub-question 1"],
-        "web_query": "search query or null",
-        "retrieve_params": {"input": "reformulated query or null", "k": 10}
+        "context_relevance_score": 8,
+        "sufficient": true,
+        "decision": "PROCEED",
+        "reason": "Chunks support a grounded answer.",
+        "extra_questions": [],
+        "web_query": null,
+        "retrieve_params": {"input": null, "k": 10}
       }
 
       Action guidelines (priority order when retrieval is weak):

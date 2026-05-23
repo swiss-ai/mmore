@@ -31,6 +31,7 @@ class JudgeDecision(str, Enum):
 class JudgeResult:
     decision: JudgeDecision
     reason: str = ""
+    context_relevance_score: Optional[float] = None
     extra_questions: List[str] = field(default_factory=list)
     web_query: Optional[str] = None
     retrieve_params: Optional[Dict[str, Any]] = None
@@ -132,12 +133,62 @@ def format_metrics_status(
     return _check_thresholds(metrics, thresholds)[1]
 
 
-def _metrics_for_output(
-    docs: List[Document], thresholds: Dict[str, float]
+def _parse_context_relevance_score(parsed: Dict[str, Any]) -> Optional[float]:
+    raw = parsed.get("context_relevance_score")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning("Invalid context_relevance_score %r", raw)
+        return None
+
+
+def _metrics_with_context_relevance(
+    docs: List[Document], context_relevance_score: Optional[float]
 ) -> Dict[str, float]:
     metrics = compute_retrieval_metrics(docs)
+    if context_relevance_score is not None:
+        metrics["context_relevance_score"] = context_relevance_score
+    return metrics
+
+
+def _metrics_for_output(
+    docs: List[Document],
+    thresholds: Dict[str, float],
+    context_relevance_score: Optional[float] = None,
+) -> Dict[str, float]:
+    metrics = _metrics_with_context_relevance(docs, context_relevance_score)
     metrics["thresholds_met"] = float(metrics_meet_thresholds(metrics, thresholds))
     return metrics
+
+
+def _gate_proceed_on_thresholds(
+    decision: JudgeDecision,
+    reason: str,
+    docs: List[Document],
+    thresholds: Dict[str, float],
+    context_relevance_score: Optional[float],
+    config: JudgeConfig,
+    retrieve_params: Optional[Dict[str, Any]],
+) -> Tuple[JudgeDecision, str, Optional[Dict[str, Any]]]:
+    """If the LLM chose PROCEED but thresholds fail, enforce RE_RETRIEVE."""
+    metrics = _metrics_with_context_relevance(docs, context_relevance_score)
+    if decision != JudgeDecision.PROCEED or metrics_meet_thresholds(
+        metrics, thresholds
+    ):
+        return decision, reason, retrieve_params
+
+    if not config.allow_re_retrieve:
+        logger.warning(
+            "Judge returned PROCEED but thresholds not met; "
+            "RE_RETRIEVE disabled, keeping PROCEED"
+        )
+        return decision, reason, retrieve_params
+
+    suffix = "thresholds_not_met"
+    new_reason = f"{reason}; {suffix}" if reason else suffix
+    return JudgeDecision.RE_RETRIEVE, new_reason, retrieve_params
 
 
 def merge_documents(
@@ -161,13 +212,21 @@ def merge_documents(
 
 def _parse_json_response(text: str) -> Dict[str, Any]:
     text = text.strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```.*$", "", text, flags=re.DOTALL).strip()
+
+    start = text.find("{")
+    if start == -1:
         match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-        raise
+        if not match:
+            raise json.JSONDecodeError("No JSON object found", text, 0)
+        start = match.start()
+
+    obj, _ = json.JSONDecoder().raw_decode(text, start)
+    if not isinstance(obj, dict):
+        raise TypeError(f"Expected JSON object, got {type(obj).__name__}")
+    return obj
 
 
 def _extract_llm_text(content: Any) -> str:
@@ -276,12 +335,26 @@ class LLMJudge:
         if not isinstance(extra_questions, list):
             extra_questions = []
 
+        context_relevance_score = _parse_context_relevance_score(parsed)
+        reason = str(parsed.get("reason", ""))
+        retrieve_params = parsed.get("retrieve_params")
+        decision, reason, retrieve_params = _gate_proceed_on_thresholds(
+            decision,
+            reason,
+            docs,
+            thresholds,
+            context_relevance_score,
+            self.config,
+            retrieve_params,
+        )
+
         return JudgeResult(
             decision=decision,
-            reason=str(parsed.get("reason", "")),
+            reason=reason,
+            context_relevance_score=context_relevance_score,
             extra_questions=[str(q) for q in extra_questions],
             web_query=parsed.get("web_query"),
-            retrieve_params=parsed.get("retrieve_params"),
+            retrieve_params=retrieve_params,
         )
 
 
@@ -354,22 +427,29 @@ def retrieve_with_judge(
             final_result = JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="max_corrective_steps",
+                context_relevance_score=final_result.context_relevance_score,
             )
             break
 
         judge_actions.append(final_result.decision.value)
         docs = _apply_corrective_action(retriever, config, state, docs, final_result)
-        if metrics_meet_thresholds(compute_retrieval_metrics(docs), thresholds):
+        post_metrics = _metrics_with_context_relevance(
+            docs, final_result.context_relevance_score
+        )
+        if metrics_meet_thresholds(post_metrics, thresholds):
             final_result = JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="metrics_after_correction",
+                context_relevance_score=final_result.context_relevance_score,
             )
             break
 
     return {
         **state,
         "docs": docs,
-        "retrieval_metrics": _metrics_for_output(docs, thresholds),
+        "retrieval_metrics": _metrics_for_output(
+            docs, thresholds, final_result.context_relevance_score
+        ),
         "judge_decision": final_result.decision.value,
         "judge_actions": judge_actions,
     }
