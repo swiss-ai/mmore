@@ -12,14 +12,16 @@ This guide will help you set up your development environment and contribute to t
       - [Linux (Ubuntu/Debian)](#linux-ubuntudebian)
       - [macOS](#macos)
     - [Installing MMORE for development](#installing-mmore-for-development)
+      - [1. Clone the repository](#1-clone-the-repository)
+      - [2. Create a virtual environment and install dependencies](#2-create-a-virtual-environment-and-install-dependencies)
     - [🧹 Code quality tools](#-code-quality-tools)
       - [Pre-commit hooks](#pre-commit-hooks)
-        - [Setup](#setup)
-          - [1. Install pre-commit](#1-install-pre-commit)
-          - [2. Set up the git hook scripts](#2-set-up-the-git-hook-scripts)
-          - [3. Run the checks manually](#3-run-the-checks-manually)
+      - [Setup](#setup)
+        - [1. Install pre-commit](#1-install-pre-commit)
+        - [2. Set up the git hook scripts](#2-set-up-the-git-hook-scripts)
+        - [3. Run the checks manually](#3-run-the-checks-manually)
       - [Configured Hooks](#configured-hooks)
-      - [Type Checking](#type-checking)
+    - [Type Checking](#type-checking)
   - [🤝 Contributing Guidelines](#-contributing-guidelines)
     - [Reporting Issues](#reporting-issues)
     - [Code Contributions](#code-contributions)
@@ -179,7 +181,7 @@ We welcome contributions! Here's how you can help:
 6. **Submit a Pull Request** with a clear description
 
 ## 🗂️ Project Structure
-
+```
 mmore/
 ├── mmore/
 │   ├── process/          # Document processing pipeline
@@ -195,6 +197,7 @@ mmore/
 ├── .pre-commit-config.yaml
 ├── pyproject.toml
 └── README.md
+ ```
 
 ### Key Modules
 - **`mmore.process`**: Handles extraction from various file formats
