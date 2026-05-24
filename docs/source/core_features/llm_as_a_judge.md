@@ -43,7 +43,7 @@ or copy the `judge:` block into your config and pass your file path.
 
 Keep your usual `retriever`, `llm`, `mode`, and `mode_args` sections. Add `judge` for this feature.
 
-### How step 2 decides between`PROCEED` and Use the Judge
+### How step 2 decides between `PROCEED` and Use the Judge
 
 This is driven by the `rag.judge` settings you configure:
 
@@ -51,7 +51,7 @@ This is driven by the `rag.judge` settings you configure:
 - `metric_thresholds` — compare computed metrics to your mins (`min_mean_similarity`, `min_max_rerank_score`, `min_num_docs`, …). If every **numeric** min is met and you did **not** set `min_context_relevance` → `PROCEED` without calling the judge LLM.
 - **Otherwise** → one call to `judge.llm` using your `system_prompt` / `user_prompt` (question, metrics, PASS/FAIL per threshold, chunk excerpts). The model must return JSON with a relevance score (1–10) and a `decision`:
   - `PROCEED` if it judges the context sufficient.
-  - `RE_RETRIEVE`, `ADD_QUESTIONS`, or `ADD_CONTEXT` if not (only if the matching `allow_`* flag is `true)`.
+  - `RE_RETRIEVE`, `ADD_QUESTIONS`, or `ADD_CONTEXT` if not (only if the matching `allow_*` flag is `true`).
 
 `min_context_relevance` needs the judge LLM (it sets `context_relevance_score` in the JSON). Omit it if you want step 2 to skip the LLM when numeric metrics alone are enough.
 

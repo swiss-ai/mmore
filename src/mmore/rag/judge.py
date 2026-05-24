@@ -254,6 +254,13 @@ def _gate_proceed_on_thresholds(
     return JudgeDecision.RE_RETRIEVE, new_reason, retrieve_params
 
 
+def _dedupe_key(doc: Document) -> str:
+    doc_id = doc.metadata.get("id")
+    if doc_id is not None:
+        return str(doc_id)
+    return doc.page_content
+
+
 def merge_documents(
     existing: List[Document], new_docs: List[Document]
 ) -> List[Document]:
@@ -262,7 +269,7 @@ def merge_documents(
     merged: List[Document] = []
 
     for doc in existing + new_docs:
-        key = doc.metadata.get("id") or doc.page_content
+        key = _dedupe_key(doc)
         if key in seen:
             continue
         seen.add(key)
@@ -522,7 +529,9 @@ def retrieve_with_judge(
         post_metrics = _metrics_with_context_relevance(
             docs, final_result.context_relevance_score
         )
-        if metrics_meet_thresholds(post_metrics, thresholds):
+        if "min_context_relevance" not in thresholds and metrics_meet_thresholds(
+            post_metrics, thresholds
+        ):
             final_result = JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="metrics_after_correction",

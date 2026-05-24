@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
@@ -35,6 +35,7 @@ class MMOREOutput(BaseModel):
     judge_decision: Optional[str] = None
     judge_actions: Optional[List[str]] = None
     retrieval_metrics: Optional[Dict[str, float]] = None
+    retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 
 
 # -------------------------------- CitedAnswer ------------------------------- #
