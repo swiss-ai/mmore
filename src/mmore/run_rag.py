@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from langchain_core.documents import Document
 from pydantic import BaseModel
 
 from mmore.profiler import enable_profiling_from_env, profile_function
@@ -65,12 +66,23 @@ _JUDGE_KEYS = (
 )
 
 
+def _serialize_documents(docs: List[Document]) -> List[Dict[str, Any]]:
+    """Final retrieved chunks for clients (e.g. retrieval benchmarks)."""
+    return [
+        {"page_content": doc.page_content, "metadata": dict(doc.metadata)}
+        for doc in docs
+    ]
+
+
 def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Strip pipeline dict for export: no raw docs, optional judge fields."""
+    """Export RAG answer fields, judge trace, and final retrieved documents."""
     out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
     for key in _JUDGE_KEYS:
         if key in pipeline_result and pipeline_result[key] is not None:
             out[key] = pipeline_result[key]
+    docs = pipeline_result.get("docs")
+    if docs:
+        out["documents"] = _serialize_documents(docs)
     return out
 
 
@@ -93,6 +105,7 @@ class RAGOutput(BaseModel):
     input: Optional[str] = None
     context: Optional[str] = None
     answer: Optional[str] = None
+    documents: Optional[List[Dict[str, Any]]] = None
     judge_decision: Optional[str] = None
     judge_actions: Optional[List[str]] = None
     retrieval_metrics: Optional[Dict[str, float]] = None
