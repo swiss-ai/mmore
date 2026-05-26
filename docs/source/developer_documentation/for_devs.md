@@ -97,25 +97,25 @@ source .venv/bin/activate
 uv pip install -e ".[all,cpu,dev]"
 ```
 
-```{note}
+:::{note}
 For **GPU (CUDA 12.6)**, replace `cpu` with `cu126`, for example:
 
 `uv pip install -e ".[all,cu126,dev]"`
-```
+:::
 
-```{note}
+:::{note}
 For a **partial install**, replace `all` with only the stages you need, for example:
 
 `uv pip install -e ".[rag,cpu,dev]"`
 
 Available stages are: `process`, `index`, `rag`, and `api`.
-```
+:::
 
-```{important}
+:::{important}
 This package requires many large dependencies and a dependency override, so it should be installed with `uv` rather than plain `pip`.
 
 See the [uv guide](../advanced_usage/uv.md) for more information.
-```
+:::
 
 ### 🧹 Code quality tools
 
