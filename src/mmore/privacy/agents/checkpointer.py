@@ -6,6 +6,7 @@
 
 import sqlite3
 from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -15,6 +16,11 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from .config import AgentConfig
 
 
+class Checkpointer(Enum):
+    MEMORY = "memory"
+    SQLITE = "sqlite"
+
+
 def build_checkpointer(config: AgentConfig) -> BaseCheckpointSaver | None:
     """Build a checkpointer from an agent config.
 
@@ -22,24 +28,21 @@ def build_checkpointer(config: AgentConfig) -> BaseCheckpointSaver | None:
         config: Agent config specifying the checkpointer type and path.
 
     Returns:
-        A ``MemorySaver`` for ``"memory"``, a ``SqliteSaver`` for ``"sqlite"``,
-        or ``None`` if no checkpointer is configured.
+        A ``MemorySaver`` for ``Checkpointer.MEMORY``, a ``SqliteSaver`` for
+        ``Checkpointer.SQLITE``, or ``None`` if no checkpointer is configured.
     """
-    checkpointer = config.checkpointer
+    checkpointer = Checkpointer(config.checkpointer)
     if checkpointer is None:
         return None
-    if checkpointer == "memory":
+    if checkpointer == Checkpointer.MEMORY:
         return MemorySaver()
-    if checkpointer == "sqlite":
+    if checkpointer == Checkpointer.SQLITE:
         if not config.checkpoint_path:
             raise ValueError("'sqlite' checkpointer requires checkpoint_path to be set")
         path = Path(config.checkpoint_path)
         path.parent.mkdir(exist_ok=True, parents=True)
         cx = sqlite3.connect(path, check_same_thread=False)
         return SqliteSaver(cx)
-    raise ValueError(
-        f"Unknown checkpointer type: '{checkpointer}' (expected 'memory' or 'sqlite')"
-    )
 
 
 @contextmanager

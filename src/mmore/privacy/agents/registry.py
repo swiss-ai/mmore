@@ -26,11 +26,13 @@ def register_tool(name: str, fn: Optional[Callable] = None) -> Callable:
         tool_registry[name] = fn
         return fn
 
-    def decorator(f: Callable) -> Callable:
-        tool_registry[name] = f
-        return f
+    else:
 
-    return decorator
+        def decorator(f: Callable) -> Callable:
+            tool_registry[name] = f
+            return f
+
+        return decorator
 
 
 def resolve_tools(names: List[str]) -> List[Callable]:
