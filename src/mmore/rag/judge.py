@@ -50,6 +50,7 @@ class JudgeConfig:
     allow_add_questions: bool = True
     allow_add_context: bool = True
     allow_re_retrieve: bool = True
+    rerank_after_merge: bool = False
     max_web_results: int = 5
     max_chunk_chars: int = 400
 
@@ -280,6 +281,31 @@ def merge_documents(
     return merged
 
 
+def _repair_json_text(text: str) -> str:
+    """Fix common invalid JSON from instruct models (trailing commas, Python literals)."""
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    text = re.sub(r"\bTrue\b", "true", text)
+    text = re.sub(r"\bFalse\b", "false", text)
+    text = re.sub(r"\bNone\b", "null", text)
+    return text
+
+
+def _extract_judge_fields_loose(text: str) -> Dict[str, Any]:
+    """Best-effort field extraction when strict JSON parsing fails."""
+    obj: Dict[str, Any] = {}
+    if m := re.search(r'"decision"\s*:\s*"([A-Z_]+)"', text, re.IGNORECASE):
+        obj["decision"] = m.group(1).upper()
+    if m := re.search(r'"context_relevance_score"\s*:\s*([\d.]+)', text):
+        obj["context_relevance_score"] = float(m.group(1))
+    if m := re.search(r'"reason"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL):
+        obj["reason"] = m.group(1)
+    if m := re.search(r'"sufficient"\s*:\s*(true|false)', text, re.IGNORECASE):
+        obj["sufficient"] = m.group(1).lower() == "true"
+    if "decision" not in obj:
+        raise json.JSONDecodeError("No decision field found", text, 0)
+    return obj
+
+
 def _parse_json_response(text: str) -> Dict[str, Any]:
     text = text.strip()
     if text.startswith("```"):
@@ -293,10 +319,24 @@ def _parse_json_response(text: str) -> Dict[str, Any]:
             raise json.JSONDecodeError("No JSON object found", text, 0)
         start = match.start()
 
-    obj, _ = json.JSONDecoder().raw_decode(text, start)
-    if not isinstance(obj, dict):
-        raise TypeError(f"Expected JSON object, got {type(obj).__name__}")
-    return obj
+    snippet = text[start:]
+    last_error: Optional[Exception] = None
+    for candidate in (snippet, _repair_json_text(snippet)):
+        try:
+            obj, _ = json.JSONDecoder().raw_decode(candidate)
+            if not isinstance(obj, dict):
+                raise TypeError(f"Expected JSON object, got {type(obj).__name__}")
+            return obj
+        except (json.JSONDecodeError, TypeError) as e:
+            last_error = e
+            continue
+
+    try:
+        return _extract_judge_fields_loose(snippet)
+    except json.JSONDecodeError:
+        if last_error is not None:
+            raise last_error
+        raise json.JSONDecodeError("Could not parse judge JSON", snippet, 0)
 
 
 def _extract_llm_text(content: Any) -> str:
@@ -392,7 +432,12 @@ class LLMJudge:
         try:
             parsed = _parse_json_response(_extract_llm_text(response.content))
         except (json.JSONDecodeError, TypeError) as e:
-            logger.warning("Failed to parse judge JSON: %s", e)
+            raw = _extract_llm_text(response.content)
+            logger.warning(
+                "Failed to parse judge JSON: %s | raw=%r",
+                e,
+                raw[:500],
+            )
             return JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="parse_error_fallback",
@@ -462,6 +507,15 @@ def _apply_corrective_action(
             retrieve_kwargs["k"] = max(retriever.k * 2, retriever.k + 3)
         new_docs = retriever.invoke(new_state, **retrieve_kwargs)
         docs = merge_documents(docs, new_docs)
+
+    if config.rerank_after_merge and docs:
+        # Re-rank the final merged list with the retriever's existing reranker.
+        if getattr(retriever, "reranker_model", None):
+            docs = retriever.rerank(query, docs)
+        else:
+            logger.info(
+                "Judge rerank_after_merge requested but retriever has no reranker_model"
+            )
 
     return docs
 

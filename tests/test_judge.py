@@ -12,6 +12,7 @@ from mmore.rag.judge import (
     JudgeResult,
     LLMJudge,
     _metrics_for_output,
+    _parse_json_response,
     _record_correction_metrics,
     compute_retrieval_metrics,
     format_metrics_status,
@@ -40,6 +41,21 @@ def _doc(sim=0.5, id_="1", rerank=None):
 
 def _strong(n=3):
     return [_doc(0.9, str(i), 2.0) for i in range(1, n + 1)]
+
+
+def test_parse_json_response_repairs_common_llm_drift():
+    parsed = _parse_json_response(
+        '{"decision":"RE_RETRIEVE","reason":"weak context",'
+        '"context_relevance_score":4,}'
+    )
+    assert parsed["decision"] == "RE_RETRIEVE"
+    assert parsed["context_relevance_score"] == 4
+
+    parsed = _parse_json_response(
+        '{"decision":"PROCEED","sufficient":True,"context_relevance_score":8}'
+    )
+    assert parsed["decision"] == "PROCEED"
+    assert parsed["sufficient"] is True
 
 
 def test_config_judge_yaml():
@@ -195,7 +211,13 @@ def test_evaluate(
 
 @pytest.mark.parametrize(
     "loop",
-    ["proceed", "re_retrieve", "metrics_after_correction", "max_steps"],
+    [
+        "proceed",
+        "re_retrieve",
+        "re_retrieve_with_rerank_after_merge",
+        "metrics_after_correction",
+        "max_steps",
+    ],
 )
 def test_retrieve_with_judge(loop):
     retriever, judge = MagicMock(), MagicMock()
@@ -213,6 +235,22 @@ def test_retrieve_with_judge(loop):
     elif loop == "re_retrieve":
         retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
         judge.config = _cfg(max_corrective_steps=2)
+        judge.evaluate.side_effect = [
+            JudgeResult(
+                decision=JudgeDecision.RE_RETRIEVE,
+                retrieve_params={"k": 10},
+                context_relevance_score=4.0,
+            ),
+            JudgeResult(decision=JudgeDecision.PROCEED, context_relevance_score=8.0),
+        ]
+        want_actions, want_evals = ["RE_RETRIEVE"], 2
+    elif loop == "re_retrieve_with_rerank_after_merge":
+        retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
+        judge.config = _cfg(max_corrective_steps=2, rerank_after_merge=True)
+        retriever.reranker_model = object()
+        retriever.rerank.side_effect = lambda _query, docs: list(
+            reversed(docs)
+        )  # sentinel: prove post-merge rerank is used
         judge.evaluate.side_effect = [
             JudgeResult(
                 decision=JudgeDecision.RE_RETRIEVE,
@@ -254,3 +292,6 @@ def test_retrieve_with_judge(loop):
         corr = out["retrieval_corrections"][0]
         assert corr["action"] == "RE_RETRIEVE"
         assert corr["delta"]["delta_max_rerank_score"] > 0
+    if loop == "re_retrieve_with_rerank_after_merge":
+        retriever.rerank.assert_called_once()
+        assert out["docs"][0].metadata["id"] == "2"

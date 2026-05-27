@@ -66,12 +66,20 @@ _JUDGE_KEYS = (
 )
 
 
-def _serialize_documents(docs: List[Document]) -> List[Dict[str, Any]]:
+def _serialize_document(doc: Union[Document, Dict[str, Any]]) -> Dict[str, Any]:
+    """Normalize a LangChain Document or pipeline dict to API JSON."""
+    if isinstance(doc, dict):
+        page_content = doc.get("page_content", doc.get("content", ""))
+        metadata = doc.get("metadata", {})
+        return {"page_content": page_content, "metadata": dict(metadata)}
+    return {"page_content": doc.page_content, "metadata": dict(doc.metadata)}
+
+
+def _serialize_documents(
+    docs: List[Union[Document, Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
     """Final retrieved chunks for clients (e.g. retrieval benchmarks)."""
-    return [
-        {"page_content": doc.page_content, "metadata": dict(doc.metadata)}
-        for doc in docs
-    ]
+    return [_serialize_document(doc) for doc in docs]
 
 
 def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
