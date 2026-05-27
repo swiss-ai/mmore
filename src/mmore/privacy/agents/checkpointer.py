@@ -31,14 +31,16 @@ def build_checkpointer(config: AgentConfig) -> BaseCheckpointSaver | None:
         A ``MemorySaver`` for ``Checkpointer.MEMORY``, a ``SqliteSaver`` for
         ``Checkpointer.SQLITE``, or ``None`` if no checkpointer is configured.
     """
-    checkpointer = Checkpointer(config.checkpointer)
-    if checkpointer is None:
+    if config.checkpointer is None:
         return None
-    if checkpointer == Checkpointer.MEMORY:
+    checkptr = Checkpointer(config.checkpointer)
+    if checkptr == Checkpointer.MEMORY:
         return MemorySaver()
-    if checkpointer == Checkpointer.SQLITE:
+    if checkptr == Checkpointer.SQLITE:
         if not config.checkpoint_path:
-            raise ValueError("'sqlite' checkpointer requires checkpoint_path to be set")
+            raise ValueError(
+                "'sqlite' checkpointer requires `checkpoint_path` to be set"
+            )
         path = Path(config.checkpoint_path)
         path.parent.mkdir(exist_ok=True, parents=True)
         cx = sqlite3.connect(path, check_same_thread=False)

@@ -36,6 +36,7 @@ class _LLMCacheKey(NamedTuple):
     base_url: str | None
     provider: str | None
     max_new_tokens: int | None
+    temperature: float
 
 
 _llm_cache: Dict[_LLMCacheKey, BaseChatModel] = {}
@@ -48,6 +49,7 @@ def _llm_cache_key(cfg: LLMConfig) -> _LLMCacheKey:
         base_url=cfg.base_url,
         provider=cfg.provider,
         max_new_tokens=cfg.max_new_tokens,
+        temperature=cfg.temperature,
     )
 
 
