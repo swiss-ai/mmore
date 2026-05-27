@@ -41,6 +41,7 @@ getting_started/architecture
 getting_started/process
 getting_started/indexing
 getting_started/rag
+getting_started/windows
 ```
 
 ```{toctree}
@@ -76,6 +77,7 @@ developer_documentation/index_api
 Here is a quick overview of the main pages:
 
 - [Installation](getting_started/installation.md): set up MMORE and prepare your environment
+- [Running on Windows](getting_started/windows.md): what differs on Windows and how to fix it
 - [Quickstart](getting_started/quickstart.md): run a first minimal workflow end to end
 - [Architecture](getting_started/architecture.md): understand the main system components and how they interact
 - [Processing pipeline](getting_started/process.md): understand how documents are ingested and transformed
