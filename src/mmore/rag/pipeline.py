@@ -185,7 +185,11 @@ class RAGPipeline:
                 system_parts: List[str] = []
                 user_parts: List[str] = []
                 for message in rendered_messages:
-                    content = message.text() if hasattr(message, "text") else str(message.content)
+                    content = (
+                        message.text()
+                        if hasattr(message, "text")
+                        else str(message.content)
+                    )
                     if getattr(message, "type", None) == "system":
                         system_parts.append(content)
                     else:
