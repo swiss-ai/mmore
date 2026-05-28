@@ -252,9 +252,7 @@ def _main_menu() -> str | None:
             wizard_choice,
             chat_choice,
             questionary.Separator(),
-            questionary.Choice(
-                "🔧 Setup (install dependencies)", value="setup"
-            ),
+            questionary.Choice("🔧 Setup (install dependencies)", value="setup"),
             questionary.Choice("✕  Quit", value="quit"),
         ],
         style=QSTYLE,
