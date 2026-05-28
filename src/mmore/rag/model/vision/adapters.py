@@ -73,11 +73,44 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
             model_cls = AutoModelForImageTextToText
 
         self._processor = AutoProcessor.from_pretrained(self.model_id)
-        self._model = model_cls.from_pretrained(
-            self.model_id,
-            torch_dtype="auto",
-            device_map=self.device_map,
-        )
+        try:
+            self._model = model_cls.from_pretrained(
+                self.model_id,
+                torch_dtype="auto",
+                device_map=self.device_map,
+            )
+        except NotImplementedError as exc:
+            # Some torch/accelerate/transformers combinations can fail when
+            # dispatching from meta tensors with device_map="auto".
+            if "meta tensor" not in str(exc):
+                raise
+            self._model = model_cls.from_pretrained(
+                self.model_id,
+                torch_dtype="auto",
+                device_map=None,
+                low_cpu_mem_usage=False,
+            )
+            if torch.cuda.is_available():
+                self._model = self._model.to("cuda")
+
+    def _get_model_device(self) -> torch.device:
+        if self._model is None:
+            return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        model_device = getattr(self._model, "device", None)
+        if model_device is not None and str(model_device) != "meta":
+            return model_device
+
+        device_map = getattr(self._model, "hf_device_map", None)
+        if isinstance(device_map, dict):
+            for mapped_device in device_map.values():
+                if isinstance(mapped_device, str) and mapped_device not in {
+                    "disk",
+                    "meta",
+                }:
+                    return torch.device(mapped_device)
+
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def invoke_with_images(
         self,
@@ -119,7 +152,7 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
             padding=True,
             return_tensors="pt",
         )
-        inputs = inputs.to(self._model.device)
+        inputs = inputs.to(self._get_model_device())
         with torch.no_grad():
             generated_ids = self._model.generate(
                 **inputs,
