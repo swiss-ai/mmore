@@ -253,7 +253,7 @@ def _main_menu() -> str | None:
             chat_choice,
             questionary.Separator(),
             questionary.Choice(
-                "🔧 Setup (install deps + generate .env)", value="setup"
+                "🔧 Setup (install dependencies)", value="setup"
             ),
             questionary.Choice("✕  Quit", value="quit"),
         ],
