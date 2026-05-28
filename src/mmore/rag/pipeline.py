@@ -49,6 +49,28 @@ class RAGPipeline:
     llm: Optional[BaseChatModel]
     prompt_template: Union[str, ChatPromptTemplate]
 
+    @staticmethod
+    def _validate_generation_backend(
+        use_vision: bool,
+        llm: Optional[BaseChatModel],
+        multimodal_llm: Optional[BaseMultimodalLLM],
+    ) -> None:
+        if use_vision:
+            if multimodal_llm is None:
+                raise ValueError(
+                    "Vision mode requires a multimodal LLM. Set rag.llm.use_vision: true "
+                    "and build the pipeline with RAGPipeline.from_config(), or pass "
+                    "multimodal_llm=get_multimodal_llm(llm_config). For local models use "
+                    "provider: HF and a Qwen-VL llm_name; install transformers, torch, and "
+                    "qwen-vl-utils."
+                )
+            return
+        if llm is None:
+            raise ValueError(
+                "Text-only RAG requires an LLM. Set rag.llm.use_vision: false and provide "
+                "llm_name (or pass llm=LLM.from_config(...))."
+            )
+
     def __init__(
         self,
         retriever: Retriever,
@@ -58,6 +80,7 @@ class RAGPipeline:
         multimodal_llm: Optional[BaseMultimodalLLM] = None,
         max_images_per_request: int = 20,
     ):
+        self._validate_generation_backend(use_vision, llm, multimodal_llm)
         # Get modules
         self.retriever = retriever
         self.prompt = prompt_template
@@ -163,7 +186,6 @@ class RAGPipeline:
 
             rag_chain_from_docs: Runnable = RunnableLambda(answer_with_vision)
         else:
-            assert llm is not None
             rag_chain_from_docs = prompt | llm | StrOutputParser()
 
         core_chain = (

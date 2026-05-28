@@ -6,6 +6,7 @@ Works in conjunction with the Indexer class for document retrieval.
 import json
 import logging
 from dataclasses import dataclass, field
+from os import PathLike
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 import torch
@@ -29,11 +30,26 @@ from .model.sparse.base import SparseModel, SparseModelConfig
 logger = logging.getLogger(__name__)
 
 
+def _normalize_image_path(value: Any) -> Optional[str]:
+    """Return a non-empty path string, or None if value is not a usable path."""
+    if value is None:
+        return None
+    if not isinstance(value, (str, PathLike)):
+        return None
+    path = str(value).strip()
+    return path or None
+
+
 def _parse_image_paths(raw_image_paths: Any) -> List[str]:
     if raw_image_paths is None:
         return []
     if isinstance(raw_image_paths, list):
-        return [str(path) for path in raw_image_paths if str(path).strip()]
+        paths: List[str] = []
+        for item in raw_image_paths:
+            normalized = _normalize_image_path(item)
+            if normalized is not None:
+                paths.append(normalized)
+        return paths
     if isinstance(raw_image_paths, str):
         value = raw_image_paths.strip()
         if not value:
@@ -41,12 +57,10 @@ def _parse_image_paths(raw_image_paths: Any) -> List[str]:
         try:
             parsed = json.loads(value)
         except json.JSONDecodeError:
-            return [value]
-        if isinstance(parsed, list):
-            return [str(path) for path in parsed if str(path).strip()]
-        if isinstance(parsed, str) and parsed.strip():
-            return [parsed.strip()]
-    return []
+            return _parse_image_paths([value])
+        return _parse_image_paths(parsed)
+    normalized = _normalize_image_path(raw_image_paths)
+    return [normalized] if normalized is not None else []
 
 
 def _is_missing_image_paths_field_error(error: Exception) -> bool:

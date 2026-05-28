@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.prompts import ChatPromptTemplate
@@ -56,9 +57,10 @@ def _ret():
 
 
 def test_parse_paths_and_retriever_fallback_and_pipeline(monkeypatch, tmp_path):
-    assert _parse_image_paths(None) == [] and _parse_image_paths(["/a.png"]) == [
-        "/a.png"
-    ]
+    assert _parse_image_paths(None) == []
+    assert _parse_image_paths(["/a.png"]) == ["/a.png"]
+    assert _parse_image_paths([None, "/a.png", "", 42]) == ["/a.png"]
+    assert _parse_image_paths('["/b.png", null]') == ["/b.png"]
 
     with patch.object(Retriever, "retrieve") as mr:
         mr.side_effect = [
@@ -115,3 +117,14 @@ def test_parse_paths_and_retriever_fallback_and_pipeline(monkeypatch, tmp_path):
         isinstance(hf, HuggingFaceVisionAdapter)
         and hf.model_id == DEFAULT_HF_VISION_MODEL
     )
+
+
+def test_vision_mode_requires_multimodal_llm():
+    with pytest.raises(ValueError, match="Vision mode requires a multimodal LLM"):
+        RAGPipeline(
+            MagicMock(),
+            ChatPromptTemplate.from_messages([("human", "{input}")]),
+            None,
+            use_vision=True,
+            multimodal_llm=None,
+        )

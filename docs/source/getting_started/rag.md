@@ -130,6 +130,77 @@ messages = [
 llm.invoke(messages)
 ```
 
+## Vision-enabled RAG
+
+Standard RAG passes retrieved **text** to the LLM. Vision-enabled RAG also loads **images** linked to retrieved chunks (`image_paths` in chunk metadata) and sends text + images to a vision-capable model.
+
+Two flags are independent:
+
+| Setting | Config | Effect |
+| ------- | ------ | ------ |
+| Multimodal **retrieval** | `indexer.dense_model.is_multimodal` | Dense embeddings use image+text (re-index after changing). |
+| Vision **generation** | `rag.llm.use_vision` | Answer step receives loaded images; `false` keeps text-only generation. |
+
+### Quick setup
+
+1. Process documents with images, then **index** (set `is_multimodal: true` on the dense model only if you want multimodal dense retrieval).
+2. In the RAG config, set a vision-capable `llm_name` (for local use, e.g. `Qwen/Qwen2.5-VL-3B-Instruct`) and `use_vision: true`.
+3. Optionally set `rag.max_images_per_request` (default 20) to cap images per query.
+4. Run index, then RAG in batch or API mode as above.
+
+**Indexer** (`examples/index/config.yaml`):
+
+```yaml
+indexer:
+  dense_model:
+    model_name: Qwen/Qwen2.5-VL-3B-Instruct
+    is_multimodal: true   # optional: multimodal dense retrieval
+  sparse_model:
+    model_name: splade
+    is_multimodal: false
+  db:
+    uri: ./proc_demo.db
+    name: my_db
+```
+
+**RAG** (from [`examples/rag/config.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml)):
+
+```yaml
+rag:
+  llm:
+    llm_name: Qwen/Qwen2.5-VL-3B-Instruct
+    max_new_tokens: 1200
+    use_vision: true
+    provider: HF
+  retriever:
+    db:
+      uri: ./proc_demo.db
+      name: my_db
+    hybrid_search_weight: 0.5
+    k: 5
+  max_images_per_request: 20
+  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+```
+
+Local Qwen-VL dependencies:
+
+```bash
+python3 -m pip install "transformers>=4.45.0" accelerate qwen-vl-utils torch
+```
+
+### How it works
+
+- **Indexing** stores each chunk’s text and `image_paths` in Milvus. Dense vectors follow `indexer.dense_model`; sparse vectors are text-only. Hybrid search combines dense (optionally multimodal) with sparse; sparse-only search does not use images at retrieval time.
+- **Inference** retrieves chunks and builds the text prompt. With `use_vision: true`, MMORE loads up to `max_images_per_request` images from metadata and calls the multimodal adapter. If no images load, the model still receives text context only.
+
+Collections indexed before `image_paths` existed are supported: the retriever falls back to text-only Milvus fields automatically.
+
+### Scope and roadmap
+
+**This release (local generation):** Hugging Face **Qwen-VL** family (`Qwen2-VL`, `Qwen2.5-VL`, `Qwen3-VL`) via `HuggingFaceVisionAdapter` and [`qwen-vl-utils`](https://github.com/QwenLM/Qwen3-VL/tree/main/qwen-vl-utils) for image preprocessing. Other local VLMs (e.g. LLaVA-NeXT) use different model classes and preprocessing; supporting them means adding small per-family adapters, not a single generic loader.
+
+**Follow-up (API generation):** Retrieval and image loading are already provider-agnostic. With `use_vision: true` and a non-HF provider, the pipeline uses `OpenAIMultimodalAdapter` (LangChain chat models + multimodal messages). A later PR can document and test OpenAI/Anthropic vision APIs and align message formats per provider.
+
 ## 🔧 Customization
 
 Our RAG pipeline is built to take full advantage of [LangChain](https://python.langchain.com/docs/introduction/) abstractions, providing compatibility with all components offered.
