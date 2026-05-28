@@ -153,12 +153,28 @@ class RAGPipeline:
                 images = load_images_from_paths(
                     image_paths, max_images=max_images_per_request
                 )
-                # Keep prompt formatting identical to text-only mode.
-                prompt_text = prompt.invoke(
+                # Preserve chat roles instead of flattening the prompt into a
+                # single text blob, so vision mode stays aligned with text-only mode.
+                rendered_messages = prompt.invoke(
                     {"context": x["context"], "input": x["input"]}
-                ).to_string()
+                ).to_messages()
+
+                system_parts: List[str] = []
+                user_parts: List[str] = []
+                for message in rendered_messages:
+                    content = message.text() if hasattr(message, "text") else str(message.content)
+                    if getattr(message, "type", None) == "system":
+                        system_parts.append(content)
+                    else:
+                        user_parts.append(content)
+
+                system_prompt = "\n\n".join(part for part in system_parts if part)
+                prompt_text = "\n\n".join(part for part in user_parts if part)
+
                 return multimodal_llm.invoke_with_images(
-                    text=prompt_text, images=images
+                    text=prompt_text,
+                    images=images,
+                    system_prompt=system_prompt or None,
                 )
 
             rag_chain_from_docs: Runnable = RunnableLambda(answer_with_vision)
