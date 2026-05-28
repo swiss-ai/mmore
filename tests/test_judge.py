@@ -10,6 +10,7 @@ from mmore.rag.judge import (
     JudgeDecision,
     JudgeResult,
     LLMJudge,
+    _coerce_decision,
     _parse_json_response,
     compute_retrieval_metrics,
     merge_documents,
@@ -34,6 +35,69 @@ def _doc(sim=0.5, id_="1", rerank=None):
     return Document(page_content=id_, metadata=meta)
 
 
+@pytest.mark.parametrize(
+    "cfg_kw,raw,expected",
+    [
+        (
+            {
+                "allow_re_retrieve": True,
+                "allow_add_questions": False,
+                "allow_add_context": False,
+            },
+            "ADD_QUESTIONS",
+            JudgeDecision.RE_RETRIEVE,
+        ),
+        (
+            {
+                "allow_re_retrieve": False,
+                "allow_add_questions": True,
+                "allow_add_context": False,
+            },
+            "RE_RETRIEVE",
+            JudgeDecision.ADD_QUESTIONS,
+        ),
+        (
+            {
+                "allow_re_retrieve": True,
+                "allow_add_questions": False,
+                "allow_add_context": False,
+            },
+            "ADD_CONTEXT",
+            JudgeDecision.RE_RETRIEVE,
+        ),
+        (
+            {
+                "allow_re_retrieve": False,
+                "allow_add_questions": False,
+                "allow_add_context": True,
+            },
+            "ADD_QUESTIONS",
+            JudgeDecision.PROCEED,
+        ),
+        (
+            {
+                "allow_re_retrieve": False,
+                "allow_add_questions": False,
+                "allow_add_context": False,
+            },
+            "RE_RETRIEVE",
+            JudgeDecision.PROCEED,
+        ),
+        (
+            {
+                "allow_re_retrieve": True,
+                "allow_add_questions": True,
+                "allow_add_context": False,
+            },
+            "ADD_QUESTIONS",
+            JudgeDecision.ADD_QUESTIONS,
+        ),
+    ],
+)
+def test_coerce_decision_fallback(cfg_kw, raw, expected):
+    assert _coerce_decision(raw, _cfg(**cfg_kw)) == expected
+
+
 def test_parse_json_repairs_trailing_comma_and_python_literals():
     p = _parse_json_response('{"decision":"RE_RETRIEVE","context_relevance_score":4,}')
     assert p["decision"] == "RE_RETRIEVE" and p["context_relevance_score"] == 4
@@ -45,6 +109,8 @@ def test_metrics_merge_and_thresholds():
     m = compute_retrieval_metrics([_doc(0.9, "1"), _doc(0.5, "2")])
     assert m["mean_similarity"] == pytest.approx(0.7)
     th = {"min_mean_similarity": 0.35, "min_num_docs": 2}
+    assert metrics_meet_thresholds(m, th)
+    m["context_relevance_score"] = 3.0
     assert metrics_meet_thresholds(m, th)
     merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
     assert len(merged) == 2 and merged[1].metadata["rank"] == 2
@@ -75,8 +141,8 @@ def test_metrics_merge_and_thresholds():
             [_doc(0.2)],
             '{"decision":"PROCEED","reason":"ok","context_relevance_score":8}',
             True,
-            "RE_RETRIEVE",
-            "thresholds_not_met",
+            "PROCEED",
+            "ok",
         ),
         (
             {"metric_thresholds": {"min_num_docs": 1}},
@@ -133,16 +199,12 @@ def test_retrieve_stops_on_metrics_without_second_llm_call():
             _doc(0.88, "4", rerank=2.0),
         ],
     ]
-    judge.config = _cfg(
-        max_corrective_steps=2,
-        metric_thresholds={
-            k: v for k, v in _THRESH.items() if k != "min_context_relevance"
-        },
-    )
-    judge.evaluate.return_value = JudgeResult(
-        decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}
-    )
+    judge.config = _cfg(max_corrective_steps=2, metric_thresholds=_THRESH)
+    judge.evaluate.side_effect = [
+        JudgeResult(decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}),
+        JudgeResult(decision=JudgeDecision.PROCEED, reason="metrics_above_thresholds"),
+    ]
     out = retrieve_with_judge(retriever, judge, {"input": "q?"})
     assert out["judge_decision"] == "PROCEED"
     assert out["retrieval_metrics"]["thresholds_met"] == 1.0
-    judge.evaluate.assert_called_once()
+    assert judge.evaluate.call_count == 2

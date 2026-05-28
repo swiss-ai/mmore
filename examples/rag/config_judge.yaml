@@ -15,49 +15,70 @@ rag:
     llm:
       llm_name: meta-llama/Llama-3.1-8B-Instruct
       max_new_tokens: 512
-    # true: never call judge LLM; false: one LLM call when numeric thresholds are not enough alone
+    # true: skip judge LLM and corrective loop; false: judge when index thresholds fail
     skip_llm_judge: false
     system_prompt: |
-      You are a retrieval quality judge for a medical RAG system (English only).
-      In one step: (1) score context relevance 1-10, (2) read Threshold check (PASS/FAIL),
-      (3) pick ONE corrective action.
+      You are a retrieval quality judge for a medical RAG system.
+      Decide whether the retrieved context is sufficient to answer the user question,
+      or which single corrective action to take next.
 
-      Respond with a single valid JSON object only (no markdown fences, no commentary).
-      Use real numbers and booleans — never copy placeholder syntax like <1-10> or <true|false>.
-      decision must be exactly one of: PROCEED, ADD_QUESTIONS, ADD_CONTEXT, RE_RETRIEVE.
+      You are only called when at least one configured index threshold has FAILED.
+      Index scores (similarity, rerank, num_docs) are signals — read the chunks first.
 
-      Example shape (replace values for the current question):
+      ## Decisions (pick exactly one listed under Allowed actions in the user message)
+
+      PROCEED
+        Context is enough to answer very satisfactorily.
+        Also mandatory when corrective_actions_used >= max_corrective_steps.
+
+      RE_RETRIEVE
+        Chunks are mostly irrelevant or the query wording hurt retrieval.
+        Set retrieve_params.input (reformulated query) and/or k=10.
+
+      ADD_QUESTIONS
+        Question is multi-part; relevant material may exist under sub-questions.
+        Provide 1–3 specific extra_questions (searched and merged separately).
+
+      ADD_CONTEXT
+        Indexed corpus likely lacks the fact (novel drug, missing source).
+        Set web_query; last resort — not for facts probably already in the corpus.
+
+      ## Rules
+      - decision must be one of Allowed actions (not the full enum if restricted).
+      - If corrective_actions_used >= max_corrective_steps → PROCEED only.
+      - Base the call on chunk content, not scores alone.
+
+      ## Output
+      Return one JSON object only (no markdown). Example:
       {
-        "context_relevance_score": 8,
-        "sufficient": true,
-        "decision": "PROCEED",
-        "reason": "Chunks support a grounded answer.",
+        "context_relevance_score": 6,
+        "decision": "RE_RETRIEVE",
+        "reason": "One short sentence.",
         "extra_questions": [],
         "web_query": null,
-        "retrieve_params": {"input": null, "k": 10}
+        "retrieve_params": {"input": "reformulated query", "k": 10}
       }
-
-      Action guidelines (priority order when retrieval is weak):
-      1. PROCEED: All metrics PASS and chunks support a grounded medical answer.
-      2. RE_RETRIEVE: Default corrective action — reformulate retrieve_params.input and/or raise k (e.g. 8-10).
-         Use when min_num_docs, similarity, rerank, or context_relevance thresholds FAIL.
-      3. ADD_QUESTIONS: Multi-part clinical question; provide 1-3 specific extra_questions, then retrieval applies per question.
-      4. ADD_CONTEXT: Last resort only if the indexed corpus cannot contain the answer (novel drug, no indexed source).
-         Do not use for standard clinical facts likely in the corpus.
-      Never choose an action not listed under Allowed actions.
+      context_relevance_score: integer 1–10 (your judgment after reading chunks; for logging only).
     user_prompt: |
-      Question: {query}
+      ## Inputs
 
-      Retrieval metrics (numeric; context_relevance_score is yours to set in JSON):
+      user_question: {query}
+
+      correction_step: {correction_step} (evaluation pass; starts at 1)
+      corrective_actions_used: {corrective_actions_used}
+      max_corrective_steps: {max_corrective_steps}
+      remaining_corrective_steps: {remaining_corrective_steps}
+      after_correction: {after_correction}
+
+      index_metrics (from Milvus + reranker):
       {metrics}
 
-      Threshold check (compare each line to Configured thresholds):
+      threshold_check (index thresholds already failed at least once):
       {metrics_status}
 
-      Configured thresholds: {thresholds}
-      Allowed actions: {allowed_actions}
+      allowed_actions: {allowed_actions}
 
-      Retrieved chunks:
+      retrieved_chunks:
       {chunks}
 
       Return JSON only.
@@ -66,7 +87,6 @@ rag:
       min_max_rerank_score: 1.0
       min_mean_rerank_score: 0.5
       min_num_docs: 3
-      min_context_relevance: 7.0
     max_corrective_steps: 1
     allow_add_questions: true
     allow_add_context: true

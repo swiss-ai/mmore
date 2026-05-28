@@ -61,7 +61,6 @@ _THRESHOLD_CHECKS: Dict[str, str] = {
     "min_num_docs": "num_docs",
     "min_max_rerank_score": "max_rerank_score",
     "min_mean_rerank_score": "mean_rerank_score",
-    "min_context_relevance": "context_relevance_score",
 }
 
 
@@ -227,34 +226,6 @@ def _log_correction_metrics(query: str, record: Dict[str, Any]) -> None:
     )
 
 
-def _gate_proceed_on_thresholds(
-    decision: JudgeDecision,
-    reason: str,
-    docs: List[Document],
-    thresholds: Dict[str, float],
-    context_relevance_score: Optional[float],
-    config: JudgeConfig,
-    retrieve_params: Optional[Dict[str, Any]],
-) -> Tuple[JudgeDecision, str, Optional[Dict[str, Any]]]:
-    """If the LLM chose PROCEED but thresholds fail, enforce RE_RETRIEVE."""
-    metrics = _metrics_with_context_relevance(docs, context_relevance_score)
-    if decision != JudgeDecision.PROCEED or metrics_meet_thresholds(
-        metrics, thresholds
-    ):
-        return decision, reason, retrieve_params
-
-    if not config.allow_re_retrieve:
-        logger.warning(
-            "Judge returned PROCEED but thresholds not met; "
-            "RE_RETRIEVE disabled, keeping PROCEED"
-        )
-        return decision, reason, retrieve_params
-
-    suffix = "thresholds_not_met"
-    new_reason = f"{reason}; {suffix}" if reason else suffix
-    return JudgeDecision.RE_RETRIEVE, new_reason, retrieve_params
-
-
 def _dedupe_key(doc: Document) -> str:
     doc_id = doc.metadata.get("id")
     if doc_id is not None:
@@ -381,12 +352,27 @@ def _coerce_decision(raw: str, config: JudgeConfig) -> JudgeDecision:
         return JudgeDecision.PROCEED
 
     allowed = _allowed_actions(config)
-    if decision.value not in allowed:
-        logger.warning(
-            "Judge chose disallowed action %s, defaulting to PROCEED", decision.value
-        )
-        return JudgeDecision.PROCEED
-    return decision
+    if decision.value in allowed:
+        return decision
+
+    if decision != JudgeDecision.PROCEED:
+        if decision == JudgeDecision.RE_RETRIEVE and config.allow_add_questions:
+            logger.warning(
+                "Judge chose disallowed action %s, falling back to ADD_QUESTIONS",
+                decision.value,
+            )
+            return JudgeDecision.ADD_QUESTIONS
+        if decision != JudgeDecision.RE_RETRIEVE and config.allow_re_retrieve:
+            logger.warning(
+                "Judge chose disallowed action %s, falling back to RE_RETRIEVE",
+                decision.value,
+            )
+            return JudgeDecision.RE_RETRIEVE
+
+    logger.warning(
+        "Judge chose disallowed action %s, defaulting to PROCEED", decision.value
+    )
+    return JudgeDecision.PROCEED
 
 
 class LLMJudge:
@@ -396,7 +382,14 @@ class LLMJudge:
         self.llm = llm
         self.config = config
 
-    def evaluate(self, query: str, docs: List[Document]) -> JudgeResult:
+    def evaluate(
+        self,
+        query: str,
+        docs: List[Document],
+        *,
+        after_correction: bool = False,
+        corrective_actions_used: int = 0,
+    ) -> JudgeResult:
         thresholds = self.config.metric_thresholds
         metrics = compute_retrieval_metrics(docs)
 
@@ -406,14 +399,18 @@ class LLMJudge:
                 reason="skip_llm_judge",
             )
 
-        if "min_context_relevance" not in thresholds and metrics_meet_thresholds(
-            metrics, thresholds
-        ):
+        if metrics_meet_thresholds(metrics, thresholds):
+            reason = (
+                "metrics_after_correction"
+                if after_correction
+                else "metrics_above_thresholds"
+            )
             return JudgeResult(
                 decision=JudgeDecision.PROCEED,
-                reason="metrics_above_thresholds",
+                reason=reason,
             )
 
+        max_steps = self.config.max_corrective_steps
         user_prompt = self.config.user_prompt.format(
             query=query,
             metrics=metrics,
@@ -421,6 +418,11 @@ class LLMJudge:
             thresholds=thresholds,
             allowed_actions=_allowed_actions(self.config),
             chunks=_format_chunks_for_prompt(docs, self.config.max_chunk_chars),
+            correction_step=corrective_actions_used + 1,
+            corrective_actions_used=corrective_actions_used,
+            max_corrective_steps=max_steps,
+            remaining_corrective_steps=max(0, max_steps - corrective_actions_used),
+            after_correction=after_correction,
         )
         response = self.llm.invoke(
             [
@@ -453,15 +455,6 @@ class LLMJudge:
         context_relevance_score = _parse_context_relevance_score(parsed)
         reason = str(parsed.get("reason", ""))
         retrieve_params = parsed.get("retrieve_params")
-        decision, reason, retrieve_params = _gate_proceed_on_thresholds(
-            decision,
-            reason,
-            docs,
-            thresholds,
-            context_relevance_score,
-            self.config,
-            retrieve_params,
-        )
 
         return JudgeResult(
             decision=decision,
@@ -539,7 +532,12 @@ def retrieve_with_judge(
     final_result = JudgeResult(decision=JudgeDecision.PROCEED, reason="")
 
     for step in range(config.max_corrective_steps + 1):
-        final_result = judge.evaluate(query, docs)
+        final_result = judge.evaluate(
+            query,
+            docs,
+            after_correction=bool(judge_actions),
+            corrective_actions_used=len(judge_actions),
+        )
         logger.info(
             "Judge step %s | query=%r | decision=%s | context_relevance_score=%s | reason=%s",
             step,
@@ -579,19 +577,6 @@ def retrieve_with_judge(
         )
         retrieval_corrections.append(correction)
         _log_correction_metrics(query, correction)
-
-        post_metrics = _metrics_with_context_relevance(
-            docs, final_result.context_relevance_score
-        )
-        if "min_context_relevance" not in thresholds and metrics_meet_thresholds(
-            post_metrics, thresholds
-        ):
-            final_result = JudgeResult(
-                decision=JudgeDecision.PROCEED,
-                reason="metrics_after_correction",
-                context_relevance_score=final_result.context_relevance_score,
-            )
-            break
 
     retrieval_metrics = _metrics_for_output(
         docs, thresholds, final_result.context_relevance_score
