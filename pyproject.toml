@@ -132,6 +132,7 @@ tui = [
     # Interactive terminal launcher (`mmore tui`)
     "questionary>=2.0",
     "rich>=13",
+    "uv",
 ]
 
 all = [

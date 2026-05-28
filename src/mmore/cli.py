@@ -272,9 +272,7 @@ def tui():
         from .tui import run
     except ModuleNotFoundError as e:
         if e.name in ("questionary", "rich", "prompt_toolkit"):
-            click.echo(
-                f"TUI dependency missing ({e.name}). Install with: uv sync --extra tui"
-            )
+            click.echo("TUI dependency missing. Install with: uv sync --extra tui")
             raise SystemExit(1)
         raise
     run()

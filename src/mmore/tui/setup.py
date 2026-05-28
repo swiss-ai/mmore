@@ -1,11 +1,10 @@
-"""Setup wizard: install extras + generate .env in one guided flow."""
+"""Setup wizard: install extras + print export commands in one guided flow."""
 
 from __future__ import annotations
 
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 import questionary
 from rich.panel import Panel
@@ -185,54 +184,18 @@ def _collect_env_vars(stages: list[str]) -> dict[str, str]:
     return env_vars
 
 
-def _write_dotenv(env_vars: dict[str, str], path: str = ".env") -> str:
-    """Write or merge env vars into a .env file.
+def _print_export_commands(env_vars: dict[str, str]) -> None:
+    """Print export commands for the collected env vars.
 
-    Existing variables in the file are preserved; new ones are appended.
+    Displays a table with masked values, then prints the shell commands
+    the user can copy-paste into their shell or profile file.
     """
-    existing: dict[str, str] = {}
-    lines: list[str] = []
-    env_path = Path(path)
-
-    if env_path.exists():
-        raw = env_path.read_text()
-        for line in raw.splitlines():
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#") and "=" in stripped:
-                key = stripped.split("=", 1)[0].strip()
-                existing[key] = line
-            lines.append(line)
-
-    # Append new vars
-    added = []
-    for key, value in env_vars.items():
-        if key in existing:
-            continue  # don't overwrite existing
-        # Quote values that contain spaces
-        if " " in value:
-            entry = f'{key}="{value}"'
-        else:
-            entry = f"{key}={value}"
-        lines.append(entry)
-        added.append(key)
-
-    if lines and not lines[-1].endswith("\n"):
-        content = "\n".join(lines) + "\n"
-    else:
-        content = "\n".join(lines)
-
-    env_path.write_text(content)
-    return str(env_path)
-
-
-def _preview_dotenv(env_vars: dict[str, str]) -> None:
-    """Show what will be written to .env."""
     if not env_vars:
-        console.print("  [dim]No environment variables to write.[/dim]")
+        console.print("  [dim]No environment variables needed.[/dim]")
         return
 
     table = Table(
-        title="[bold].env preview[/bold]",
+        title="[bold]Environment variables[/bold]",
         title_style=ACCENT2,
         border_style=ACCENT,
         show_lines=False,
@@ -241,7 +204,7 @@ def _preview_dotenv(env_vars: dict[str, str]) -> None:
     table.add_column("Value", style=MUTED)
 
     for key, value in env_vars.items():
-        # Mask API keys
+        # Mask API keys and tokens
         if "KEY" in key or "TOKEN" in key:
             display = value[:4] + "…" + value[-4:] if len(value) > 8 else "****"
         else:
@@ -249,16 +212,28 @@ def _preview_dotenv(env_vars: dict[str, str]) -> None:
         table.add_row(key, display)
 
     console.print(table)
+    console.print()
+    console.print(
+        Panel(
+            "\n".join(
+                f'export {k}="{v}"' if " " in v else f"export {k}={v}"
+                for k, v in env_vars.items()
+            ),
+            title="[bold]Add to your shell profile (e.g. ~/.bashrc or ~/.zshrc)[/bold]",
+            border_style=ACCENT,
+            padding=(1, 2),
+        )
+    )
 
 
 def run_setup_wizard() -> None:
-    """Full setup wizard: pick stages → install deps → generate .env."""
+    """Full setup wizard: pick stages → install deps → print export commands."""
     console.print(
         Panel(
             Text(
                 "This wizard will:\n"
                 "  1. Install the right Python dependencies for your pipeline\n"
-                "  2. Generate a .env file with the required environment variables",
+                "  2. Show the environment variables you need to export",
             ),
             title="[bold]Setup wizard[/bold]",
             border_style=ACCENT2,
@@ -289,26 +264,15 @@ def run_setup_wizard() -> None:
     if _confirm("Install dependencies now?", default=True):
         if not _install_deps(stages, compute):
             if not _confirm(
-                "Continue to .env setup despite install failure?", default=False
+                "Continue to env var setup despite install failure?", default=False
             ):
                 return
 
     # Step 4: collect env vars
     env_vars = _collect_env_vars(stages)
 
-    # Step 5: preview and write .env
-    if env_vars:
-        _preview_dotenv(env_vars)
-        env_path = _prompt(".env file path", default=".env")
-        if _confirm(f"Write {len(env_vars)} variable(s) to {env_path}?", default=True):
-            written = _write_dotenv(env_vars, env_path)
-            console.print(f"  [{OK}]✓[/] Saved to {written}")
-        else:
-            console.print("  [dim]Skipped .env generation.[/dim]")
-    else:
-        console.print(
-            "  [dim]No environment variables needed for selected stages.[/dim]"
-        )
+    # Step 5: print export commands
+    _print_export_commands(env_vars)
 
     console.print(
         f"\n  [{OK}]✓ Setup complete![/] Run [bold]mmore tui[/bold] to start.\n"

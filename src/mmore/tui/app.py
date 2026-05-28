@@ -287,6 +287,10 @@ def run() -> None:
                 _run_full_wizard()
             elif mode == "chat":
                 _chat_only()
+            elif mode == "setup":
+                from mmore.tui.setup import run_setup_wizard
+
+                run_setup_wizard()
         except (UserCancelledError, KeyboardInterrupt):
             console.print(f"[{ACCENT2}]cancelled — back to menu.[/]")
             continue
