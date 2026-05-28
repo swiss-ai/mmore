@@ -62,11 +62,10 @@ def test_resolve_model_classes_colgemma():
     assert proc_cls.__name__ == "ColGemmaProcessor3"
 
 
-def test_resolve_model_classes_unknown_falls_back():
-    """Test that unknown model names fall back to ColPali."""
-    model_cls, proc_cls = resolve_model_classes("some/unknown-model")
-    assert model_cls.__name__ == "ColPali"
-    assert proc_cls.__name__ == "ColPaliProcessor"
+def test_resolve_model_classes_unknown_raises():
+    """Test that unknown model names raise ValueError."""
+    with pytest.raises(ValueError, match="Unknown model"):
+        resolve_model_classes("some/unknown-model")
 
 
 # ------------------ PDFConverter Tests ------------------

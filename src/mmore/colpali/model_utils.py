@@ -18,10 +18,8 @@ _MODEL_REGISTRY = [
     (r"colqwen2\.5|colqwen2_5", "ColQwen2_5", "ColQwen2_5_Processor"),
     (r"colqwen2", "ColQwen2", "ColQwen2Processor"),
     (r"colgemma|colnetra", "ColGemma3", "ColGemmaProcessor3"),
+    (r"colpali", "ColPali", "ColPaliProcessor"),
 ]
-
-_DEFAULT_MODEL_CLASS = "ColPali"
-_DEFAULT_PROCESSOR_CLASS = "ColPaliProcessor"
 
 SUPPORTED_MODELS = {
     "ColPali": ["vidore/colpali-v1.2", "vidore/colpali-v1.3"],
@@ -36,10 +34,11 @@ def resolve_model_classes(model_name: str) -> Tuple[Type, Type]:
     """
     Resolve the model and processor classes from the HuggingFace model name.
 
-    Falls back to ColPali if the model name does not match any known pattern.
-
     Returns:
         Tuple of (ModelClass, ProcessorClass)
+
+    Raises:
+        ValueError: if the model name does not match any known pattern.
     """
     import colpali_engine.models as models_module
 
@@ -54,14 +53,13 @@ def resolve_model_classes(model_name: str) -> Tuple[Type, Type]:
             )
             return model_cls, proc_cls
 
-    # Default to ColPali
-    model_cls = getattr(models_module, _DEFAULT_MODEL_CLASS)
-    proc_cls = getattr(models_module, _DEFAULT_PROCESSOR_CLASS)
-    logger.warning(
-        f"Unknown model '{model_name}', falling back to ColPali. "
-        f"Supported: {list(SUPPORTED_MODELS.keys())}"
+    supported_examples = {
+        fam: examples[0] for fam, examples in SUPPORTED_MODELS.items()
+    }
+    raise ValueError(
+        f"Unknown model '{model_name}'. Supported families: "
+        f"{list(SUPPORTED_MODELS.keys())}. Examples: {supported_examples}"
     )
-    return model_cls, proc_cls
 
 
 def load_model_and_processor(
