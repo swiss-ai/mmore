@@ -95,7 +95,9 @@ def _doc(sim=0.5, id_="1", rerank=None):
     ],
 )
 def test_coerce_decision_fallback(cfg_kw, raw, expected):
-    assert _coerce_decision(raw, _cfg(**cfg_kw)) == expected
+    decision, coerced, raw_decision = _coerce_decision(raw, _cfg(**cfg_kw))
+    assert decision == expected
+    assert raw_decision == raw
 
 
 def test_parse_json_repairs_trailing_comma_and_python_literals():
@@ -180,13 +182,47 @@ def test_retrieve_with_judge_re_retrieve_and_correction_log():
     retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
     judge.config = _cfg(max_corrective_steps=2)
     judge.evaluate.side_effect = [
-        JudgeResult(decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}),
-        JudgeResult(decision=JudgeDecision.PROCEED),
+        JudgeResult(
+            decision=JudgeDecision.RE_RETRIEVE,
+            exit_reason="llm_corrective",
+            llm_invoked=True,
+            retrieve_params={"k": 10},
+        ),
+        JudgeResult(
+            decision=JudgeDecision.PROCEED,
+            exit_reason="metrics_above_thresholds",
+        ),
     ]
     out = retrieve_with_judge(retriever, judge, {"input": "q?"})
     assert out["judge_actions"] == ["RE_RETRIEVE"]
     assert out["retrieval_corrections"][0]["action"] == "RE_RETRIEVE"
+    assert out["judge_llm_calls"] == 1
     assert judge.evaluate.call_count == 2
+
+
+def test_retrieve_with_judge_exports_trace_and_max_steps():
+    retriever, judge = MagicMock(), MagicMock()
+    retriever.k = 5
+    retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
+    judge.config = _cfg(max_corrective_steps=1)
+    judge.evaluate.side_effect = [
+        JudgeResult(
+            decision=JudgeDecision.RE_RETRIEVE,
+            exit_reason="llm_corrective",
+            llm_invoked=True,
+            retrieve_params={"k": 10},
+        ),
+        JudgeResult(
+            decision=JudgeDecision.RE_RETRIEVE,
+            exit_reason="llm_corrective",
+            llm_invoked=True,
+        ),
+    ]
+    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
+    assert out["judge_reason"] == "max_corrective_steps"
+    assert out["hit_max_corrective_steps"] == 1.0
+    assert out["judge_llm_calls"] == 2
+    assert out["judge_actions"] == ["RE_RETRIEVE"]
 
 
 def test_retrieve_stops_on_metrics_without_second_llm_call():

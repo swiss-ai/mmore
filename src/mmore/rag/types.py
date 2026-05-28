@@ -33,7 +33,11 @@ class MMOREOutput(BaseModel):
     docs: List[Document]
     answer: str
     judge_decision: Optional[str] = None
+    judge_reason: Optional[str] = None
     judge_actions: Optional[List[str]] = None
+    judge_llm_calls: Optional[int] = None
+    judge_steps: Optional[List[Dict[str, Any]]] = None
+    hit_max_corrective_steps: Optional[float] = None
     retrieval_metrics: Optional[Dict[str, float]] = None
     retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 

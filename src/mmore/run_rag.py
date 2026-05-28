@@ -60,7 +60,11 @@ _RAG_KEYS = ("input", "context", "answer")
 # Judge trace fields (only when rag.judge ran and set a value)
 _JUDGE_KEYS = (
     "judge_decision",
+    "judge_reason",
     "judge_actions",
+    "judge_llm_calls",
+    "judge_steps",
+    "hit_max_corrective_steps",
     "retrieval_metrics",
     "retrieval_corrections",
 )
@@ -116,7 +120,11 @@ class RAGOutput(BaseModel):
     answer: Optional[str] = None
     documents: Optional[List[Dict[str, Any]]] = None
     judge_decision: Optional[str] = None
+    judge_reason: Optional[str] = None
     judge_actions: Optional[List[str]] = None
+    judge_llm_calls: Optional[int] = None
+    judge_steps: Optional[List[Dict[str, Any]]] = None
+    hit_max_corrective_steps: Optional[float] = None
     retrieval_metrics: Optional[Dict[str, float]] = None
     retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 

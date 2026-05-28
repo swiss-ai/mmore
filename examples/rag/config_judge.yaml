@@ -92,6 +92,7 @@ rag:
     allow_add_context: true
     allow_re_retrieve: true
     max_web_results: 5
+    # force_corrective_action: RE_RETRIEVE  # skip judge LLM; force action when thresholds fail
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
 mode: local
 mode_args:

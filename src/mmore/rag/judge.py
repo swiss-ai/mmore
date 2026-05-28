@@ -31,10 +31,14 @@ class JudgeDecision(str, Enum):
 class JudgeResult:
     decision: JudgeDecision
     reason: str = ""
+    exit_reason: str = ""
     context_relevance_score: Optional[float] = None
     extra_questions: List[str] = field(default_factory=list)
     web_query: Optional[str] = None
     retrieve_params: Optional[Dict[str, Any]] = None
+    llm_invoked: bool = False
+    raw_decision: Optional[str] = None
+    coerced_decision: bool = False
 
 
 @dataclass
@@ -53,6 +57,7 @@ class JudgeConfig:
     rerank_after_merge: bool = False
     max_web_results: int = 5
     max_chunk_chars: int = 400
+    force_corrective_action: Optional[str] = None
 
 
 _THRESHOLD_CHECKS: Dict[str, str] = {
@@ -344,16 +349,18 @@ def _allowed_actions(config: JudgeConfig) -> List[str]:
     return allowed
 
 
-def _coerce_decision(raw: str, config: JudgeConfig) -> JudgeDecision:
+def _coerce_decision(raw: str, config: JudgeConfig) -> Tuple[JudgeDecision, bool, str]:
+    """Returns (final_decision, coerced, raw_decision)."""
+    raw_decision = raw
     try:
         decision = JudgeDecision(raw)
     except ValueError:
         logger.warning("Unknown judge decision '%s', defaulting to PROCEED", raw)
-        return JudgeDecision.PROCEED
+        return JudgeDecision.PROCEED, True, raw_decision
 
     allowed = _allowed_actions(config)
     if decision.value in allowed:
-        return decision
+        return decision, False, raw_decision
 
     if decision != JudgeDecision.PROCEED:
         if decision == JudgeDecision.RE_RETRIEVE and config.allow_add_questions:
@@ -361,18 +368,18 @@ def _coerce_decision(raw: str, config: JudgeConfig) -> JudgeDecision:
                 "Judge chose disallowed action %s, falling back to ADD_QUESTIONS",
                 decision.value,
             )
-            return JudgeDecision.ADD_QUESTIONS
+            return JudgeDecision.ADD_QUESTIONS, True, raw_decision
         if decision != JudgeDecision.RE_RETRIEVE and config.allow_re_retrieve:
             logger.warning(
                 "Judge chose disallowed action %s, falling back to RE_RETRIEVE",
                 decision.value,
             )
-            return JudgeDecision.RE_RETRIEVE
+            return JudgeDecision.RE_RETRIEVE, True, raw_decision
 
     logger.warning(
         "Judge chose disallowed action %s, defaulting to PROCEED", decision.value
     )
-    return JudgeDecision.PROCEED
+    return JudgeDecision.PROCEED, True, raw_decision
 
 
 class LLMJudge:
@@ -397,17 +404,39 @@ class LLMJudge:
             return JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="skip_llm_judge",
+                exit_reason="skip_llm_judge",
+                llm_invoked=False,
             )
 
         if metrics_meet_thresholds(metrics, thresholds):
-            reason = (
+            exit_reason = (
                 "metrics_after_correction"
                 if after_correction
                 else "metrics_above_thresholds"
             )
             return JudgeResult(
                 decision=JudgeDecision.PROCEED,
-                reason=reason,
+                reason=exit_reason,
+                exit_reason=exit_reason,
+                llm_invoked=False,
+            )
+
+        if self.config.force_corrective_action:
+            forced = JudgeDecision(self.config.force_corrective_action)
+            allowed = _allowed_actions(self.config)
+            if forced.value not in allowed:
+                raise ValueError(
+                    f"force_corrective_action {forced.value!r} not in allowed {allowed}"
+                )
+            retrieve_params = {"k": 10} if forced == JudgeDecision.RE_RETRIEVE else None
+            return JudgeResult(
+                decision=forced,
+                reason="force_corrective_action",
+                exit_reason="force_corrective_action",
+                llm_invoked=False,
+                raw_decision=forced.value,
+                coerced_decision=False,
+                retrieve_params=retrieve_params,
             )
 
         max_steps = self.config.max_corrective_steps
@@ -443,9 +472,11 @@ class LLMJudge:
             return JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="parse_error_fallback",
+                exit_reason="parse_error_fallback",
+                llm_invoked=True,
             )
 
-        decision = _coerce_decision(
+        decision, coerced, raw = _coerce_decision(
             str(parsed.get("decision", JudgeDecision.PROCEED.value)), self.config
         )
         extra_questions = parsed.get("extra_questions") or []
@@ -453,16 +484,21 @@ class LLMJudge:
             extra_questions = []
 
         context_relevance_score = _parse_context_relevance_score(parsed)
-        reason = str(parsed.get("reason", ""))
-        retrieve_params = parsed.get("retrieve_params")
+        exit_reason = (
+            "llm_proceed" if decision == JudgeDecision.PROCEED else "llm_corrective"
+        )
 
         return JudgeResult(
             decision=decision,
-            reason=reason,
+            reason=str(parsed.get("reason", "")),
+            exit_reason=exit_reason,
+            llm_invoked=True,
+            raw_decision=raw,
+            coerced_decision=coerced,
             context_relevance_score=context_relevance_score,
             extra_questions=[str(q) for q in extra_questions],
             web_query=parsed.get("web_query"),
-            retrieve_params=retrieve_params,
+            retrieve_params=parsed.get("retrieve_params"),
         )
 
 
@@ -526,6 +562,9 @@ def retrieve_with_judge(
     docs = retriever.invoke(state)
     judge_actions: List[str] = []
     retrieval_corrections: List[Dict[str, Any]] = []
+    judge_llm_calls = 0
+    judge_steps: List[Dict[str, Any]] = []
+    hit_max_steps = False
     config = judge.config
     query = state["input"]
     thresholds = config.metric_thresholds
@@ -537,6 +576,20 @@ def retrieve_with_judge(
             docs,
             after_correction=bool(judge_actions),
             corrective_actions_used=len(judge_actions),
+        )
+        if final_result.llm_invoked:
+            judge_llm_calls += 1
+
+        judge_steps.append(
+            {
+                "step": step,
+                "decision": final_result.decision.value,
+                "raw_decision": final_result.raw_decision,
+                "coerced_decision": final_result.coerced_decision,
+                "exit_reason": final_result.exit_reason,
+                "llm_invoked": final_result.llm_invoked,
+                "context_relevance_score": final_result.context_relevance_score,
+            }
         )
         logger.info(
             "Judge step %s | query=%r | decision=%s | context_relevance_score=%s | reason=%s",
@@ -551,6 +604,7 @@ def retrieve_with_judge(
             break
 
         if step >= config.max_corrective_steps:
+            hit_max_steps = True
             logger.info(
                 "Max corrective steps (%s) reached; proceeding with current docs",
                 config.max_corrective_steps,
@@ -558,6 +612,7 @@ def retrieve_with_judge(
             final_result = JudgeResult(
                 decision=JudgeDecision.PROCEED,
                 reason="max_corrective_steps",
+                exit_reason="max_corrective_steps",
                 context_relevance_score=final_result.context_relevance_score,
             )
             break
@@ -575,6 +630,8 @@ def retrieve_with_judge(
             thresholds,
             final_result.context_relevance_score,
         )
+        correction["raw_decision"] = final_result.raw_decision
+        correction["coerced_decision"] = final_result.coerced_decision
         retrieval_corrections.append(correction)
         _log_correction_metrics(query, correction)
 
@@ -597,7 +654,11 @@ def retrieve_with_judge(
         "docs": docs,
         "retrieval_metrics": retrieval_metrics,
         "judge_decision": final_result.decision.value,
+        "judge_reason": final_result.exit_reason,
         "judge_actions": judge_actions,
+        "judge_llm_calls": judge_llm_calls,
+        "judge_steps": judge_steps,
+        "hit_max_corrective_steps": float(hit_max_steps),
     }
     if retrieval_corrections:
         out["retrieval_corrections"] = retrieval_corrections

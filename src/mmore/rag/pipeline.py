@@ -101,7 +101,14 @@ class RAGPipeline:
             res_dict = MMOREOutput.model_validate(x).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
             # Expose formatted context and judge correction logs in the API response (context is not on MMOREOutput).
-            for key in ("context", "retrieval_corrections"):
+            for key in (
+                "context",
+                "retrieval_corrections",
+                "judge_reason",
+                "judge_llm_calls",
+                "judge_steps",
+                "hit_max_corrective_steps",
+            ):
                 if key in x:
                     res_dict[key] = x[key]
 
