@@ -35,9 +35,7 @@ def _doc(sim=0.5, id_="1", rerank=None):
 
 
 def test_parse_json_repairs_trailing_comma_and_python_literals():
-    p = _parse_json_response(
-        '{"decision":"RE_RETRIEVE","context_relevance_score":4,}'
-    )
+    p = _parse_json_response('{"decision":"RE_RETRIEVE","context_relevance_score":4,}')
     assert p["decision"] == "RE_RETRIEVE" and p["context_relevance_score"] == 4
     p = _parse_json_response('{"decision":"PROCEED","sufficient":True}')
     assert p["sufficient"] is True
@@ -64,7 +62,14 @@ def test_metrics_merge_and_thresholds():
             "PROCEED",
             "metrics_above",
         ),
-        ({}, [_doc(0.2)], '{"decision":"RE_RETRIEVE","reason":"weak"}', True, "RE_RETRIEVE", "weak"),
+        (
+            {},
+            [_doc(0.2)],
+            '{"decision":"RE_RETRIEVE","reason":"weak"}',
+            True,
+            "RE_RETRIEVE",
+            "weak",
+        ),
         (
             {"metric_thresholds": _THRESH},
             [_doc(0.2)],
@@ -122,11 +127,17 @@ def test_retrieve_stops_on_metrics_without_second_llm_call():
     retriever, judge = MagicMock(), MagicMock()
     retriever.invoke.side_effect = [
         [_doc(0.2)],
-        [_doc(0.9, "2", rerank=2.0), _doc(0.85, "3", rerank=2.0), _doc(0.88, "4", rerank=2.0)],
+        [
+            _doc(0.9, "2", rerank=2.0),
+            _doc(0.85, "3", rerank=2.0),
+            _doc(0.88, "4", rerank=2.0),
+        ],
     ]
     judge.config = _cfg(
         max_corrective_steps=2,
-        metric_thresholds={k: v for k, v in _THRESH.items() if k != "min_context_relevance"},
+        metric_thresholds={
+            k: v for k, v in _THRESH.items() if k != "min_context_relevance"
+        },
     )
     judge.evaluate.return_value = JudgeResult(
         decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}
