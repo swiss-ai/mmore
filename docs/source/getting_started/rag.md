@@ -182,11 +182,16 @@ rag:
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
 ```
 
-Local Qwen-VL dependencies:
+Local Qwen-VL dependencies (install after indexing / after creating the DB):
 
 ```bash
-python3 -m pip install "transformers>=4.45.0" accelerate qwen-vl-utils torch
+python3 -m pip install -e ".[qwen,cpu]"
 ```
+
+Recommended order:
+
+1. Build the processed corpus and run indexing to create/populate the Milvus DB.
+2. Only then install the Qwen extra and run vision-enabled RAG inference.
 
 ### How it works
 
