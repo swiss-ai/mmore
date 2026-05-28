@@ -2,7 +2,7 @@
 
 ## Overview
 
-With a `judge:` block in your RAG config, MMORE checks whether retrieved chunks are good enough before generation. If not, it can search again, ask follow-up questions, or pull web context—then merge everything into one deduplicated list.
+With a `judge:` block in your RAG config, MMORE checks whether retrieved chunks are good enough before generation. If not, it can search again, ask follow-up questions, or pull web context and then merge everything into one deduplicated list.
 
 ## TL;DR
 
@@ -11,7 +11,7 @@ With a `judge:` block in your RAG config, MMORE checks whether retrieved chunks 
 **Then a loop** (at most `max_corrective_steps` corrective actions, default `1`):
 
 1. Compute metrics on the current chunks.
-2. Judge → `PROCEED` or a corrective action (how this is chosen is explained in Config file paragraph).
+2. Judge chooses to `PROCEED` or a corrective action
 3. If `PROCEED` → leave the loop and generate the final answer.
 4. Otherwise run one corrective action (`RE_RETRIEVE`, `ADD_QUESTIONS`, or `ADD_CONTEXT`), merge new chunks with the old ones (dedupe + re-rank).
 5. If metrics pass after that merge → stop as `PROCEED` without calling the judge LLM again.
@@ -41,8 +41,6 @@ python3 -m mmore rag --config-file examples/rag/config_judge.yaml
 
 or copy the `judge:` block into your config and pass your file path.
 
-Keep your usual `retriever`, `llm`, `mode`, and `mode_args` sections. Add `judge` for this feature.
-
 ### How step 2 decides between `PROCEED` and Use the Judge
 
 This is driven by the `rag.judge` settings you configure:
@@ -51,7 +49,7 @@ This is driven by the `rag.judge` settings you configure:
 - `metric_thresholds` — compare computed metrics to your mins (`min_mean_similarity`, `min_max_rerank_score`, `min_num_docs`, …). If every **numeric** min is met and you did **not** set `min_context_relevance` → `PROCEED` without calling the judge LLM.
 - **Otherwise** → one call to `judge.llm` using your `system_prompt` / `user_prompt` (question, metrics, PASS/FAIL per threshold, chunk excerpts). The model must return JSON with a relevance score (1–10) and a `decision`:
   - `PROCEED` if it judges the context sufficient.
-  - `RE_RETRIEVE`, `ADD_QUESTIONS`, or `ADD_CONTEXT` if not (only if the matching `allow_*` flag is `true`).
+  - `RE_RETRIEVE`, `ADD_QUESTIONS`, or `ADD_CONTEXT` if not (only if the matching `allow_`* flag is `true`).
 
 `min_context_relevance` needs the judge LLM (it sets `context_relevance_score` in the JSON). Omit it if you want step 2 to skip the LLM when numeric metrics alone are enough.
 

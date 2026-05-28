@@ -67,7 +67,7 @@ _JUDGE_KEYS = (
 
 
 def _serialize_document(doc: Union[Document, Dict[str, Any]]) -> Dict[str, Any]:
-    """Normalize a LangChain Document or pipeline dict to API JSON."""
+    """LangChain Documents are not JSON-serializable; clients need plain dicts."""
     if isinstance(doc, dict):
         page_content = doc.get("page_content", doc.get("content", ""))
         metadata = doc.get("metadata", {})
@@ -78,12 +78,12 @@ def _serialize_document(doc: Union[Document, Dict[str, Any]]) -> Dict[str, Any]:
 def _serialize_documents(
     docs: List[Union[Document, Dict[str, Any]]],
 ) -> List[Dict[str, Any]]:
-    """Final retrieved chunks for clients (e.g. retrieval benchmarks)."""
+    """Same as _serialize_document, for the full list written to results.json / API."""
     return [_serialize_document(doc) for doc in docs]
 
 
 def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Export RAG answer fields, judge trace, and final retrieved documents."""
+    """Bridge pipeline dict (internal keys like docs) to the public RAGOutput / JSON schema."""
     out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
     for key in _JUDGE_KEYS:
         if key in pipeline_result and pipeline_result[key] is not None:
@@ -95,6 +95,7 @@ def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def save_results(results: List[Dict], output_file: Union[Path, str]):
+    # JSON-safe dicts (answer, context, judge fields, documents) for JSON export.
     serialized = [_to_public_output(d) for d in results]
     with open(output_file, "w") as f:
         json.dump(serialized, f, indent=2)

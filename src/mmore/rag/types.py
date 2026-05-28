@@ -27,7 +27,7 @@ class MMOREInput(BaseModel):
 
 
 class MMOREOutput(BaseModel):
-    """Base Answer, outputs the query, documents and answer"""
+    """Base Answer, outputs the query, documents, answer, and optional judge retrieval metadata."""
 
     input: str
     docs: List[Document]

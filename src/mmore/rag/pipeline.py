@@ -100,6 +100,7 @@ class RAGPipeline:
             """Validate the output of the LLM and keep only the actual answer of the assistant"""
             res_dict = MMOREOutput.model_validate(x).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
+            # Expose formatted context and judge correction logs in the API response (context is not on MMOREOutput).
             for key in ("context", "retrieval_corrections"):
                 if key in x:
                     res_dict[key] = x[key]
@@ -110,6 +111,7 @@ class RAGPipeline:
 
         rag_chain_from_docs = prompt | llm | StrOutputParser()
 
+        # Only retrieval differs (retriever vs judge); format context and generate answer unchanged.
         if judge is not None:
             # retrieve with judge
             def retrieval_with_judge(state: Dict[str, Any]) -> Dict[str, Any]:
