@@ -1,5 +1,7 @@
+import logging
+import threading
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -10,6 +12,7 @@ from ...llm import LLM, LLMConfig
 from .image_utils import build_vision_content, images_to_base64_data_urls
 
 DEFAULT_HF_VISION_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+logger = logging.getLogger(__name__)
 
 
 class BaseMultimodalLLM(ABC):
@@ -49,51 +52,81 @@ class OpenAIMultimodalAdapter(BaseMultimodalLLM):
 class HuggingFaceVisionAdapter(BaseMultimodalLLM):
     """Vision-language adapter for Hugging Face models such as Qwen2.5-VL."""
 
+    _load_lock = threading.Lock()
+    _model_cache: dict[str, Tuple[Any, Any]] = {}
+
     def __init__(
         self,
         model_id: str = DEFAULT_HF_VISION_MODEL,
         max_new_tokens: int = 512,
-        device_map: str = "auto",
+        device_map: Optional[Union[str, dict]] = None,
     ):
         self.model_id = model_id
         self.max_new_tokens = max_new_tokens
         self.device_map = device_map
         self._model = None
         self._processor = None
+        self._inference_device: Optional[torch.device] = None
+
+    def _resolve_model_cls(self):
+        import transformers
+
+        return (
+            getattr(transformers, "Qwen2_5_VLForConditionalGeneration", None)
+            or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
+            or AutoModelForImageTextToText
+        )
+
+    def _build_from_pretrained_kwargs(self, dtype: torch.dtype) -> dict:
+        load_kwargs: dict = {"low_cpu_mem_usage": False, "dtype": dtype}
+        if self.device_map is not None:
+            load_kwargs["device_map"] = self.device_map
+        return load_kwargs
 
     def _load(self) -> None:
         if self._model is not None:
             return
-        import transformers
 
-        model_cls = getattr(
-            transformers, "Qwen2_5_VLForConditionalGeneration", None
-        ) or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
-        if model_cls is None:
-            model_cls = AutoModelForImageTextToText
+        with HuggingFaceVisionAdapter._load_lock:
+            if self._model is not None:
+                return
 
-        self._processor = AutoProcessor.from_pretrained(self.model_id)
-        try:
-            self._model = model_cls.from_pretrained(
-                self.model_id,
-                torch_dtype="auto",
-                device_map=self.device_map,
+            cached = HuggingFaceVisionAdapter._model_cache.get(self.model_id)
+            if cached is not None:
+                self._model, self._processor = cached
+                self._inference_device = self._get_model_device()
+                return
+
+            model_cls = self._resolve_model_cls()
+            self._processor = AutoProcessor.from_pretrained(self.model_id)
+
+            dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            load_kwargs = self._build_from_pretrained_kwargs(dtype)
+            # Default path: no device_map -> avoid accelerate meta-tensor dispatch.
+            self._model = model_cls.from_pretrained(self.model_id, **load_kwargs)
+
+            self._inference_device = torch.device("cpu")
+            if torch.cuda.is_available() and self.device_map is None:
+                try:
+                    self._model = self._model.to("cuda")
+                    self._inference_device = torch.device("cuda")
+                except NotImplementedError as exc:
+                    if "meta tensor" not in str(exc):
+                        raise
+                    logger.warning(
+                        "Could not move vision model to CUDA (%s); keeping CPU.",
+                        exc,
+                    )
+
+            HuggingFaceVisionAdapter._model_cache[self.model_id] = (
+                self._model,
+                self._processor,
             )
-        except NotImplementedError as exc:
-            # Some torch/accelerate/transformers combinations can fail when
-            # dispatching from meta tensors with device_map="auto".
-            if "meta tensor" not in str(exc):
-                raise
-            self._model = model_cls.from_pretrained(
-                self.model_id,
-                torch_dtype="auto",
-                device_map=None,
-                low_cpu_mem_usage=False,
-            )
-            if torch.cuda.is_available():
-                self._model = self._model.to("cuda")
 
     def _get_model_device(self) -> torch.device:
+        if self._inference_device is not None:
+            return self._inference_device
+
         if self._model is None:
             return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

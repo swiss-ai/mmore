@@ -112,6 +112,8 @@ class RAGPipeline:
         if config.llm.use_vision:
             llm: Optional[BaseChatModel] = None
             multimodal_llm = get_multimodal_llm(config.llm)
+            if hasattr(multimodal_llm, "_load"):
+                multimodal_llm._load()
         else:
             llm = LLM.from_config(config.llm)
             multimodal_llm = None
@@ -224,7 +226,13 @@ class RAGPipeline:
         else:
             queries_list = queries
 
-        results = self.rag_chain.batch(queries_list)
+        batch_config = (
+            {"max_concurrency": 1} if self.use_vision and self.multimodal_llm else None
+        )
+        if batch_config:
+            results = self.rag_chain.batch(queries_list, config=batch_config)
+        else:
+            results = self.rag_chain.batch(queries_list)
 
         if return_dict:
             return results
