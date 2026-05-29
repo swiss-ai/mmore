@@ -6,9 +6,8 @@ Add a `judge:` block to your RAG config to check retrieval quality before genera
 
 1. Retrieve chunks from the index (Milvus + optional BGE rerank).
 2. Evaluate them in a loop (at most `max_corrective_steps` corrective actions, default `1`):
-  - Skip the judge entirely if `skip_llm_judge: true`.
   - Proceed without calling the judge LLM if index metrics meet `metric_thresholds`.
-  - Otherwise, call `judge.llm` and apply the chosen corrective action.
+  - Otherwise, call `judge.llm` (or apply `force_corrective_action`) and run the chosen corrective action.
   - Repeat on the merged chunks until the judge says `PROCEED` or the step budget is exhausted.
 3. Generate the answer from the final context.
 
@@ -37,11 +36,10 @@ Or copy the `judge:` block into your own config.
 
 Key settings under `rag.judge`:
 
-- `skip_llm_judge` — bypass the judge and corrective loop
 - `metric_thresholds` — index minimums (`min_mean_similarity`, `min_max_rerank_score`, `min_num_docs`, …)
 - `max_corrective_steps` — how many corrective actions after the first retrieval
 - `allow_re_retrieve` / `allow_add_questions` / `allow_add_context` — allowed LLM decisions
-- `force_corrective_action` — skip the judge LLM and force an action when thresholds fail (benchmarks)
+- `force_corrective_action` — skip the judge LLM and force an action when thresholds fail (benchmarks); use `PROCEED` for a no-correction baseline
 - `system_prompt` / `user_prompt` — judge prompts; user prompt supports `{query}`, `{metrics}`, `{chunks}`, `{allowed_actions}`, and correction-step placeholders
 
 For `ADD_CONTEXT`, install web search support:

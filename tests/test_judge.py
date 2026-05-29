@@ -121,7 +121,14 @@ def test_metrics_merge_and_thresholds():
 @pytest.mark.parametrize(
     "cfg_kw,docs,llm_json,invoke,decision,reason_sub",
     [
-        ({"skip_llm_judge": True}, [_doc(0.2)], None, False, "PROCEED", "skip_llm"),
+        (
+            {"force_corrective_action": "PROCEED", "metric_thresholds": _THRESH},
+            [_doc(0.2)],
+            None,
+            False,
+            "PROCEED",
+            "force_corrective",
+        ),
         (
             {"metric_thresholds": {"min_mean_similarity": 0.3, "min_num_docs": 1}},
             [_doc(0.9)],

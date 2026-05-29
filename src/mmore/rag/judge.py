@@ -49,7 +49,6 @@ class JudgeConfig:
     system_prompt: str
     user_prompt: str
     metric_thresholds: Dict[str, float] = field(default_factory=dict)
-    skip_llm_judge: bool = False
     max_corrective_steps: int = 1
     allow_add_questions: bool = True
     allow_add_context: bool = True
@@ -443,14 +442,6 @@ class LLMJudge:
     ) -> JudgeResult:
         thresholds = self.config.metric_thresholds
         metrics = compute_retrieval_metrics(docs)
-
-        if self.config.skip_llm_judge:
-            return JudgeResult(
-                decision=JudgeDecision.PROCEED,
-                reason="skip_llm_judge",
-                exit_reason="skip_llm_judge",
-                llm_invoked=False,
-            )
 
         if metrics_meet_thresholds(metrics, thresholds):
             exit_reason = (
