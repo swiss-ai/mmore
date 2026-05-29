@@ -14,34 +14,26 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
-        config:
-          - name: process
-            extras: "process,index,rag,api,cpu,dev,websearch"
-            pytest-args: "--ignore=tests/test_colvision.py"
-          - name: colvision
-            extras: "colvision,cpu,dev"
-            pytest-args: "tests/test_colvision.py"
 
-    name: test (${{ matrix.config.name }}, py${{ matrix.python-version }})
+    name: test (py${{ matrix.python-version }})
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Install uv and create venv
-        run: |
-          pipx install uv
-          uv venv .venv
+      - name: Install uv
+        run: pipx install uv
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies (using uv)
+      - name: Install dependencies - process (using uv)
         run: |
+          uv venv .venv
           source .venv/bin/activate
-          uv pip install -e ".[${{ matrix.config.extras }}]"
+          uv pip install -e ".[process,index,rag,api,cpu,dev,websearch]"
 
       - name: Show installed cohere and langchain-cohere versions
         run: |
@@ -49,7 +41,18 @@ jobs:
           uv pip show cohere || echo "Cohere not installed"
           uv pip show langchain-cohere || echo "Langchain-cohere not installed"
 
-      - name: Run tests
+      - name: Run tests - process
         run: |
           source .venv/bin/activate
-          pytest ${{ matrix.config.pytest-args }}
+          pytest --ignore=tests/test_colvision.py
+
+      - name: Install dependencies - colvision
+        run: |
+          uv venv .venv-colvision
+          source .venv-colvision/bin/activate
+          uv pip install -e ".[colvision,cpu,dev]"
+
+      - name: Run tests - colvision
+        run: |
+          source .venv-colvision/bin/activate
+          pytest tests/test_colvision.py
