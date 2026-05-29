@@ -222,3 +222,4 @@ For a manual non-Docker setup, use either the standard installation or the `uv` 
 - [Quickstart](quickstart.md)
 - [Process](process.md)
 - [uv workflow](../advanced_usage/uv.md)
+- [Running on Windows](windows.md) — what differs on Windows and how to fix it

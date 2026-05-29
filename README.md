@@ -66,6 +66,8 @@ brew install cairo pango gdk-pixbuf libffi
 uv pip install weasyprint
 ```
 
+You can also run MMORE on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
+
 #### Step 1 – Install MMORE
 
 Dependencies are split by pipeline stage. Install only what you need:
