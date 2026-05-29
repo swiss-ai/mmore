@@ -7,12 +7,14 @@ import pytest
 from langchain_core.documents import Document
 
 from mmore.rag.judge import (
+    JUDGE_OUTPUT_KEYS,
     JudgeDecision,
     JudgeResult,
     LLMJudge,
     coerce_decision,
     compute_retrieval_metrics,
     evaluate_metrics,
+    extract_judge_output,
     merge_documents,
     metrics_meet_thresholds,
     parse_json_response,
@@ -35,6 +37,22 @@ def _doc(sim=0.5, id_="1", rerank=None):
     if rerank is not None:
         meta["rerank_score"] = rerank
     return Document(page_content=id_, metadata=meta)
+
+
+def test_judge_output_keys_match_retrieve_with_judge():
+    retriever, judge = MagicMock(), MagicMock()
+    retriever.invoke.return_value = [_doc(0.9)]
+    judge.config = _cfg()
+    judge.evaluate.return_value = JudgeResult(decision=JudgeDecision.PROCEED)
+    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
+    for key in JUDGE_OUTPUT_KEYS:
+        if key == "retrieval_corrections":
+            continue  # only set when a corrective action ran
+        assert key in out
+
+    public = extract_judge_output(out)
+    assert public["judge_decision"] == "PROCEED"
+    assert "retrieval_corrections" not in public
 
 
 def test_judge_result_proceed():

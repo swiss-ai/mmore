@@ -2,9 +2,30 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from ..llm import LLMConfig
+
+# Fields added to RAG pipeline state by retrieve_with_judge (public JSON/API output).
+JUDGE_OUTPUT_KEYS = (
+    "judge_decision",
+    "judge_reason",
+    "judge_actions",
+    "judge_llm_calls",
+    "judge_steps",
+    "hit_max_corrective_steps",
+    "retrieval_metrics",
+    "retrieval_corrections",
+)
+
+
+def extract_judge_output(state: Mapping[str, Any]) -> Dict[str, Any]:
+    """Pick judge trace fields for public RAG output (JSON export / API)."""
+    return {
+        key: state[key]
+        for key in JUDGE_OUTPUT_KEYS
+        if key in state and state[key] is not None
+    }
 
 
 class JudgeDecision(str, Enum):

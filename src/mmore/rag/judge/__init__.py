@@ -15,9 +15,16 @@ from .metrics import (
     record_correction_metrics,
 )
 from .parsing import parse_json_response
-from .types import JudgeConfig, JudgeDecision, JudgeResult
+from .types import (
+    JUDGE_OUTPUT_KEYS,
+    JudgeConfig,
+    JudgeDecision,
+    JudgeResult,
+    extract_judge_output,
+)
 
 __all__ = [
+    "JUDGE_OUTPUT_KEYS",
     "JudgeConfig",
     "JudgeDecision",
     "JudgeResult",
@@ -25,6 +32,7 @@ __all__ = [
     "compute_retrieval_metrics",
     "coerce_decision",
     "evaluate_metrics",
+    "extract_judge_output",
     "format_metrics_status",
     "merge_documents",
     "metrics_meet_thresholds",

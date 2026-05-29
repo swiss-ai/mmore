@@ -12,6 +12,7 @@ from langchain_core.documents import Document
 from pydantic import BaseModel
 
 from mmore.profiler import enable_profiling_from_env, profile_function
+from mmore.rag.judge import extract_judge_output
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
 
@@ -57,17 +58,6 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
 
 # Standard RAG fields (always written to JSON / API)
 _RAG_KEYS = ("input", "context", "answer")
-# Judge trace fields (only when rag.judge ran and set a value)
-_JUDGE_KEYS = (
-    "judge_decision",
-    "judge_reason",
-    "judge_actions",
-    "judge_llm_calls",
-    "judge_steps",
-    "hit_max_corrective_steps",
-    "retrieval_metrics",
-    "retrieval_corrections",
-)
 
 
 def _serialize_document(doc: Union[Document, Dict[str, Any]]) -> Dict[str, Any]:
@@ -89,9 +79,7 @@ def _serialize_documents(
 def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
     """Bridge pipeline dict (internal keys like docs) to the public RAGOutput / JSON schema."""
     out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
-    for key in _JUDGE_KEYS:
-        if key in pipeline_result and pipeline_result[key] is not None:
-            out[key] = pipeline_result[key]
+    out.update(extract_judge_output(pipeline_result))
     docs = pipeline_result.get("docs")
     if docs:
         out["documents"] = _serialize_documents(docs)

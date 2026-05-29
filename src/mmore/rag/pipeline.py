@@ -14,7 +14,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
-from .judge import JudgeConfig, LLMJudge, retrieve_with_judge
+from .judge import JUDGE_OUTPUT_KEYS, JudgeConfig, LLMJudge, retrieve_with_judge
 from .llm import LLM, LLMConfig
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
@@ -101,14 +101,7 @@ class RAGPipeline:
             res_dict = MMOREOutput.model_validate(x).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
             # Expose formatted context and judge correction logs in the API response (context is not on MMOREOutput).
-            for key in (
-                "context",
-                "retrieval_corrections",
-                "judge_reason",
-                "judge_llm_calls",
-                "judge_steps",
-                "hit_max_corrective_steps",
-            ):
+            for key in ("context", *JUDGE_OUTPUT_KEYS):
                 if key in x:
                     res_dict[key] = x[key]
 
