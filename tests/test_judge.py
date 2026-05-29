@@ -63,16 +63,16 @@ def test_metrics_thresholds_merge_and_correction_record():
     docs = [_doc(0.9, "1"), _doc(0.5, "2")]
     thresholds = {"min_mean_similarity": 0.35, "min_num_docs": 2}
 
-    assert compute_retrieval_metrics(docs)["mean_similarity"] == pytest.approx(0.7)
+    assert compute_retrieval_metrics(docs).mean_similarity == pytest.approx(0.7)
 
     metrics, passed, status = evaluate_metrics(docs, thresholds)
-    assert metrics["mean_similarity"] == pytest.approx(0.7)
+    assert metrics.mean_similarity == pytest.approx(0.7)
     assert passed and "PASS" in status
 
     metrics2, passed2, _ = evaluate_metrics(
         docs, thresholds, context_relevance_score=3.0
     )
-    assert metrics2["context_relevance_score"] == 3.0 and passed2
+    assert metrics2.context_relevance_score == 3.0 and passed2
 
     _, fail_rerank, _ = evaluate_metrics(
         [_doc(0.9, "1")], {"min_max_rerank_score": 0.5}
@@ -94,8 +94,8 @@ def test_metrics_thresholds_merge_and_correction_record():
         context_relevance_score=7.0,
     )
     for section in ("delta", "before", "after"):
-        assert "context_relevance_score" not in record[section]
-    assert record["delta"]["delta_mean_similarity"] == pytest.approx(0.6)
+        assert "context_relevance_score" not in record.to_dict()[section]
+    assert record.delta_dict()["delta_mean_similarity"] == pytest.approx(0.6)
 
 
 @pytest.mark.parametrize(

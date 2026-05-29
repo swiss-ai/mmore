@@ -1,22 +1,17 @@
 """Retrieval metrics, threshold checks, and document merging."""
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import replace
+from typing import Dict, List, Optional, Tuple
 
 from langchain_core.documents import Document
 
+from .types import CorrectionRecord, RetrievalMetrics
+
 logger = logging.getLogger(__name__)
 
-_CORRECTION_COMPARE_KEYS = (
-    "num_docs",
-    "mean_similarity",
-    "max_similarity",
-    "mean_rerank_score",
-    "max_rerank_score",
-)
 
-
-def compute_retrieval_metrics(docs: List[Document]) -> Dict[str, float]:
+def compute_retrieval_metrics(docs: List[Document]) -> RetrievalMetrics:
     """Metrics from Milvus similarity, BGE rerank scores, and chunk count."""
     similarities = [
         float(doc.metadata["similarity"])
@@ -29,34 +24,38 @@ def compute_retrieval_metrics(docs: List[Document]) -> Dict[str, float]:
         if doc.metadata.get("rerank_score") is not None
     ]
 
-    metrics: Dict[str, float] = {"num_docs": float(len(docs))}
-
     if similarities:
-        metrics["max_similarity"] = max(similarities)
-        metrics["mean_similarity"] = sum(similarities) / len(similarities)
+        max_similarity = max(similarities)
+        mean_similarity = sum(similarities) / len(similarities)
     else:
-        metrics["max_similarity"] = 0.0
-        metrics["mean_similarity"] = 0.0
+        max_similarity = 0.0
+        mean_similarity = 0.0
 
     if rerank_scores:
-        metrics["max_rerank_score"] = max(rerank_scores)
-        metrics["mean_rerank_score"] = sum(rerank_scores) / len(rerank_scores)
+        max_rerank_score = max(rerank_scores)
+        mean_rerank_score = sum(rerank_scores) / len(rerank_scores)
     else:
-        metrics["max_rerank_score"] = 0.0
-        metrics["mean_rerank_score"] = 0.0
+        max_rerank_score = 0.0
+        mean_rerank_score = 0.0
 
-    return metrics
+    return RetrievalMetrics(
+        num_docs=float(len(docs)),
+        mean_similarity=mean_similarity,
+        max_similarity=max_similarity,
+        mean_rerank_score=mean_rerank_score,
+        max_rerank_score=max_rerank_score,
+    )
 
 
 def _check_thresholds(
-    metrics: Dict[str, float], thresholds: Dict[str, float]
+    metrics: RetrievalMetrics, thresholds: Dict[str, float]
 ) -> Tuple[bool, str]:
     if not thresholds:
         return False, "No thresholds configured."
 
     lines: List[str] = []
     all_pass = True
-    for metric_key, value in metrics.items():
+    for metric_key, value in metrics.threshold_items().items():
         threshold_key = f"min_{metric_key}"
         if threshold_key not in thresholds:
             continue
@@ -77,11 +76,11 @@ def evaluate_metrics(
     docs: List[Document],
     thresholds: Dict[str, float],
     context_relevance_score: Optional[float] = None,
-) -> Tuple[Dict[str, float], bool, str]:
+) -> Tuple[RetrievalMetrics, bool, str]:
     """Compute metrics, check thresholds, and format status in one pass."""
     metrics = compute_retrieval_metrics(docs)
     if context_relevance_score is not None:
-        metrics["context_relevance_score"] = context_relevance_score
+        metrics = replace(metrics, context_relevance_score=context_relevance_score)
     passed, status = _check_thresholds(metrics, thresholds)
     return metrics, passed, status
 
@@ -90,14 +89,9 @@ def metrics_for_output(
     docs: List[Document],
     thresholds: Dict[str, float],
     context_relevance_score: Optional[float] = None,
-) -> Dict[str, float]:
+) -> RetrievalMetrics:
     metrics, passed, _ = evaluate_metrics(docs, thresholds, context_relevance_score)
-    metrics["thresholds_met"] = float(passed)
-    return metrics
-
-
-def _metrics_snapshot(metrics: Dict[str, float]) -> Dict[str, float]:
-    return {k: float(metrics[k]) for k in _CORRECTION_COMPARE_KEYS if k in metrics}
+    return replace(metrics, thresholds_met=float(passed))
 
 
 def record_correction_metrics(
@@ -106,7 +100,7 @@ def record_correction_metrics(
     docs_after: List[Document],
     thresholds: Dict[str, float],
     context_relevance_score: Optional[float],
-) -> Dict[str, Any]:
+) -> CorrectionRecord:
     """Before/after retrieval metrics for one corrective action (e.g. RE_RETRIEVE)."""
     before_full, tm_before, _ = evaluate_metrics(
         docs_before, thresholds, context_relevance_score
@@ -114,40 +108,36 @@ def record_correction_metrics(
     after_full, tm_after, _ = evaluate_metrics(
         docs_after, thresholds, context_relevance_score
     )
-    before = _metrics_snapshot(before_full)
-    after = _metrics_snapshot(after_full)
-    delta = {f"delta_{k}": after.get(k, 0.0) - before.get(k, 0.0) for k in after}
-    return {
-        "action": action,
-        "before": before,
-        "after": after,
-        "delta": delta,
-        "thresholds_met_before": float(tm_before),
-        "thresholds_met_after": float(tm_after),
-    }
+    return CorrectionRecord(
+        action=action,
+        before=before_full,
+        after=after_full,
+        thresholds_met_before=float(tm_before),
+        thresholds_met_after=float(tm_after),
+    )
 
 
-def log_correction_metrics(query: str, record: Dict[str, Any]) -> None:
-    b, a, d = record["before"], record["after"], record["delta"]
+def log_correction_metrics(query: str, record: CorrectionRecord) -> None:
+    b, a, d = record.before, record.after, record.delta_dict()
     logger.info(
         "Judge corrective %s | query=%r | num_docs %.0f→%.0f (Δ%+.0f) | "
         "mean_sim %.4f→%.4f (Δ%+.4f) | max_rerank %.4f→%.4f (Δ%+.4f) | "
         "context_rel %s→%s | thresholds_met %.0f→%.0f",
-        record["action"],
+        record.action,
         query[:120],
-        b.get("num_docs", 0),
-        a.get("num_docs", 0),
-        d.get("delta_num_docs", 0),
-        b.get("mean_similarity", 0),
-        a.get("mean_similarity", 0),
-        d.get("delta_mean_similarity", 0),
-        b.get("max_rerank_score", 0),
-        a.get("max_rerank_score", 0),
-        d.get("delta_max_rerank_score", 0),
-        b.get("context_relevance_score", "—"),
-        a.get("context_relevance_score", "—"),
-        record["thresholds_met_before"],
-        record["thresholds_met_after"],
+        b.num_docs,
+        a.num_docs,
+        d["delta_num_docs"],
+        b.mean_similarity,
+        a.mean_similarity,
+        d["delta_mean_similarity"],
+        b.max_rerank_score,
+        a.max_rerank_score,
+        d["delta_max_rerank_score"],
+        "—",
+        "—",
+        record.thresholds_met_before,
+        record.thresholds_met_after,
     )
 
 

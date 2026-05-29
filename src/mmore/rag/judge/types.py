@@ -6,6 +6,66 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from ..llm import LLMConfig
 
+_CORE_METRIC_FIELDS = (
+    "num_docs",
+    "mean_similarity",
+    "max_similarity",
+    "mean_rerank_score",
+    "max_rerank_score",
+)
+
+
+@dataclass
+class RetrievalMetrics:
+    num_docs: float
+    mean_similarity: float
+    max_similarity: float
+    mean_rerank_score: float
+    max_rerank_score: float
+    context_relevance_score: Optional[float] = None
+    thresholds_met: Optional[float] = None
+
+    def threshold_items(self) -> Dict[str, float]:
+        items = self.core_dict()
+        if self.context_relevance_score is not None:
+            items["context_relevance_score"] = self.context_relevance_score
+        return items
+
+    def core_dict(self) -> Dict[str, float]:
+        return {field: getattr(self, field) for field in _CORE_METRIC_FIELDS}
+
+    def to_dict(self) -> Dict[str, float]:
+        data = self.threshold_items()
+        if self.thresholds_met is not None:
+            data["thresholds_met"] = self.thresholds_met
+        return data
+
+
+@dataclass
+class CorrectionRecord:
+    action: str
+    before: RetrievalMetrics
+    after: RetrievalMetrics
+    thresholds_met_before: float
+    thresholds_met_after: float
+
+    def delta_dict(self) -> Dict[str, float]:
+        return {
+            f"delta_{field}": getattr(self.after, field) - getattr(self.before, field)
+            for field in _CORE_METRIC_FIELDS
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "action": self.action,
+            "before": self.before.core_dict(),
+            "after": self.after.core_dict(),
+            "delta": self.delta_dict(),
+            "thresholds_met_before": self.thresholds_met_before,
+            "thresholds_met_after": self.thresholds_met_after,
+        }
+
+
 # Fields added to RAG pipeline state by retrieve_with_judge (public JSON/API output).
 JUDGE_OUTPUT_KEYS = (
     "judge_decision",

@@ -111,7 +111,7 @@ class LLMJudge:
         max_steps = self.config.max_corrective_steps
         user_prompt = self.config.user_prompt.format(
             query=query,
-            metrics=metrics,
+            metrics=metrics.to_dict(),
             metrics_status=metrics_status,
             thresholds=thresholds,
             allowed_actions=allowed_actions(self.config),

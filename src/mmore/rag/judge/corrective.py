@@ -130,8 +130,9 @@ def retrieve_with_judge(
             thresholds,
             final_result.context_relevance_score,
         )
-        correction.update(step_record(step, final_result, query, retriever.k))
-        retrieval_corrections.append(correction)
+        retrieval_corrections.append(
+            {**correction.to_dict(), **step_record(step, final_result, query, retriever.k)}
+        )
         log_correction_metrics(query, correction)
 
     retrieval_metrics = metrics_for_output(
@@ -143,15 +144,15 @@ def retrieve_with_judge(
         query[:120],
         final_result.decision.value,
         judge_actions,
-        retrieval_metrics.get("thresholds_met"),
-        retrieval_metrics.get("context_relevance_score"),
+        retrieval_metrics.thresholds_met,
+        retrieval_metrics.context_relevance_score,
         final_result.reason,
     )
 
     out: Dict[str, Any] = {
         **state,
         "docs": docs,
-        "retrieval_metrics": retrieval_metrics,
+        "retrieval_metrics": retrieval_metrics.to_dict(),
         "judge_decision": final_result.decision.value,
         "judge_reason": final_result.exit_reason,
         "judge_actions": judge_actions,

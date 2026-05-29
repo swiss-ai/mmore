@@ -15,17 +15,21 @@ from .metrics import (
 from .parsing import parse_json_response
 from .types import (
     JUDGE_OUTPUT_KEYS,
+    CorrectionRecord,
     JudgeConfig,
     JudgeDecision,
     JudgeResult,
+    RetrievalMetrics,
     extract_judge_output,
 )
 
 __all__ = [
     "JUDGE_OUTPUT_KEYS",
+    "CorrectionRecord",
     "JudgeConfig",
     "JudgeDecision",
     "JudgeResult",
+    "RetrievalMetrics",
     "LLMJudge",
     "compute_retrieval_metrics",
     "coerce_decision",
