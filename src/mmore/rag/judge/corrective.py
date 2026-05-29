@@ -131,7 +131,10 @@ def retrieve_with_judge(
             final_result.context_relevance_score,
         )
         retrieval_corrections.append(
-            {**correction.to_dict(), **step_record(step, final_result, query, retriever.k)}
+            {
+                **correction.to_dict(),
+                **step_record(step, final_result, query, retriever.k),
+            }
         )
         log_correction_metrics(query, correction)
 
