@@ -663,13 +663,17 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
         assert "$page_number" not in used_filter, (
             "Le filtre ne doit pas utiliser $variable — pymilvus ignore params= silencieusement"
         )
-        assert pdf_path in used_filter, "La valeur de pdf_path doit être interpolée dans le filtre"
+        assert pdf_path in used_filter, (
+            "La valeur de pdf_path doit être interpolée dans le filtre"
+        )
         assert str(page_number) in used_filter, (
             "La valeur de page_number doit être interpolée dans le filtre"
         )
 
         # Le symptôme du bug était context:[] — vérifier que les résultats sont non vides
-        assert len(results) == 1, "Le reranking doit retourner un résultat, pas une liste vide"
+        assert len(results) == 1, (
+            "Le reranking doit retourner un résultat, pas une liste vide"
+        )
         assert results[0]["pdf_path"] == pdf_path
         assert results[0]["page_number"] == page_number
 
