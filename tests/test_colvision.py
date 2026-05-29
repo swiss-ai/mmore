@@ -8,19 +8,23 @@ import pytest
 import torch
 from PIL import Image
 
-from mmore.colpali.milvuscolpali import MilvusColpaliManager
-from mmore.colpali.model_utils import resolve_model_classes
-from mmore.colpali.retriever import (
-    ColPaliRetriever,
-    ColPaliRetrieverConfig,
+from mmore.colvision.milvuscolvision import MilvusColvisionManager
+from mmore.colvision.model_utils import resolve_model_classes
+from mmore.colvision.retriever import (
+    ColVisionRetriever,
+    ColVisionRetrieverConfig,
     load_text_mapping,
 )
-from mmore.colpali.run_index import index
-from mmore.colpali.run_process import ColPaliEmbedder, PDFConverter, process_single_pdf
+from mmore.colvision.run_index import index
+from mmore.colvision.run_process import (
+    ColVisionEmbedder,
+    PDFConverter,
+    process_single_pdf,
+)
 
 """
-If you get an error when running tests with pytest, run tests with: PYTHONPATH=$(pwd) pytest tests/test_colpali.py.
-This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves imports like "from mmore.colpali...".
+If you get an error when running tests with pytest, run tests with: PYTHONPATH=$(pwd) pytest tests/test_colvision.py.
+This is required because the project follows a "src" layout, and setting PYTHONPATH ensures Python correctly resolves imports like "from mmore.colvision...".
 """
 
 SAMPLES_DIR = "examples/sample_data/"
@@ -88,12 +92,12 @@ def test_pdf_converter_convert_to_pngs():
         converter.cleanup()
 
 
-# ------------------ ColPaliEmbedder Tests ------------------
-def test_colpali_embedder_embed_images():
+# ------------------ ColVisionEmbedder Tests ------------------
+def test_colvision_embedder_embed_images():
     """Test that embed_images correctly processes images in batches and returns embeddings with expected shape."""
     from unittest.mock import MagicMock
 
-    from mmore.colpali import run_process
+    from mmore.colvision import run_process
 
     # Create temporary image files
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -146,7 +150,7 @@ def test_colpali_embedder_embed_images():
         )
 
         try:
-            embedder = ColPaliEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
+            embedder = ColVisionEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
             embedder.processor = mock_processor_instance
 
             # Test with batch_size=2 (should create 3 batches: 2, 2, 1)
@@ -184,11 +188,11 @@ def test_colpali_embedder_embed_images():
             run_process.load_model_and_processor = original_loader
 
 
-def test_colpali_embedder_embed_images_invalid_input():
+def test_colvision_embedder_embed_images_invalid_input():
     """Test that embed_images handles invalid image paths correctly."""
     from unittest.mock import MagicMock
 
-    from mmore.colpali import run_process
+    from mmore.colvision import run_process
 
     # Mock the model loader to bypass actual HuggingFace download
     original_loader = run_process.load_model_and_processor
@@ -208,7 +212,7 @@ def test_colpali_embedder_embed_images_invalid_input():
     )
 
     try:
-        embedder = ColPaliEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
+        embedder = ColVisionEmbedder(model_name="vidore/colpali-v1.3", device="cpu")
         embedder.processor = mock_processor_instance
 
         # Test with non-existent file path
@@ -250,7 +254,7 @@ def test_process_single_pdf_success():
     ]
 
     # Override fitz.open to return a mock document
-    from mmore.colpali import run_process
+    from mmore.colvision import run_process
 
     original_fitz_open = run_process.fitz.open
 
@@ -288,12 +292,12 @@ def test_process_single_pdf_success():
         run_process.fitz.open = original_fitz_open
 
 
-# ------------------ MilvusColpaliManager Tests ------------------
-def test_milvus_colpali_manager_init_error():
-    """Test that MilvusColpaliManager raises error when collection doesn't exist."""
-    from mmore.colpali import milvuscolpali
+# ------------------ MilvusColvisionManager Tests ------------------
+def test_milvus_colvision_manager_init_error():
+    """Test that MilvusColvisionManager raises error when collection doesn't exist."""
+    from mmore.colvision import milvuscolvision
 
-    original_milvus_client = milvuscolpali.MilvusClient
+    original_milvus_client = milvuscolvision.MilvusClient
 
     mock_client_instance = type(
         "obj",
@@ -303,25 +307,25 @@ def test_milvus_colpali_manager_init_error():
         },
     )()
 
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
+    milvuscolvision.MilvusClient = lambda *args, **kwargs: mock_client_instance
 
     try:
         with pytest.raises(ValueError, match="does not exist"):
-            MilvusColpaliManager(
+            MilvusColvisionManager(
                 db_path="./test_milvus",
                 collection_name="test_collection",
                 dim=128,
                 create_collection=False,
             )
     finally:
-        milvuscolpali.MilvusClient = original_milvus_client
+        milvuscolvision.MilvusClient = original_milvus_client
 
 
-def test_milvus_colpali_manager_insert_from_dataframe():
-    """Test that MilvusColpaliManager correctly inserts data from DataFrame."""
-    from mmore.colpali import milvuscolpali
+def test_milvus_colvision_manager_insert_from_dataframe():
+    """Test that MilvusColvisionManager correctly inserts data from DataFrame."""
+    from mmore.colvision import milvuscolvision
 
-    original_milvus_client = milvuscolpali.MilvusClient
+    original_milvus_client = milvuscolvision.MilvusClient
 
     insert_calls = []
     mock_client_instance = type(
@@ -334,10 +338,10 @@ def test_milvus_colpali_manager_insert_from_dataframe():
         },
     )()
 
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
+    milvuscolvision.MilvusClient = lambda *args, **kwargs: mock_client_instance
 
     try:
-        manager = MilvusColpaliManager(
+        manager = MilvusColvisionManager(
             db_path="./test_milvus",
             collection_name="test_collection",
             dim=128,
@@ -361,14 +365,14 @@ def test_milvus_colpali_manager_insert_from_dataframe():
             "Should insert 2 batches for 2 rows with batch_size=1"
         )
     finally:
-        milvuscolpali.MilvusClient = original_milvus_client
+        milvuscolvision.MilvusClient = original_milvus_client
 
 
-def test_milvus_colpali_manager_search_embeddings_search_error():
+def test_milvus_colvision_manager_search_embeddings_search_error():
     """Test that search_embeddings handles search errors correctly."""
-    from mmore.colpali import milvuscolpali
+    from mmore.colvision import milvuscolvision
 
-    original_milvus_client = milvuscolpali.MilvusClient
+    original_milvus_client = milvuscolvision.MilvusClient
 
     def mock_search_error(self, **kwargs):
         raise Exception("Search failed")
@@ -383,10 +387,10 @@ def test_milvus_colpali_manager_search_embeddings_search_error():
         },
     )()
 
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client_instance
+    milvuscolvision.MilvusClient = lambda *args, **kwargs: mock_client_instance
 
     try:
-        manager = MilvusColpaliManager(
+        manager = MilvusColvisionManager(
             db_path="./test_milvus",
             collection_name="test_collection",
             dim=128,
@@ -400,17 +404,17 @@ def test_milvus_colpali_manager_search_embeddings_search_error():
             manager.search_embeddings(query_embedding, top_k=3)
 
     finally:
-        milvuscolpali.MilvusClient = original_milvus_client
+        milvuscolvision.MilvusClient = original_milvus_client
 
 
 # ------------------ Index Function Tests ------------------
 def test_index_function():
     """Test that index function loads config and indexes data correctly."""
-    from mmore.colpali import run_index
+    from mmore.colvision import run_index
 
     original_load_config = run_index.load_config
     original_read_parquet = run_index.pd.read_parquet
-    original_manager_class = run_index.MilvusColpaliManager
+    original_manager_class = run_index.MilvusColvisionManager
 
     mock_config = type(
         "obj",
@@ -452,7 +456,7 @@ def test_index_function():
 
     run_index.load_config = lambda *args, **kwargs: mock_config
     run_index.pd.read_parquet = lambda *args, **kwargs: mock_df
-    run_index.MilvusColpaliManager = lambda *args, **kwargs: mock_manager
+    run_index.MilvusColvisionManager = lambda *args, **kwargs: mock_manager
 
     try:
         index("test_config.yml")
@@ -462,15 +466,15 @@ def test_index_function():
     finally:
         run_index.load_config = original_load_config
         run_index.pd.read_parquet = original_read_parquet
-        run_index.MilvusColpaliManager = original_manager_class
+        run_index.MilvusColvisionManager = original_manager_class
 
 
-# ------------------ ColPaliRetriever Tests ------------------
-def test_colpali_retriever_get_relevant_documents_with_text_map():
+# ------------------ ColVisionRetriever Tests ------------------
+def test_colvision_retriever_get_relevant_documents_with_text_map():
     """Test that _get_relevant_documents correctly integrates text content from text_map."""
-    from mmore.colpali import milvuscolpali, retriever
+    from mmore.colvision import milvuscolvision, retriever
 
-    original_milvus_client = milvuscolpali.MilvusClient
+    original_milvus_client = milvuscolvision.MilvusClient
     original_embed_queries = retriever.embed_queries
 
     # Mock model and processor
@@ -499,8 +503,8 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
         ("test1.pdf", 2): "This is the text content from page 2",
     }
 
-    # Mock manager - inherit from MilvusColpaliManager to pass Pydantic validation
-    class MockMilvusColpaliManager(MilvusColpaliManager):
+    # Mock manager - inherit from MilvusColvisionManager to pass Pydantic validation
+    class MockMilvusColvisionManager(MilvusColvisionManager):
         def __init__(self, *args, **kwargs):
             # Skip parent initialization to avoid MilvusClient setup
             # Set minimal required attributes
@@ -513,13 +517,13 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
         def search_embeddings(self, query_embeddings, top_k=3, max_workers=4):
             return mock_search_results[:top_k]
 
-    mock_manager = MockMilvusColpaliManager()
+    mock_manager = MockMilvusColvisionManager()
 
     # Mock embed_queries
     def mock_embed_queries(texts, model, processor):
         return [np.array([0.1] * 128, dtype=np.float32)]
 
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: type(
+    milvuscolvision.MilvusClient = lambda *args, **kwargs: type(
         "obj",
         (object,),
         {
@@ -530,14 +534,14 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
     retriever.embed_queries = mock_embed_queries
 
     try:
-        config = ColPaliRetrieverConfig(
+        config = ColVisionRetrieverConfig(
             db_path="./test_milvus",
             collection_name="test_collection",
             model_name="vidore/colpali-v1.3",
             top_k=2,
         )
 
-        retriever_instance = ColPaliRetriever(
+        retriever_instance = ColVisionRetriever(
             model=mock_model,
             processor=mock_processor,
             manager=mock_manager,
@@ -568,7 +572,7 @@ def test_colpali_retriever_get_relevant_documents_with_text_map():
         )
 
     finally:
-        milvuscolpali.MilvusClient = original_milvus_client
+        milvuscolvision.MilvusClient = original_milvus_client
         retriever.embed_queries = original_embed_queries
 
 
@@ -611,9 +615,9 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
     avalée dans le try/except → score=None → page exclue → context:[].
     Le fix interpole directement les valeurs via f-string.
     """
-    from mmore.colpali import milvuscolpali
+    from mmore.colvision import milvuscolvision
 
-    original_milvus_client = milvuscolpali.MilvusClient
+    original_milvus_client = milvuscolvision.MilvusClient
 
     dim = 4
     pdf_path = "docs/report.pdf"
@@ -641,10 +645,10 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
         },
     )()
 
-    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client
+    milvuscolvision.MilvusClient = lambda *args, **kwargs: mock_client
 
     try:
-        manager = MilvusColpaliManager(
+        manager = MilvusColvisionManager(
             db_path="./test_milvus",
             collection_name="test_collection",
             dim=dim,
@@ -688,4 +692,4 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
         json.dumps(results)  # ne doit pas lever TypeError
 
     finally:
-        milvuscolpali.MilvusClient = original_milvus_client
+        milvuscolvision.MilvusClient = original_milvus_client

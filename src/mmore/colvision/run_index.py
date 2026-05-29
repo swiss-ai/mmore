@@ -9,7 +9,7 @@ import pandas as pd
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
-from .milvuscolpali import MilvusColpaliManager
+from .milvuscolvision import MilvusColvisionManager
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ def index(config_file: Union[IndexConfig, str]):
     dim = _get_embedding_dim(df)
     logger.info(f"Detected embedding dim={dim} from parquet")
 
-    manager = MilvusColpaliManager(
+    manager = MilvusColvisionManager(
         db_path=config.milvus.db_path,
         collection_name=config.milvus.collection_name,
         dim=dim,
@@ -74,7 +74,7 @@ def index(config_file: Union[IndexConfig, str]):
 if __name__ == "__main__":
     enable_profiling_from_env()
     parser = argparse.ArgumentParser(
-        description="Index ColPali PDF embeddings into a local Milvus database."
+        description="Index ColVision PDF embeddings into a local Milvus database."
     )
     parser.add_argument(
         "--config-file", required=True, help="Path to the YAML config file."

@@ -83,7 +83,7 @@ class PDFConverter:
                 )
 
 
-class ColPaliEmbedder:
+class ColVisionEmbedder:
     def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
         self.device = device
         self.model, self.processor = load_model_and_processor(model_name, device)
@@ -123,7 +123,7 @@ def crawl_pdfs(data_paths: Union[str, List[str]]) -> List[Path]:
 
 
 def process_single_pdf(
-    pdf_path: Path, model: ColPaliEmbedder, converter: PDFConverter
+    pdf_path: Path, model: ColVisionEmbedder, converter: PDFConverter
 ) -> tuple[List[dict], List[dict]]:
     try:
         png_paths = converter.convert_to_pngs(pdf_path)
@@ -214,7 +214,7 @@ def process_pdf_batch(
 ) -> tuple[List[dict], List[dict]]:
     try:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        model = ColPaliEmbedder(config.model_name, device=device)
+        model = ColVisionEmbedder(config.model_name, device=device)
         converter = PDFConverter()
         batch_records = []
         batch_text_records = []

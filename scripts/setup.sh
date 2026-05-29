@@ -11,9 +11,9 @@ sudo apt install -y ffmpeg libsm6 libxext6 libnss3 libxi6 libxrandr2 libxcomposi
 
 EXTRA="${1:-process}"
 case "$EXTRA" in
-    process|colpali|rag|api|websearch|all) ;;
+    process|colvision|rag|api|websearch|all) ;;
     *)
-        echo "Unknown extra '$EXTRA'. Valid: process, colpali, rag, api, websearch, all." >&2
+        echo "Unknown extra '$EXTRA'. Valid: process, colvision, rag, api, websearch, all." >&2
         exit 1
         ;;
 esac

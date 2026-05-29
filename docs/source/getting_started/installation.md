@@ -102,14 +102,14 @@ cd mmore
 
 ### Step 4: Install the project and dependencies
 
-Pick the pipeline you intend to use. The standard pipeline (`[process]`, with text/document extraction) and the ColPali pipeline (`[colpali]`, with vision-based RAG) are **mutually exclusive** — set up a separate venv if you need both.
+Pick the pipeline you intend to use. The standard pipeline (`[process]`, with text/document extraction) and the ColVision pipeline (`[colvision]`, with vision-based RAG) are **mutually exclusive** — set up a separate venv if you need both.
 
 ```bash
 # Standard pipeline (document processing + text RAG)
 uv sync --extra process --extra rag
 
-# ColPali pipeline (vision-based RAG, all ColVision models)
-uv sync --extra colpali
+# ColVision pipeline (vision-based RAG, all ColVision models)
+uv sync --extra colvision
 ```
 
 For a CPU-only installation, append `--extra cpu`:

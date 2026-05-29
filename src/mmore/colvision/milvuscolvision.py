@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 if not logger.hasHandlers():
     handler = logging.StreamHandler()
     formatter = logging.Formatter(
-        "[MilvusColpaliManager 🧠 -- %(asctime)s] %(message)s",
+        "[MilvusColvisionManager 🧠 -- %(asctime)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     handler.setFormatter(formatter)
@@ -21,9 +21,9 @@ if not logger.hasHandlers():
 logger.setLevel(logging.INFO)
 
 
-class MilvusColpaliManager:
+class MilvusColvisionManager:
     """
-    Handles all Milvus operations for ColPali embeddings (both indexing and retrieval).
+    Handles all Milvus operations for ColVision embeddings (both indexing and retrieval).
     Uses a local Milvus storage by default.
     """
 
@@ -60,7 +60,7 @@ class MilvusColpaliManager:
 
     def create_collection(self, overwrite: bool = False):
         """
-        Create a new Milvus collection with ColPali embedding schema.
+        Create a new Milvus collection with ColVision embedding schema.
         """
         if overwrite and self.client.has_collection(self.collection_name):
             self.client.drop_collection(self.collection_name)

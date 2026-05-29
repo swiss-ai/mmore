@@ -96,7 +96,7 @@ index = [
     "scipy>=1.8",
 ]
 
-colpali = [
+colvision = [
     # Vision-based RAG with ColVision models
     "mmore[index]",
     "colpali-engine>=0.3.15",
@@ -165,11 +165,11 @@ conflicts = [
   ],
   [
     { extra = "process" },
-    { extra = "colpali" },
+    { extra = "colvision" },
   ],
   [
     { extra = "all" },
-    { extra = "colpali" },
+    { extra = "colvision" },
   ],
 ]
 
