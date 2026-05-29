@@ -156,6 +156,7 @@ def make_router(config_file: str) -> APIRouter:
             document_ids=query.fileIds,
             k=query.maxMatches,
             min_score=query.minSimilarity,
+            collection_name=config.collection_name,
         )
 
         docs_info = []
