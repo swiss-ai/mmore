@@ -1,4 +1,4 @@
-"""Unit tests for judge.py (config: examples/rag/config_judge.yaml)."""
+"""Unit tests for mmore.rag.judge package (config: examples/rag/config_judge.yaml)."""
 
 from dataclasses import replace
 from unittest.mock import MagicMock
@@ -10,11 +10,13 @@ from mmore.rag.judge import (
     JudgeDecision,
     JudgeResult,
     LLMJudge,
-    _coerce_decision,
-    _parse_json_response,
+    coerce_decision,
     compute_retrieval_metrics,
+    evaluate_metrics,
     merge_documents,
     metrics_meet_thresholds,
+    parse_json_response,
+    record_correction_metrics,
     retrieve_with_judge,
 )
 from mmore.run_rag import RAGInferenceConfig
@@ -33,6 +35,58 @@ def _doc(sim=0.5, id_="1", rerank=None):
     if rerank is not None:
         meta["rerank_score"] = rerank
     return Document(page_content=id_, metadata=meta)
+
+
+def test_judge_result_proceed():
+    r = JudgeResult.proceed("metrics_above_thresholds")
+    assert r.decision == JudgeDecision.PROCEED
+    assert r.reason == "metrics_above_thresholds"
+    assert r.exit_reason == "metrics_above_thresholds"
+    assert r.llm_invoked is False
+
+    r2 = JudgeResult.proceed(
+        "parse_error_fallback",
+        llm_invoked=True,
+        context_relevance_score=5.0,
+    )
+    assert r2.llm_invoked is True
+    assert r2.context_relevance_score == 5.0
+
+
+def test_evaluate_metrics_unifies_compute_threshold_and_status():
+    docs = [_doc(0.9, "1"), _doc(0.5, "2")]
+    thresholds = {"min_mean_similarity": 0.35, "min_num_docs": 2}
+    metrics, passed, status = evaluate_metrics(docs, thresholds)
+    assert metrics["mean_similarity"] == pytest.approx(0.7)
+    assert passed is True
+    assert "mean_similarity" in status
+    assert "PASS" in status
+
+    metrics2, passed2, _ = evaluate_metrics(
+        docs, thresholds, context_relevance_score=3.0
+    )
+    assert metrics2["context_relevance_score"] == 3.0
+    assert passed2 is True
+
+
+def test_threshold_key_derived_from_min_prefix():
+    docs = [_doc(0.9, "1")]
+    thresholds = {"min_max_rerank_score": 0.5}
+    assert metrics_meet_thresholds(compute_retrieval_metrics(docs), thresholds) is False
+    docs_reranked = [_doc(0.9, "1", rerank=0.8)]
+    assert metrics_meet_thresholds(compute_retrieval_metrics(docs_reranked), thresholds)
+
+
+def test_correction_delta_omits_context_relevance_score():
+    before = [_doc(0.2, "1")]
+    after = [_doc(0.8, "2", rerank=2.0)]
+    record = record_correction_metrics(
+        "RE_RETRIEVE", before, after, _THRESH, context_relevance_score=7.0
+    )
+    assert "context_relevance_score" not in record["delta"]
+    assert "context_relevance_score" not in record["before"]
+    assert "context_relevance_score" not in record["after"]
+    assert record["delta"]["delta_mean_similarity"] == pytest.approx(0.6)
 
 
 @pytest.mark.parametrize(
@@ -95,15 +149,15 @@ def _doc(sim=0.5, id_="1", rerank=None):
     ],
 )
 def test_coerce_decision_fallback(cfg_kw, raw, expected):
-    decision, coerced, raw_decision = _coerce_decision(raw, _cfg(**cfg_kw))
+    decision, coerced, raw_decision = coerce_decision(raw, _cfg(**cfg_kw))
     assert decision == expected
     assert raw_decision == raw
 
 
 def test_parse_json_repairs_trailing_comma_and_python_literals():
-    p = _parse_json_response('{"decision":"RE_RETRIEVE","context_relevance_score":4,}')
+    p = parse_json_response('{"decision":"RE_RETRIEVE","context_relevance_score":4,}')
     assert p["decision"] == "RE_RETRIEVE" and p["context_relevance_score"] == 4
-    p = _parse_json_response('{"decision":"PROCEED","sufficient":True}')
+    p = parse_json_response('{"decision":"PROCEED","sufficient":True}')
     assert p["sufficient"] is True
 
 
@@ -171,6 +225,34 @@ def test_llm_judge_evaluate(cfg_kw, docs, llm_json, invoke, decision, reason_sub
     assert llm.invoke.called == invoke
     assert r.decision == JudgeDecision(decision)
     assert reason_sub in r.reason
+
+
+def test_llm_judge_early_exit_on_thresholds():
+    llm = MagicMock()
+    judge = LLMJudge(
+        llm, _cfg(metric_thresholds={"min_mean_similarity": 0.3, "min_num_docs": 1})
+    )
+    result = judge._early_exit([_doc(0.9)], after_correction=False)
+    assert result is not None
+    assert result.decision == JudgeDecision.PROCEED
+    assert result.reason == "metrics_above_thresholds"
+    llm.invoke.assert_not_called()
+
+
+def test_llm_judge_result_from_parsed():
+    judge = LLMJudge(MagicMock(), _cfg())
+    parsed = {
+        "decision": "RE_RETRIEVE",
+        "reason": "weak retrieval",
+        "context_relevance_score": 4,
+        "retrieve_params": {"k": 10},
+    }
+    result = judge._result_from_parsed(parsed)
+    assert result.decision == JudgeDecision.RE_RETRIEVE
+    assert result.reason == "weak retrieval"
+    assert result.exit_reason == "llm_corrective"
+    assert result.context_relevance_score == 4.0
+    assert result.retrieve_params == {"k": 10}
 
 
 def test_retrieve_with_judge_proceed():
