@@ -9,9 +9,7 @@ from .evaluator import LLMJudge
 from .metrics import (
     compute_retrieval_metrics,
     evaluate_metrics,
-    format_metrics_status,
     merge_documents,
-    metrics_meet_thresholds,
     record_correction_metrics,
 )
 from .parsing import parse_json_response
@@ -33,9 +31,7 @@ __all__ = [
     "coerce_decision",
     "evaluate_metrics",
     "extract_judge_output",
-    "format_metrics_status",
     "merge_documents",
-    "metrics_meet_thresholds",
     "parse_json_response",
     "record_correction_metrics",
     "retrieve_with_judge",

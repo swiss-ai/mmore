@@ -41,11 +41,9 @@ def compute_retrieval_metrics(docs: List[Document]) -> Dict[str, float]:
     if rerank_scores:
         metrics["max_rerank_score"] = max(rerank_scores)
         metrics["mean_rerank_score"] = sum(rerank_scores) / len(rerank_scores)
-        metrics["has_rerank_scores"] = 1.0
     else:
         metrics["max_rerank_score"] = 0.0
         metrics["mean_rerank_score"] = 0.0
-        metrics["has_rerank_scores"] = 0.0
 
     return metrics
 
@@ -84,18 +82,6 @@ def evaluate_metrics(
         metrics["context_relevance_score"] = context_relevance_score
     passed, status = _check_thresholds(metrics, thresholds)
     return metrics, passed, status
-
-
-def metrics_meet_thresholds(
-    metrics: Dict[str, float], thresholds: Dict[str, float]
-) -> bool:
-    return _check_thresholds(metrics, thresholds)[0]
-
-
-def format_metrics_status(
-    metrics: Dict[str, float], thresholds: Dict[str, float]
-) -> str:
-    return _check_thresholds(metrics, thresholds)[1]
 
 
 def metrics_for_output(

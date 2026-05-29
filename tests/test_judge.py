@@ -16,7 +16,6 @@ from mmore.rag.judge import (
     evaluate_metrics,
     extract_judge_output,
     merge_documents,
-    metrics_meet_thresholds,
     parse_json_response,
     record_correction_metrics,
     retrieve_with_judge,
@@ -90,9 +89,11 @@ def test_evaluate_metrics_unifies_compute_threshold_and_status():
 def test_threshold_key_derived_from_min_prefix():
     docs = [_doc(0.9, "1")]
     thresholds = {"min_max_rerank_score": 0.5}
-    assert metrics_meet_thresholds(compute_retrieval_metrics(docs), thresholds) is False
+    _, passed, _ = evaluate_metrics(docs, thresholds)
+    assert passed is False
     docs_reranked = [_doc(0.9, "1", rerank=0.8)]
-    assert metrics_meet_thresholds(compute_retrieval_metrics(docs_reranked), thresholds)
+    _, passed, _ = evaluate_metrics(docs_reranked, thresholds)
+    assert passed
 
 
 def test_correction_delta_omits_context_relevance_score():
@@ -180,12 +181,16 @@ def test_parse_json_repairs_trailing_comma_and_python_literals():
 
 
 def test_metrics_merge_and_thresholds():
-    m = compute_retrieval_metrics([_doc(0.9, "1"), _doc(0.5, "2")])
+    docs = [_doc(0.9, "1"), _doc(0.5, "2")]
+    m = compute_retrieval_metrics(docs)
     assert m["mean_similarity"] == pytest.approx(0.7)
     th = {"min_mean_similarity": 0.35, "min_num_docs": 2}
-    assert metrics_meet_thresholds(m, th)
-    m["context_relevance_score"] = 3.0
-    assert metrics_meet_thresholds(m, th)
+    _, passed, _ = evaluate_metrics(docs, th)
+    assert passed
+    _, passed, _ = evaluate_metrics(docs, th, context_relevance_score=3.0)
+    assert passed
+    merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
+    assert len(merged) == 2 and merged[1].metadata["rank"] == 2
     merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
     assert len(merged) == 2 and merged[1].metadata["rank"] == 2
 

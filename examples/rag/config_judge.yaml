@@ -33,7 +33,6 @@ rag:
 
       Return one JSON object with the keys listed below (replace every value for the current question):
       - context_relevance_score: integer 1-10 (your judgment after reading chunks)
-      - sufficient: boolean
       - decision: exactly one value from Allowed actions
       - reason: one short sentence, max 120 chars
       - extra_questions: array of strings; use [] unless decision is ADD_QUESTIONS
