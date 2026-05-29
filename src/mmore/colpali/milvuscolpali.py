@@ -216,16 +216,18 @@ class MilvusColpaliManager:
             # Get all subvectors for this page
             docs = self.client.query(
                 collection_name=self.collection_name,
-                filter="pdf_path == $pdf_path and page_number == $page_number",
+                filter=f'pdf_path == "{pdf_path}" and page_number == {int(page_number)}',
                 output_fields=["embedding", "pdf_path"],
                 limit=10000,
-                params={"pdf_path": pdf_path, "page_number": page_number},
             )
             if not docs:
                 return (None, pdf_path, page_number)
 
             doc_vecs = np.vstack([d["embedding"] for d in docs]).astype(np.float32)
-            score = np.dot(query_vecs, doc_vecs.T).max(1).sum()
+            # Cast to a Python float: the score flows into Document.metadata and is
+            # later JSON-serialized by run_retriever.save_results(); np.float32 is not
+            # JSON-serializable and would crash the whole retrieve subprocess.
+            score = float(np.dot(query_vecs, doc_vecs.T).max(1).sum())
             return (score, pdf_path, page_number)
 
         reranked = []

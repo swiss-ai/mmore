@@ -599,3 +599,89 @@ def test_load_text_mapping_not_found():
     """Test that load_text_mapping handles missing file gracefully."""
     text_map = load_text_mapping("nonexistent.parquet")
     assert text_map is None, "Should return None when file doesn't exist"
+
+
+# ------------------ Regression: rerank_page filter syntax ------------------
+def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
+    """
+    Regression test for the pymilvus $variable filter bug.
+
+    pymilvus ne supporte pas la syntaxe "$variable" dans les filtres (ce n'est pas MongoDB).
+    Le kwarg params= était ignoré silencieusement, le filtre invalide levait une exception
+    avalée dans le try/except → score=None → page exclue → context:[].
+    Le fix interpole directement les valeurs via f-string.
+    """
+    from mmore.colpali import milvuscolpali
+
+    original_milvus_client = milvuscolpali.MilvusClient
+
+    dim = 4
+    pdf_path = "docs/report.pdf"
+    page_number = 3
+    captured_filters = []
+
+    def mock_search(self, **kwargs):
+        return [[{"entity": {"pdf_path": pdf_path, "page_number": page_number}}]]
+
+    def mock_query(self, **kwargs):
+        captured_filters.append(kwargs.get("filter", ""))
+        return [
+            {"embedding": [0.1] * dim, "pdf_path": pdf_path},
+            {"embedding": [0.2] * dim, "pdf_path": pdf_path},
+        ]
+
+    mock_client = type(
+        "MockClient",
+        (object,),
+        {
+            "has_collection": lambda self, name: True,
+            "load_collection": lambda self, name: None,
+            "search": mock_search,
+            "query": mock_query,
+        },
+    )()
+
+    milvuscolpali.MilvusClient = lambda *args, **kwargs: mock_client
+
+    try:
+        manager = MilvusColpaliManager(
+            db_path="./test_milvus",
+            collection_name="test_collection",
+            dim=dim,
+            create_collection=False,
+        )
+
+        query_embedding = np.array([[0.1] * dim], dtype=np.float32)
+        results = manager.search_embeddings(query_embedding, top_k=1)
+
+        assert len(captured_filters) == 1, "query() doit être appelé une fois"
+        used_filter = captured_filters[0]
+
+        assert "$pdf_path" not in used_filter, (
+            "Le filtre ne doit pas utiliser $variable — pymilvus ignore params= silencieusement"
+        )
+        assert "$page_number" not in used_filter, (
+            "Le filtre ne doit pas utiliser $variable — pymilvus ignore params= silencieusement"
+        )
+        assert pdf_path in used_filter, "La valeur de pdf_path doit être interpolée dans le filtre"
+        assert str(page_number) in used_filter, (
+            "La valeur de page_number doit être interpolée dans le filtre"
+        )
+
+        # Le symptôme du bug était context:[] — vérifier que les résultats sont non vides
+        assert len(results) == 1, "Le reranking doit retourner un résultat, pas une liste vide"
+        assert results[0]["pdf_path"] == pdf_path
+        assert results[0]["page_number"] == page_number
+
+        # Régression secondaire : le score doit être un float Python sérialisable JSON.
+        # np.float32 fait planter run_retriever.save_results() (json.dump) → tout le
+        # subprocess retrieve échoue dès le premier résultat (ndcg=None côté benchmark).
+        import json
+
+        assert isinstance(results[0]["score"], float), (
+            f"score doit être un float Python, pas {type(results[0]['score']).__name__}"
+        )
+        json.dumps(results)  # ne doit pas lever TypeError
+
+    finally:
+        milvuscolpali.MilvusClient = original_milvus_client
