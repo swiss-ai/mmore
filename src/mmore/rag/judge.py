@@ -338,6 +338,50 @@ def _format_chunks_for_prompt(docs: List[Document], max_chunk_chars: int) -> str
     return "\n".join(lines) if lines else "(no chunks retrieved)"
 
 
+def _effective_retrieve_params(
+    retrieve_params: Optional[Dict[str, Any]],
+    original_query: str,
+    retriever_k: int,
+) -> Dict[str, Any]:
+    """Resolve RE_RETRIEVE params actually passed to the retriever."""
+    params = retrieve_params or {}
+    effective: Dict[str, Any] = {"input": params.get("input") or original_query}
+    if params.get("k") is not None:
+        effective["k"] = int(params["k"])
+    else:
+        effective["k"] = max(retriever_k * 2, retriever_k + 3)
+    return effective
+
+
+def step_record(
+    step: int,
+    result: JudgeResult,
+    query: str,
+    retriever_k: int,
+) -> Dict[str, Any]:
+    """Serializable judge trace for judge_steps and retrieval_corrections."""
+    record: Dict[str, Any] = {
+        "step": step,
+        "decision": result.decision.value,
+        "raw_decision": result.raw_decision,
+        "coerced_decision": result.coerced_decision,
+        "exit_reason": result.exit_reason,
+        "llm_invoked": result.llm_invoked,
+        "context_relevance_score": result.context_relevance_score,
+    }
+    if result.decision == JudgeDecision.ADD_QUESTIONS:
+        record["extra_questions"] = list(result.extra_questions)
+    elif result.decision == JudgeDecision.ADD_CONTEXT:
+        record["web_query"] = result.web_query
+        record["effective_web_query"] = result.web_query or query
+    elif result.decision == JudgeDecision.RE_RETRIEVE:
+        record["retrieve_params"] = result.retrieve_params
+        record["effective_retrieve_params"] = _effective_retrieve_params(
+            result.retrieve_params, query, retriever_k
+        )
+    return record
+
+
 def _allowed_actions(config: JudgeConfig) -> List[str]:
     allowed = [JudgeDecision.PROCEED.value]
     if config.allow_add_questions:
@@ -525,16 +569,11 @@ def _apply_corrective_action(
         docs = merge_documents(docs, web_docs)
 
     elif result.decision == JudgeDecision.RE_RETRIEVE:
-        params = result.retrieve_params or {}
-        new_state = {**state}
-        if params.get("input"):
-            new_state["input"] = params["input"]
-        retrieve_kwargs: Dict[str, Any] = {}
-        if params.get("k") is not None:
-            retrieve_kwargs["k"] = int(params["k"])
-        else:
-            retrieve_kwargs["k"] = max(retriever.k * 2, retriever.k + 3)
-        new_docs = retriever.invoke(new_state, **retrieve_kwargs)
+        effective = _effective_retrieve_params(
+            result.retrieve_params, query, retriever.k
+        )
+        new_state = {**state, "input": effective["input"]}
+        new_docs = retriever.invoke(new_state, k=effective["k"])
         docs = merge_documents(docs, new_docs)
 
     if config.rerank_after_merge and docs:
@@ -580,17 +619,7 @@ def retrieve_with_judge(
         if final_result.llm_invoked:
             judge_llm_calls += 1
 
-        judge_steps.append(
-            {
-                "step": step,
-                "decision": final_result.decision.value,
-                "raw_decision": final_result.raw_decision,
-                "coerced_decision": final_result.coerced_decision,
-                "exit_reason": final_result.exit_reason,
-                "llm_invoked": final_result.llm_invoked,
-                "context_relevance_score": final_result.context_relevance_score,
-            }
-        )
+        judge_steps.append(step_record(step, final_result, query, retriever.k))
         logger.info(
             "Judge step %s | query=%r | decision=%s | context_relevance_score=%s | reason=%s",
             step,
@@ -630,8 +659,7 @@ def retrieve_with_judge(
             thresholds,
             final_result.context_relevance_score,
         )
-        correction["raw_decision"] = final_result.raw_decision
-        correction["coerced_decision"] = final_result.coerced_decision
+        correction.update(step_record(step, final_result, query, retriever.k))
         retrieval_corrections.append(correction)
         _log_correction_metrics(query, correction)
 
