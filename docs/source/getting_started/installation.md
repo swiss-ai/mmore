@@ -108,14 +108,14 @@ Pick the pipeline you intend to use. The standard pipeline (`[process]`, with te
 # Standard pipeline (document processing + text RAG)
 uv sync --extra process --extra rag
 
-# ColVision pipeline (vision-based RAG, all ColVision models)
+# OR ColVision pipeline (vision-based RAG, all ColVision models)
 uv sync --extra colvision
 ```
 
-For a CPU-only installation, append `--extra cpu`:
+For a CPU-only installation, use:
 
 ```bash
-uv sync --extra process --extra cpu
+uv sync --extra cpu
 ```
 
 ### Step 5: Activate the virtual environment

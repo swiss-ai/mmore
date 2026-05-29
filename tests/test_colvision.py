@@ -610,10 +610,10 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
     """
     Regression test for the pymilvus $variable filter bug.
 
-    pymilvus ne supporte pas la syntaxe "$variable" dans les filtres (ce n'est pas MongoDB).
-    Le kwarg params= était ignoré silencieusement, le filtre invalide levait une exception
-    avalée dans le try/except → score=None → page exclue → context:[].
-    Le fix interpole directement les valeurs via f-string.
+    pymilvus does not support the "$variable" syntax in filters (this is not MongoDB).
+    The params= kwarg was silently ignored, the invalid filter raised an exception
+    swallowed by the try/except → score=None → page excluded → context:[].
+    The fix interpolates the values directly via f-string.
     """
     from mmore.colvision import milvuscolvision
 
@@ -658,38 +658,36 @@ def test_rerank_page_filter_uses_fstring_not_dollar_syntax():
         query_embedding = np.array([[0.1] * dim], dtype=np.float32)
         results = manager.search_embeddings(query_embedding, top_k=1)
 
-        assert len(captured_filters) == 1, "query() doit être appelé une fois"
+        assert len(captured_filters) == 1, "query() must be called once"
         used_filter = captured_filters[0]
 
         assert "$pdf_path" not in used_filter, (
-            "Le filtre ne doit pas utiliser $variable — pymilvus ignore params= silencieusement"
+            "The filter must not use $variable — pymilvus silently ignores params="
         )
         assert "$page_number" not in used_filter, (
-            "Le filtre ne doit pas utiliser $variable — pymilvus ignore params= silencieusement"
+            "The filter must not use $variable — pymilvus silently ignores params="
         )
         assert pdf_path in used_filter, (
-            "La valeur de pdf_path doit être interpolée dans le filtre"
+            "The pdf_path value must be interpolated into the filter"
         )
         assert str(page_number) in used_filter, (
-            "La valeur de page_number doit être interpolée dans le filtre"
+            "The page_number value must be interpolated into the filter"
         )
 
-        # Le symptôme du bug était context:[] — vérifier que les résultats sont non vides
-        assert len(results) == 1, (
-            "Le reranking doit retourner un résultat, pas une liste vide"
-        )
+        # The symptom of the bug was context:[] — check that the results are not empty
+        assert len(results) == 1, "Reranking must return a result, not an empty list"
         assert results[0]["pdf_path"] == pdf_path
         assert results[0]["page_number"] == page_number
 
-        # Régression secondaire : le score doit être un float Python sérialisable JSON.
-        # np.float32 fait planter run_retriever.save_results() (json.dump) → tout le
-        # subprocess retrieve échoue dès le premier résultat (ndcg=None côté benchmark).
+        # Secondary regression: the score must be a JSON-serializable Python float.
+        # np.float32 crashes run_retriever.save_results() (json.dump) → the whole
+        # retrieve subprocess fails on the first result (ndcg=None on the benchmark side).
         import json
 
         assert isinstance(results[0]["score"], float), (
-            f"score doit être un float Python, pas {type(results[0]['score']).__name__}"
+            f"score must be a Python float, not {type(results[0]['score']).__name__}"
         )
-        json.dumps(results)  # ne doit pas lever TypeError
+        json.dumps(results)  # must not raise TypeError
 
     finally:
         milvuscolvision.MilvusClient = original_milvus_client

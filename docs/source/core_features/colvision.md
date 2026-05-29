@@ -26,9 +26,18 @@ The model/processor class is auto-detected from `model_name`, and the embedding 
 
 Set `model_name` in the YAML config, or override it via the `-m` / `--model` CLI flag on the `process` and `retrieve` commands.
 
+The pipeline runs in three steps — `process`, then `index`, then `retrieve` — and the
+`-m` / `--model` flag must be passed to both `process` and `retrieve`:
+
 ```bash
-python3 -m mmore colvision process -c config_process.yml -m vidore/colqwen2.5-v0.2
-python3 -m mmore colvision retrieve -c config_retrieval.yml -m vidore/colqwen2.5-v0.2
+# 1. Process PDFs into embeddings
+python3 -m mmore colvision process --config-file examples/colvision/config_process.yml -m vidore/colqwen2.5-v0.2
+
+# 2. Index the embeddings into Milvus (no model needed here)
+python3 -m mmore colvision index --config-file examples/colvision/config_index.yml
+
+# 3. Retrieve with the same model used at processing time
+python3 -m mmore colvision retrieve --config-file examples/colvision/config_retrieval.yml -m vidore/colqwen2.5-v0.2
 ```
 
 > **Important:** the same model must be used across `process` and `retrieve` — mixing produces incorrect results.
@@ -115,21 +124,6 @@ max_workers: 16
 text_parquet_path: "./output/pdf_page_text.parquet"
 ```
 
-#### Single Query Mode
-```bash
-# Run retrieval for a single query defined in the config file
-python3 -m mmore colvision retrieve --config-file examples/colvision/config_retrieval_single.yml
-```
-
-**Example config (`config_retrieval_single.yml`):**
-```yaml
-mode: "single"
-db_path: "./milvus_data"
-collection_name: "pdf_pages"
-model_name: "vidore/colpali-v1.3"
-query: "What may lead to dysbiosis and inflammation?"
-top_k: 5
-```
 Host and port are specified via CLI flags (`--host` and `--port`), not in the config file.
 
 #### Batch Mode
