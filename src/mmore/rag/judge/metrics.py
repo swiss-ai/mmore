@@ -56,16 +56,18 @@ def _check_thresholds(
 
     lines: List[str] = []
     all_pass = True
-    for key, bound in thresholds.items():
-        if not key.startswith("min_"):
+    for metric_key, value in metrics.items():
+        threshold_key = f"min_{metric_key}"
+        if threshold_key not in thresholds:
             continue
-        metric_key = key[4:]
-        value = metrics.get(metric_key, 0.0)
+        bound = thresholds[threshold_key]
         passed = value >= bound
         if not passed:
             all_pass = False
         status = "PASS" if passed else "FAIL"
-        lines.append(f"- {metric_key}: {value:.4f} (need {key}={bound}) -> {status}")
+        lines.append(
+            f"- {metric_key}: {value:.4f} (need {threshold_key}={bound}) -> {status}"
+        )
 
     status_text = "\n".join(lines) if lines else "No applicable threshold keys."
     return all_pass, status_text

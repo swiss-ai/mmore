@@ -77,7 +77,7 @@ class JudgeConfig:
     allow_add_questions: bool = True
     allow_add_context: bool = True
     allow_re_retrieve: bool = True
-    rerank_after_merge: bool = False
+    rerank_after_merge: bool = True
     max_web_results: int = 5
     max_chunk_chars: int = 400
     force_corrective_action: Optional[str] = None

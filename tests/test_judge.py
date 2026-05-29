@@ -20,6 +20,7 @@ from mmore.rag.judge import (
     record_correction_metrics,
     retrieve_with_judge,
 )
+from mmore.rag.judge.corrective import apply_corrective_action
 from mmore.run_rag import RAGInferenceConfig
 from mmore.utils import load_config
 
@@ -31,6 +32,12 @@ def _cfg(**kw):
     return replace(_CFG, **kw)
 
 
+def _retriever(**kw):
+    retriever = MagicMock(**kw)
+    retriever.reranker_model = None
+    return retriever
+
+
 def _doc(sim=0.5, id_="1", rerank=None):
     meta = {"rank": 1, "similarity": sim, "id": id_}
     if rerank is not None:
@@ -38,27 +45,10 @@ def _doc(sim=0.5, id_="1", rerank=None):
     return Document(page_content=id_, metadata=meta)
 
 
-def test_judge_output_keys_match_retrieve_with_judge():
-    retriever, judge = MagicMock(), MagicMock()
-    retriever.invoke.return_value = [_doc(0.9)]
-    judge.config = _cfg()
-    judge.evaluate.return_value = JudgeResult(decision=JudgeDecision.PROCEED)
-    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
-    for key in JUDGE_OUTPUT_KEYS:
-        if key == "retrieval_corrections":
-            continue  # only set when a corrective action ran
-        assert key in out
-
-    public = extract_judge_output(out)
-    assert public["judge_decision"] == "PROCEED"
-    assert "retrieval_corrections" not in public
-
-
 def test_judge_result_proceed():
     r = JudgeResult.proceed("metrics_above_thresholds")
     assert r.decision == JudgeDecision.PROCEED
-    assert r.reason == "metrics_above_thresholds"
-    assert r.exit_reason == "metrics_above_thresholds"
+    assert r.reason == r.exit_reason == "metrics_above_thresholds"
     assert r.llm_invoked is False
 
     r2 = JudgeResult.proceed(
@@ -66,45 +56,45 @@ def test_judge_result_proceed():
         llm_invoked=True,
         context_relevance_score=5.0,
     )
-    assert r2.llm_invoked is True
-    assert r2.context_relevance_score == 5.0
+    assert r2.llm_invoked and r2.context_relevance_score == 5.0
 
 
-def test_evaluate_metrics_unifies_compute_threshold_and_status():
+def test_metrics_thresholds_merge_and_correction_record():
     docs = [_doc(0.9, "1"), _doc(0.5, "2")]
     thresholds = {"min_mean_similarity": 0.35, "min_num_docs": 2}
+
+    assert compute_retrieval_metrics(docs)["mean_similarity"] == pytest.approx(0.7)
+
     metrics, passed, status = evaluate_metrics(docs, thresholds)
     assert metrics["mean_similarity"] == pytest.approx(0.7)
-    assert passed is True
-    assert "mean_similarity" in status
-    assert "PASS" in status
+    assert passed and "PASS" in status
 
     metrics2, passed2, _ = evaluate_metrics(
         docs, thresholds, context_relevance_score=3.0
     )
-    assert metrics2["context_relevance_score"] == 3.0
-    assert passed2 is True
+    assert metrics2["context_relevance_score"] == 3.0 and passed2
 
-
-def test_threshold_key_derived_from_min_prefix():
-    docs = [_doc(0.9, "1")]
-    thresholds = {"min_max_rerank_score": 0.5}
-    _, passed, _ = evaluate_metrics(docs, thresholds)
-    assert passed is False
-    docs_reranked = [_doc(0.9, "1", rerank=0.8)]
-    _, passed, _ = evaluate_metrics(docs_reranked, thresholds)
-    assert passed
-
-
-def test_correction_delta_omits_context_relevance_score():
-    before = [_doc(0.2, "1")]
-    after = [_doc(0.8, "2", rerank=2.0)]
-    record = record_correction_metrics(
-        "RE_RETRIEVE", before, after, _THRESH, context_relevance_score=7.0
+    _, fail_rerank, _ = evaluate_metrics(
+        [_doc(0.9, "1")], {"min_max_rerank_score": 0.5}
     )
-    assert "context_relevance_score" not in record["delta"]
-    assert "context_relevance_score" not in record["before"]
-    assert "context_relevance_score" not in record["after"]
+    assert not fail_rerank
+    _, pass_rerank, _ = evaluate_metrics(
+        [_doc(0.9, "1", rerank=0.8)], {"min_max_rerank_score": 0.5}
+    )
+    assert pass_rerank
+
+    merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
+    assert len(merged) == 2 and merged[1].metadata["rank"] == 2
+
+    record = record_correction_metrics(
+        "RE_RETRIEVE",
+        [_doc(0.2, "1")],
+        [_doc(0.8, "2", rerank=2.0)],
+        _THRESH,
+        context_relevance_score=7.0,
+    )
+    for section in ("delta", "before", "after"):
+        assert "context_relevance_score" not in record[section]
     assert record["delta"]["delta_mean_similarity"] == pytest.approx(0.6)
 
 
@@ -168,9 +158,8 @@ def test_correction_delta_omits_context_relevance_score():
     ],
 )
 def test_coerce_decision_fallback(cfg_kw, raw, expected):
-    decision, coerced, raw_decision = coerce_decision(raw, _cfg(**cfg_kw))
-    assert decision == expected
-    assert raw_decision == raw
+    decision, _, raw_decision = coerce_decision(raw, _cfg(**cfg_kw))
+    assert decision == expected and raw_decision == raw
 
 
 def test_parse_json_repairs_trailing_comma_and_python_literals():
@@ -180,23 +169,8 @@ def test_parse_json_repairs_trailing_comma_and_python_literals():
     assert p["sufficient"] is True
 
 
-def test_metrics_merge_and_thresholds():
-    docs = [_doc(0.9, "1"), _doc(0.5, "2")]
-    m = compute_retrieval_metrics(docs)
-    assert m["mean_similarity"] == pytest.approx(0.7)
-    th = {"min_mean_similarity": 0.35, "min_num_docs": 2}
-    _, passed, _ = evaluate_metrics(docs, th)
-    assert passed
-    _, passed, _ = evaluate_metrics(docs, th, context_relevance_score=3.0)
-    assert passed
-    merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
-    assert len(merged) == 2 and merged[1].metadata["rank"] == 2
-    merged = merge_documents([_doc(0.8, "1")], [_doc(0.8, "1"), _doc(0.6, "2")])
-    assert len(merged) == 2 and merged[1].metadata["rank"] == 2
-
-
 @pytest.mark.parametrize(
-    "cfg_kw,docs,llm_json,invoke,decision,reason_sub",
+    "cfg_kw,docs,llm_json,invoke,decision,reason_sub,extra",
     [
         (
             {"force_corrective_action": "PROCEED", "metric_thresholds": _THRESH},
@@ -205,6 +179,7 @@ def test_metrics_merge_and_thresholds():
             False,
             "PROCEED",
             "force_corrective",
+            {},
         ),
         (
             {"metric_thresholds": {"min_mean_similarity": 0.3, "min_num_docs": 1}},
@@ -213,6 +188,7 @@ def test_metrics_merge_and_thresholds():
             False,
             "PROCEED",
             "metrics_above",
+            {"exit_reason": "metrics_above_thresholds"},
         ),
         (
             {},
@@ -221,6 +197,7 @@ def test_metrics_merge_and_thresholds():
             True,
             "RE_RETRIEVE",
             "weak",
+            {"exit_reason": "llm_corrective"},
         ),
         (
             {"metric_thresholds": _THRESH},
@@ -229,6 +206,7 @@ def test_metrics_merge_and_thresholds():
             True,
             "PROCEED",
             "ok",
+            {"context_relevance_score": 8.0, "exit_reason": "llm_proceed"},
         ),
         (
             {"metric_thresholds": {"min_num_docs": 1}},
@@ -237,10 +215,13 @@ def test_metrics_merge_and_thresholds():
             True,
             "PROCEED",
             "parse_error",
+            {},
         ),
     ],
 )
-def test_llm_judge_evaluate(cfg_kw, docs, llm_json, invoke, decision, reason_sub):
+def test_llm_judge_evaluate(
+    cfg_kw, docs, llm_json, invoke, decision, reason_sub, extra
+):
     llm = MagicMock()
     if llm_json:
         llm.invoke.return_value = MagicMock(content=llm_json)
@@ -248,29 +229,18 @@ def test_llm_judge_evaluate(cfg_kw, docs, llm_json, invoke, decision, reason_sub
     assert llm.invoke.called == invoke
     assert r.decision == JudgeDecision(decision)
     assert reason_sub in r.reason
-
-
-def test_llm_judge_early_exit_on_thresholds():
-    llm = MagicMock()
-    judge = LLMJudge(
-        llm, _cfg(metric_thresholds={"min_mean_similarity": 0.3, "min_num_docs": 1})
-    )
-    result = judge._early_exit([_doc(0.9)], after_correction=False)
-    assert result is not None
-    assert result.decision == JudgeDecision.PROCEED
-    assert result.reason == "metrics_above_thresholds"
-    llm.invoke.assert_not_called()
+    for key, value in extra.items():
+        assert getattr(r, key) == value
 
 
 def test_llm_judge_result_from_parsed():
-    judge = LLMJudge(MagicMock(), _cfg())
     parsed = {
         "decision": "RE_RETRIEVE",
         "reason": "weak retrieval",
         "context_relevance_score": 4,
         "retrieve_params": {"k": 10},
     }
-    result = judge._result_from_parsed(parsed)
+    result = LLMJudge(MagicMock(), _cfg())._result_from_parsed(parsed)
     assert result.decision == JudgeDecision.RE_RETRIEVE
     assert result.reason == "weak retrieval"
     assert result.exit_reason == "llm_corrective"
@@ -278,81 +248,147 @@ def test_llm_judge_result_from_parsed():
     assert result.retrieve_params == {"k": 10}
 
 
-def test_retrieve_with_judge_proceed():
-    retriever, judge = MagicMock(), MagicMock()
-    retriever.invoke.return_value = [_doc(0.9)]
-    judge.config = _cfg()
-    judge.evaluate.return_value = JudgeResult(decision=JudgeDecision.PROCEED)
-    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
-    assert out["judge_decision"] == "PROCEED" and out["judge_actions"] == []
-    judge.evaluate.assert_called_once()
-
-
-def test_retrieve_with_judge_re_retrieve_and_correction_log():
-    retriever, judge = MagicMock(), MagicMock()
-    retriever.k = 5
-    retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
-    judge.config = _cfg(max_corrective_steps=2)
-    judge.evaluate.side_effect = [
-        JudgeResult(
-            decision=JudgeDecision.RE_RETRIEVE,
-            exit_reason="llm_corrective",
-            llm_invoked=True,
-            retrieve_params={"k": 10},
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param(
+            {
+                "name": "proceed",
+                "max_steps": 1,
+                "invoke_docs": [[_doc(0.9)]],
+                "evaluate_results": [
+                    JudgeResult(decision=JudgeDecision.PROCEED),
+                ],
+                "checks": lambda out, judge, retriever: (
+                    all(
+                        k in out
+                        for k in JUDGE_OUTPUT_KEYS
+                        if k != "retrieval_corrections"
+                    )
+                    and extract_judge_output(out)["judge_decision"] == "PROCEED"
+                    and "retrieval_corrections" not in extract_judge_output(out)
+                    and out["judge_actions"] == []
+                    and judge.evaluate.call_count == 1
+                ),
+            },
+            id="proceed",
         ),
-        JudgeResult(
-            decision=JudgeDecision.PROCEED,
-            exit_reason="metrics_above_thresholds",
+        pytest.param(
+            {
+                "name": "re_retrieve_success",
+                "max_steps": 2,
+                "retriever_k": 5,
+                "invoke_docs": [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]],
+                "evaluate_results": [
+                    JudgeResult(
+                        decision=JudgeDecision.RE_RETRIEVE,
+                        exit_reason="llm_corrective",
+                        llm_invoked=True,
+                        retrieve_params={"k": 10},
+                    ),
+                    JudgeResult(
+                        decision=JudgeDecision.PROCEED,
+                        exit_reason="metrics_above_thresholds",
+                    ),
+                ],
+                "checks": lambda out, judge, retriever: (
+                    out["judge_actions"] == ["RE_RETRIEVE"]
+                    and out["retrieval_corrections"][0]["action"] == "RE_RETRIEVE"
+                    and out["judge_llm_calls"] == 1
+                    and judge.evaluate.call_count == 2
+                ),
+            },
+            id="re_retrieve",
         ),
-    ]
-    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
-    assert out["judge_actions"] == ["RE_RETRIEVE"]
-    assert out["retrieval_corrections"][0]["action"] == "RE_RETRIEVE"
-    assert out["judge_llm_calls"] == 1
-    assert judge.evaluate.call_count == 2
-
-
-def test_retrieve_with_judge_exports_trace_and_max_steps():
-    retriever, judge = MagicMock(), MagicMock()
-    retriever.k = 5
-    retriever.invoke.side_effect = [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]]
-    judge.config = _cfg(max_corrective_steps=1)
-    judge.evaluate.side_effect = [
-        JudgeResult(
-            decision=JudgeDecision.RE_RETRIEVE,
-            exit_reason="llm_corrective",
-            llm_invoked=True,
-            retrieve_params={"k": 10},
+        pytest.param(
+            {
+                "name": "max_corrective_steps",
+                "max_steps": 1,
+                "retriever_k": 5,
+                "invoke_docs": [[_doc(0.2)], [_doc(0.8, "2", rerank=2.0)]],
+                "evaluate_results": [
+                    JudgeResult(
+                        decision=JudgeDecision.RE_RETRIEVE,
+                        exit_reason="llm_corrective",
+                        llm_invoked=True,
+                        retrieve_params={"k": 10},
+                    ),
+                    JudgeResult(
+                        decision=JudgeDecision.RE_RETRIEVE,
+                        exit_reason="llm_corrective",
+                        llm_invoked=True,
+                    ),
+                ],
+                "checks": lambda out, judge, retriever: (
+                    out["judge_reason"] == "max_corrective_steps"
+                    and out["hit_max_corrective_steps"] == 1.0
+                    and out["judge_llm_calls"] == 2
+                    and out["judge_actions"] == ["RE_RETRIEVE"]
+                ),
+            },
+            id="max_steps",
         ),
-        JudgeResult(
-            decision=JudgeDecision.RE_RETRIEVE,
-            exit_reason="llm_corrective",
-            llm_invoked=True,
+        pytest.param(
+            {
+                "name": "metrics_stop_after_correction",
+                "max_steps": 2,
+                "metric_thresholds": _THRESH,
+                "invoke_docs": [
+                    [_doc(0.2)],
+                    [
+                        _doc(0.9, "2", rerank=2.0),
+                        _doc(0.85, "3", rerank=2.0),
+                        _doc(0.88, "4", rerank=2.0),
+                    ],
+                ],
+                "evaluate_results": [
+                    JudgeResult(
+                        decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}
+                    ),
+                    JudgeResult(
+                        decision=JudgeDecision.PROCEED,
+                        reason="metrics_above_thresholds",
+                    ),
+                ],
+                "checks": lambda out, judge, retriever: (
+                    out["judge_decision"] == "PROCEED"
+                    and out["retrieval_metrics"]["thresholds_met"] == 1.0
+                    and judge.evaluate.call_count == 2
+                ),
+            },
+            id="metrics_stop",
         ),
-    ]
+    ],
+)
+def test_retrieve_with_judge(scenario):
+    retriever, judge = _retriever(), MagicMock()
+    if "retriever_k" in scenario:
+        retriever.k = scenario["retriever_k"]
+    retriever.invoke.side_effect = scenario["invoke_docs"]
+
+    cfg_kw = {"max_corrective_steps": scenario["max_steps"]}
+    if "metric_thresholds" in scenario:
+        cfg_kw["metric_thresholds"] = scenario["metric_thresholds"]
+    judge.config = _cfg(**cfg_kw)
+    judge.evaluate.side_effect = scenario["evaluate_results"]
+
     out = retrieve_with_judge(retriever, judge, {"input": "q?"})
-    assert out["judge_reason"] == "max_corrective_steps"
-    assert out["hit_max_corrective_steps"] == 1.0
-    assert out["judge_llm_calls"] == 2
-    assert out["judge_actions"] == ["RE_RETRIEVE"]
+    assert scenario["checks"](out, judge, retriever)
 
 
-def test_retrieve_stops_on_metrics_without_second_llm_call():
-    retriever, judge = MagicMock(), MagicMock()
-    retriever.invoke.side_effect = [
-        [_doc(0.2)],
-        [
-            _doc(0.9, "2", rerank=2.0),
-            _doc(0.85, "3", rerank=2.0),
-            _doc(0.88, "4", rerank=2.0),
-        ],
-    ]
-    judge.config = _cfg(max_corrective_steps=2, metric_thresholds=_THRESH)
-    judge.evaluate.side_effect = [
-        JudgeResult(decision=JudgeDecision.RE_RETRIEVE, retrieve_params={"k": 10}),
-        JudgeResult(decision=JudgeDecision.PROCEED, reason="metrics_above_thresholds"),
-    ]
-    out = retrieve_with_judge(retriever, judge, {"input": "q?"})
-    assert out["judge_decision"] == "PROCEED"
-    assert out["retrieval_metrics"]["thresholds_met"] == 1.0
-    assert judge.evaluate.call_count == 2
+def test_rerank_after_merge_on_add_context():
+    retriever = _retriever()
+    retriever.reranker_model = MagicMock()
+    retriever._get_web_documents.return_value = [_doc(0.5, "web")]
+    reranked = [_doc(0.9, "onprem", rerank=2.0), _doc(0.5, "web", rerank=1.0)]
+    retriever.rerank.return_value = reranked
+
+    docs = apply_corrective_action(
+        retriever,
+        _cfg(rerank_after_merge=True),
+        {"input": "q?"},
+        [_doc(0.9, "onprem", rerank=2.0)],
+        JudgeResult(decision=JudgeDecision.ADD_CONTEXT, web_query="web q"),
+    )
+    retriever.rerank.assert_called_once_with("q?", retriever.rerank.call_args[0][1])
+    assert docs == reranked
