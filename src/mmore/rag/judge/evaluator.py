@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .decisions import allowed_actions, coerce_decision
 from .metrics import evaluate_metrics
 from .parsing import (
-    extract_llm_text,
+    _judge_json_snippet,
     format_chunks_for_prompt,
     parse_context_relevance_score,
     parse_json_response,
@@ -67,7 +67,11 @@ class LLMJudge:
         return None
 
     def _result_from_parsed(
-        self, parsed: Dict[str, Any], *, llm_invoked: bool = True
+        self,
+        parsed: Dict[str, Any],
+        *,
+        llm_invoked: bool = True,
+        raw_llm_response: Optional[str] = None,
     ) -> JudgeResult:
         decision, coerced, raw = coerce_decision(
             str(parsed.get("decision", JudgeDecision.PROCEED.value)), self.config
@@ -92,6 +96,7 @@ class LLMJudge:
             extra_questions=[str(q) for q in extra_questions],
             web_query=parsed.get("web_query"),
             retrieve_params=parsed.get("retrieve_params"),
+            raw_llm_response=raw_llm_response,
         )
 
     def evaluate(
@@ -129,15 +134,19 @@ class LLMJudge:
             ]
         )
 
-        try:
-            parsed = parse_json_response(extract_llm_text(response.content))
-        except (json.JSONDecodeError, TypeError) as e:
-            raw = extract_llm_text(response.content)
-            logger.warning(
-                "Failed to parse judge JSON: %s | raw=%r",
-                e,
-                raw[:500],
-            )
-            return JudgeResult.proceed("parse_error_fallback", llm_invoked=True)
+        raw_llm_response = _judge_json_snippet(response.content)
 
-        return self._result_from_parsed(parsed)
+        try:
+            parsed = parse_json_response(raw_llm_response)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(
+                "Failed to parse judge JSON: %s | see judge_steps[].llm_response in output",
+                e,
+            )
+            return JudgeResult.proceed(
+                "parse_error_fallback",
+                llm_invoked=True,
+                raw_llm_response=raw_llm_response,
+            )
+
+        return self._result_from_parsed(parsed, raw_llm_response=raw_llm_response)

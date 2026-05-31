@@ -21,6 +21,7 @@ from mmore.rag.judge import (
     retrieve_with_judge,
 )
 from mmore.rag.judge.corrective import apply_corrective_action
+from mmore.rag.judge.parsing import extract_llm_text
 from mmore.run_rag import RAGInferenceConfig
 from mmore.utils import load_config
 
@@ -160,6 +161,45 @@ def test_metrics_thresholds_merge_and_correction_record():
 def test_coerce_decision_fallback(cfg_kw, raw, expected):
     decision, _, raw_decision = coerce_decision(raw, _cfg(**cfg_kw))
     assert decision == expected and raw_decision == raw
+
+
+def test_parse_json_from_full_llama_response():
+    raw = (
+        "Retrieval metrics: {'num_docs': 5.0}\n"
+        "Allowed actions: ['PROCEED', 'ADD_QUESTIONS']\n"
+        "<|eot_id|>assistant\n\n"
+        '{"decision":"ADD_QUESTIONS","extra_questions":["q1","q2"],"reason":"split"}'
+    )
+    parsed = parse_json_response(raw)
+    assert parsed["decision"] == "ADD_QUESTIONS"
+    assert parsed["extra_questions"] == ["q1", "q2"]
+
+
+def test_extract_llm_text_strips_llama_chat_template():
+    raw = (
+        "<|begin_of_text|>systemYou are a judge.<|eot_id|>"
+        "userQuestion?<|eot_id|>assistant"
+        '{"decision":"ADD_QUESTIONS","extra_questions":["q1"]}'
+        "<|eot_id|>"
+    )
+    assert (
+        extract_llm_text(raw) == '{"decision":"ADD_QUESTIONS","extra_questions":["q1"]}'
+    )
+
+
+def test_step_record_includes_llm_response():
+    from mmore.rag.judge.decisions import step_record
+
+    result = JudgeResult(
+        decision=JudgeDecision.ADD_QUESTIONS,
+        extra_questions=["q1"],
+        llm_invoked=True,
+        raw_llm_response='{"decision":"ADD_QUESTIONS","extra_questions":["q1"]}',
+        exit_reason="llm_corrective",
+    )
+    record = step_record(0, result, "main query", 5)
+    assert record["llm_response"] == result.raw_llm_response
+    assert record["extra_questions"] == ["q1"]
 
 
 def test_parse_json_repairs_trailing_comma_and_python_literals():
