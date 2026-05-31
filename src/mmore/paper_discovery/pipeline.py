@@ -11,6 +11,25 @@ from .pdf import download_pdf, extract_text
 from .schema import CategoryQuery, Paper
 from .sources import get_adapter
 
+try:
+    from tqdm.auto import tqdm
+except ImportError:  # pragma: no cover
+    # tqdm isn't in paper_discovery's hard deps - if missing, run silently
+    # but still expose the methods we touch (set_postfix).
+    class _NoTqdm:
+        def __init__(self, iterable, **_kwargs):
+            self._iterable = iterable
+
+        def __iter__(self):
+            return iter(self._iterable)
+
+        def set_postfix(self, **_kwargs):
+            pass
+
+    def tqdm(iterable, **kwargs):  # type: ignore[no-redef]
+        return _NoTqdm(iterable, **kwargs)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,14 +44,25 @@ class PaperDiscoveryPipeline:
         logger.info("Built %d category queries", len(queries))
 
         all_papers: List[Paper] = []
-        for q in queries:
-            all_papers.extend(self._fetch_one(q))
+        deduped: List[Paper] = []
+        try:
+            for q in queries:
+                all_papers.extend(self._fetch_one(q))
 
-        deduped = _dedupe(all_papers)
-        logger.info("After dedupe: %d papers (from %d)", len(deduped), len(all_papers))
+            deduped = _dedupe(all_papers)
+            logger.info(
+                "After dedupe: %d papers (from %d)", len(deduped), len(all_papers)
+            )
 
-        if cfg.download_pdfs:
-            self._enrich_with_pdf_text(deduped)
+            if cfg.download_pdfs:
+                self._enrich_with_pdf_text(deduped)
+        except KeyboardInterrupt:
+            deduped = _dedupe(all_papers) if not deduped else deduped
+            logger.warning(
+                "Interrupted - writing partial results (%d papers) to %s",
+                len(deduped),
+                cfg.output_file,
+            )
 
         self._write_output(deduped)
         return deduped
@@ -60,13 +90,48 @@ class PaperDiscoveryPipeline:
 
     def _enrich_with_pdf_text(self, papers: Iterable[Paper]) -> None:
         cfg = self.config
-        for paper in papers:
+        papers = list(papers)
+        succeeded = paywalled = errored = skipped = 0
+        bar = tqdm(papers, desc="PDFs", unit="paper")
+        for paper in bar:
             if not paper.url:
+                skipped += 1
+                bar.set_postfix(ok=succeeded, paywall=paywalled, err=errored)
                 continue
-            path = download_pdf(paper.url, cfg.pdf_dir, user_agent=cfg.user_agent)
-            if not path:
-                continue
-            paper.extracted_text = extract_text(path) or None
+            result = download_pdf(
+                paper.url,
+                cfg.pdf_dir,
+                user_agent=cfg.user_agent,
+                proxy_prefix=cfg.pdf_proxy_prefix,
+            )
+            if result.path:
+                paper.extracted_text = extract_text(result.path) or None
+                succeeded += 1
+            elif result.paywalled:
+                paywalled += 1
+            elif result.errored:
+                errored += 1
+            else:
+                skipped += 1
+            bar.set_postfix(ok=succeeded, paywall=paywalled, err=errored)
+
+        total = succeeded + paywalled + errored + skipped
+        logger.info(
+            "PDF download: %d/%d succeeded, %d paywalled, %d errors, %d skipped",
+            succeeded,
+            total,
+            paywalled,
+            errored,
+            skipped,
+        )
+        if paywalled and not cfg.pdf_proxy_prefix:
+            logger.info(
+                "Tip: %d PDFs were blocked by publisher paywalls. Set "
+                "`pdf_proxy_prefix` in your config to use institutional "
+                "access (e.g. EPFL: 'https://login.proxy.epfl.ch'), or "
+                "set `download_pdfs: false` to skip PDFs entirely.",
+                paywalled,
+            )
 
     def _write_output(self, papers: List[Paper]) -> None:
         out_path = Path(self.config.output_file)

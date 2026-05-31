@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 API_URL = "http://export.arxiv.org/api/query"
 RATE_LIMIT_SECONDS = 3.0  # arXiv ToS — do not lower.
+BACKOFF_SECONDS = 30.0  # Cooldown after a 429 — arXiv recovers quickly with space.
+REQUEST_TIMEOUT = 60  # arXiv cold queries often take 30-45s.
 NS = {"atom": "http://www.w3.org/2005/Atom"}
 
 # Words to drop when extracting key terms from a boolean string.
@@ -63,9 +65,21 @@ class ArxivAdapter:
                 }
                 try:
                     r = requests.get(
-                        API_URL, params=params, headers=self.headers, timeout=30
+                        API_URL,
+                        params=params,
+                        headers=self.headers,
+                        timeout=REQUEST_TIMEOUT,
                     )
                     r.raise_for_status()
+                except requests.HTTPError as e:
+                    status = getattr(e.response, "status_code", None)
+                    if status == 429:
+                        logger.warning("arXiv 429 - backing off %ss", BACKOFF_SECONDS)
+                        time.sleep(BACKOFF_SECONDS)
+                    else:
+                        logger.warning("arXiv request failed (%s): %s", q, e)
+                        time.sleep(RATE_LIMIT_SECONDS)
+                    break
                 except requests.RequestException as e:
                     logger.warning("arXiv request failed (%s): %s", q, e)
                     time.sleep(RATE_LIMIT_SECONDS)

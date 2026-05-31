@@ -18,6 +18,10 @@ class PaperDiscoveryConfig:
       max_pages:         Max paginated requests per source per query.
       max_results:       Hard cap on results returned per source per query.
       user_agent:        HTTP User-Agent string for polite requests.
+      pdf_proxy_prefix:  Optional EZproxy-style prefix that wraps every PDF
+                         URL for institutional access (e.g.
+                         "https://login.proxy.epfl.ch"). Leave None to fetch
+                         URLs directly — expect 403s on paywalled publishers.
     """
 
     synonyms_path: str
@@ -32,3 +36,4 @@ class PaperDiscoveryConfig:
     max_results: int = 50
     user_agent: str = "mmore-paper-discovery/1.0 (https://github.com/swiss-ai/mmore)"
     arxiv_category_map: Optional[Dict[str, str]] = None
+    pdf_proxy_prefix: Optional[str] = None
