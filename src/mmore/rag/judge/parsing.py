@@ -68,8 +68,7 @@ def _judge_json_snippet(text: Any) -> str:
     return text[start:]
 
 
-def parse_json_response(text: str) -> Dict[str, Any]:
-    text = _judge_json_snippet(text)
+def _parse_json_dict(text: str) -> Dict[str, Any]:
     text = text.strip()
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
@@ -100,6 +99,21 @@ def parse_json_response(text: str) -> Dict[str, Any]:
         if last_error is not None:
             raise last_error
         raise json.JSONDecodeError("Could not parse judge JSON", snippet, 0)
+
+
+def parse_judge_llm_response(content: Any) -> tuple[str, Dict[str, Any]]:
+    """Extract the judge JSON snippet and parse it (single preprocessing pass)."""
+    raw = _judge_json_snippet(content)
+    return raw, _parse_json_dict(raw)
+
+
+def extract_judge_raw_response(content: Any) -> str:
+    """Judge JSON snippet for logging when full parsing fails."""
+    return _judge_json_snippet(content)
+
+
+def parse_json_response(text: str) -> Dict[str, Any]:
+    return _parse_json_dict(_judge_json_snippet(text))
 
 
 _LLAMA_ASSISTANT_DELIMITERS = (

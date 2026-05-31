@@ -11,10 +11,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .decisions import allowed_actions, coerce_decision
 from .metrics import evaluate_metrics
 from .parsing import (
-    _judge_json_snippet,
+    extract_judge_raw_response,
     format_chunks_for_prompt,
     parse_context_relevance_score,
-    parse_json_response,
+    parse_judge_llm_response,
 )
 from .types import JudgeConfig, JudgeDecision, JudgeResult
 
@@ -134,10 +134,8 @@ class LLMJudge:
             ]
         )
 
-        raw_llm_response = _judge_json_snippet(response.content)
-
         try:
-            parsed = parse_json_response(raw_llm_response)
+            raw_llm_response, parsed = parse_judge_llm_response(response.content)
         except (json.JSONDecodeError, TypeError) as e:
             logger.warning(
                 "Failed to parse judge JSON: %s | see judge_steps[].llm_response in output",
@@ -146,7 +144,7 @@ class LLMJudge:
             return JudgeResult.proceed(
                 "parse_error_fallback",
                 llm_invoked=True,
-                raw_llm_response=raw_llm_response,
+                raw_llm_response=extract_judge_raw_response(response.content),
             )
 
         return self._result_from_parsed(parsed, raw_llm_response=raw_llm_response)
