@@ -1,0 +1,26 @@
+synonyms_path: examples/paper_discovery/synonyms.json
+output_file: examples/paper_discovery/papers.json
+pdf_dir: examples/paper_discovery/pdf_cache
+
+sources:
+  - openalex
+  - europepmc
+  - arxiv
+
+download_pdfs: true
+max_pages: 2
+max_results: 25
+
+user_agent: "mmore-paper-discovery/1.0 (https://github.com/swiss-ai/mmore)"
+
+categories:
+  Broad Foundational Search:
+    - Foundation model
+    - Machine Learning
+  Humanitarian AI Search:
+    - Foundation model
+    - Humanitarian & Crisis Response
+
+arxiv_category_map:
+  Foundational: cs.LG
+  Humanitarian: cs.CY

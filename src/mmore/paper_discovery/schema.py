@@ -40,6 +40,7 @@ class Paper:
             "year": self.year,
             "extracted_text": self.extracted_text,
             "source": self.source,
+            "search_category": self.search_category,
         }
 
 

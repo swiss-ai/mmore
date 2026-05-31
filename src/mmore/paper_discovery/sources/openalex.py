@@ -41,7 +41,7 @@ class OpenAlexAdapter:
                 )
                 r.raise_for_status()
                 data = r.json()
-            except (requests.RequestException, ValueError) as e:
+            except Exception as e:
                 logger.warning("OpenAlex request failed: %s", e)
                 break
 

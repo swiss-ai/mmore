@@ -65,6 +65,9 @@ def build_boolean_queries(
                 continue
             groups.append(_or_group(entry))
 
+        if not groups:
+            continue
+
         queries.append(
             CategoryQuery(
                 combination_title=cat_name,
