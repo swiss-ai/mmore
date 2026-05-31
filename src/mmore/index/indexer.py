@@ -79,6 +79,7 @@ class Indexer:
         # qdrant adapter is only loaded when explicitly requested.
         if config_obj.db.backend == "qdrant":
             from .qdrant_client import QdrantMilvusClient
+
             client = QdrantMilvusClient(
                 uri=config_obj.db.uri,
                 db_name=config_obj.db.name,

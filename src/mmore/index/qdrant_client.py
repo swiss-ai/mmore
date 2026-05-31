@@ -52,9 +52,9 @@ logger = logging.getLogger(__name__)
 _UUID_NS = uuid.NAMESPACE_URL
 
 # Reserved payload keys used by the adapter for bookkeeping.
-_STR_ID_KEY = "_str_id"        # original mmore string chunk id
+_STR_ID_KEY = "_str_id"  # original mmore string chunk id
 _PARTITION_KEY = "_partition"  # logical partition emulation
-_META_KEY = "_is_meta"         # marks the model-config sentinel point
+_META_KEY = "_is_meta"  # marks the model-config sentinel point
 _INDEX_PARAMS_KEY = "_index_params"
 
 
@@ -277,9 +277,7 @@ class QdrantMilvusClient:
 
     # ── Index metadata round-trip ─────────────────────────────────────────
 
-    def describe_index(
-        self, collection_name: str, field_name: str
-    ) -> Dict[str, Any]:
+    def describe_index(self, collection_name: str, field_name: str) -> Dict[str, Any]:
         """Return the model_name / is_multimodal stored at create time."""
         meta_id = _meta_point_uuid(collection_name)
         results = self._qdrant.retrieve(
@@ -432,7 +430,9 @@ class QdrantMilvusClient:
 
         leg_limit = max(int(limit), 1) * 2
         prefetch = [
-            Prefetch(query=list(dense_query), using="dense", limit=leg_limit, filter=qf),
+            Prefetch(
+                query=list(dense_query), using="dense", limit=leg_limit, filter=qf
+            ),
             Prefetch(
                 query=SparseVector(
                     indices=list(sparse_query.keys()),
@@ -460,9 +460,7 @@ class QdrantMilvusClient:
             payload.pop(_META_KEY, None)
             payload.pop(_PARTITION_KEY, None)
             entity = (
-                {f: payload.get(f) for f in wanted if f != "id"}
-                if wanted
-                else payload
+                {f: payload.get(f) for f in wanted if f != "id"} if wanted else payload
             )
             hits.append({"id": str_id, "distance": float(r.score), "entity": entity})
         return [hits]

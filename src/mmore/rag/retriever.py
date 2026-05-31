@@ -65,6 +65,7 @@ class Retriever(BaseRetriever):
         # only loaded when explicitly requested via `db.backend: qdrant`.
         if getattr(config.db, "backend", "milvus") == "qdrant":
             from ..index.qdrant_client import QdrantMilvusClient
+
             client = QdrantMilvusClient(uri=config.db.uri, db_name=config.db.name)
         else:
             client = MilvusClient(uri=config.db.uri, db_name=config.db.name)

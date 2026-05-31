@@ -93,7 +93,7 @@ QUERIES = [
 ]
 
 COLLECTION = "smoke_test"
-DENSE_MODEL = "debug"   # → langchain FakeEmbeddings(size=2048), no download
+DENSE_MODEL = "debug"  # → langchain FakeEmbeddings(size=2048), no download
 SPARSE_MODEL = "splade"  # intercepted by the stub above
 
 
@@ -116,7 +116,9 @@ def run_backend(backend: str) -> dict:
     # Milvus needs a .db file path; Qdrant needs a directory.
     db_uri = str(Path(tmp) / "data.db") if backend == "milvus" else tmp
     try:
-        print(f"\n{'=' * 60}\n  Backend: {backend.upper()}\n  DB path: {db_uri}\n{'=' * 60}")
+        print(
+            f"\n{'=' * 60}\n  Backend: {backend.upper()}\n  DB path: {db_uri}\n{'=' * 60}"
+        )
 
         # ── Index ─────────────────────────────────────────────────────────
         print("\n[1/3] Indexing 5 documents...")
