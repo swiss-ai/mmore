@@ -13,6 +13,7 @@ from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
+from langchain_core.runnables import RunnableConfig
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -309,6 +310,15 @@ class Retriever(BaseRetriever):
             doc.metadata["rank"] = rank_i
             reranked.append(doc)
         return reranked
+
+    def invoke(
+        self,
+        input: str | Dict[str, Any],
+        config: Optional[RunnableConfig] = None,
+        **kwargs: Any,
+    ) -> List[Document]:
+        """Accept a query string or RAG state dict with an ``input`` key."""
+        return super().invoke(input, config, **kwargs)
 
     def _get_relevant_documents(
         self,

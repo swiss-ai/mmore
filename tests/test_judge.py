@@ -8,6 +8,7 @@ from langchain_core.documents import Document
 
 from mmore.rag.judge import (
     JUDGE_OUTPUT_KEYS,
+    JudgeConfig,
     JudgeDecision,
     JudgeResult,
     LLMJudge,
@@ -25,7 +26,9 @@ from mmore.rag.judge.parsing import extract_llm_text
 from mmore.run_rag import RAGInferenceConfig
 from mmore.utils import load_config
 
-_CFG = load_config("examples/rag/config_judge.yaml", RAGInferenceConfig).rag.judge
+_inference_cfg = load_config("examples/rag/config_judge.yaml", RAGInferenceConfig)
+assert _inference_cfg.rag is not None and _inference_cfg.rag.judge is not None
+_CFG: JudgeConfig = _inference_cfg.rag.judge
 _THRESH = _CFG.metric_thresholds
 
 
