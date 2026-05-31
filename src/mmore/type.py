@@ -3,6 +3,7 @@ This module defines data structures and utilities for managing multimodal inputs
 file metadata, and URL descriptors.
 
 Classes:
+    DocumentMetadata: Base metadata for processed documents.
     MultimodalRawInput: Represents a single modality (e.g. image) with a type and value.
     MultimodalSample: Encapsulates a multimodal input sample with text, modalities, and metadata.
     FileDescriptor: Captures metadata for files, including path, size, timestamps, and extension.
@@ -14,11 +15,43 @@ import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import validators
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DocumentMetadata:
+    """Base metadata for processed documents."""
+
+    file_path: str = ""
+    processed_at: Optional[str] = None
+    processor_type: Optional[str] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        metadata = {"file_path": self.file_path}
+        if self.processed_at is not None:
+            metadata["processed_at"] = self.processed_at
+        if self.processor_type is not None:
+            metadata["processor_type"] = self.processor_type
+        metadata.update(self.extra)
+        return metadata
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentMetadata":
+        return cls(
+            file_path=str(data.get("file_path", "")),
+            processed_at=data.get("processed_at"),
+            processor_type=data.get("processor_type"),
+            extra={
+                k: v
+                for k, v in data.items()
+                if k not in {"file_path", "processed_at", "processor_type"}
+            },
+        )
 
 
 @dataclass
@@ -43,12 +76,12 @@ class MultimodalSample:
     Attributes:
         text (str | List[Dict[str, str]]): The textual content or structured conversation data.
         modalities (List[MultimodalRawInput]): List of modalities (e.g., images, audio).
-        metadata (Dict[str, str] | None): Additional metadata associated with the sample.
+        metadata (DocumentMetadata): Additional metadata associated with the sample.
     """
 
     text: str
     modalities: List[MultimodalRawInput]
-    metadata: Dict[str, Union[str, Dict, List]] = field(default_factory=dict)
+    metadata: DocumentMetadata = field(default_factory=DocumentMetadata)
     id: str = ""
     document_id: str = ""
 
@@ -58,19 +91,21 @@ class MultimodalSample:
         if self.document_id == "":
             self.document_id = self.id.split("+")[0]
         if self.metadata is None:
-            self.metadata = {}
+            self.metadata = DocumentMetadata()
+        elif isinstance(self.metadata, dict):
+            self.metadata = DocumentMetadata.from_dict(self.metadata)
 
     def to_dict(self):
         if isinstance(self.text, list):
             return {
                 "conversations": self.text,
                 "modalities": [m.__dict__ for m in self.modalities],
-                "metadata": self.metadata if self.metadata else None,
+                "metadata": self.metadata.to_dict() if self.metadata else None,
             }
         return {
             "text": self.text,
             "modalities": [m.__dict__ for m in self.modalities],
-            "metadata": self.metadata,
+            "metadata": self.metadata.to_dict(),
         }
 
     @classmethod

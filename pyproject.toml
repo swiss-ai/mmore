@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.2.2"
+version = "1.2.3"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -23,7 +23,9 @@ authors = [
     { name = "Achille Triomphe", email = "achille.triomphe@epfl.ch" },
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
-    { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"}
+    { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"},
+    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"},
+    { name = "Arthur Perrin", email="arthur.perrin@telecom-sudparis.eu" }
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -85,10 +87,10 @@ process = [
 
 index = [
     # Indexing + Retrieval (vector DB, embeddings)
+    "pymilvus==2.6.6",
     # milvus-lite ships x86_64-only wheels; on ARM64 install mmore[qdrant] instead
     # and set `db.backend: qdrant` in your config.
-    "pymilvus==2.6.6",
-    "pymilvus[milvus-lite]==2.6.6; platform_machine == 'x86_64'",
+    "milvus-lite==2.5.1; platform_machine == 'x86_64'",
     "pymilvus-model>=0.3.2",
     "milvus-model>=0.2.12",
     "langchain-milvus>=0.1.8",

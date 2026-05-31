@@ -11,7 +11,7 @@ Both are pure Python with no Milvus / model dependencies.
 from chonkie import Chunk
 
 from mmore.process.post_processor.chunker.multimodal import MultimodalChunker
-from mmore.process.processors.pdf_processor import PDFProcessor
+from mmore.process.processors.pdf_processor import PDFMetadata, PDFProcessor
 from mmore.type import MultimodalSample
 
 # --------------------------------------------------------------------------
@@ -62,7 +62,7 @@ def _sample_with_starts(paragraph_starts, text="Para A.\n\nPara B.Para C."):
     return MultimodalSample(
         text=text,
         modalities=[],
-        metadata={"file_path": "x", "paragraph_starts": paragraph_starts},
+        metadata=PDFMetadata(file_path="x", paragraph_starts=paragraph_starts),
     )
 
 
@@ -75,40 +75,36 @@ def test_assign_paragraph_positions_empty_starts_returns_empty_dicts():
     sample = _sample_with_starts([])
     chunks = [_chunk(0, 5), _chunk(5, 10)]
 
-    result = MultimodalChunker._assign_paragraph_positions(None, sample, chunks)
+    result = MultimodalChunker._assign_paragraph_positions(sample, chunks)
 
-    assert result == [{}, {}]
+    assert result == [[], []]
 
 
 def test_assign_paragraph_positions_chunk_inside_single_paragraph():
     starts = [(0, 0, 0), (9, 0, 1), (16, 1, 0), (23, -1, -1)]
     sample = _sample_with_starts(starts)
 
-    result = MultimodalChunker._assign_paragraph_positions(None, sample, [_chunk(0, 7)])
+    result = MultimodalChunker._assign_paragraph_positions(sample, [_chunk(0, 7)])
 
-    assert result == [{"paragraph_positions": [[0, 0]]}]
+    assert result == [[[0, 0]]]
 
 
 def test_assign_paragraph_positions_chunk_spanning_two_paragraphs_same_page():
     starts = [(0, 0, 0), (9, 0, 1), (16, 1, 0), (23, -1, -1)]
     sample = _sample_with_starts(starts)
 
-    result = MultimodalChunker._assign_paragraph_positions(
-        None, sample, [_chunk(5, 13)]
-    )
+    result = MultimodalChunker._assign_paragraph_positions(sample, [_chunk(5, 13)])
 
-    assert result == [{"paragraph_positions": [[0, 0], [0, 1]]}]
+    assert result == [[[0, 0], [0, 1]]]
 
 
 def test_assign_paragraph_positions_chunk_spanning_page_boundary():
     starts = [(0, 0, 0), (9, 0, 1), (16, 1, 0), (23, -1, -1)]
     sample = _sample_with_starts(starts)
 
-    result = MultimodalChunker._assign_paragraph_positions(
-        None, sample, [_chunk(11, 19)]
-    )
+    result = MultimodalChunker._assign_paragraph_positions(sample, [_chunk(11, 19)])
 
-    assert result == [{"paragraph_positions": [[0, 1], [1, 0]]}]
+    assert result == [[[0, 1], [1, 0]]]
 
 
 def test_assign_paragraph_positions_end_to_end_from_parse_pagination():
@@ -119,7 +115,7 @@ def test_assign_paragraph_positions_end_to_end_from_parse_pagination():
     sample = MultimodalSample(
         text=clean_text,
         modalities=[],
-        metadata={"file_path": "x", "paragraph_starts": paragraph_starts},
+        metadata=PDFMetadata(file_path="x", paragraph_starts=paragraph_starts),
     )
 
     chunks = [
@@ -127,9 +123,9 @@ def test_assign_paragraph_positions_end_to_end_from_parse_pagination():
         _chunk(16, 23),  # "Para C." - page 1, para 0 only
     ]
 
-    result = MultimodalChunker._assign_paragraph_positions(None, sample, chunks)
+    result = MultimodalChunker._assign_paragraph_positions(sample, chunks)
 
     assert result == [
-        {"paragraph_positions": [[0, 0]]},
-        {"paragraph_positions": [[1, 0]]},
+        [[0, 0]],
+        [[1, 0]],
     ]

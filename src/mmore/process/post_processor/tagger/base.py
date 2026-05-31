@@ -59,5 +59,5 @@ class BaseTagger(BasePostProcessor):
 
     def process(self, sample: MultimodalSample, **kwargs) -> List[MultimodalSample]:
         tag = self.tag(sample)
-        sample.metadata[self.metadata_key] = tag
+        sample.metadata.extra[self.metadata_key] = tag
         return [sample]

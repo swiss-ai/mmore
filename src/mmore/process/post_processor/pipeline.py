@@ -114,7 +114,7 @@ class PPPipeline:
 
         processed_at = datetime.now().isoformat()
         for sample in samples:
-            sample.metadata["processed_at"] = processed_at
+            sample.metadata.processed_at = processed_at
 
         save_samples(samples, jsonl_path(self.output_config.output_path))
         return samples
@@ -133,14 +133,14 @@ class PPPipeline:
         # Group input samples by file_path
         index: dict[str, MultimodalSample] = {}
         for sample in samples:
-            index[sample.metadata["file_path"]] = sample
+            index[sample.metadata.file_path] = sample
 
         current_file_paths = set(index.keys())
 
         reusable_file_paths: set[str] = set()
         to_process_file_paths: set[str] = set()
         for fp, sample in index.items():
-            input_processed_at = sample.metadata.get("processed_at")
+            input_processed_at = sample.metadata.processed_at
             if input_processed_at is None or not is_reusable_postprocess(
                 fp, input_processed_at, previous
             ):
@@ -189,7 +189,7 @@ class PPPipeline:
         # Add processed_at to newly processed samples
         processed_at = datetime.now().isoformat()
         for sample in processed:
-            sample.metadata["processed_at"] = processed_at
+            sample.metadata.processed_at = processed_at
 
         merged_samples = merge_results(reused, processed, current_file_paths)
         save_samples(merged_samples, jsonl_path(self.output_config.output_path))

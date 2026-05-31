@@ -16,7 +16,13 @@
 
 MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs). 
 
-👉 Read the paper for more details (OpenReview): [MMORE: Massive Multimodal Open RAG & Extraction](https://openreview.net/forum?id=6j1HjfIdKn)
+👉 Read the paper for more details (arXiv): [MMORE: Massive Multimodal Open RAG & Extraction](https://arxiv.org/abs/2509.11937)
+
+
+### Documentation
+
+👉 Read the full documentation here: [MMORE Documentation](https://swiss-ai.github.io/mmore/).
+
 
 ## :bulb: Quickstart
 
@@ -59,6 +65,8 @@ If `weasyprint` fails to find GTK or Cairo, also run:
 brew install cairo pango gdk-pixbuf libffi
 uv pip install weasyprint
 ```
+
+You can also run MMORE on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
 
 #### Step 1 – Install MMORE
 

@@ -1,10 +1,12 @@
-# ColPali Integration for MMORE
+# 🖼️ ColPali Integration
 
 ## Overview
 
-This module provides a complete pipeline for processing PDF documents using ColPali embeddings, storing them in a Milvus vector database, and performing semantic search. It is designed for efficient document retrieval and RAG applications.
+This module provides a complete pipeline for processing PDF documents with ColPali embeddings, storing them in a Milvus vector database, and performing semantic search.
 
-## Architecture
+It is designed for efficient document retrieval and RAG applications.
+
+## 🧭 Architecture
 
 The system consists of three main components:
 
@@ -12,7 +14,7 @@ The system consists of three main components:
 2. **Milvus Indexer** - Stores and indexes embeddings
 3. **Retriever** - Performs semantic search queries
 
-## File Structure
+## 📁 File Structure
 
 ```
 src/mmore/colpali/
@@ -23,12 +25,11 @@ src/mmore/colpali/
 └── retriever.py          # ColPaliRetriever class for RAG integration
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Process PDFs into Embeddings
+### 1. Process PDFs into embeddings
 
 ```bash
-# Process PDFs and generate embeddings
 python3 -m mmore colpali process --config-file examples/colpali/config_process.yml
 ```
 
@@ -43,10 +44,9 @@ num_workers: 5
 batch_size: 8
 ```
 
-### 2. Index Embeddings into Milvus
+### 2. Index embeddings into Milvus
 
 ```bash
-# Index embeddings into Milvus database
 python3 -m mmore colpali index --config-file examples/colpali/config_index.yml
 ```
 
@@ -63,13 +63,13 @@ milvus:
 
 ### 3. Run Retrieval
 
-#### API Mode (Recommended)
+#### Retrieval Server Mode
 ```bash
 # Start the retrieval API server
 python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieval.yml
 ```
 
-Or with custom host and port:
+Or with a custom host and port:
 ```bash
 python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieval.yml --host 0.0.0.0 --port 8001
 ```
@@ -88,8 +88,8 @@ text_parquet_path: "./output/pdf_page_text.parquet"
 
 #### Single Query Mode
 ```bash
-# Run a single query
-python3 -m src.mmore.colpali.run_retriever --config_file examples/colpali/config_retrieval_single.yml
+# Run retrieval for a single query defined in the config file
+python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieval_single.yml
 ```
 
 **Example config (`config_retrieval_single.yml`):**
@@ -101,7 +101,7 @@ model_name: "vidore/colpali-v1.3"
 query: "What may lead to dysbiosis and inflammation?"
 top_k: 5
 ```
-Note: Host and port are specified via CLI flags (`--host` and `--port`), not in the config file.
+Host and port are specified via CLI flags (`--host` and `--port`), not in the config file.
 
 #### Batch Mode
 ```bash
@@ -117,7 +117,7 @@ Each line should be a JSON-encoded string (one query per line):
 "data processing"
 ```
 
-Note: Each line must be a valid JSON string (with quotes), as the file is parsed line-by-line using `json.loads()`.
+Each line must be a valid JSON string, including quotes, since the file is parsed line by line with `json.loads()`.
 
 **Example config (`config_retrieval.yml`):**
 ```yaml
@@ -133,22 +133,22 @@ text_parquet_path: "./output/pdf_page_text.parquet"
 ## 🔧 Core Components
 
 ### MilvusColpaliManager
-- Manages local Milvus database operations
-- Handles collection creation and indexing
-- Provides efficient batch insertion
-- Implements hybrid search with reranking
+- manages local Milvus database operations
+- handles collection creation and indexing
+- provides efficient batch insertion
+- implements hybrid search with reranking
 
 **Key Features:**
-- Local Milvus instance (no external dependencies)
-- Automatic collection management
-- Multi-vector support for pages
-- Efficient batch operations
+- local Milvus instance with no external dependencies
+- automatic collection management
+- multi-vector support for pages
+- efficient batch operations
 
 ### PDF Processor
-- Converts PDF pages to images
-- Generates ColPali embeddings
-- Handles parallel processing
-- Ability to stop and resume processing for large datasets
+- converts PDF pages to images
+- generates ColPali embeddings
+- handles parallel processing
+- supports stop-and-resume workflows for large datasets
 
 **Processing Flow:**
 1. Crawl PDF files from specified directories
@@ -157,14 +157,14 @@ text_parquet_path: "./output/pdf_page_text.parquet"
 4. Store results in Parquet format
 
 ### Retriever
-- Multiple operation modes: API mode (default) or batch mode (with `--input-file` and `--output-file`)
-- Fast semantic search with reranking
-- REST API for integration
-- Configurable top-k results
-- LangChain-compatible `BaseRetriever` for RAG pipeline integration
-- Text content retrieval via `text_parquet_path` configuration
+- supports multiple usage modes: server mode by default, single-query mode via config, or batch mode with `--input-file` and `--output-file`
+- performs fast semantic search with reranking
+- exposes a REST API for integration
+- supports configurable top-k results
+- provides a LangChain-compatible `BaseRetriever` for RAG integration
+- can retrieve page text through the `text_parquet_path` configuration
 
-## Use Cases
+## 🎯 Use Cases
 
 ### Document Retrieval
 ```bash
@@ -215,25 +215,28 @@ colpali_retriever = ColPaliRetriever.from_config(colpali_config)
 ```
 
 The `ColPaliRetriever` is a LangChain-compatible `BaseRetriever` that returns `Document` objects with:
-- `page_content`: The text content from the PDF page (if `text_parquet_path` is provided)
-- `metadata`: Contains `pdf_name`, `pdf_path`, `page_number`, `rank`, and `similarity` score
+- `page_content`: the text content from the PDF page, if `text_parquet_path` is provided
+- `metadata`: contains `pdf_name`, `pdf_path`, `page_number`, `rank`, and `similarity` score
 
-## Output Formats
+## 📦 Output Formats
 
 ### Process Output
 
-**Embeddings Parquet (`pdf_page_objects.parquet`):**
-```parquet
-pdf_path | page_number | embedding
----------|-------------|-----------
-/path/to/doc1.pdf | 1 | [0.1, 0.2, ...]
+**Embeddings Parquet (`pdf_page_objects.parquet`)**
+```json
+{
+  "pdf_path": "/path/to/doc1.pdf",
+  "page_number": 1,
+  "embedding": [0.1, 0.2, "..."]
+}
 ```
-
-**Text Mapping Parquet (`pdf_page_text.parquet`):**
-```parquet
-pdf_path | page_number | text
----------|-------------|-----------
-/path/to/doc1.pdf | 1 | "Page content text here..."
+**Text Mapping Parquet (`pdf_page_text.parquet`)**
+```json
+{
+  "pdf_path": "/path/to/doc1.pdf",
+  "page_number": 1,
+  "text": "Page content text here..."
+}
 ```
 
 ### Search Results
@@ -257,26 +260,24 @@ pdf_path | page_number | text
 
 **Batch Mode Output:**
 ```json
-[
-  {
-    "query": "machine learning",
-    "context": [
-      {
-        "page_content": "Machine learning is a subset of artificial intelligence...",
-        "metadata": {
-          "pdf_name": "ml_book.pdf",
-          "pdf_path": "/path/to/ml_book.pdf",
-          "page_number": 42,
-          "rank": 1,
-          "similarity": 0.894
-        }
+{
+  "query": "machine learning",
+  "context": [
+    {
+      "page_content": "Machine learning is a subset of artificial intelligence...",
+      "metadata": {
+        "pdf_name": "ml_book.pdf",
+        "pdf_path": "/path/to/ml_book.pdf",
+        "page_number": 42,
+        "rank": 1,
+        "similarity": 0.894
       }
-    ]
-  }
-]
+    }
+  ]
+}
 ```
 
-## Pipeline Example
+## 🔁 Pipeline Example
 
 ### Complete Workflow
 ```bash
@@ -295,7 +296,7 @@ curl -X POST "http://localhost:8001/v1/retrieve" \
      -d '{"query": "your search query", "top_k": 3}'
 ```
 
-**Alternative: Batch Processing**
+### Alternative: Batch processing
 ```bash
 # 1. Process PDFs (same as above)
 python3 -m mmore colpali process --config-file examples/colpali/config_process.yml
@@ -309,18 +310,24 @@ python3 -m mmore colpali retrieve --config-file examples/colpali/config_retrieva
                        --output-file results.json
 ```
 
-## Configuration Tips
+## 💡 Configuration tips
 
-### For Large Datasets
-- Increase `batch_size` and `num_workers` in process config
-- Use `skip_already_processed: true` for incremental processing
+### For large datasets
+- increase `batch_size` and `num_workers` in process config
+- use `skip_already_processed: true` for incremental processing
 
-### For Better Accuracy
-- Use higher DPI in PDF conversion (default: 200)
-- Increase `top_k` in retrieval for more candidate pages
-- Consider using larger ColPali models if available
+### For better accuracy
+- use higher DPI in PDF conversion, default is 200
+- increase `top_k` in retrieval to inspect more candidate pages
+- consider using larger ColPali models if available
 
-### For Production
-- Run Milvus in distributed mode for larger datasets
-- Use the API mode for scalable serving
-- Implement caching for frequent queries
+### For production
+- run Milvus in distributed mode for larger datasets
+- use the API mode for scalable serving
+- implement caching for frequent queries
+
+## See also
+
+- [Process](../getting_started/process.md)
+- [Indexing](../getting_started/indexing.md)
+- [RAG](../getting_started/rag.md)

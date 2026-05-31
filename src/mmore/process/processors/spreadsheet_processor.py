@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as OpenPyXLImage
 from PIL import Image as PILImage
 
-from ...type import FileDescriptor, MultimodalSample
+from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
@@ -165,4 +165,6 @@ class SpreadsheetProcessor(Processor):
         else:
             embedded_images = []
 
-        return self.create_sample([all_text], embedded_images, {"file_path": file_path})
+        return self.create_sample(
+            [all_text], embedded_images, DocumentMetadata(file_path=file_path)
+        )
