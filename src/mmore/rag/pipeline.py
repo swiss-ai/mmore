@@ -14,6 +14,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
+from .judge import JUDGE_OUTPUT_KEYS, JudgeConfig, LLMJudge, retrieve_with_judge
 from .llm import LLM, LLMConfig
 from .model.vision import (
     BaseMultimodalLLM,
@@ -40,6 +41,7 @@ class RAGConfig:
     llm: LLMConfig = field(default_factory=lambda: LLMConfig(llm_name="gpt2"))
     system_prompt: str = DEFAULT_PROMPT
     max_images_per_request: int = 20
+    judge: Optional[JudgeConfig] = None
 
 
 class RAGPipeline:
@@ -79,6 +81,7 @@ class RAGPipeline:
         use_vision: bool = False,
         multimodal_llm: Optional[BaseMultimodalLLM] = None,
         max_images_per_request: int = 20,
+        judge: Optional[LLMJudge] = None,
     ):
         self._validate_generation_backend(use_vision, llm, multimodal_llm)
         # Get modules
@@ -88,6 +91,7 @@ class RAGPipeline:
         self.use_vision = use_vision
         self.multimodal_llm = multimodal_llm
         self.max_images_per_request = max_images_per_request
+        self.judge = judge
 
         # Build the rag chain
         self.rag_chain = RAGPipeline._build_chain(
@@ -98,6 +102,7 @@ class RAGPipeline:
             use_vision=self.use_vision,
             multimodal_llm=self.multimodal_llm,
             max_images_per_request=self.max_images_per_request,
+            judge=self.judge,
         )
 
     def __str__(self):
@@ -117,6 +122,11 @@ class RAGPipeline:
         else:
             llm = LLM.from_config(config.llm)
             multimodal_llm = None
+        judge = (
+            LLMJudge(llm=LLM.from_config(config.judge.llm), config=config.judge)
+            if config.judge
+            else None
+        )
         chat_template = ChatPromptTemplate.from_messages(
             [("system", config.system_prompt), ("human", "{input}")]
         )
@@ -128,6 +138,7 @@ class RAGPipeline:
             use_vision=config.llm.use_vision,
             multimodal_llm=multimodal_llm,
             max_images_per_request=config.max_images_per_request,
+            judge=judge,
         )
 
     @staticmethod
@@ -146,6 +157,7 @@ class RAGPipeline:
         use_vision=False,
         multimodal_llm=None,
         max_images_per_request=20,
+        judge=None,
     ) -> Runnable:
         validate_input = RunnableLambda(
             lambda x: MMOREInput.model_validate(x).model_dump()
@@ -165,6 +177,10 @@ class RAGPipeline:
             }
             res_dict = MMOREOutput.model_validate(out).model_dump()
             res_dict["answer"] = res_dict["answer"].split("<|im_start|>assistant\n")[-1]
+            # Expose formatted context and judge correction logs in the API response (context is not on MMOREOutput).
+            for key in ("context", *JUDGE_OUTPUT_KEYS):
+                if key in x:
+                    res_dict[key] = x[key]
 
             return res_dict
 
@@ -210,11 +226,20 @@ class RAGPipeline:
         else:
             rag_chain_from_docs = prompt | llm | StrOutputParser()
 
-        core_chain = (
-            RunnablePassthrough.assign(docs=retriever)
-            .assign(context=lambda x: format_docs(x["docs"]))
-            .assign(answer=rag_chain_from_docs)
-        )
+        # Only retrieval differs (retriever vs judge); format context and generate answer unchanged.
+        if judge is not None:
+            # retrieve with judge
+            def retrieval_with_judge(state: Dict[str, Any]) -> Dict[str, Any]:
+                return retrieve_with_judge(retriever, judge, state)
+
+            retrieval_step: Runnable = RunnableLambda(retrieval_with_judge)
+        else:
+            # retrieve without judge
+            retrieval_step = RunnablePassthrough.assign(docs=retriever)
+
+        core_chain = retrieval_step.assign(
+            context=lambda x: format_docs(x["docs"])
+        ).assign(answer=rag_chain_from_docs)
 
         return validate_input | core_chain | validate_output
 

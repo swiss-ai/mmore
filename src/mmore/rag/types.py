@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
@@ -27,12 +27,20 @@ class MMOREInput(BaseModel):
 
 
 class MMOREOutput(BaseModel):
-    """Base Answer, outputs the query, documents and answer"""
+    """Base Answer, outputs the query, documents, answer, and optional judge retrieval metadata."""
 
     input: str
     docs: List[Document]
     answer: str
     image_paths: List[str] = Field(default_factory=list)
+    judge_decision: Optional[str] = None
+    judge_reason: Optional[str] = None
+    judge_actions: Optional[List[str]] = None
+    judge_llm_calls: Optional[int] = None
+    judge_steps: Optional[List[Dict[str, Any]]] = None
+    hit_max_corrective_steps: Optional[float] = None
+    retrieval_metrics: Optional[Dict[str, float]] = None
+    retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 
 
 # -------------------------------- CitedAnswer ------------------------------- #
