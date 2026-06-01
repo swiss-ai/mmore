@@ -13,6 +13,7 @@ Two phases driven by the SLURM wrapper:
   2. Scoring phase (--score-only): edit-distance + fuzz vs ground-truth
      markdown from the dataset.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,7 +25,9 @@ import time
 from pathlib import Path
 from typing import Iterable
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 log = logging.getLogger("omnidoc")
 
 
@@ -50,7 +53,9 @@ def iter_pages(dataset_dir: Path) -> Iterable[tuple[str, Path, str]]:
 
     data = json.loads(manifest.read_text())
     for entry in data:
-        page_id = entry.get("page_info", {}).get("image_path") or entry.get("image_path")
+        page_id = entry.get("page_info", {}).get("image_path") or entry.get(
+            "image_path"
+        )
         if not page_id:
             continue
         img = dataset_dir / "images" / Path(page_id).name
@@ -84,7 +89,9 @@ def load_model(model_id: str):
     return model, processor
 
 
-def generate(model, processor, image, instruction: str, max_new_tokens: int = 4096) -> str:
+def generate(
+    model, processor, image, instruction: str, max_new_tokens: int = 4096
+) -> str:
     """Single-image VLM generation via the model's chat template."""
     import torch
 
@@ -113,7 +120,7 @@ def generate(model, processor, image, instruction: str, max_new_tokens: int = 40
             temperature=1.0,
         )
     # Strip the prompt prefix so we only return generated tokens.
-    gen_ids = out_ids[:, inputs["input_ids"].shape[1]:]
+    gen_ids = out_ids[:, inputs["input_ids"].shape[1] :]
     return processor.batch_decode(gen_ids, skip_special_tokens=True)[0]
 
 
@@ -204,11 +211,15 @@ def run_scoring(args: argparse.Namespace) -> None:
     agg = {
         "n_pages": len(per_doc),
         "edit_distance_mean": statistics.mean(d["edit_distance_norm"] for d in per_doc),
-        "edit_distance_median": statistics.median(d["edit_distance_norm"] for d in per_doc),
+        "edit_distance_median": statistics.median(
+            d["edit_distance_norm"] for d in per_doc
+        ),
         "fuzz_ratio_mean": statistics.mean(d["fuzz_ratio"] for d in per_doc),
     }
     out = args.output_dir / f"scores_{args.tag}.json"
-    out.write_text(json.dumps({"tag": args.tag, "aggregate": agg, "per_doc": per_doc}, indent=2))
+    out.write_text(
+        json.dumps({"tag": args.tag, "aggregate": agg, "per_doc": per_doc}, indent=2)
+    )
     log.info(f"Wrote {out}")
     log.info(f"Aggregate: {agg}")
 
