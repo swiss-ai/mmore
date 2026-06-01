@@ -129,7 +129,12 @@ class Retriever(BaseRetriever):
         partition_names: Optional[List[str]] = None,
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text", "paragraph_positions"],
+        output_fields: List[str] = [
+            "text",
+            "paragraph_positions",
+            "document_id",
+            "file_path",
+        ],
         search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
         document_ids: List[str] = [],  # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
@@ -235,7 +240,12 @@ class Retriever(BaseRetriever):
         partition_names: List[str] = [],
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text", "paragraph_positions"],
+        output_fields: List[str] = [
+            "text",
+            "paragraph_positions",
+            "document_id",
+            "file_path",
+        ],
         search_type: str = "hybrid",
     ) -> List[List[Dict[str, Any]]]:
         """
@@ -357,6 +367,8 @@ class Retriever(BaseRetriever):
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
                     ),
+                    "document_id": result["entity"].get("document_id", ""),
+                    "file_path": result["entity"].get("file_path", ""),
                 },
             )
 
