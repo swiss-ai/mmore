@@ -28,10 +28,9 @@ from mmore.rag.model.vision.adapters import (
     HuggingFaceVisionAdapter,
     get_multimodal_llm,
 )
-from mmore.type import DocumentMetadata
 from mmore.rag.pipeline import RAGPipeline
 from mmore.rag.retriever import Retriever, _parse_image_paths
-from mmore.type import MultimodalRawInput, MultimodalSample
+from mmore.type import DocumentMetadata, MultimodalRawInput, MultimodalSample
 
 
 class _ProcessorBatch(dict):
