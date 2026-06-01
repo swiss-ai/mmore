@@ -19,6 +19,8 @@ uv sync --extra colvision
 | ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` |
 | ColQwen3 v0.1 | `vidore/colqwen3-v0.1` |
 | ColGemma3 | `Cognitive-Lab/ColNetraEmbed` |
+| ColSmol 256M | `vidore/colSmol-256M` |
+| ColSmol 500M | `vidore/colSmol-500M` |
 
 The model/processor class is auto-detected from `model_name`, and the embedding dimension is inferred at every stage (from the loaded model at `process` / `retrieve` time, from the parquet contents at `index` time).
 

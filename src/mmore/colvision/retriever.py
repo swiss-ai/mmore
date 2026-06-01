@@ -17,7 +17,7 @@ from langchain_core.retrievers import BaseRetriever
 from torch.utils.data import DataLoader
 
 from .milvuscolvision import MilvusColvisionManager
-from .model_utils import load_model_and_processor
+from .model_utils import get_device, load_model_and_processor
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +33,6 @@ class ColVisionRetrieverConfig:
     max_workers: int = 4
     metric_type: str = "IP"
     text_parquet_path: Optional[str] = None
-
-
-def get_device() -> str:
-    """
-    Select the available device for model inference.
-
-    Returns:
-        Device string (e.g., "cuda:0", "mps", "cpu")
-    """
-    if torch.cuda.is_available():
-        return "cuda:0"
-    if torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
 
 
 def embed_queries(texts: List[str], model, processor) -> List[np.ndarray]:

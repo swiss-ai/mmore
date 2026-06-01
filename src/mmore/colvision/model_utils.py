@@ -18,6 +18,7 @@ _MODEL_REGISTRY = [
     (r"colqwen2\.5|colqwen2_5", "ColQwen2_5", "ColQwen2_5_Processor"),
     (r"colqwen2", "ColQwen2", "ColQwen2Processor"),
     (r"colgemma|colnetra", "ColGemma3", "ColGemmaProcessor3"),
+    (r"colsmol|colidefics3", "ColIdefics3", "ColIdefics3Processor"),
     (r"colpali", "ColPali", "ColPaliProcessor"),
 ]
 
@@ -27,7 +28,25 @@ SUPPORTED_MODELS = {
     "ColQwen2.5": ["vidore/colqwen2.5-v0.1", "vidore/colqwen2.5-v0.2"],
     "ColQwen3": ["vidore/colqwen3-v0.1"],
     "ColGemma3": ["Cognitive-Lab/ColNetraEmbed"],
+    "ColSmol": ["vidore/colSmol-256M", "vidore/colSmol-500M"],
 }
+
+
+def get_device() -> str:
+    """Select the available device for model inference."""
+    if torch.cuda.is_available():
+        return "cuda:0"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def empty_device_cache(device: str) -> None:
+    """Free cached memory for the active accelerator, if any."""
+    if device.startswith("cuda"):
+        torch.cuda.empty_cache()
+    elif device == "mps":
+        torch.mps.empty_cache()
 
 
 def resolve_model_classes(model_name: str) -> Tuple[Type, Type]:

@@ -20,7 +20,7 @@ from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config
-from .model_utils import load_model_and_processor
+from .model_utils import empty_device_cache, get_device, load_model_and_processor
 
 PROCESS_EMOJI = "🚀"
 logger = logging.getLogger(__name__)
@@ -34,9 +34,10 @@ if not logger.hasHandlers():
     logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-torch.backends.cuda.enable_mem_efficient_sdp(False)
-torch.backends.cuda.enable_flash_sdp(False)
-torch.backends.cuda.enable_math_sdp(True)
+if torch.cuda.is_available():
+    torch.backends.cuda.enable_mem_efficient_sdp(False)
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_math_sdp(True)
 
 
 @dataclass
@@ -84,9 +85,11 @@ class PDFConverter:
 
 
 class ColVisionEmbedder:
-    def __init__(self, model_name: str = "vidore/colpali-v1.3", device: str = "cuda:0"):
-        self.device = device
-        self.model, self.processor = load_model_and_processor(model_name, device)
+    def __init__(
+        self, model_name: str = "vidore/colpali-v1.3", device: Optional[str] = None
+    ):
+        self.device = device or get_device()
+        self.model, self.processor = load_model_and_processor(model_name, self.device)
 
     def get_images(self, paths: list[Union[str, Path]]) -> List[Image.Image]:
         return [Image.open(path) for path in paths]
@@ -213,7 +216,7 @@ def process_pdf_batch(
     batch_pdfs: List[Path], config: PDFProcessConfig
 ) -> tuple[List[dict], List[dict]]:
     try:
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        device = get_device()
         model = ColVisionEmbedder(config.model_name, device=device)
         converter = PDFConverter()
         batch_records = []
@@ -226,7 +229,7 @@ def process_pdf_batch(
 
         converter.cleanup()
         del model
-        torch.cuda.empty_cache()
+        empty_device_cache(device)
 
         return batch_records, batch_text_records
     except Exception as e:
