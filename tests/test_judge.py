@@ -222,6 +222,13 @@ def test_parse_json_nested_retrieve_params_with_prefix():
     assert parsed["retrieve_params"] == {"k": 10}
 
 
+def test_parse_json_valid_prefix_and_invalid_decision_block():
+    raw = 'Summary: {"k": 10}\n{"decision":"RE_RETRIEVE","context_relevance_score":4,}'
+    parsed = parse_json_response(raw)
+    assert parsed["decision"] == "RE_RETRIEVE"
+    assert parsed["context_relevance_score"] == 4
+
+
 @pytest.mark.parametrize(
     "cfg_kw,docs,llm_json,invoke,decision,reason_sub,extra",
     [

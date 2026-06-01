@@ -74,6 +74,13 @@ def _judge_json_snippet(text: Any) -> str:
         if isinstance(obj, dict) and "decision" in obj:
             return text[i : i + end]
 
+    decision_matches = list(re.finditer(r'"decision"\s*:', text, re.IGNORECASE))
+    if decision_matches:
+        decision_pos = decision_matches[-1].start()
+        start = text.rfind("{", 0, decision_pos)
+        if start != -1:
+            return text[start:]
+
     start = text.find("{")
     return text[start:] if start != -1 else text
 
@@ -98,6 +105,10 @@ def _parse_json_dict(text: str) -> Dict[str, Any]:
             obj, _ = json.JSONDecoder().raw_decode(candidate)
             if not isinstance(obj, dict):
                 raise TypeError(f"Expected JSON object, got {type(obj).__name__}")
+            if "decision" not in obj:
+                raise json.JSONDecodeError(
+                    "Parsed JSON object has no decision field", candidate, 0
+                )
             return obj
         except (json.JSONDecodeError, TypeError) as e:
             last_error = e
