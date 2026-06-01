@@ -28,7 +28,7 @@ class ColVisionRetrieverConfig:
 
     db_path: str = "./milvus_data"
     collection_name: str = "pdf_pages"
-    model_name: str = "vidore/colpali-v1.3"
+    model_name: str = "vidore/colqwen2.5-v0.2"
     top_k: int = 3
     max_workers: int = 4
     metric_type: str = "IP"

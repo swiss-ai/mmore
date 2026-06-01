@@ -44,7 +44,7 @@ if torch.cuda.is_available():
 class PDFProcessConfig:
     data_path: Union[List[str], str]
     output_path: str
-    model_name: str = "vidore/colpali-v1.3"
+    model_name: str = "vidore/colqwen2.5-v0.2"
     skip_already_processed: bool = False
     num_workers: int = 2
     batch_size: int = 8
@@ -86,7 +86,7 @@ class PDFConverter:
 
 class ColVisionEmbedder:
     def __init__(
-        self, model_name: str = "vidore/colpali-v1.3", device: Optional[str] = None
+        self, model_name: str = "vidore/colqwen2.5-v0.2", device: Optional[str] = None
     ):
         self.device = device or get_device()
         self.model, self.processor = load_model_and_processor(model_name, self.device)

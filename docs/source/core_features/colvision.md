@@ -12,15 +12,15 @@ uv sync --extra colvision
 
 ## Supported Models
 
-| Model | `model_name` |
-|---|---|
-| ColPali v1.3 | `vidore/colpali-v1.3` |
-| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` |
-| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` |
-| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` |
-| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` |
-| ColSmol 256M | `vidore/colSmol-256M` |
-| ColSmol 500M | `vidore/colSmol-500M` |
+| Model | `model_name` | Extra |
+|---|---|---|
+| ColPali v1.3 | `vidore/colpali-v1.3` | `colvision-legacy` |
+| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` | `colvision` |
+| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` | `colvision` |
+| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` | `colvision` |
+| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` | `colvision` |
+| ColSmol 256M | `vidore/colSmol-256M` | `colvision` |
+| ColSmol 500M | `vidore/colSmol-500M` | `colvision` |
 
 The model/processor class is auto-detected from `model_name`, and the embedding dimension is inferred at every stage (from the loaded model at `process` / `retrieve` time, from the parquet contents at `index` time).
 
@@ -80,7 +80,7 @@ python3 -m mmore colvision process --config-file examples/colvision/config_proce
 data_path:
   - 'examples/sample_data/pdf'
 output_path: "./output"
-model_name: "vidore/colpali-v1.3"
+model_name: "vidore/colqwen2.5-v0.2"
 skip_already_processed: true
 num_workers: 5
 batch_size: 8
@@ -119,7 +119,7 @@ python3 -m mmore colvision retrieve --config-file examples/colvision/config_retr
 ```yaml
 db_path: "./output/milvus_data.db"
 collection_name: "pdf_pages"
-model_name: "vidore/colpali-v1.3"
+model_name: "vidore/colqwen2.5-v0.2"
 top_k: 3
 metric_type: "IP"
 max_workers: 16
@@ -212,7 +212,7 @@ from mmore.colvision.retriever import ColVisionRetriever, ColVisionRetrieverConf
 config = ColVisionRetrieverConfig(
     db_path="./output/milvus_data.db",
     collection_name="pdf_pages",
-    model_name="vidore/colpali-v1.3",
+    model_name="vidore/colqwen2.5-v0.2",
     text_parquet_path="./output/pdf_page_text.parquet",
     top_k=3,
     max_workers=16,

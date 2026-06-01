@@ -1,9 +1,9 @@
 db_path: ./output/milvus_data.db
 collection_name: "pdf_pages"
 
-# Supported models: vidore/colpali-v1.3, vidore/colqwen2-v1.0,
-#   vidore/colqwen2.5-v0.2, vidore/colqwen3-v0.1, Cognitive-Lab/ColNetraEmbed
-model_name: "vidore/colpali-v1.3"
+# Supported models: vidore/colqwen2.5-v0.2, vidore/colqwen2-v1.0,
+#   vidore/colqwen3-v0.1, Cognitive-Lab/ColNetraEmbed, vidore/colpali-v1.3 (colvision-legacy)
+model_name: "vidore/colqwen2.5-v0.2"
 top_k: 3
 metric_type: "IP"
 max_workers: 16
