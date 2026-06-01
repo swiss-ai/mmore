@@ -15,6 +15,7 @@ from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrou
 
 from ..utils import load_config
 from .judge import JUDGE_OUTPUT_KEYS, JudgeConfig, LLMJudge, retrieve_with_judge
+from .judge.llm import judge_llm_from_config
 from .llm import LLM, LLMConfig
 from .retriever import Retriever, RetrieverConfig
 from .types import MMOREInput, MMOREOutput
@@ -73,7 +74,7 @@ class RAGPipeline:
         retriever = Retriever.from_config(config.retriever)
         llm = LLM.from_config(config.llm)
         judge = (
-            LLMJudge(llm=LLM.from_config(config.judge.llm), config=config.judge)
+            LLMJudge(llm=judge_llm_from_config(config.judge.llm), config=config.judge)
             if config.judge
             else None
         )
