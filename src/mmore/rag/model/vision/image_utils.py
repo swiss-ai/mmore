@@ -20,16 +20,32 @@ def aggregate_image_paths(docs: List[Document]) -> List[str]:
     return image_paths
 
 
-def load_images_from_paths(paths: List[str], max_images: int = 20) -> List[Any]:
+_MIN_IMAGE_SIDE = 32
+
+
+def load_images_from_paths(
+    paths: List[str], max_images: int = 20, max_side: int | None = None
+) -> List[Any]:
     """Load images from paths, limit count, and return RGB copies."""
     loaded: List[Any] = []
     for path in paths[:max_images]:
         try:
             p = Path(path)
-            if not p.exists():
+            if not p.is_file():
                 continue
-            with Image.open(path) as img:
-                loaded.append(img.convert("RGB").copy())
+            with Image.open(p) as img:
+                rgb = img.convert("RGB")
+                width, height = rgb.size
+                if width < _MIN_IMAGE_SIDE or height < _MIN_IMAGE_SIDE:
+                    continue
+                if max_side is not None and max(width, height) > max_side:
+                    scale = max_side / max(width, height)
+                    new_size = (
+                        max(_MIN_IMAGE_SIDE, int(width * scale)),
+                        max(_MIN_IMAGE_SIDE, int(height * scale)),
+                    )
+                    rgb = rgb.resize(new_size, Image.Resampling.LANCZOS)
+                loaded.append(rgb.copy())
         except Exception:
             continue
     return loaded

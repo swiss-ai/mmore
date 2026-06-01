@@ -48,6 +48,7 @@ loaders = {
 class DenseModelConfig:
     model_name: str
     is_multimodal: bool = False
+    max_images: int = 20
 
     @property
     def organization(self) -> str:
@@ -71,6 +72,8 @@ class DenseModel(Embeddings):
     @classmethod
     def from_config(cls, config: DenseModelConfig) -> Embeddings:
         if config.organization == "HF" and config.is_multimodal:
-            return MultimodalEmbeddings(model_name=config.model_name)
+            return MultimodalEmbeddings(
+                model_name=config.model_name, max_images=config.max_images
+            )
         else:
             return loaders[config.organization](model=config.model_name)

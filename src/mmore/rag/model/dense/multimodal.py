@@ -1,3 +1,4 @@
+import gc
 import re
 from typing import Optional
 
@@ -10,109 +11,159 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 from ....type import MultimodalSample
 from ..vision.image_utils import load_images_from_paths
 
+_DEFAULT_MAX_IMAGES = 20
+_DEFAULT_MAX_IMAGE_SIDE = 768
+
+
+def _release_device_memory() -> None:
+    """Free accelerator cache after unloading a large model (indexer calls this too)."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    elif getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+
+
+def _release_after_chunk() -> bool:
+    """Per-chunk cache flush only on MPS; CUDA batch indexing stays fast."""
+    mps = getattr(torch.backends, "mps", None)
+    return mps is not None and mps.is_available()
+
+
+def _sequence_hidden(outputs) -> torch.Tensor:
+    """Last-layer sequence hidden states (Qwen2.5-VL may omit ``last_hidden_state``)."""
+    last = getattr(outputs, "last_hidden_state", None)
+    if last is not None:
+        return last
+    hidden_states = getattr(outputs, "hidden_states", None)
+    if hidden_states:
+        return hidden_states[-1]
+    raise AttributeError(
+        "Model output has no last_hidden_state or hidden_states; "
+        "forward must use output_hidden_states=True."
+    )
+
+
+def _mean_pool(
+    hidden: torch.Tensor, attention_mask: Optional[torch.Tensor]
+) -> torch.Tensor:
+    if attention_mask is None:
+        return hidden.mean(dim=1)
+    mask = attention_mask.unsqueeze(-1).to(dtype=hidden.dtype, device=hidden.device)
+    summed = (hidden * mask).sum(dim=1)
+    counts = mask.sum(dim=1).clamp(min=1e-9)
+    return summed / counts
+
 
 class MultimodalEmbeddings(Embeddings):
     """Dense embedding model that can consume text and optional images."""
 
-    def __init__(self, model_name: str):
+    def __init__(
+        self,
+        model_name: str,
+        max_images: int = _DEFAULT_MAX_IMAGES,
+        max_image_side: int = _DEFAULT_MAX_IMAGE_SIDE,
+    ):
         super().__init__()
+        self.max_images = max_images
+        self.max_image_side = max_image_side
         self.model = AutoModelForImageTextToText.from_pretrained(
-            model_name, torch_dtype=torch.float16, device_map="auto"
+            model_name,
+            torch_dtype=torch.float16,  # type: ignore[reportPrivateImportUsage]
+            device_map="auto",
+            low_cpu_mem_usage=True,
         )
+        self.model.eval()
         self.processor = AutoProcessor.from_pretrained(model_name)
         self.device = self.model.device
-
-        """Interface for embedding models.
-
-        This is an interface meant for implementing multimodal embedding models.
-
-        Text embedding models are used to map text to a vector (a point in n-dimensional
-        space).
-
-        Texts that are similar will usually be mapped to points that are close to each
-        other in this space. The exact details of what's considered "similar" and how
-        "distance" is measured in this space are dependent on the specific embedding model.
-
-        This abstraction contains a method for embedding a list of documents and a method
-        for embedding a query text. The embedding of a query text is expected to be a single
-        vector, while the embedding of a list of documents is expected to be a list of
-        vectors.
-
-        Usually the query embedding is identical to the document embedding, but the
-        abstraction allows treating them independently.
-
-        In addition to the synchronous methods, this interface also provides asynchronous
-        versions of the methods.
-
-        By default, the asynchronous methods are implemented using the synchronous methods;
-        however, implementations may choose to override the asynchronous methods with
-        an async native implementation for performance reasons.
-        """
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """Embed search docs.
 
         Args:
             texts: One text string per chunk. Image paths may appear inside
-                ``<|image|>…<|image|>`` pairs; those are stripped to the model’s
+                ``<|image|>…<|image|>`` pairs; those are stripped to the model's
                 image token and the files are loaded. Plain text chunks work too.
 
         Returns:
             List of embeddings.
         """
-        embeddings = []
+        embeddings: list[list[float]] = []
+
+        proc_token = "<|image|>"
+        vision_placeholder = getattr(self.processor, "image_token", None)
+        if not isinstance(vision_placeholder, str) or not vision_placeholder:
+            vision_placeholder = proc_token
 
         for text in texts:
-            # Parsers mark image positions with "<attachment>" in the text, but that string has no file path—only <|image|>path<|image|> does.
-            # Remove it so it does not end up as junk tokens in the model prompt.
             text = text.replace("<attachment>", "")
-            prompt, extracted_paths = MultimodalEmbeddings._extract_multimodal_inputs(
-                text, proc_token="<|image|>"
+            paths, prompt = MultimodalEmbeddings._cap_image_tags_in_text(
+                text,
+                proc_token=proc_token,
+                vision_placeholder=vision_placeholder,
+                max_images=self.max_images,
             )
-            # Missing/invalid images are skipped by helper; text-only embedding still works.
-            images = load_images_from_paths(extracted_paths)
-            # Qwen2-VL processors expect <|image_pad|> (processor.image_token), not <|image|>.
-            # Otherwise vision features are built but input_ids get no image placeholders → mismatch.
-            vision_placeholder = getattr(self.processor, "image_token", None)
-            if isinstance(vision_placeholder, str) and vision_placeholder:
-                prompt = prompt.replace("<|image|>", vision_placeholder)
+            images = load_images_from_paths(
+                paths,
+                max_images=self.max_images,
+                max_side=self.max_image_side,
+            )
 
-            if images:
-                inputs = self.processor(
-                    text=prompt, images=images, return_tensors="pt"
-                ).to(self.device)
-            else:
-                inputs = self.processor(text=prompt, return_tensors="pt").to(
-                    self.device
-                )
+            inputs = None
+            outputs = None
+            try:
+                if images:
+                    inputs = self.processor(
+                        text=prompt, images=images, return_tensors="pt"
+                    ).to(self.device)
+                else:
+                    inputs = self.processor(text=prompt, return_tensors="pt").to(
+                        self.device
+                    )
 
-            with torch.no_grad():
-                outputs = self.model(**inputs, output_hidden_states=True)
-                last_hidden_state = outputs.hidden_states[0]
-                embedding = last_hidden_state.mean(dim=1)  # Shape: (1, hidden_size)
-                embedding = embedding.cpu().numpy().squeeze(0).astype(np.float32)
-                embeddings.append(embedding)
+                with torch.inference_mode():
+                    outputs = self.model(**inputs, output_hidden_states=True)
+                    hidden = _sequence_hidden(outputs)
+                    pooled = _mean_pool(hidden, inputs.get("attention_mask"))
+                    embedding = pooled.cpu().numpy().squeeze(0).astype(np.float32)
+                embeddings.append(embedding.tolist())
+            finally:
+                del inputs, outputs, images
+                if _release_after_chunk():
+                    _release_device_memory()
 
         return embeddings
 
     def embed_query(self, text: str) -> list[float]:
-        """Embed query text.
-
-        Args:
-            text: Text to embed.
-
-        Returns:
-            Embedding.
-        """
+        """Embed query text."""
         return self.embed_documents([text])[0]
 
     @staticmethod
-    def _multimodal_to_text(sample: MultimodalSample):
-        """Build one string for embedding: modality lines then chunk text.
+    def _cap_image_tags_in_text(
+        text: str,
+        proc_token: str,
+        vision_placeholder: str,
+        max_images: int,
+    ) -> tuple[list[str], str]:
+        """Keep at most ``max_images`` placeholders; count must match images passed to Qwen."""
+        pattern = rf"{re.escape(proc_token)}(.*?){re.escape(proc_token)}"
+        paths: list[str] = []
+        seen: set[str] = set()
 
-        Each modality becomes ``<|type|>value<|type|>`` on its own line (paths for
-        images). ``sample.text`` is appended as-is.
-        """
+        def replacer(match: re.Match) -> str:
+            path = match.group(1).strip()
+            if not path or path in seen or len(paths) >= max_images:
+                return ""
+            seen.add(path)
+            paths.append(path)
+            return vision_placeholder
+
+        prompt = re.sub(pattern, replacer, text)
+        return paths, prompt
+
+    @staticmethod
+    def _multimodal_to_text(sample: MultimodalSample):
+        """Build one string for embedding: modality lines then chunk text."""
         s = "\n".join(
             [
                 f"<|{modality.type}|>{modality.value}<|{modality.type}|>"
@@ -124,24 +175,5 @@ class MultimodalEmbeddings(Embeddings):
 
     @staticmethod
     def _multimodal_to_doc(sample: MultimodalSample) -> Document:
-        meta = (
-            sample.metadata.to_dict()
-            if hasattr(sample.metadata, "to_dict")
-            else dict(sample.metadata or {})
-        )
+        meta = sample.metadata.to_dict()
         return Document(MultimodalEmbeddings._multimodal_to_text(sample), metadata=meta)
-
-    @staticmethod
-    def _extract_multimodal_inputs(
-        text, proc_token: str, pattern: Optional[str] = None
-    ) -> tuple[str, list[str]]:
-        pattern = pattern or rf"{re.escape(proc_token)}(.*?){re.escape(proc_token)}"
-
-        # Find all matches in the input string
-        extracted_strings = re.findall(pattern, text)
-
-        # Replace all matches with an empty string
-        cleaned_string = re.sub(pattern, proc_token, text)
-
-        # Return a tuple with the cleaned string and the list of extracted strings
-        return (cleaned_string, extracted_strings)

@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple, Union
 import torch
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from transformers import AutoModelForImageTextToText, AutoProcessor
+from transformers import AutoConfig, AutoModelForImageTextToText, AutoProcessor
 
 from ...llm import LLM, LLMConfig
 from .image_utils import build_vision_content, images_to_base64_data_urls
@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 class BaseMultimodalLLM(ABC):
     """Interface for vision-capable LLMs: (text, images) -> answer text."""
+
+    def _load(self) -> None:
+        """Eager-load local weights when supported (no-op by default)."""
 
     @abstractmethod
     def invoke_with_images(
@@ -44,7 +47,7 @@ class OpenAIMultimodalAdapter(BaseMultimodalLLM):
         messages: List[Union[SystemMessage, HumanMessage]] = []
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
-        messages.append(HumanMessage(content=content))
+        messages.append(HumanMessage(content=content))  # type: ignore[arg-type]
         response = self._model.invoke(messages)
         return getattr(response, "content", str(response)) or ""
 
@@ -66,18 +69,27 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
         self.device_map = device_map
         self._model = None
         self._processor = None
-        self._inference_device: Optional[torch.device] = None
+        self._inference_device: Any = None
 
     def _resolve_model_cls(self):
+        """Pick the HF class that matches the checkpoint (Qwen2-VL ≠ Qwen2.5-VL)."""
         import transformers
 
-        return (
-            getattr(transformers, "Qwen2_5_VLForConditionalGeneration", None)
-            or getattr(transformers, "Qwen2VLForConditionalGeneration", None)
-            or AutoModelForImageTextToText
-        )
+        config = AutoConfig.from_pretrained(self.model_id)
+        model_type = (getattr(config, "model_type", None) or "").lower()
+        type_to_cls = {
+            "qwen2_5_vl": "Qwen2_5_VLForConditionalGeneration",
+            "qwen2_vl": "Qwen2VLForConditionalGeneration",
+            "qwen3_vl": "Qwen3VLForConditionalGeneration",
+        }
+        cls_name = type_to_cls.get(model_type)
+        if cls_name is not None:
+            model_cls = getattr(transformers, cls_name, None)
+            if model_cls is not None:
+                return model_cls
+        return AutoModelForImageTextToText
 
-    def _build_from_pretrained_kwargs(self, dtype: torch.dtype) -> dict:
+    def _build_from_pretrained_kwargs(self, dtype: Any) -> dict:
         load_kwargs: dict = {"low_cpu_mem_usage": False, "dtype": dtype}
         if self.device_map is not None:
             load_kwargs["device_map"] = self.device_map
@@ -100,16 +112,20 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
             model_cls = self._resolve_model_cls()
             self._processor = AutoProcessor.from_pretrained(self.model_id)
 
-            dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            dtype = (
+                torch.bfloat16  # type: ignore[reportPrivateImportUsage]
+                if torch.cuda.is_available()
+                else torch.float32  # type: ignore[reportPrivateImportUsage]
+            )
             load_kwargs = self._build_from_pretrained_kwargs(dtype)
             # Default path: no device_map -> avoid accelerate meta-tensor dispatch.
             self._model = model_cls.from_pretrained(self.model_id, **load_kwargs)
 
-            self._inference_device = torch.device("cpu")
+            self._inference_device = torch.device("cpu")  # type: ignore[reportPrivateImportUsage]
             if torch.cuda.is_available() and self.device_map is None:
                 try:
-                    self._model = self._model.to("cuda")
-                    self._inference_device = torch.device("cuda")
+                    self._model = self._model.to("cuda")  # type: ignore[call-arg]
+                    self._inference_device = torch.device("cuda")  # type: ignore[reportPrivateImportUsage]
                 except NotImplementedError as exc:
                     if "meta tensor" not in str(exc):
                         raise
@@ -123,12 +139,14 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
                 self._processor,
             )
 
-    def _get_model_device(self) -> torch.device:
+    def _get_model_device(self) -> Any:
         if self._inference_device is not None:
             return self._inference_device
 
         if self._model is None:
-            return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            return torch.device(  # type: ignore[reportPrivateImportUsage]
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
 
         model_device = getattr(self._model, "device", None)
         if model_device is not None and str(model_device) != "meta":
@@ -141,9 +159,11 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
                     "disk",
                     "meta",
                 }:
-                    return torch.device(mapped_device)
+                    return torch.device(mapped_device)  # type: ignore[reportPrivateImportUsage]
 
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        return torch.device(  # type: ignore[reportPrivateImportUsage]
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
 
     def invoke_with_images(
         self,
@@ -152,6 +172,10 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
         system_prompt: Optional[str] = None,
     ) -> str:
         self._load()
+        if self._processor is None or self._model is None:
+            raise RuntimeError("Vision model failed to load")
+        processor = self._processor
+        model = self._model
         images = images or []
         content: List[dict] = []
         for img in images:
@@ -174,11 +198,12 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
                 "For Hugging Face vision models install: pip install qwen-vl-utils"
             ) from None
 
-        text_prompt = self._processor.apply_chat_template(
+        text_prompt = processor.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
-        image_inputs, video_inputs = process_vision_info(messages)
-        inputs = self._processor(
+        vision_info = process_vision_info(messages)
+        image_inputs, video_inputs, *_ = vision_info
+        inputs = processor(
             text=[text_prompt],
             images=image_inputs,
             videos=video_inputs,
@@ -187,7 +212,7 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
         )
         inputs = inputs.to(self._get_model_device())
         with torch.no_grad():
-            generated_ids = self._model.generate(
+            generated_ids = model.generate(
                 **inputs,
                 max_new_tokens=self.max_new_tokens,
             )
@@ -195,7 +220,7 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
             out_ids[len(in_ids) :]
             for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
         ]
-        output_text = self._processor.batch_decode(
+        output_text = processor.batch_decode(
             generated_ids_trimmed,
             skip_special_tokens=True,
             clean_up_tokenization_spaces=False,

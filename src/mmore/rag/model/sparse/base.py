@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
@@ -13,6 +14,7 @@ loaders = {"SPLADE": SpladeSparseEmbedding}
 class SparseModelConfig:
     model_name: str
     is_multimodal: bool = False
+    device: Optional[str] = None
 
     def __post_init__(self):
         if self.model_name.lower() in _names:
@@ -30,5 +32,6 @@ class SparseModel(BaseSparseEmbedding):
     @classmethod
     def from_config(cls, config: SparseModelConfig) -> BaseSparseEmbedding:
         return loaders.get(config.model_type, SpladeSparseEmbedding)(
-            model_name=config.model_name
+            model_name=config.model_name,
+            device=config.device,
         )

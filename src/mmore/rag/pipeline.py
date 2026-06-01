@@ -5,13 +5,13 @@ Integrates Milvus retrieval with text-only and vision-enabled generation backend
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 from langchain_core.documents import Document
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import Runnable, RunnableConfig, RunnableLambda, RunnablePassthrough
 
 from ..utils import load_config
 from .judge import JUDGE_OUTPUT_KEYS, JudgeConfig, LLMJudge, retrieve_with_judge
@@ -117,8 +117,7 @@ class RAGPipeline:
         if config.llm.use_vision:
             llm: Optional[BaseChatModel] = None
             multimodal_llm = get_multimodal_llm(config.llm)
-            if hasattr(multimodal_llm, "_load"):
-                multimodal_llm._load()
+            multimodal_llm._load()
         else:
             llm = LLM.from_config(config.llm)
             multimodal_llm = None
@@ -255,7 +254,9 @@ class RAGPipeline:
             {"max_concurrency": 1} if self.use_vision and self.multimodal_llm else None
         )
         if batch_config:
-            results = self.rag_chain.batch(queries_list, config=batch_config)
+            results = self.rag_chain.batch(
+                queries_list, config=cast(RunnableConfig, batch_config)
+            )
         else:
             results = self.rag_chain.batch(queries_list)
 

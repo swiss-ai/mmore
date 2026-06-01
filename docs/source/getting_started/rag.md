@@ -143,10 +143,17 @@ Two flags are independent:
 
 ### Quick setup
 
-1. Process documents with images, then **index** (set `is_multimodal: true` on the dense model only if you want multimodal dense retrieval).
-2. In the RAG config, set a vision-capable `llm_name` (for local use, e.g. `Qwen/Qwen2.5-VL-3B-Instruct`) and `use_vision: true`.
-3. Optionally set `rag.max_images_per_request` (default 20) to cap images per query.
-4. Run index, then RAG in batch or API mode as above.
+Local Qwen-VL dependencies:
+
+```bash
+uv pip install -e ".[qwen]"
+```
+
+1. Install the Qwen extra above if you use local Qwen-VL models (indexing and/or vision-enabled RAG).
+2. Process documents with images, then **index** (set `is_multimodal: true` on the dense model only if you want multimodal dense retrieval).
+3. In the RAG config, set a vision-capable `llm_name` (for local use, e.g. `Qwen/Qwen2.5-VL-3B-Instruct`) and `use_vision: true`.
+4. Optionally set `rag.max_images_per_request` (default 20) to cap images per query.
+5. Run index, then RAG in batch or API mode as above.
 
 **Indexer** (`examples/index/config.yaml`):
 
@@ -158,6 +165,8 @@ indexer:
   sparse_model:
     model_name: splade
     is_multimodal: false
+    # device: cuda   # if on GPU (SPLADE loads after Qwen is unloaded)
+    # device: cpu    # Apple Silicon / tight RAM (default when omitted + is_multimodal)
   db:
     uri: ./proc_demo.db
     name: my_db
@@ -182,23 +191,28 @@ rag:
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
 ```
 
-Local Qwen-VL dependencies (install after indexing / after creating the DB):
-
-```bash
-python3 -m pip install -e ".[qwen,cpu]"
-```
-
 Recommended order:
 
-1. Build the processed corpus and run indexing to create/populate the Milvus DB.
-2. Only then install the Qwen extra and run vision-enabled RAG inference.
+1. Install the Qwen extra if you use local Qwen-VL models.
+2. Build the processed corpus and run indexing to create/populate the Milvus DB.
+3. Run vision-enabled RAG inference in batch or API mode.
 
 ### How it works
 
 - **Indexing** stores each chunk’s text and `image_paths` in Milvus. Dense vectors follow `indexer.dense_model`; sparse vectors are text-only. Hybrid search combines dense (optionally multimodal) with sparse; sparse-only search does not use images at retrieval time.
+- With `is_multimodal: true`, the indexer runs Qwen for all dense vectors, unloads it, then runs SPLADE—so Qwen and SPLADE are not both resident at once. Set `sparse_model.device` to `cuda` on a GPU machine or leave unset / use `cpu` on Apple Silicon.
 - **Inference** retrieves chunks and builds the text prompt. With `use_vision: true`, MMORE loads up to `max_images_per_request` images from metadata and calls the multimodal adapter. If no images load, the model still receives text context only.
 
 Collections indexed before `image_paths` existed are supported: the retriever falls back to text-only Milvus fields automatically.
+
+### Local (constrained RAM)
+
+Optional configs; GPU/server defaults above are unchanged.
+
+| Step | Config | Notes |
+| ---- | ------ | ----- |
+| Index | `examples/index/config_multimodal.yaml` | `is_multimodal: true`, Qwen2.5-VL-3B; optional `max_images: 4`; `sparse_model.device: cpu` (Mac) or `cuda` (GPU) |
+| RAG | `examples/rag/config_mac.yaml` | `use_vision: true`; retrieval uses the model stored in the DB; smaller `llm_name` (e.g. Qwen2-VL-2B) for generation only |
 
 ### Scope and roadmap
 
@@ -258,5 +272,4 @@ In particular:
 - [Indexing](indexing.md)
 - [Process](process.md)
 - [Architecture](architecture.md)
-
 
