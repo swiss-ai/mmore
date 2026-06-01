@@ -6,7 +6,7 @@ Add a `judge:` block to your RAG config to check retrieval quality before genera
 
 1. Retrieve chunks from the index (Milvus + optional BGE rerank).
 2. Evaluate them in a loop (at most `max_corrective_steps` corrective actions, default `1`):
-  - `**PROCEED` without calling the judge LLM** when index metrics meet `metric_thresholds` — retrieval is already considered good enough.
+  - **`PROCEED` without calling the judge LLM** when index metrics meet `metric_thresholds` — retrieval is already considered good enough.
   - Otherwise, call `judge.llm` and run the chosen corrective action.
   - Repeat on the merged chunks until the judge says `PROCEED` or the step budget is exhausted.
 3. Generate the answer from the final context.
