@@ -31,6 +31,7 @@ This guide will help you set up your development environment and contribute to t
     - [Writing tests](#writing-tests)
   - [🔀 Pull Request Process](#-pull-request-process)
     - [PR checklist](#pr-checklist)
+  - [🖥️ Interactive TUI](#️-interactive-tui)
   - [💡 Development tips](#-development-tips)
     - [Working with `uv`](#working-with-uv)
   - [❓ Questions](#-questions)
@@ -255,6 +256,25 @@ def test_something_on_gpu():
 - [ ] Documentation is updated
 - [ ] Examples are provided for new features
 - [ ] Commit messages are clear and descriptive
+
+## 🖥️ Interactive TUI
+
+MMORE ships with a Terminal UI that wraps the CLI commands behind guided menus and config wizards. Useful for trying the pipeline without writing YAML by hand.
+
+Launch it from a project working directory:
+
+```bash
+mmore tui
+```
+
+From the main menu you can:
+
+- **Run a single command** — pick any stage (`process`, `postprocess`, `index`, `retrieve`, `rag`, `ragcli`, `websearch`), then either select an existing YAML, generate one through a guided wizard, or type a path manually. Generated configs are written to `./tui-configs/` and validated against the stage's dataclass before running.
+- **Run full pipeline** — chains `process → postprocess → index` using existing configs.
+- **Build a full pipeline config (guided wizard)** — walks through the three stages in order, wiring the postprocess output JSONL into the index config automatically.
+- **Chat with indexed documents** — shortcut to `ragcli`.
+
+Stages whose extras are missing are disabled in the menu with an install hint (e.g. `uv sync --extra rag --extra cpu`). Press `Ctrl-C` inside any sub-flow to cancel back to the main menu; press it again at the main menu to quit.
 
 ## 💡 Development tips
 
