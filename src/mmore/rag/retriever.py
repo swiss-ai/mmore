@@ -389,13 +389,7 @@ class Retriever(BaseRetriever):
                 min_score=min_score,
                 k=k,
                 document_ids=document_ids,
-                output_fields=[
-                    "text",
-                    "image_paths",
-                    "paragraph_positions",
-                    "page_numbers",
-                    "paragraph_numbers",
-                ],
+                output_fields=["text", "image_paths", "paragraph_positions"],
             )
         except Exception as e:
             if not _is_missing_image_paths_field_error(e):
@@ -425,8 +419,6 @@ class Retriever(BaseRetriever):
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
                     ),
-                    "page_numbers": result["entity"].get("page_numbers", []),
-                    "paragraph_numbers": result["entity"].get("paragraph_numbers", []),
                     "image_paths": _parse_image_paths(
                         result["entity"].get("image_paths")
                     ),

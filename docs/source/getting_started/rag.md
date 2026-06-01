@@ -1,4 +1,4 @@
-# 🤖 RAG 
+# 🤖 RAG
 
 ## Overview
 
@@ -23,8 +23,7 @@ In practice, it supports:
 - optional WebRAG and CLI usage in batch mode
 
 You can customize various parts of the pipeline by defining an inference RAG configuration file at
-[`examples/rag/api/rag_api.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/api/rag_api.yaml).
-
+`[examples/rag/api/rag_api.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/rag/api/rag_api.yaml)`.
 
 ## 💻 Minimal Example:
 
@@ -32,13 +31,14 @@ Here is a minimal example to create a RAG pipeline hosted through [LangGraph](ht
 
 ### 1. Create a RAG inference config file
 
-Create your RAG Inference config file based on the [batch example `examples/rag/config.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml) or the [API example `examples/rag/config_api.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config_api.yaml).
+Create your RAG Inference config file based on the [batch example `examples/rag/config.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml)` or the [API example `examples/rag/config_api.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config_api.yaml)`.
 
-You can check the structure of the configuration file with the dataclass [RAGConfig]( https://github.com/swiss-ai/mmore/blob/master/src/mmore/rag/pipeline.py).
+You can check the structure of the configuration file with the dataclass [RAGConfig](https://github.com/swiss-ai/mmore/blob/master/src/mmore/rag/pipeline.py).
 
 ### 2. Start the RAG pipeline
 
 Start your RAG pipeline using the `run_rag.py` script and your config file
+
 ```bash
 python3 -m mmore rag --config-file /path/to/config.yaml
 ```
@@ -48,11 +48,13 @@ python3 -m mmore rag --config-file /path/to/config.yaml
 In API mode, the RAG server exposes a health endpoint and a configurable RAG endpoint. By default, the RAG endpoint is `/rag`.
 
 Check that the server is running:
+
 ```bash
 curl --location --request GET http://localhost:8000/health
 ```
 
 Send a RAG query:
+
 ```bash
 curl --location --request POST http://localhost:8000/rag \
   -H 'Content-Type: application/json' \
@@ -61,14 +63,16 @@ curl --location --request POST http://localhost:8000/rag \
     "collection_name": "my_docs"
   }'
 ```
+
 In batch mode, the pipeline is run directly with the input data specified in the configuration file, and the result is saved to the specified path.
 
-See [`examples/rag`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/) for other use cases.
+See `[examples/rag](https://github.com/swiss-ai/mmore/blob/master/examples/rag/)` for other use cases.
 
 ## 🔎 Main modules
 
 The RAG pipeline is built around two main modules:
-1. The `Retriever`, which retrieves multimodal documents from the database. 
+
+1. The `Retriever`, which retrieves multimodal documents from the database.
 2. The `LLM`, which wraps different types of multimodal-able LLMs.
 
 ### Retriever
@@ -77,7 +81,7 @@ Here is an example on how to use the retriever module on its own. Note that it a
 
 #### 1. Create a config
 
-Start from the [example config file `examples/index/config.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/index/config.yaml).
+Start from the [example config file `examples/index/config.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/index/config.yaml)`.
 
 #### 2. Retrieve from the vector store
 
@@ -101,6 +105,7 @@ retriever.retrieve(
 Here is an example on how to use the `LLM` module on its own. This also assumes that the indexing workflow has already been completed.
 
 #### 1. Create a config file
+
 ```yaml
 llm_name: gpt-4o-mini
 max_new_tokens: 150
@@ -108,6 +113,7 @@ temperature: 0.7
 ```
 
 #### 2. Query the LLM
+
 ```python
 from mmore.rag.llm import LLM
 
@@ -136,10 +142,12 @@ Standard RAG passes retrieved **text** to the LLM. Vision-enabled RAG also loads
 
 Two flags are independent:
 
-| Setting | Config | Effect |
-| ------- | ------ | ------ |
-| Multimodal **retrieval** | `indexer.dense_model.is_multimodal` | Dense embeddings use image+text (re-index after changing). |
-| Vision **generation** | `rag.llm.use_vision` | Answer step receives loaded images; `false` keeps text-only generation. |
+
+| Setting                  | Config                              | Effect                                                                  |
+| ------------------------ | ----------------------------------- | ----------------------------------------------------------------------- |
+| Multimodal **retrieval** | `indexer.dense_model.is_multimodal` | Dense embeddings use image+text (re-index after changing).              |
+| Vision **generation**    | `rag.llm.use_vision`                | Answer step receives loaded images; `false` keeps text-only generation. |
+
 
 ### Quick setup
 
@@ -172,7 +180,7 @@ indexer:
     name: my_db
 ```
 
-**RAG** (from [`examples/rag/config.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml)):
+**RAG** (from `[examples/rag/config.yaml](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml)`):
 
 ```yaml
 rag:
@@ -209,16 +217,12 @@ Collections indexed before `image_paths` existed are supported: the retriever fa
 
 Optional configs; GPU/server defaults above are unchanged.
 
-| Step | Config | Notes |
-| ---- | ------ | ----- |
-| Index | `examples/index/config_multimodal.yaml` | `is_multimodal: true`, Qwen2.5-VL-3B; optional `max_images: 4`; `sparse_model.device: cpu` (Mac) or `cuda` (GPU) |
-| RAG | `examples/rag/config_mac.yaml` | `use_vision: true`; retrieval uses the model stored in the DB; smaller `llm_name` (e.g. Qwen2-VL-2B) for generation only |
 
-### Scope and roadmap
+| Step  | Config                                  | Notes                                                                                                                    |
+| ----- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+ | Index | `examples/index/config.yaml` | `is_multimodal: true`, Qwen2.5-VL-3B; optional `max_images: 4`; `sparse_model.device: cpu` (Mac) or `cuda` (GPU) |
+ | RAG | `examples/rag/config.yaml` | `use_vision: true`; retrieval uses the model stored in the DB; smaller `llm_name` (e.g. Qwen2-VL-2B) for generation only |
 
-**This release (local generation):** Hugging Face **Qwen-VL** family (`Qwen2-VL`, `Qwen2.5-VL`, `Qwen3-VL`) via `HuggingFaceVisionAdapter` and [`qwen-vl-utils`](https://github.com/QwenLM/Qwen3-VL/tree/main/qwen-vl-utils) for image preprocessing. Other local VLMs (e.g. LLaVA-NeXT) use different model classes and preprocessing; supporting them means adding small per-family adapters, not a single generic loader.
-
-**Follow-up (API generation):** Retrieval and image loading are already provider-agnostic. With `use_vision: true` and a non-HF provider, the pipeline uses `OpenAIMultimodalAdapter` (LangChain chat models + multimodal messages). A later PR can document and test OpenAI/Anthropic vision APIs and align message formats per provider.
 
 ## 🔧 Customization
 
@@ -226,14 +230,16 @@ Our RAG pipeline is built to take full advantage of [LangChain](https://python.l
 
 #### Retriever
 
-Our retriever is a LangChain [`BaseRetriever`](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html). If you want to create a custom retriever (e.g. GraphRetriever,...) you can simply make it inherit from this class and use it as described in our examples.
+Our retriever is a LangChain `[BaseRetriever](https://python.langchain.com/api_reference/core/retrievers/langchain_core.retrievers.BaseRetriever.html)`. If you want to create a custom retriever (e.g. GraphRetriever,...) you can simply make it inherit from this class and use it as described in our examples.
 
-#### WebRAG 
+#### WebRAG
+
 Within the `rag` pipeline, web search is currently configured through the retriever settings in local / file-based workflows.
 
-It uses the [`DuckDuckGo Search API`](https://python.langchain.com/docs/integrations/tools/ddg/) to search the web using the input query, then adds its results to the context. 
+It uses the `[DuckDuckGo Search API](https://python.langchain.com/docs/integrations/tools/ddg/)` to search the web using the input query, then adds its results to the context. 
 
-#### CLI for RAG 
+#### CLI for RAG
+
 A CLI is also available for interactive querying.
 
 Start it with:
@@ -244,10 +250,9 @@ python3 -m mmore ragcli --config-file /path/to/config.yaml
 
 You can customize the CLI by defining [a RAG configuration file](https://github.com/swiss-ai/mmore/blob/master/examples/rag/config.yaml) or by setting preferences from within the CLI.
 
-
-
 #### LLM
-The LLM wrappers are based on LangChain's [`BaseChatModel`](https://python.langchain.com/api_reference/core/language_models/langchain_core.language_models.chat_models.BaseChatModel.html). 
+
+The LLM wrappers are based on LangChain's `[BaseChatModel](https://python.langchain.com/api_reference/core/language_models/langchain_core.language_models.chat_models.BaseChatModel.html)`. 
 
 If you want to create a custom retriever you can simply make it inherit from this class and use it as described in our examples. 
 

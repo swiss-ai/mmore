@@ -90,7 +90,7 @@ class HuggingFaceVisionAdapter(BaseMultimodalLLM):
         return AutoModelForImageTextToText
 
     def _build_from_pretrained_kwargs(self, dtype: Any) -> dict:
-        load_kwargs: dict = {"low_cpu_mem_usage": False, "dtype": dtype}
+        load_kwargs: dict = {"low_cpu_mem_usage": False, "torch_dtype": dtype}
         if self.device_map is not None:
             load_kwargs["device_map"] = self.device_map
         return load_kwargs

@@ -69,7 +69,14 @@ class MultimodalEmbeddings(Embeddings):
         self.max_image_side = max_image_side
         self.model = AutoModelForImageTextToText.from_pretrained(
             model_name,
-            torch_dtype=torch.float16,  # type: ignore[reportPrivateImportUsage]
+            torch_dtype=(
+                torch.bfloat16  # type: ignore[reportPrivateImportUsage]
+                if torch.cuda.is_available()
+                else torch.float16  # type: ignore[reportPrivateImportUsage]
+                if getattr(torch.backends, "mps", None)
+                and torch.backends.mps.is_available()
+                else torch.float32  # type: ignore[reportPrivateImportUsage]
+            ),
             device_map="auto",
             low_cpu_mem_usage=True,
         )
