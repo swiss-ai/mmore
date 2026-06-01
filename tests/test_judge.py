@@ -212,6 +212,16 @@ def test_parse_json_repairs_trailing_comma_and_python_literals():
     assert p["sufficient"] is True
 
 
+def test_parse_json_nested_retrieve_params_with_prefix():
+    raw = (
+        'Summary: {"k": 10}\n'
+        '{"decision":"RE_RETRIEVE","retrieve_params":{"k":10},"reason":"weak"}'
+    )
+    parsed = parse_json_response(raw)
+    assert parsed["decision"] == "RE_RETRIEVE"
+    assert parsed["retrieve_params"] == {"k": 10}
+
+
 @pytest.mark.parametrize(
     "cfg_kw,docs,llm_json,invoke,decision,reason_sub,extra",
     [

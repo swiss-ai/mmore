@@ -60,12 +60,22 @@ def extract_judge_fields_loose(text: str) -> Dict[str, Any]:
 def _judge_json_snippet(text: Any) -> str:
     """Isolate the judge JSON object (assistant reply, not prompt metrics)."""
     text = extract_llm_text(text).strip()
-    if text.startswith("{"):
+    if not text:
         return text
-    start = text.rfind("{")
-    if start == -1:
-        return text
-    return text[start:]
+
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch != "{":
+            continue
+        try:
+            obj, end = decoder.raw_decode(text[i:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and "decision" in obj:
+            return text[i : i + end]
+
+    start = text.find("{")
+    return text[start:] if start != -1 else text
 
 
 def _parse_json_dict(text: str) -> Dict[str, Any]:
