@@ -108,7 +108,10 @@ def _patched_key_mapping(model_cls: Type) -> dict | None:
     # sub-module model.* -> language_model.*; colpali-engine remaps model.layers but
     # omits model.embed_tokens / model.norm, which then get randomly re-initialised.
     targets = "".join(mapping.values())
-    if "language_model.layers" in targets and "language_model.embed_tokens" not in targets:
+    if (
+        "language_model.layers" in targets
+        and "language_model.embed_tokens" not in targets
+    ):
         extra[r"^model\.embed_tokens"] = "language_model.embed_tokens"
         extra[r"^model\.norm"] = "language_model.norm"
         logger.info(

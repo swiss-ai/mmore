@@ -74,6 +74,7 @@ def test_resolve_model_classes_unknown_raises():
 
 # ------------------ _patched_key_mapping Tests ------------------
 
+
 def test_patched_key_mapping_colgemma3_adds_vision_tower_rule():
     """
     Regression: ColGemma3 (Cognitive-Lab/ColNetraEmbed) was serialised under
@@ -99,6 +100,7 @@ def test_patched_key_mapping_colgemma3_adds_vision_tower_rule():
     )
     # The rule must remap vision_tower.vision_model.* → vision_tower.*
     import re
+
     sample_key = "vision_tower.vision_model.encoder.layers.0.self_attn.q_proj.weight"
     remapped = sample_key
     for pattern, replacement in mapping.items():
@@ -146,7 +148,9 @@ def test_patched_key_mapping_colqwen2_5_still_works():
 
     mapping = _patched_key_mapping(colpali_models.ColQwen2_5)
 
-    assert mapping is not None, "_patched_key_mapping must return a mapping for ColQwen2_5"
+    assert mapping is not None, (
+        "_patched_key_mapping must return a mapping for ColQwen2_5"
+    )
     assert r"^model\.embed_tokens" in mapping, "embed_tokens rule must be present"
     assert r"^model\.norm" in mapping, "norm rule must be present"
 
