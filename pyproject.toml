@@ -101,7 +101,7 @@ index = [
 colvision = [
     # Vision-based RAG — ColQwen2, ColQwen2.5, ColGemma3, ColQwen3.5 (transformers 5.x)
     # For ColPali v1.3 use colvision-legacy (tf4 adapter layout, incompatible with tf5).
-    "mmore[index]",
+    "mmore[api, index]",
     "colpali-engine>=0.3.16",  # 0.3.16+ required for correct key mapping with transformers>=5.3
     "transformers>=5.3.0,<6.0.0",
     "PyMuPDF",
@@ -111,7 +111,7 @@ colvision = [
 
 colvision-legacy = [
     # Vision-based RAG — ColPali v1.3 only (transformers 4.x adapter layout)
-    "mmore[index]",
+    "mmore[api, index]",
     "colpali-engine>=0.3.8,<=0.3.13",
     "transformers>=4.44,<5.0",
     "PyMuPDF",
