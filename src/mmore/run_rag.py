@@ -3,14 +3,16 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from langchain_core.documents import Document
 from pydantic import BaseModel
 
 from mmore.profiler import enable_profiling_from_env, profile_function
+from mmore.rag.judge import extract_judge_output
 from mmore.rag.pipeline import RAGConfig, RAGPipeline
 from mmore.utils import load_config
 
@@ -54,13 +56,41 @@ def read_queries(input_file: Union[Path, str]) -> List[Dict[str, str]]:
         return [json.loads(line) for line in f]
 
 
+# Standard RAG fields (always written to JSON / API)
+_RAG_KEYS = ("input", "context", "answer")
+
+
+def _serialize_document(doc: Union[Document, Dict[str, Any]]) -> Dict[str, Any]:
+    """LangChain Documents are not JSON-serializable; clients need plain dicts."""
+    if isinstance(doc, dict):
+        page_content = doc.get("page_content", doc.get("content", ""))
+        metadata = doc.get("metadata", {})
+        return {"page_content": page_content, "metadata": dict(metadata)}
+    return {"page_content": doc.page_content, "metadata": dict(doc.metadata)}
+
+
+def _serialize_documents(
+    docs: List[Union[Document, Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    """Same as _serialize_document, for the full list written to results.json / API."""
+    return [_serialize_document(doc) for doc in docs]
+
+
+def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Bridge pipeline dict (internal keys like docs) to the public RAGOutput / JSON schema."""
+    out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
+    out.update(extract_judge_output(pipeline_result))
+    docs = pipeline_result.get("docs")
+    if docs:
+        out["documents"] = _serialize_documents(docs)
+    return out
+
+
 def save_results(results: List[Dict], output_file: Union[Path, str]):
-    results = [
-        {key: d[key] for key in {"input", "context", "answer"} if key in d}
-        for d in results
-    ]
+    # JSON-safe dicts (answer, context, judge fields, documents) for JSON export.
+    serialized = [_to_public_output(d) for d in results]
     with open(output_file, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(serialized, f, indent=2)
 
 
 class InnerInput(BaseModel):
@@ -76,6 +106,15 @@ class RAGOutput(BaseModel):
     input: Optional[str] = None
     context: Optional[str] = None
     answer: Optional[str] = None
+    documents: Optional[List[Dict[str, Any]]] = None
+    judge_decision: Optional[str] = None
+    judge_reason: Optional[str] = None
+    judge_actions: Optional[List[str]] = None
+    judge_llm_calls: Optional[int] = None
+    judge_steps: Optional[List[Dict[str, Any]]] = None
+    hit_max_corrective_steps: Optional[float] = None
+    retrieval_metrics: Optional[Dict[str, float]] = None
+    retrieval_corrections: Optional[List[Dict[str, Any]]] = None
 
 
 def create_api(rag: RAGPipeline, endpoint: str):
@@ -85,12 +124,13 @@ def create_api(rag: RAGPipeline, endpoint: str):
         version="2.0",
     )
 
-    @app.post(endpoint, response_model=RAGOutput)
+    # Omit unset judge fields (same rule as _to_public_output for JSON export).
+    @app.post(endpoint, response_model=RAGOutput, response_model_exclude_none=True)
     async def run_rag(request: RAGInput):
         # Extract the inner input dict to pass to rag_chain
         pipeline_input = request.input.model_dump()
         output_dict = rag.rag_chain.invoke(pipeline_input)
-        return RAGOutput(**output_dict)
+        return RAGOutput(**_to_public_output(output_dict))
 
     @app.get("/health")
     def health_check():

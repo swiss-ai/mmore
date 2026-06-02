@@ -1,0 +1,34 @@
+name: 📐 Pyright type checks
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pyright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv and create venv
+        run: |
+          pipx install uv
+          uv venv .venv
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          uv pip install -e ".[process,index,rag,api,cpu,dev,websearch]"
+
+      - name: Run Pyright
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          pyright
