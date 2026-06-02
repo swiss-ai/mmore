@@ -265,6 +265,10 @@ paths:
                     type: string
                   chunkId:
                     type: string
+                  filename:
+                    type: string
+                    nullable: true
+                    description: Original filename of the source document.
                   content:
                     type: string
                   metadata:
