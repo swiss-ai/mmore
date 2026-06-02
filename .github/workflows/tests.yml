@@ -56,3 +56,14 @@ jobs:
         run: |
           source .venv-colvision/bin/activate
           pytest tests/test_colvision.py
+
+      - name: Install dependencies - colvision-legacy
+        run: |
+          uv venv .venv-colvision-legacy
+          source .venv-colvision-legacy/bin/activate
+          uv pip install -e ".[colvision-legacy,cpu,dev]"
+
+      - name: Smoke test - colvision-legacy
+        run: |
+          source .venv-colvision-legacy/bin/activate
+          python -c "import mmore.colvision.model_utils as m; print('colvision-legacy OK:', m.resolve_model_classes('vidore/colpali-v1.3')[0].__name__)"

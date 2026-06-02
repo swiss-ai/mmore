@@ -17,7 +17,6 @@ uv sync --extra colvision
 | ColPali v1.3 | `vidore/colpali-v1.3` | `colvision-legacy` |
 | ColQwen2 v1.0 | `vidore/colqwen2-v1.0` | `colvision` |
 | ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` | `colvision` |
-| ColQwen3 v0.1 | `vidore/colqwen3-v0.1` | `colvision` |
 | ColGemma3 | `Cognitive-Lab/ColNetraEmbed` | `colvision` |
 | ColSmol 256M | `vidore/colSmol-256M` | `colvision` |
 | ColSmol 500M | `vidore/colSmol-500M` | `colvision` |
@@ -330,7 +329,7 @@ python3 -m mmore colvision retrieve --config-file examples/colvision/config_retr
 ### For better accuracy
 - use higher DPI in PDF conversion, default is 200
 - increase `top_k` in retrieval to inspect more candidate pages
-- consider using more recent ColVision models (ColQwen2.5, ColQwen3)
+- consider using more recent ColVision models (ColQwen2.5, ColGemma3)
 
 ### For production
 - run Milvus in distributed mode for larger datasets

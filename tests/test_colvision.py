@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 
 from mmore.colvision.milvuscolvision import MilvusColvisionManager
-from mmore.colvision.model_utils import _patched_key_mapping, resolve_model_classes
+from mmore.colvision.model_utils import resolve_model_classes
 from mmore.colvision.retriever import (
     ColVisionRetriever,
     ColVisionRetrieverConfig,
@@ -52,11 +52,11 @@ def test_resolve_model_classes_colqwen2_5():
     assert proc_cls.__name__ == "ColQwen2_5_Processor"
 
 
-def test_resolve_model_classes_colqwen3():
-    """Test that ColQwen3 model names resolve to ColQwen3 classes."""
-    model_cls, proc_cls = resolve_model_classes("vidore/colqwen3-v0.1")
-    assert model_cls.__name__ == "ColQwen3"
-    assert proc_cls.__name__ == "ColQwen3Processor"
+def test_resolve_model_classes_colsmol():
+    """Test that ColSmol model names resolve to ColIdefics3 classes."""
+    model_cls, proc_cls = resolve_model_classes("vidore/colSmol-256M")
+    assert model_cls.__name__ == "ColIdefics3"
+    assert proc_cls.__name__ == "ColIdefics3Processor"
 
 
 def test_resolve_model_classes_colgemma():
@@ -70,121 +70,6 @@ def test_resolve_model_classes_unknown_raises():
     """Test that unknown model names raise ValueError."""
     with pytest.raises(ValueError, match="Unknown model"):
         resolve_model_classes("some/unknown-model")
-
-
-# ------------------ _patched_key_mapping Tests ------------------
-
-
-def test_patched_key_mapping_colgemma3_adds_vision_tower_rule():
-    """
-    Regression: ColGemma3 (Cognitive-Lab/ColNetraEmbed) was serialised under
-    transformers 4.x with vision_tower.vision_model.* keys.  transformers 5.x
-    flattened the layout to vision_tower.*.  colpali-engine's mapping omits
-    this rule, leaving the vision encoder randomly initialised.
-
-    _patched_key_mapping must add vision_tower.vision_model.* → vision_tower.*
-    so the checkpoint keys are remapped correctly at load time.
-    """
-    import colpali_engine.models as colpali_models
-
-    mapping = _patched_key_mapping(colpali_models.ColGemma3)
-
-    assert mapping is not None, (
-        "_patched_key_mapping must return a mapping for ColGemma3 "
-        "(vision tower gap not yet fixed upstream)"
-    )
-    vision_rules = {k: v for k, v in mapping.items() if "vision_tower" in k}
-    assert vision_rules, (
-        "Mapping must contain at least one rule covering vision_tower keys; "
-        f"got keys: {list(mapping.keys())}"
-    )
-    # The rule must remap vision_tower.vision_model.* → vision_tower.*
-    import re
-
-    sample_key = "vision_tower.vision_model.encoder.layers.0.self_attn.q_proj.weight"
-    remapped = sample_key
-    for pattern, replacement in mapping.items():
-        remapped = re.sub(pattern, replacement, remapped)
-    assert remapped == "vision_tower.encoder.layers.0.self_attn.q_proj.weight", (
-        f"vision_tower key was not correctly remapped; got: {remapped!r}"
-    )
-
-
-def test_patched_key_mapping_colgemma3_self_disables():
-    """
-    If colpali-engine adds a vision_tower rule natively, _patched_key_mapping
-    must not add a duplicate and may return None (no extra patch needed).
-    We verify the guard: when a vision_tower key already exists in the mapping,
-    our patch is skipped.
-    """
-    import colpali_engine.models as colpali_models
-
-    # Temporarily inject a vision_tower rule into ColGemma3's mapping.
-    original = colpali_models.ColGemma3._checkpoint_conversion_mapping.copy()
-    colpali_models.ColGemma3._checkpoint_conversion_mapping = {
-        **original,
-        r"^vision_tower\.vision_model\.": "vision_tower.",
-    }
-    try:
-        mapping = _patched_key_mapping(colpali_models.ColGemma3)
-        if mapping is not None:
-            vision_rules = [k for k in mapping if "vision_tower" in k]
-            assert len(vision_rules) == 1, (
-                "Only one vision_tower rule must be present when upstream already provides it; "
-                f"got: {vision_rules}"
-            )
-    finally:
-        colpali_models.ColGemma3._checkpoint_conversion_mapping = original
-
-
-def test_patched_key_mapping_colqwen2_5_still_works():
-    """
-    Regression guard: the ColQwen2/2.5 embed_tokens/norm patch must still be
-    applied after the ColGemma3 patch was added to _patched_key_mapping.
-    """
-    import re
-
-    import colpali_engine.models as colpali_models
-
-    mapping = _patched_key_mapping(colpali_models.ColQwen2_5)
-
-    assert mapping is not None, (
-        "_patched_key_mapping must return a mapping for ColQwen2_5"
-    )
-    assert r"^model\.embed_tokens" in mapping, "embed_tokens rule must be present"
-    assert r"^model\.norm" in mapping, "norm rule must be present"
-
-    for src, expected in [
-        ("model.embed_tokens.weight", "language_model.embed_tokens.weight"),
-        ("model.norm.weight", "language_model.norm.weight"),
-    ]:
-        remapped = src
-        for pattern, replacement in mapping.items():
-            remapped = re.sub(pattern, replacement, remapped)
-        assert remapped == expected, (
-            f"Key {src!r} was not correctly remapped; got: {remapped!r}"
-        )
-
-
-def test_patched_key_mapping_skips_on_transformers_4x(monkeypatch):
-    """
-    Regression: the `key_mapping` from_pretrained argument only exists on
-    transformers 5.x. On the colvision-legacy stack (transformers 4.x, ColPali
-    v1.3), ColPali is PaliGemma-based, so the Gemma vision-tower patch would
-    otherwise fire and pass an unsupported `key_mapping` to from_pretrained.
-
-    _patched_key_mapping must return None whenever transformers < 5.3 so that
-    no key_mapping is ever injected on the legacy stack.
-    """
-    import colpali_engine.models as colpali_models
-    import transformers
-
-    monkeypatch.setattr(transformers, "__version__", "4.44.2")
-    for cls_name in ("ColPali", "ColGemma3", "ColQwen2_5"):
-        cls = getattr(colpali_models, cls_name)
-        assert _patched_key_mapping(cls) is None, (
-            f"{cls_name} must not be patched on transformers 4.x"
-        )
 
 
 # ------------------ PDFConverter Tests ------------------
