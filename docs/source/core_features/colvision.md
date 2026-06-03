@@ -12,14 +12,16 @@ uv sync --extra colvision
 
 ## Supported Models
 
-| Model | `model_name` | Extra |
-|---|---|---|
-| ColPali v1.3 | `vidore/colpali-v1.3` | `colvision-legacy` |
-| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` | `colvision` |
-| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` | `colvision` |
-| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` | `colvision` |
-| ColSmol 256M | `vidore/colSmol-256M` | `colvision` |
-| ColSmol 500M | `vidore/colSmol-500M` | `colvision` |
+| Model | `model_name` |
+|---|---|
+| ColPali v1.3 | `vidore/colpali-v1.3` |
+| ColQwen2 v1.0 | `vidore/colqwen2-v1.0` |
+| ColQwen2.5 v0.2 | `vidore/colqwen2.5-v0.2` |
+| ColGemma3 | `Cognitive-Lab/ColNetraEmbed` |
+| ColSmol 256M | `vidore/colSmol-256M` |
+| ColSmol 500M | `vidore/colSmol-500M` |
+
+All models are installed with the single `[colvision]` extra.
 
 The model/processor class is auto-detected from `model_name`, and the embedding dimension is inferred at every stage (from the loaded model at `process` / `retrieve` time, from the parquet contents at `index` time).
 

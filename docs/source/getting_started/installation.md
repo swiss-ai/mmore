@@ -102,17 +102,14 @@ cd mmore
 
 ### Step 4: Install the project and dependencies
 
-Pick the pipeline you intend to use. The three environments below are mutually exclusive — set up a separate venv for each one you need.
+Pick the pipeline you intend to use. The standard pipeline (`[process]`, with text/document extraction) and the ColVision pipeline (`[colvision]`, with vision-based RAG) are **mutually exclusive** — set up a separate venv if you need both.
 
 ```bash
 # Standard pipeline (document processing + text RAG)
 uv sync --extra process --extra rag
 
-# OR ColVision pipeline — ColQwen2/2.5/3, ColGemma3
+# OR ColVision pipeline (vision-based RAG: ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
 uv sync --extra colvision
-
-# OR ColVision pipeline — legacy, only for the older ColPali v1.3 model
-uv sync --extra colvision-legacy
 ```
 
 For a CPU-only installation, use:
