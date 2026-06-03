@@ -66,6 +66,8 @@ brew install cairo pango gdk-pixbuf libffi
 uv pip install weasyprint
 ```
 
+You can also run MMORE on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
+
 #### Step 1 – Install MMORE
 
 Dependencies are split by pipeline stage. Install only what you need:
@@ -102,6 +104,22 @@ uv pip install "mmore[process,cpu]"
 > :warning: This package requires many big dependencies, so it is recommended to install with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 > :warning: **Check the instructions for contributors directly at [`docs/for_devs.md`](./docs/for_devs.md)**
+
+### Interactive TUI
+
+Prefer a guided experience over editing YAML by hand? Install the `tui` extra and launch the interactive Terminal UI:
+
+```bash
+uv sync --extra tui
+mmore tui
+```
+
+From the launcher you can:
+
+- run any stage (process / postprocess / index / rag / chat) interactively,
+- chain the full pipeline (process → postprocess → index → chat),
+- generate stage YAML configs through a guided wizard,
+- pick from existing example configs without leaving the terminal.
 
 ### Minimal Example
 
