@@ -11,8 +11,9 @@ The prebuilt Qdrant **server** binary for aarch64 ships a jemalloc compiled
 for 4 KB pages and crashes on GH200 with
 `<jemalloc>: Unsupported system page size`. Embedded mode bypasses this
 because it never loads the Rust binary. For server-mode workloads on Alps
-you need a custom Qdrant build (see
-[qdrant-alps](https://github.com/jeremydoumeng/qdrant-alps)).
+you need a custom Qdrant build that recompiles jemalloc for 64 KB pages —
+[qdrant-cscs](https://github.com/jeremydoumeng/qdrant-cscs) provides that
+build script plus a Slurm wrapper to launch the server (see the last section).
 ```
 
 ## 1. Allocate a node
@@ -41,22 +42,25 @@ that directory is where the embedded Qdrant stores its data.
 
 ```yaml
 # examples/index/config.yaml
-documents_path: /iopsstor/scratch/cscs/${USER}/docs
-dense_model:
-  model_name: sentence-transformers/all-MiniLM-L6-v2
-sparse_model:
-  model_name: splade
-db:
-  backend: qdrant
-  uri: /iopsstor/scratch/cscs/${USER}/qdrant_data
-  name: my_db
+indexer:
+  dense_model:
+    model_name: sentence-transformers/all-MiniLM-L6-v2
+    is_multimodal: false
+  sparse_model:
+    model_name: splade
+    is_multimodal: false
+  db:
+    backend: qdrant
+    uri: /iopsstor/scratch/cscs/${USER}/qdrant_data
+    name: my_db
 collection_name: my_docs
+documents_path: /iopsstor/scratch/cscs/${USER}/docs
 ```
 
 ## 4. Run the indexer
 
 ```bash
-python -m mmore.run_index --config examples/index/config.yaml
+python -m mmore index --config-file examples/index/config.yaml
 ```
 
 First run creates the collection under `db.uri`; subsequent runs append.
@@ -66,7 +70,7 @@ First run creates the collection under `db.uri`; subsequent runs append.
 Mirror the same `db.backend: qdrant` block in the RAG config and run:
 
 ```bash
-python -m mmore.run_rag --config examples/rag/config.yaml
+python -m mmore rag --config-file examples/rag/config.yaml
 ```
 
 ## 6. Inspect what landed
@@ -86,5 +90,17 @@ Embedded Qdrant is pure-Python and slow at scale. Rule of thumb:
 | 5k–50k chunks / 2k–10k ColPali pages | usable but noticeably slow |
 | > 50k chunks or > 10k ColPali pages | switch to server mode (custom Alps build) |
 
-For the server-mode path on Alps, see
-[qdrant-alps](https://github.com/jeremydoumeng/qdrant-alps).
+For the server-mode path on Alps, use
+[qdrant-cscs](https://github.com/jeremydoumeng/qdrant-cscs): it ships a build
+script that compiles a Qdrant binary patched for GH200's 64 KB pages, and a
+Slurm wrapper that starts the server. In short:
+
+```bash
+git clone https://github.com/jeremydoumeng/qdrant-cscs.git && cd qdrant-cscs
+./scripts/build_qdrant_alps.sh              # one-time build (~5 min)
+sbatch scripts/start_qdrant_server.sbatch   # serves on 127.0.0.1:6333
+```
+
+Then point this guide's `db.uri` at the server URL
+(`http://127.0.0.1:6333`) instead of a directory path; everything else in the
+index/RAG configs stays the same. See that repo's README for the full recipe.
