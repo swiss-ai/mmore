@@ -49,6 +49,7 @@ getting_started/rag
 
 core_features/colpali
 core_features/websearch
+core_features/paper_discovery
 core_features/evaluation
 ```
 
@@ -82,6 +83,7 @@ Here is a quick overview of the main pages:
 - [RAG](getting_started/rag.md): structure retrieval-augmented generation workflows
 - [ColPali](core_features/colpali.md): multimodal retrieval-related documentation
 - [Websearch](core_features/websearch.md): web search integration and related workflows
+- [Paper Discovery](core_features/paper_discovery.md): fetch academic papers from OpenAlex, Europe PMC, arXiv, and Google Scholar
 - [Evaluation](core_features/evaluation.md): assess system performance
 - [Distributed processing](advanced_usage/distributed_processing.md): scale processing across larger workloads
 - [Profiler](advanced_usage/profiler.md): profile and analyze performance
