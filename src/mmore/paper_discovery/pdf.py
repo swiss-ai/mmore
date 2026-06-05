@@ -114,13 +114,22 @@ def _looks_like_pdf(response: requests.Response) -> bool:
     return response.content[:5] == b"%PDF-"
 
 
-def _save_pdf(content: bytes, url: str, save_dir: str) -> str:
+def expected_pdf_path(url: str, save_dir: str) -> Path:
+    """Where a PDF for `url` would be cached. Pure - no I/O.
+
+    Used both by `_save_pdf` (on write) and by the pipeline's cache check
+    (on read), so the two stay in sync.
+    """
     name = Path(url.split("?", 1)[0]).name or "paper"
     if not name.lower().endswith(".pdf"):
         name += ".pdf"
-    path = str(Path(save_dir) / name)
-    Path(path).write_bytes(content)
-    return path
+    return Path(save_dir) / name
+
+
+def _save_pdf(content: bytes, url: str, save_dir: str) -> str:
+    path = expected_pdf_path(url, save_dir)
+    path.write_bytes(content)
+    return str(path)
 
 
 def _find_pdf_link(html: str, base: str) -> Optional[str]:

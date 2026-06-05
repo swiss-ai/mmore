@@ -7,7 +7,7 @@ from typing import Iterable, List
 
 from .boolean import build_boolean_queries, load_synonyms
 from .config import PaperDiscoveryConfig
-from .pdf import download_pdf, extract_text
+from .pdf import download_pdf, expected_pdf_path, extract_text
 from .schema import CategoryQuery, Paper
 from .sources import get_adapter
 
@@ -91,13 +91,28 @@ class PaperDiscoveryPipeline:
     def _enrich_with_pdf_text(self, papers: Iterable[Paper]) -> None:
         cfg = self.config
         papers = list(papers)
-        succeeded = paywalled = errored = skipped = 0
+        cached = succeeded = paywalled = errored = skipped = 0
         bar = tqdm(papers, desc="PDFs", unit="paper")
         for paper in bar:
             if not paper.url:
                 skipped += 1
-                bar.set_postfix(ok=succeeded, paywall=paywalled, err=errored)
+                bar.set_postfix(
+                    ok=succeeded, cache=cached, paywall=paywalled, err=errored
+                )
                 continue
+
+            # Cache hit - skip the HTTP fetch entirely.
+            if not cfg.force_redownload:
+                cached_path = expected_pdf_path(paper.url, cfg.pdf_dir)
+                if cached_path.exists():
+                    paper.extracted_text = extract_text(str(cached_path)) or None
+                    cached += 1
+                    succeeded += 1
+                    bar.set_postfix(
+                        ok=succeeded, cache=cached, paywall=paywalled, err=errored
+                    )
+                    continue
+
             result = download_pdf(
                 paper.url,
                 cfg.pdf_dir,
@@ -113,13 +128,17 @@ class PaperDiscoveryPipeline:
                 errored += 1
             else:
                 skipped += 1
-            bar.set_postfix(ok=succeeded, paywall=paywalled, err=errored)
+            bar.set_postfix(ok=succeeded, cache=cached, paywall=paywalled, err=errored)
 
         total = succeeded + paywalled + errored + skipped
+        fresh = succeeded - cached
         logger.info(
-            "PDF download: %d/%d succeeded, %d paywalled, %d errors, %d skipped",
+            "PDF download: %d/%d succeeded (%d cached, %d fresh), "
+            "%d paywalled, %d errors, %d skipped",
             succeeded,
             total,
+            cached,
+            fresh,
             paywalled,
             errored,
             skipped,

@@ -37,3 +37,4 @@ class PaperDiscoveryConfig:
     user_agent: str = "mmore-paper-discovery/1.0 (https://github.com/swiss-ai/mmore)"
     arxiv_category_map: Optional[Dict[str, str]] = None
     pdf_proxy_prefix: Optional[str] = None
+    force_redownload: bool = False  # If True, ignore the on-disk PDF cache.
