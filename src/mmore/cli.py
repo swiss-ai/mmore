@@ -279,6 +279,19 @@ def ragcli(config_file: str):
     my_rag_cli.launch_cli()
 
 
+@main.command()
+def tui():
+    """Launch the interactive Terminal UI."""
+    try:
+        from .tui import run
+    except ModuleNotFoundError as e:
+        if e.name in ("questionary", "rich", "prompt_toolkit"):
+            click.echo("TUI dependency missing. Install with: uv sync --extra tui")
+            raise SystemExit(1)
+        raise
+    run()
+
+
 @main.group()
 def colpali():
     """ColPali pipeline commands for PDF processing, indexing, and retrieval."""

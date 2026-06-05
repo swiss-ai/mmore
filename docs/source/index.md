@@ -41,6 +41,7 @@ getting_started/architecture
 getting_started/process
 getting_started/indexing
 getting_started/rag
+getting_started/windows
 ```
 
 ```{toctree}
@@ -51,6 +52,7 @@ core_features/colpali
 core_features/websearch
 core_features/paper_discovery
 core_features/evaluation
+core_features/llm_as_a_judge
 ```
 
 ```{toctree}
@@ -76,6 +78,7 @@ developer_documentation/index_api
 Here is a quick overview of the main pages:
 
 - [Installation](getting_started/installation.md): set up MMORE and prepare your environment
+- [Running on Windows](getting_started/windows.md): what differs on Windows and how to fix it
 - [Quickstart](getting_started/quickstart.md): run a first minimal workflow end to end
 - [Architecture](getting_started/architecture.md): understand the main system components and how they interact
 - [Processing pipeline](getting_started/process.md): understand how documents are ingested and transformed
@@ -85,6 +88,7 @@ Here is a quick overview of the main pages:
 - [Websearch](core_features/websearch.md): web search integration and related workflows
 - [Paper Discovery](core_features/paper_discovery.md): fetch academic papers from OpenAlex, Europe PMC, arXiv, and Google Scholar
 - [Evaluation](core_features/evaluation.md): assess system performance
+- [LLM as a judge](core_features/llm_as_a_judge.md): corrective retrieval with an LLM judge
 - [Distributed processing](advanced_usage/distributed_processing.md): scale processing across larger workloads
 - [Profiler](advanced_usage/profiler.md): profile and analyze performance
 - [uv](advanced_usage/uv.md): environment and dependency workflow

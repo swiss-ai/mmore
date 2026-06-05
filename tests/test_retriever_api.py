@@ -35,6 +35,7 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
         {
             "text": "hello world",
             "paragraph_positions": [[1, 0], [1, 2], [2, 1]],
+            "filename": "demo.pdf",
         }
     ]
 
@@ -44,6 +45,7 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
     assert response.json() == {
         "fileId": "file-123",
         "chunkId": "chunk-7",
+        "filename": "demo.pdf",
         "content": "hello world",
         "metadata": {
             "first": {"page": 1, "paragraph": 0},
@@ -53,6 +55,7 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
     call_kwargs = mock_retriever.client.query.call_args.kwargs
     assert call_kwargs["collection_name"] == "test_docs"
     assert call_kwargs["filter"] == 'id in ["file-123+chunk-7"]'
+    assert call_kwargs["output_fields"] == ["text", "paragraph_positions", "filename"]
     assert call_kwargs["limit"] == 1
 
 
@@ -66,6 +69,7 @@ def test_get_chunk_no_paragraph_positions_returns_null_metadata(client, mock_ret
 
     assert response.status_code == 200
     body = response.json()
+    assert body["filename"] is None
     assert body["content"] == "no positions"
     assert body["metadata"] is None
 

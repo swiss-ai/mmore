@@ -12,14 +12,16 @@ This guide will help you set up your development environment and contribute to t
       - [Linux (Ubuntu/Debian)](#linux-ubuntudebian)
       - [macOS](#macos)
     - [Installing MMORE for development](#installing-mmore-for-development)
+      - [1. Clone the repository](#1-clone-the-repository)
+      - [2. Create a virtual environment and install dependencies](#2-create-a-virtual-environment-and-install-dependencies)
     - [🧹 Code quality tools](#-code-quality-tools)
       - [Pre-commit hooks](#pre-commit-hooks)
-        - [Setup](#setup)
-          - [1. Install pre-commit](#1-install-pre-commit)
-          - [2. Set up the git hook scripts](#2-set-up-the-git-hook-scripts)
-          - [3. Run the checks manually](#3-run-the-checks-manually)
+      - [Setup](#setup)
+        - [1. Install pre-commit](#1-install-pre-commit)
+        - [2. Set up the git hook scripts](#2-set-up-the-git-hook-scripts)
+        - [3. Run the checks manually](#3-run-the-checks-manually)
       - [Configured Hooks](#configured-hooks)
-      - [Type Checking](#type-checking)
+    - [Type Checking](#type-checking)
   - [🤝 Contributing Guidelines](#-contributing-guidelines)
     - [Reporting Issues](#reporting-issues)
     - [Code Contributions](#code-contributions)
@@ -31,6 +33,7 @@ This guide will help you set up your development environment and contribute to t
     - [Writing tests](#writing-tests)
   - [🔀 Pull Request Process](#-pull-request-process)
     - [PR checklist](#pr-checklist)
+  - [🖥️ Interactive TUI](#️-interactive-tui)
   - [💡 Development tips](#-development-tips)
     - [Working with `uv`](#working-with-uv)
   - [❓ Questions](#-questions)
@@ -95,25 +98,25 @@ source .venv/bin/activate
 uv pip install -e ".[all,cpu,dev]"
 ```
 
-```{note}
+:::{note}
 For **GPU (CUDA 12.6)**, replace `cpu` with `cu126`, for example:
 
 `uv pip install -e ".[all,cu126,dev]"`
-```
+:::
 
-```{note}
+:::{note}
 For a **partial install**, replace `all` with only the stages you need, for example:
 
 `uv pip install -e ".[rag,cpu,dev]"`
 
 Available stages are: `process`, `index`, `rag`, and `api`.
-```
+:::
 
-```{important}
+:::{important}
 This package requires many large dependencies and a dependency override, so it should be installed with `uv` rather than plain `pip`.
 
 See the [uv guide](../advanced_usage/uv.md) for more information.
-```
+:::
 
 ### 🧹 Code quality tools
 
@@ -179,7 +182,7 @@ We welcome contributions! Here's how you can help:
 6. **Submit a Pull Request** with a clear description
 
 ## 🗂️ Project Structure
-
+```
 mmore/
 ├── mmore/
 │   ├── process/          # Document processing pipeline
@@ -195,6 +198,7 @@ mmore/
 ├── .pre-commit-config.yaml
 ├── pyproject.toml
 └── README.md
+ ```
 
 ### Key Modules
 - **`mmore.process`**: Handles extraction from various file formats
@@ -255,6 +259,25 @@ def test_something_on_gpu():
 - [ ] Documentation is updated
 - [ ] Examples are provided for new features
 - [ ] Commit messages are clear and descriptive
+
+## 🖥️ Interactive TUI
+
+MMORE ships with a Terminal UI that wraps the CLI commands behind guided menus and config wizards. Useful for trying the pipeline without writing YAML by hand.
+
+Launch it from a project working directory:
+
+```bash
+mmore tui
+```
+
+From the main menu you can:
+
+- **Run a single command** — pick any stage (`process`, `postprocess`, `index`, `retrieve`, `rag`, `ragcli`, `websearch`), then either select an existing YAML, generate one through a guided wizard, or type a path manually. Generated configs are written to `./tui-configs/` and validated against the stage's dataclass before running.
+- **Run full pipeline** — chains `process → postprocess → index` using existing configs.
+- **Build a full pipeline config (guided wizard)** — walks through the three stages in order, wiring the postprocess output JSONL into the index config automatically.
+- **Chat with indexed documents** — shortcut to `ragcli`.
+
+Stages whose extras are missing are disabled in the menu with an install hint (e.g. `uv sync --extra rag --extra cpu`). Press `Ctrl-C` inside any sub-flow to cancel back to the main menu; press it again at the main menu to quit.
 
 ## 💡 Development tips
 
