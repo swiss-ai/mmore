@@ -23,10 +23,10 @@ class FileNamer(BaseTagger):
         super().__init__(name, metadata_key)
 
     def tag(self, sample):
-        if "file_path" not in sample.metadata:
+        if not sample.metadata.file_path:
             return "unknown"
 
-        return os.path.basename(str(sample.metadata["file_path"]))
+        return os.path.basename(sample.metadata.file_path)
 
     @classmethod
     def from_config(cls, config: BaseTaggerConfig):

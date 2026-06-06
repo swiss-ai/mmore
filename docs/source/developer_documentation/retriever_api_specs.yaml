@@ -1,0 +1,307 @@
+openapi: 3.1.1
+info:
+  title: mmore Retriever API
+  description: |
+    This API is based on the OpenAPI 3.1 specification. You can find out more about Swagger at [https://swagger.io](https://swagger.io).
+
+    ## Overview
+
+    This API defines the retriever API of mmore, handling:
+
+    1. **File Operations** - Direct file management within mmore.
+    2. **Context Retrieval** - Semantic search based on the subset of documents that the user wants.
+
+    ## API Versioning
+
+    All requests must be prefixed with `/v1` for this current version of the API.
+
+    ## Roadmap & Considerations
+    - Authorization layer for mmore operations
+    - Permission control on some operation such as file deletion
+    - Advanced query for retrieval (send more sophisticated object, for instance representing a whole conversation, rather than one string)
+
+  version: 1.0.0
+servers:
+  - url: /v1
+    description: API server
+
+paths:
+  /files:
+    post:
+      tags:
+        - File Operations
+      summary: Upload a file
+      description: |
+        Upload a new file
+
+         **Requirements**:
+        - Unique fileId
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fileId:
+                  type: string
+                  description: Unique identifier for the file
+                file:
+                  type: string
+                  format: binary
+                  description: The file content
+              required:
+                - fileId
+                - file
+      responses:
+        "201":
+          description: File successfully uploaded
+
+  /list_files:
+    get:
+      tags:
+        - Files
+      summary: List all files
+      description: Retrieve a list of all files stored in the system
+      parameters:
+        - name: collection_name
+          in: query
+          required: true
+          schema:
+            type: string
+            default: null
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 16000
+      responses:
+        "200":
+          description: A list of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    filename:
+                      type: string
+
+  /files/{fileId}:
+    put:
+      tags:
+        - File Operations
+      summary: Update a file
+      description: Replace an existing file with a new version
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The new file content
+              required:
+                - file
+      responses:
+        "200":
+          description: File successfully updated
+
+    delete:
+      tags:
+        - File Operations
+      summary: Remove a file
+      description: |
+        Delete a file from the system.
+
+        **Warning**: Not limited operation.
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File successfully deleted
+
+    get:
+      tags:
+        - File Operations
+      summary: Download a file
+      description: Download a file from the system
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /retrieve:
+    post:
+      tags:
+        - Context Retrieval
+      summary: Retrieve on MMORE
+      description: |
+        Search for files based on content similarity.
+
+        This request is meant to be called by the Gateway to MMORE service upon chat completions request from Moove.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fileIds:
+                  type: array
+                  items:
+                    type: string
+                  description: List of file IDs to search within
+                maxMatches:
+                  type: integer
+                  minimum: 1
+                  description: Maximum number of matches to return
+                minSimilarity:
+                  type: number
+                  format: float
+                  minimum: -1.0
+                  maximum: 1.0
+                  default: 0.0
+                  description: Minimum similarity score for results (-1.0 to 1.0)
+                query:
+                  type: string
+                  description: Search query
+              required:
+                - fileIds
+                - query
+                - maxMatches
+      responses:
+        "200":
+          description: List of matching files with related content, sorted by highest similarity first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    fileId:
+                      type: string
+                    chunkId:
+                      type: string
+                      nullable: true
+                      description: Id of the chunk. `null` for a full document.
+                    content:
+                      type: string
+                    similarity:
+                      type: number
+                      format: float
+                      minimum: -1.0
+                      maximum: 1.0
+                    metadata:
+                      allOf:
+                        - $ref: "#/components/schemas/ChunkRange"
+                      nullable: true
+                      description: |
+                        Positional range of the chunk inside the source document.
+                        `null` when the source has no page/paragraph structure.
+                description: Results sorted by similarity (highest first)
+
+  /chunks/{fileId}/{chunkId}:
+    get:
+      tags:
+        - Context Retrieval
+      summary: Fetch a chunk's content and metadata by reference
+      description: |
+        Returns the text content and positional metadata for a single chunk,
+        identified by its `fileId` + `chunkId` (as returned by `/retrieve`).
+
+        Consumers can persist only the `{fileId, chunkId}` reference and
+        fetch the content/metadata on demand, avoiding duplicated storage.
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: Identifier of the source file. Must not contain `+` or `"`.
+          schema:
+            type: string
+            pattern: '^[^"+]+$'
+        - name: chunkId
+          in: path
+          required: true
+          description: Identifier of the chunk within the file. Must not contain `+` or `"`.
+          schema:
+            type: string
+            pattern: '^[^"+]+$'
+      responses:
+        "200":
+          description: The chunk's content and positional metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fileId:
+                    type: string
+                  chunkId:
+                    type: string
+                  filename:
+                    type: string
+                    nullable: true
+                    description: Original filename of the source document.
+                  content:
+                    type: string
+                  metadata:
+                    allOf:
+                      - $ref: "#/components/schemas/ChunkRange"
+                    nullable: true
+                    description: |
+                      Positional range of the chunk inside the source document.
+                      `null` when the source has no page/paragraph structure.
+        "400":
+          description: Invalid `fileId` or `chunkId` (e.g. contains disallowed characters)
+        "404":
+          description: No chunk found for the given `fileId` + `chunkId`
+
+components:
+  schemas:
+    ChunkPosition:
+      type: object
+      properties:
+        page:
+          type: integer
+        paragraph:
+          type: integer
+      required:
+        - page
+        - paragraph
+    ChunkRange:
+      type: object
+      properties:
+        first:
+          $ref: "#/components/schemas/ChunkPosition"
+        last:
+          $ref: "#/components/schemas/ChunkPosition"
+      required:
+        - first
+        - last

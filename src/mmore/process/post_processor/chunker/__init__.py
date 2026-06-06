@@ -1,3 +1,4 @@
-from .multimodal import MultimodalChunker, MultimodalChunkerConfig
+from .multimodal import MultimodalChunker
+from .utils import ChunkMetadata, MultimodalChunkerConfig
 
-__all__ = ["MultimodalChunker", "MultimodalChunkerConfig"]
+__all__ = ["ChunkMetadata", "MultimodalChunker", "MultimodalChunkerConfig"]

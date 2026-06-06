@@ -7,7 +7,7 @@ import requests
 from markdownify import markdownify as md
 from PIL import Image
 
-from ...type import FileDescriptor, MultimodalSample
+from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
@@ -94,7 +94,7 @@ class HTMLProcessor(Processor):
                 html = f.read()
         except Exception as e:
             logger.error(f"Failed to open HTML file {file_path}: {e}")
-            return self.create_sample([], [], {"file_path": file_path})
+            return self.create_sample([], [], DocumentMetadata(file_path=file_path))
 
         markdown = md(html, heading_style="ATX")
 
@@ -113,4 +113,6 @@ class HTMLProcessor(Processor):
         cleaned_markdown = clean_text(markdown).strip()
         all_text = [cleaned_markdown] if cleaned_markdown else []
 
-        return self.create_sample(all_text, embedded_images, {"file_path": file_path})
+        return self.create_sample(
+            all_text, embedded_images, DocumentMetadata(file_path=file_path)
+        )
