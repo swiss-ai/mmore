@@ -83,7 +83,6 @@ process = [
     "google-api-python-client>=2.120",
     "datatrove>=0.3; python_version < '3.12'",
     "datatrove>=0.7; python_version >= '3.12'",
-    "colpali-engine>=0.3",
     "bokeh",
 ]
 
@@ -97,6 +96,16 @@ index = [
     "sentence-transformers",
     "transformers>=4.44",
     "scipy>=1.8",
+]
+
+colvision = [
+    # Vision-based RAG with ColVision models (ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
+    "mmore[api, index]",
+    "colpali-engine>=0.3.16",
+    "transformers==5.3.0",  # pinned: matches the colpali adapter key layout
+    "PyMuPDF",
+    "accelerate>=0.30",
+    "pyarrow",
 ]
 
 rag = [
@@ -162,6 +171,14 @@ conflicts = [
   [
     { extra = "cpu" },
     { extra = "cu126" },
+  ],
+  [
+    { extra = "process" },
+    { extra = "colvision" },
+  ],
+  [
+    { extra = "all" },
+    { extra = "colvision" },
   ],
 ]
 

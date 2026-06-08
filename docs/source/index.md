@@ -25,7 +25,7 @@ Depending on what you want to do, start in different places:
 - to understand the overall system, read [Architecture](getting_started/architecture.md)
 - to understand ingestion and indexing, read [Process](getting_started/process.md) and [Indexing](getting_started/indexing.md)
 - to work on retrieval workflows, read [RAG](getting_started/rag.md)
-- to work on multimodal retrieval, read [ColPali](core_features/colpali.md)
+- to work on multimodal retrieval, read [ColVision](core_features/colvision.md)
 - to run distributed processing, read [Distributed processing](advanced_usage/distributed_processing.md)
 - to contribute to the codebase, read [For developers](developer_documentation/for_devs.md)
 
@@ -48,7 +48,7 @@ getting_started/windows
 :maxdepth: 1
 :caption: Core features
 
-core_features/colpali
+core_features/colvision
 core_features/websearch
 core_features/evaluation
 core_features/llm_as_a_judge
@@ -83,7 +83,7 @@ Here is a quick overview of the main pages:
 - [Processing pipeline](getting_started/process.md): understand how documents are ingested and transformed
 - [Indexing](getting_started/indexing.md): build and manage indexes
 - [RAG](getting_started/rag.md): structure retrieval-augmented generation workflows
-- [ColPali](core_features/colpali.md): multimodal retrieval-related documentation
+- [ColVision](core_features/colvision.md): multimodal retrieval-related documentation
 - [Websearch](core_features/websearch.md): web search integration and related workflows
 - [Evaluation](core_features/evaluation.md): assess system performance
 - [LLM as a judge](core_features/llm_as_a_judge.md): corrective retrieval with an LLM judge
