@@ -35,8 +35,6 @@ class _LLMCacheKey(NamedTuple):
     llm_name: str
     base_url: str | None
     provider: str | None
-    max_new_tokens: int | None
-    temperature: float
 
 
 _llm_cache: Dict[_LLMCacheKey, BaseChatModel] = {}
@@ -48,8 +46,6 @@ def _llm_cache_key(cfg: LLMConfig) -> _LLMCacheKey:
         llm_name=cfg.llm_name,
         base_url=cfg.base_url,
         provider=cfg.provider,
-        max_new_tokens=cfg.max_new_tokens,
-        temperature=cfg.temperature,
     )
 
 
@@ -145,6 +141,7 @@ class BaseAgent:
         if self.config.system_prompt:
             messages = [SystemMessage(content=self.config.system_prompt), *messages]
         llm = self.llm.bind_tools(self._tools) if self._tools else self.llm
+        llm = llm.bind(**self._llm_config.bind_kwargs)
         response = llm.invoke(messages)
         return {"messages": [response]}
 

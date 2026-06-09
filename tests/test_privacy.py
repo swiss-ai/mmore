@@ -136,6 +136,55 @@ def test_lazy_loading_and_dedup_minimize_load_calls(isolate_llm_cache):
         assert mock.call_count == 1
 
 
+def test_same_model_different_params_share_one_instance(isolate_llm_cache):
+    captured = []
+
+    class Capturing(FakeListChatModel):
+        def _call(self, messages, stop=None, run_manager=None, **kwargs):
+            captured.append(kwargs)
+            return super()._call(messages, stop, run_manager, **kwargs)
+
+    fake = Capturing(responses=["ok"] * 4)
+    hot = _cfg(
+        name="hot",
+        llm=LLMConfig(llm_name="gpt-4o-mini", temperature=0.9, max_new_tokens=128),
+    )
+    cold = _cfg(
+        name="cold",
+        llm=LLMConfig(llm_name="gpt-4o-mini", temperature=0.1, max_new_tokens=32),
+    )
+
+    with patch("mmore.privacy.agents.base.LLM.from_config", return_value=fake) as mock:
+        BaseAgent.from_config(hot).invoke("q")
+        BaseAgent.from_config(cold).invoke("q")
+        assert mock.call_count == 1
+
+    assert captured[0]["temperature"] == 0.9
+    assert captured[0]["max_completion_tokens"] == 128
+    assert captured[1]["temperature"] == 0.1
+    assert captured[1]["max_completion_tokens"] == 32
+
+
+def test_hf_generation_params_are_bound_as_pipeline_kwargs(isolate_llm_cache):
+    captured = []
+
+    class Capturing(FakeListChatModel):
+        def _call(self, messages, stop=None, run_manager=None, **kwargs):
+            captured.append(kwargs)
+            return super()._call(messages, stop, run_manager, **kwargs)
+
+    fake = Capturing(responses=["ok"])
+    cfg = _cfg(llm=LLMConfig(llm_name="gpt2", temperature=0.3, max_new_tokens=16))
+
+    with patch("mmore.privacy.agents.base.LLM.from_config", return_value=fake):
+        BaseAgent.from_config(cfg).invoke("q")
+
+    assert captured[0].get("pipeline_kwargs") == {
+        "temperature": 0.3,
+        "max_new_tokens": 16,
+    }
+
+
 def test_clear_llm_cache(isolate_llm_cache):
     fake = FakeListChatModel(responses=["x"] * 10)
     with patch("mmore.privacy.agents.base.LLM.from_config", return_value=fake) as mock:
