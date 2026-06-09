@@ -279,61 +279,78 @@ def tui():
 
 
 @main.group()
-def colpali():
-    """ColPali pipeline commands for PDF processing, indexing, and retrieval."""
+def colvision():
+    """ColVision pipeline commands for PDF processing, indexing, and retrieval."""
     pass
 
 
-@colpali.command(name="process")
+@colvision.command(name="process")
 @click.option(
     "--config-file",
     type=str,
     required=True,
-    help="Path to the ColPali process configuration file.",
+    help="Path to the ColVision process configuration file.",
 )
-def colpali_process(config_file: str):
-    """Process PDFs and generate page embeddings using ColPali.
+@click.option(
+    "--model",
+    "-m",
+    type=str,
+    required=False,
+    default=None,
+    help="Override the model_name from the config file (e.g. vidore/colqwen2.5-v0.2).",
+)
+def colvision_process(config_file: str, model: Optional[str]):
+    """Process PDFs and generate page embeddings using a ColVision model.
 
     Args:
-      config_file: Path to the ColPali process configuration file.
+      config_file: Path to the ColVision process configuration file.
+      model: Optional model name override.
 
     Returns:
 
     """
-    from .colpali.run_process import run_process
+    from .colvision.run_process import run_process
 
-    run_process(config_file)
+    run_process(config_file, model_name_override=model)
 
 
-@colpali.command(name="index")
+@colvision.command(name="index")
 @click.option(
     "--config-file",
     "-c",
     type=str,
     required=True,
-    help="Path to the ColPali index configuration file.",
+    help="Path to the ColVision index configuration file.",
 )
-def colpali_index(config_file: str):
-    """Index ColPali embeddings into a Milvus database.
+def colvision_index(config_file: str):
+    """Index ColVision embeddings into a Milvus database.
 
     Args:
-      config_file: Path to the ColPali index configuration file.
+      config_file: Path to the ColVision index configuration file.
 
     Returns:
 
     """
-    from .colpali.run_index import index as run_colpali_index
+    from .colvision.run_index import index as run_colvision_index
 
-    run_colpali_index(config_file)
+    run_colvision_index(config_file)
 
 
-@colpali.command(name="retrieve")
+@colvision.command(name="retrieve")
 @click.option(
     "--config-file",
     "-c",
     type=str,
     required=True,
-    help="Path to the ColPali retriever configuration file.",
+    help="Path to the ColVision retriever configuration file.",
+)
+@click.option(
+    "--model",
+    "-m",
+    type=str,
+    required=False,
+    default=None,
+    help="Override the model_name from the config file (e.g. vidore/colqwen2.5-v0.2).",
 )
 @click.option(
     "--input-file",
@@ -357,17 +374,19 @@ def colpali_index(config_file: str):
 @click.option(
     "--port", type=int, default=8001, help="Port on which the API should be run."
 )
-def colpali_retrieve(
+def colvision_retrieve(
     config_file: str,
+    model: Optional[str],
     input_file: Optional[str],
     output_file: Optional[str],
     host: str,
     port: int,
 ):
-    """Retrieve documents using ColPali embeddings.
+    """Retrieve documents using ColVision embeddings.
 
     Args:
-      config_file: Path to the ColPali retriever configuration file.
+      config_file: Path to the ColVision retriever configuration file.
+      model: Optional model name override.
       input_file: Path to the JSONL file of the input queries.
       output_file: Path to which save the results of the retriever as a JSON.
       host: Host on which the API should be run.
@@ -376,17 +395,19 @@ def colpali_retrieve(
     Returns:
 
     """
-    from .colpali.run_retriever import retrieve as run_colpali_retrieve
-    from .colpali.run_retriever import run_api as run_colpali_api
+    from .colvision.run_retriever import retrieve as run_colvision_retrieve
+    from .colvision.run_retriever import run_api as run_colvision_api
 
     if input_file:
         if output_file is None:
             raise ValueError(
                 "Both --input-file and --output-file must be provided together."
             )
-        run_colpali_retrieve(config_file, input_file, output_file)
+        run_colvision_retrieve(
+            config_file, input_file, output_file, model_name_override=model
+        )
     else:
-        run_colpali_api(config_file, host, port)
+        run_colvision_api(config_file, host, port, model_name_override=model)
 
 
 if __name__ == "__main__":
