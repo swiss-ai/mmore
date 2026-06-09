@@ -10,9 +10,29 @@ from langchain_core.runnables.config import RunnableConfig
 
 from mmore.privacy.agents.base import BaseAgent, clear_llm_cache
 from mmore.privacy.agents.config import AgentConfig
-from mmore.privacy.agents.registry import ToolNotRegisteredError, register_tool
+from mmore.privacy.agents.registry import (
+    ToolNotRegisteredError,
+    register_tool,
+    tool_registry,
+)
 from mmore.rag.llm import LLMConfig
 from mmore.utils import load_config
+
+
+@pytest.fixture
+def isolate_llm_cache():
+    clear_llm_cache()
+    yield
+    clear_llm_cache()
+
+
+@pytest.fixture
+def isolated_tool_registry():
+    snapshot = dict(tool_registry)
+    tool_registry.clear()
+    yield
+    tool_registry.clear()
+    tool_registry.update(snapshot)
 
 
 def _cfg(**args: Any) -> AgentConfig:
