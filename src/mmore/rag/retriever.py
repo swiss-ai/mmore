@@ -310,8 +310,13 @@ class Retriever(BaseRetriever):
             # Collect scores for this batch
             scores.extend((doc, score.item()) for doc, score in zip(batch_docs, logits))
 
-        # Sort docs by score in descending order
-        reranked = [doc for doc, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
+        # Sort by reranker score and persist scores for the judge / metrics
+        sorted_pairs = sorted(scores, key=lambda x: x[1], reverse=True)
+        reranked: List[Document] = []
+        for rank_i, (doc, score) in enumerate(sorted_pairs, start=1):
+            doc.metadata["rerank_score"] = score
+            doc.metadata["rank"] = rank_i
+            reranked.append(doc)
         return reranked
 
     def _get_relevant_documents(

@@ -3,12 +3,13 @@ import logging
 from dataclasses import dataclass
 from typing import Union
 
+import numpy as np
 import pandas as pd
 
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
-from .milvuscolpali import MilvusColpaliManager
+from .milvuscolvision import MilvusColvisionManager
 
 INDEX_EMOJI = "🗂️"
 logger = logging.getLogger(__name__)
@@ -23,7 +24,6 @@ logging.basicConfig(
 class MilvusConfig:
     db_path: str = "./milvus_data"
     collection_name: str = "pdf_pages"
-    dim: int = 128
     create_collection: bool = False
     metric_type: str = "IP"
 
@@ -32,6 +32,13 @@ class MilvusConfig:
 class IndexConfig:
     milvus: MilvusConfig
     parquet_path: str
+
+
+def _get_embedding_dim(df: pd.DataFrame) -> int:
+    arr = np.asarray(df.iloc[0]["embedding"])
+    if arr.dtype == object:
+        arr = np.stack([np.asarray(x) for x in arr])
+    return int(arr.shape[-1])
 
 
 @profile_function()
@@ -46,10 +53,17 @@ def index(config_file: Union[IndexConfig, str]):
     df = pd.read_parquet(parquet_path)
     logger.info(f"Loaded {len(df)} rows from {parquet_path}")
 
-    manager = MilvusColpaliManager(
+    if df.empty:
+        logger.info(f"Parquet {parquet_path} is empty — nothing to index, exiting.")
+        return
+
+    dim = _get_embedding_dim(df)
+    logger.info(f"Detected embedding dim={dim} from parquet")
+
+    manager = MilvusColvisionManager(
         db_path=config.milvus.db_path,
         collection_name=config.milvus.collection_name,
-        dim=config.milvus.dim,
+        dim=dim,
         metric_type=config.milvus.metric_type,
         create_collection=config.milvus.create_collection,
     )
@@ -60,7 +74,7 @@ def index(config_file: Union[IndexConfig, str]):
 if __name__ == "__main__":
     enable_profiling_from_env()
     parser = argparse.ArgumentParser(
-        description="Index ColPali PDF embeddings into a local Milvus database."
+        description="Index ColVision PDF embeddings into a local Milvus database."
     )
     parser.add_argument(
         "--config-file", required=True, help="Path to the YAML config file."

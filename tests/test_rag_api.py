@@ -57,6 +57,64 @@ def test_rag_endpoint_response_shape(client):
     assert data["answer"] == "Paris."
 
 
+def test_rag_endpoint_includes_final_documents_from_dicts():
+    """Pipeline validate_output returns docs as dicts after model_dump()."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "q",
+        "context": "[1] chunk text",
+        "answer": "a",
+        "docs": [
+            {
+                "page_content": "chunk text",
+                "metadata": {
+                    "id": "file-1+chunk-0",
+                    "similarity": 0.91,
+                    "rerank_score": 2.1,
+                    "rank": 1,
+                },
+            }
+        ],
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+    data = tc.post(
+        "/rag", json={"input": {"input": "q", "collection_name": "test_col"}}
+    ).json()
+
+    assert len(data["documents"]) == 1
+    assert data["documents"][0]["page_content"] == "chunk text"
+    assert data["documents"][0]["metadata"]["id"] == "file-1+chunk-0"
+
+
+def test_rag_endpoint_includes_final_documents():
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "q",
+        "context": "[1] chunk text",
+        "answer": "a",
+        "docs": [
+            MagicMock(
+                page_content="chunk text",
+                metadata={
+                    "id": "file-1+chunk-0",
+                    "similarity": 0.91,
+                    "rerank_score": 2.1,
+                    "rank": 1,
+                },
+            )
+        ],
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+    data = tc.post(
+        "/rag", json={"input": {"input": "q", "collection_name": "test_col"}}
+    ).json()
+
+    assert len(data["documents"]) == 1
+    assert data["documents"][0]["page_content"] == "chunk text"
+    assert data["documents"][0]["metadata"]["id"] == "file-1+chunk-0"
+    assert data["documents"][0]["metadata"]["similarity"] == 0.91
+
+
 def test_rag_endpoint_missing_input_returns_422(client):
     response = client.post("/rag", json={})
     assert response.status_code == 422
