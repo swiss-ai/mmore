@@ -4,7 +4,7 @@ Smoke-test for the Qdrant backend.
 Indexes 5 toy documents and runs 3 queries against each available backend.
 If both backends are available, prints a side-by-side top-1 comparison.
 
-Run from the project root:
+Run from the project root with mmore installed (e.g. ``pip install -e .``):
 
     python test_qdrant_pipeline.py
 
@@ -17,23 +17,21 @@ Qdrant is a one-line YAML change (``db.backend: qdrant``) — every other
 mmore code path is identical.
 """
 
+import importlib.util
 import shutil
 import sys
 import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-# Use the local source tree, not any installed copy.
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+from langchain_milvus.utils.sparse import BaseSparseEmbedding
 
-from langchain_milvus.utils.sparse import BaseSparseEmbedding  # noqa: E402
-
-import mmore.rag.model.sparse.base as _sparse_base  # noqa: E402
-from mmore.index.indexer import DBConfig, Indexer, IndexerConfig  # noqa: E402
-from mmore.rag.model.dense.base import DenseModelConfig  # noqa: E402
-from mmore.rag.model.sparse.base import SparseModelConfig  # noqa: E402
-from mmore.rag.retriever import Retriever, RetrieverConfig  # noqa: E402
-from mmore.type import MultimodalSample  # noqa: E402
+import mmore.rag.model.sparse.base as _sparse_base
+from mmore.index.indexer import DBConfig, Indexer, IndexerConfig
+from mmore.rag.model.dense.base import DenseModelConfig
+from mmore.rag.model.sparse.base import SparseModelConfig
+from mmore.rag.retriever import Retriever, RetrieverConfig
+from mmore.type import MultimodalSample
 
 
 class StubSparseEmbedding(BaseSparseEmbedding):
@@ -184,19 +182,15 @@ def compare(results_milvus: dict, results_qdrant: dict) -> None:
 if __name__ == "__main__":
     backends_to_test = []
 
-    try:
-        import milvus_lite  # noqa: F401
-
+    if importlib.util.find_spec("milvus_lite") is not None:
         backends_to_test.append("milvus")
-    except ImportError:
+    else:
         print("\nmilvus-lite not installed — skipping Milvus backend.")
-        print("(Expected on ARM64; install mmore[index] on x86_64 to enable.)\n")
+        print("Install with:  pip install mmore[index]\n")
 
-    try:
-        import qdrant_client  # noqa: F401
-
+    if importlib.util.find_spec("qdrant_client") is not None:
         backends_to_test.append("qdrant")
-    except ImportError:
+    else:
         print("\nqdrant-client not installed — skipping Qdrant backend.")
         print("Install with:  pip install mmore[qdrant]\n")
 
