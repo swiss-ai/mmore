@@ -88,9 +88,7 @@ process = [
 index = [
     # Indexing + Retrieval (vector DB, embeddings)
     "pymilvus==2.6.6",
-    # milvus-lite ships x86_64-only wheels; on ARM64 install mmore[qdrant] instead
-    # and set `db.backend: qdrant` in your config.
-    "milvus-lite==2.5.1; platform_machine == 'x86_64'",
+    "milvus-lite==2.5.1",
     "pymilvus-model>=0.3.2",
     "milvus-model>=0.2.12",
     "langchain-milvus>=0.1.8",
