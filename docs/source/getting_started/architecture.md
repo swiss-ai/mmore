@@ -16,7 +16,7 @@ MMORE is designed as a multimodal ingestion and retrieval framework for heteroge
 MMORE is organized around three main executable stages:
 
 - `run_process`, which handles ingestion, crawling, dispatching, and document processing
-- `run_indexer`, which builds the searchable index and can integrate multimodal retrieval components such as ColPali
+- `run_indexer`, which builds the searchable index and can integrate multimodal retrieval components such as ColVision models
 - `run_rag`, which serves retrieval and RAG workflows through interfaces such as the API and CLI
 
 These stages interact with intermediate outputs, the vector database, and optional external components such as hosted LLM endpoints, WebRAG, or Live RAG.
@@ -104,9 +104,9 @@ That means the framework may work with:
 - plain text documents
 - structured metadata
 - images or layout-aware representations
-- multimodal retrieval models such as ColPali-related components
+- multimodal retrieval models such as ColVision-related components
 
-See [ColPali](../core_features/colpali.md) for the multimodal retrieval side.
+See [ColVision](../core_features/colvision.md) for the multimodal retrieval side.
 
 ### 6. Distributed execution
 
