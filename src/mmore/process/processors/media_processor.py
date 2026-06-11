@@ -161,7 +161,7 @@ class MediaProcessor(Processor):
                     for i in range(num_thumbnails):
                         t = min(i * sample_rate, duration - 0.1)
                         frame = clip.get_frame(t)
-                        image = Image.fromarray(cast(np.ndarray, frame).convert("RGB"))
+                        image = Image.fromarray(cast(np.ndarray, frame)).convert("RGB")
                         images.append(image)
                 logger.info(f"Extracted {len(images)} images from {file_path}.")
             except Exception as e:
