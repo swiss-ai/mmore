@@ -38,7 +38,7 @@ COPY pyproject.toml uv.lock /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project ${SYNC_ARGS}
 
-# weasyprint needs to be intalled using pip
+# weasyprint needs to be installed using pip
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install weasyprint
 
