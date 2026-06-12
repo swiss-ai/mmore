@@ -33,4 +33,4 @@ jobs:
 
       - name: Run Pyright (colvision)
         continue-on-error: true
-        run: source .venv-colvision/bin/activate && pyright --project pyrightconfig.colvision.json
+        run: source .venv-colvision/bin/activate && pyright --project .github/pyright/pyrightconfig.colvision.json
