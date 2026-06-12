@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import List, cast
+from typing import List
 
 import numpy as np
 import torch
@@ -160,8 +160,8 @@ class MediaProcessor(Processor):
                     num_thumbnails = max(1, int(duration / sample_rate))
                     for i in range(num_thumbnails):
                         t = min(i * sample_rate, duration - 0.1)
-                        frame = clip.get_frame(t)
-                        image = Image.fromarray(cast(np.ndarray, frame)).convert("RGB")
+                        frame = np.asarray(clip.get_frame(t))
+                        image = Image.fromarray(frame).convert("RGB")
                         images.append(image)
                 logger.info(f"Extracted {len(images)} images from {file_path}.")
             except Exception as e:
