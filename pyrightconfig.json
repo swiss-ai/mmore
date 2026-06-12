@@ -5,7 +5,6 @@
     "dist",
     "**/__pycache__",
     "*.egg-info",
-    "src/mmore/tui",
     "src/mmore/colvision"
   ],
   "executionEnvironments": [

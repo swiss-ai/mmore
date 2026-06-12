@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  pyright-base:
-    name: "Pyright (base: process + tui)"
+  pyright:
+    name: "Pyright"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,34 +21,14 @@ jobs:
       - name: Install uv
         run: pipx install uv
 
-      - name: Install dependencies
+      - name: Install base dependencies
         run: uv venv .venv && source .venv/bin/activate && uv pip install -e ".[process,index,rag,api,tui,cpu,dev,websearch]"
 
-      - name: Run Pyright (base + tui)
+      - name: Run Pyright (base)
         run: source .venv/bin/activate && pyright --project pyrightconfig.json
 
-      - name: Run Pyright (tui)
-        run: source .venv/bin/activate && pyright --project pyrightconfig.tui.json
-
-  pyright-colvision:
-    name: "Pyright (colvision + tui)"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
-        run: pipx install uv
-
-      - name: Install dependencies
-        run: uv venv .venv && source .venv/bin/activate && uv pip install -e ".[colvision,tui,cpu,dev]"
+      - name: Install colvision dependencies
+        run: uv venv .venv-colvision && source .venv-colvision/bin/activate && uv pip install -e ".[colvision,tui,cpu,dev]"
 
       - name: Run Pyright (colvision)
-        run: source .venv/bin/activate && pyright --project pyrightconfig.colvision.json
-
-      - name: Run Pyright (tui)
-        run: source .venv/bin/activate && pyright --project pyrightconfig.tui.json
+        run: source .venv-colvision/bin/activate && pyright --project pyrightconfig.colvision.json
