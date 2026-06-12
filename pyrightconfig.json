@@ -1,6 +1,13 @@
 {
   "include": ["src/mmore", "tests"],
-  "exclude": ["build", "dist", "**/__pycache__", "*.egg-info"],
+  "exclude": [
+    "build",
+    "dist",
+    "**/__pycache__",
+    "*.egg-info",
+    "src/mmore/tui",
+    "src/mmore/colvision"
+  ],
   "executionEnvironments": [
     {
       "root": "src/mmore",
@@ -12,6 +19,5 @@
     }
   ],
     "pythonVersion": "3.11",
-    "typeCheckingMode": "standard",
-    "reportMissingImports": "warning"
+    "typeCheckingMode": "standard"
 }
