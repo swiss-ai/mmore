@@ -160,7 +160,7 @@ MultimodalSample.to_jsonl(out_file, result_pdf)
 
 To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
-![The MMORE pipelines architecture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
+![The MMORE pipelines architecture](docs/source/doc_images/pipeline_mmore+.png)
 
 
 1. **:page_facing_up: Input Documents**
