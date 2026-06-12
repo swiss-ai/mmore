@@ -1,3 +1,8 @@
+import os
+
+# To have the fork-handler messages ("FD from fork parent still in poll list")
+os.environ.setdefault("GRPC_VERBOSITY", "ERROR")
+
 from typing import Optional
 
 import click
