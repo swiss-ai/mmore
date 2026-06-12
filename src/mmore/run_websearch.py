@@ -16,13 +16,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from mmore.profiler import enable_profiling_from_env, profile_function
-
-from .rag.pipeline import RAGPipeline
-from .run_rag import APIConfig, LocalConfig, RAGInferenceConfig
-from .utils import load_config
-from .websearchRAG.config import WebsearchConfig
-from .websearchRAG.logging_config import logger
-from .websearchRAG.pipeline import WebsearchPipeline
+from mmore.rag.pipeline import RAGPipeline
+from mmore.run_rag import APIConfig, LocalConfig, RAGInferenceConfig
+from mmore.utils import load_config
+from mmore.websearchRAG.config import WebsearchConfig
+from mmore.websearchRAG.logging_config import logger
+from mmore.websearchRAG.pipeline import WebsearchPipeline
 
 load_dotenv()
 

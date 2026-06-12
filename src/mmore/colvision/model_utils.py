@@ -57,7 +57,12 @@ def resolve_model_classes(model_name: str) -> Tuple[Type, Type]:
     Raises:
         ValueError: if the model name does not match any known pattern.
     """
-    import colpali_engine.models as models_module
+    try:
+        import colpali_engine.models as models_module
+    except ImportError as e:
+        raise ImportError(
+            "colpali_engine is required for ColVision. Install with: pip install mmore[colvision]"
+        ) from e
 
     name_lower = model_name.lower()
 
