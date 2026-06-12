@@ -180,8 +180,9 @@ class RagCLI:
                 return
             self.modified = False
             print_in_color("RAG pipeline ready! Ask your questions.", "green")
+        print(str_in_color("Type /bye to exit.\n", "gray"))
         while True:
-            query = input(str_in_color("rag (type /bye to exit) > ", "red", bold=True))
+            query = input(str_in_color("RAG > ", "red", bold=True))
             if query == "/bye":
                 print_in_color("Exiting the RAG CLI", "red", True)
                 break
