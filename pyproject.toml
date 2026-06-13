@@ -83,7 +83,6 @@ process = [
     "google-api-python-client>=2.120",
     "datatrove>=0.3; python_version < '3.12'",
     "datatrove>=0.7; python_version >= '3.12'",
-    "colpali-engine>=0.3",
     "bokeh",
 ]
 
@@ -99,9 +98,8 @@ index = [
     "scipy>=1.8",
 ]
 
-rag = [
-    # RAG with LangChain (LLM calls, evaluation)
-    "mmore[index]",
+llm = [
+    # LangChain LLM client packages
     "langchain>=0.3",
     "langchain-anthropic>=0.3",
     "langchain-aws>=0.2",
@@ -111,6 +109,21 @@ rag = [
     "langchain-mistralai>=0.2",
     "langchain-openai>=0.3",
     "cohere>=5.0",
+]
+
+colvision = [
+    # Vision-based RAG with ColVision models (ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
+    "mmore[api, index, llm]",
+    "colpali-engine>=0.3.16",
+    "transformers==5.3.0",  # pinned: matches the colpali adapter key layout
+    "PyMuPDF",
+    "accelerate>=0.30",
+    "pyarrow",
+]
+
+rag = [
+    # RAG with LangChain (LLM calls, evaluation)
+    "mmore[index,llm]",
     "ragas>=0.2",
     "datasets>=4.0",
     "accelerate>=0.30",
@@ -128,6 +141,12 @@ api = [
     "motor>=3.5",
 ]
 
+privacy = [
+    "mmore[llm]",
+    "langgraph>=1.0",
+    "langgraph-checkpoint-sqlite>=2.0",
+]
+
 # --- Composite + variant extras ---
 
 tui = [
@@ -138,8 +157,7 @@ tui = [
 ]
 
 all = [
-    "mmore[process,rag,api,websearch,paper_discovery]",
-    "mmore[process,rag,api,websearch,tui]",
+    "mmore[process,rag,api,websearch,tui,privacy,paper_discovery]",
 ]
 
 cpu = [
@@ -169,6 +187,14 @@ conflicts = [
   [
     { extra = "cpu" },
     { extra = "cu126" },
+  ],
+  [
+    { extra = "process" },
+    { extra = "colvision" },
+  ],
+  [
+    { extra = "all" },
+    { extra = "colvision" },
   ],
 ]
 

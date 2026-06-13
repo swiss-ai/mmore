@@ -138,6 +138,12 @@ class LLMConfig:
         return {"temperature": self.temperature, max_token_key: self.max_new_tokens}
 
     @property
+    def bind_kwargs(self):
+        if self.provider == "HF":
+            return {"pipeline_kwargs": self.generation_kwargs}
+        return self.generation_kwargs
+
+    @property
     def api_key(self):
         if self.provider:
             LLM._check_key(self.provider)
