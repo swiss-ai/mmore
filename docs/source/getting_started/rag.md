@@ -160,8 +160,9 @@ uv pip install -e ".[qwen]"
 1. Install the Qwen extra above if you use local Qwen-VL models (indexing and/or vision-enabled RAG).
 2. Process documents with images, then **index** (set `is_multimodal: true` on the dense model only if you want multimodal dense retrieval).
 3. In the RAG config, set a vision-capable `llm_name` (for local use, e.g. `Qwen/Qwen2.5-VL-3B-Instruct`) and `use_vision: true`.
-4. Optionally set `rag.max_images_per_request` (default 20) to cap images per query.
-5. Run index, then RAG in batch or API mode as above.
+4. Update `rag.system_prompt` for vision mode (see below). The default text-only prompt does not tell the model to use retrieved images; without this change, answers may rely on OCR text alone even when images are loaded.
+5. Optionally set `rag.max_images_per_request` (default 20) to cap images per query.
+6. Run index, then RAG in batch or API mode as above.
 
 **Indexer** (`examples/index/config.yaml`):
 
@@ -196,7 +197,7 @@ rag:
     hybrid_search_weight: 0.5
     k: 5
   max_images_per_request: 20
-  system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
+  system_prompt: "Use the following context and the retrieved document images to answer the question.\n\nContext:\n{context}"
 ```
 
 Recommended order:
@@ -209,7 +210,7 @@ Recommended order:
 
 - **Indexing** stores each chunk’s text and `image_paths` in Milvus. Dense vectors follow `indexer.dense_model`; sparse vectors are text-only. Hybrid search combines dense (optionally multimodal) with sparse; sparse-only search does not use images at retrieval time.
 - With `is_multimodal: true`, the indexer runs Qwen for all dense vectors, unloads it, then runs SPLADE—so Qwen and SPLADE are not both resident at once. Set `sparse_model.device` to `cuda` on a GPU machine or leave unset / use `cpu` on Apple Silicon.
-- **Inference** retrieves chunks and builds the text prompt. With `use_vision: true`, MMORE loads up to `max_images_per_request` images from metadata and calls the multimodal adapter. If no images load, the model still receives text context only.
+- **Inference** retrieves chunks and builds the text prompt. With `use_vision: true`, MMORE loads up to `max_images_per_request` images from metadata and calls the multimodal adapter. If no images load, the model still receives text context only. Adjust `system_prompt` so the model is instructed to use those images (especially for figure, screenshot, or logo questions).
 
 Collections indexed before `image_paths` existed are supported: the retriever falls back to text-only Milvus fields automatically.
 
@@ -218,10 +219,10 @@ Collections indexed before `image_paths` existed are supported: the retriever fa
 Optional configs; GPU/server defaults above are unchanged.
 
 
-| Step  | Config                                  | Notes                                                                                                                    |
-| ----- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
- | Index | `examples/index/config.yaml` | `is_multimodal: true`, Qwen2.5-VL-3B; optional `max_images: 4`; `sparse_model.device: cpu` (Mac) or `cuda` (GPU) |
- | RAG | `examples/rag/config.yaml` | `use_vision: true`; retrieval uses the model stored in the DB; smaller `llm_name` (e.g. Qwen2-VL-2B) for generation only |
+| Step  | Config                       | Notes                                                                                                                                            |
+| ----- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Index | `examples/index/config.yaml` | `is_multimodal: true`, Qwen2.5-VL-3B; optional `max_images: 4`; `sparse_model.device: cpu` (Mac) or `cuda` (GPU)                                 |
+| RAG   | `examples/rag/config.yaml`   | `use_vision: true`; vision `system_prompt`; retrieval uses the model stored in the DB; smaller `llm_name` (e.g. Qwen2-VL-2B) for generation only |
 
 
 ## 🔧 Customization

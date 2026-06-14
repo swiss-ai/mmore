@@ -2,7 +2,6 @@ import gc
 import re
 from typing import Optional
 
-import numpy as np
 import torch
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -132,7 +131,7 @@ class MultimodalEmbeddings(Embeddings):
                     outputs = self.model(**inputs, output_hidden_states=True)
                     hidden = _sequence_hidden(outputs)
                     pooled = _mean_pool(hidden, inputs.get("attention_mask"))
-                    embedding = pooled.cpu().numpy().squeeze(0).astype(np.float32)
+                    embedding = pooled.detach().cpu().float().numpy().squeeze(0)
                 embeddings.append(embedding.tolist())
             finally:
                 del inputs, outputs, images

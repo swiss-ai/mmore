@@ -15,6 +15,7 @@ rag:
     reranker_model_name: BAAI/bge-reranker-base   
   system_prompt: "Use the following context to answer the questions.\n\nContext:\n{context}"
   # For vision mode only:
+  # system_prompt: "Use the following context and the retrieved document images to answer the question.\n\nContext:\n{context}"
   # max_images_per_request: 20
 mode: local
 mode_args:

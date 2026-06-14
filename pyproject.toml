@@ -156,7 +156,7 @@ websearch = [
 ]
 
 qwen = [
-    "transformers>=4.45,<5",
+    "transformers>=4.57.6,<5",
     "accelerate>=0.30",
     "qwen-vl-utils",
 ]
