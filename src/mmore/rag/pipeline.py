@@ -20,6 +20,7 @@ from langchain_core.runnables import (
 
 from ..utils import load_config
 from .judge import JUDGE_OUTPUT_KEYS, JudgeConfig, LLMJudge, retrieve_with_judge
+from .judge.llm import judge_llm_from_config
 from .llm import LLM, LLMConfig
 from .model.vision import (
     BaseMultimodalLLM,
@@ -127,7 +128,7 @@ class RAGPipeline:
             llm = LLM.from_config(config.llm)
             multimodal_llm = None
         judge = (
-            LLMJudge(llm=LLM.from_config(config.judge.llm), config=config.judge)
+            LLMJudge(llm=judge_llm_from_config(config.judge.llm), config=config.judge)
             if config.judge
             else None
         )
