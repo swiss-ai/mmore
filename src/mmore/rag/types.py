@@ -32,6 +32,7 @@ class MMOREOutput(BaseModel):
     input: str
     docs: List[Document]
     answer: str
+    image_paths: List[str] = Field(default_factory=list)
     judge_decision: Optional[str] = None
     judge_reason: Optional[str] = None
     judge_actions: Optional[List[str]] = None

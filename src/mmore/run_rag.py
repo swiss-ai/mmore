@@ -80,6 +80,8 @@ def _to_public_output(pipeline_result: Dict[str, Any]) -> Dict[str, Any]:
     """Bridge pipeline dict (internal keys like docs) to the public RAGOutput / JSON schema."""
     out = {key: pipeline_result[key] for key in _RAG_KEYS if key in pipeline_result}
     out.update(extract_judge_output(pipeline_result))
+    if pipeline_result.get("image_paths"):
+        out["image_paths"] = pipeline_result["image_paths"]
     docs = pipeline_result.get("docs")
     if docs:
         out["documents"] = _serialize_documents(docs)
@@ -106,6 +108,7 @@ class RAGOutput(BaseModel):
     input: Optional[str] = None
     context: Optional[str] = None
     answer: Optional[str] = None
+    image_paths: Optional[List[str]] = None
     documents: Optional[List[Dict[str, Any]]] = None
     judge_decision: Optional[str] = None
     judge_reason: Optional[str] = None
@@ -152,8 +155,46 @@ def rag(config_file):
         config_args = cast(LocalConfig, config.mode_args)
 
         queries = read_queries(config_args.input_file)
-        results = rag_pp(queries, return_dict=True)
+        if not queries:
+            raise ValueError(
+                f"No queries found in {config_args.input_file}. "
+                "Add one JSON object per line, e.g. "
+                '{"input": "your question", "collection_name": "my_docs"}'
+            )
+        n_queries = len(queries)
+        logger.info(
+            "Running RAG on %d queries from %s",
+            n_queries,
+            config_args.input_file,
+        )
+        results: List[Dict] = []
+        try:
+            for i, query in enumerate(queries, start=1):
+                preview = (query.get("input") or "")[:80]
+                if len(query.get("input") or "") > 80:
+                    preview += "..."
+                logger.info("Query %d/%d: %s", i, n_queries, preview)
+                batch_result = rag_pp(query, return_dict=True)
+                results.extend(batch_result)
+                answer_preview = (batch_result[0].get("answer") or "")[:120]
+                if len(batch_result[0].get("answer") or "") > 120:
+                    answer_preview += "..."
+                logger.info(
+                    "Query %d/%d done. Answer: %s", i, n_queries, answer_preview
+                )
+        except Exception:
+            logger.exception("RAG failed on query %d/%d", len(results) + 1, n_queries)
+            raise
         save_results(results, config_args.output_file)
+        out_path = Path(config_args.output_file)
+        out_size = out_path.stat().st_size if out_path.is_file() else 0
+        logger.info(
+            "RAG finished: %d/%d queries answered. Wrote %s (%d bytes).",
+            len(results),
+            n_queries,
+            config_args.output_file,
+            out_size,
+        )
 
     elif config.mode == "api":
         config_args = cast(APIConfig, config.mode_args)

@@ -3,8 +3,10 @@ Vector database retriever using Milvus for efficient similarity search.
 Works in conjunction with the Indexer class for document retrieval.
 """
 
+import json
 import logging
 from dataclasses import dataclass, field
+from os import PathLike
 from typing import Any, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 import torch
@@ -15,6 +17,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+from pymilvus.exceptions import MilvusException
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
@@ -25,6 +28,46 @@ from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_image_path(value: Any) -> Optional[str]:
+    """Return a non-empty path string, or None if value is not a usable path."""
+    if value is None:
+        return None
+    if not isinstance(value, (str, PathLike)):
+        return None
+    path = str(value).strip()
+    return path or None
+
+
+def _parse_image_paths(raw_image_paths: Any) -> List[str]:
+    if raw_image_paths is None:
+        return []
+    if isinstance(raw_image_paths, list):
+        paths: List[str] = []
+        for item in raw_image_paths:
+            normalized = _normalize_image_path(item)
+            if normalized is not None:
+                paths.append(normalized)
+        return paths
+    if isinstance(raw_image_paths, str):
+        value = raw_image_paths.strip()
+        if not value:
+            return []
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return _parse_image_paths([value])
+        return _parse_image_paths(parsed)
+    normalized = _normalize_image_path(raw_image_paths)
+    return [normalized] if normalized is not None else []
+
+
+def _is_missing_image_paths_field_error(error: Exception) -> bool:
+    """Return True when Milvus fails because output field image_paths is unknown."""
+    if isinstance(error, MilvusException):
+        return "image_paths" in str(error).lower()
+    return False
 
 
 @dataclass
@@ -338,14 +381,33 @@ class Retriever(BaseRetriever):
         if k == 0:
             return []
 
-        results = self.retrieve(
-            query=query_input,
-            collection_name=collection_name,
-            partition_names=partition_names,
-            min_score=min_score,
-            k=k,
-            document_ids=document_ids,
-        )
+        try:
+            results = self.retrieve(
+                query=query_input,
+                collection_name=collection_name,
+                partition_names=partition_names,
+                min_score=min_score,
+                k=k,
+                document_ids=document_ids,
+                output_fields=["text", "image_paths", "paragraph_positions"],
+            )
+        except Exception as e:
+            if not _is_missing_image_paths_field_error(e):
+                logger.exception(
+                    "Milvus retrieval failed with unexpected error; re-raising."
+                )
+                raise
+            logger.debug(
+                "Milvus output field `image_paths` unavailable, fallback to text-only fields."
+            )
+            results = self.retrieve(
+                query=query_input,
+                collection_name=collection_name,
+                partition_names=partition_names,
+                min_score=min_score,
+                k=k,
+                document_ids=document_ids,
+            )
 
         def parse_result(result: Dict[str, Any], i: int, offset: int = 0) -> Document:
             return Document(
@@ -356,6 +418,9 @@ class Retriever(BaseRetriever):
                     "similarity": result["distance"],
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
+                    ),
+                    "image_paths": _parse_image_paths(
+                        result["entity"].get("image_paths")
                     ),
                 },
             )

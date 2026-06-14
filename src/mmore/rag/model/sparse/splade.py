@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import scipy
 import torch
@@ -15,16 +15,21 @@ class SpladeSparseEmbedding(BaseSparseEmbedding):
     https://milvus.io/docs/embed-with-splade.md
     """
 
-    def __init__(self, model_name: str = "naver/splade-cocondenser-selfdistil"):
+    def __init__(
+        self,
+        model_name: str = "naver/splade-cocondenser-selfdistil",
+        device: Optional[str] = None,
+    ):
         from pymilvus.model.sparse import SpladeEmbeddingFunction  # type: ignore
 
-        self.device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
-        )
+        if device is not None:
+            self.device = device
+        elif torch.cuda.is_available():
+            self.device = "cuda"
+        elif torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.device = "cpu"
         self.splade = SpladeEmbeddingFunction(model_name=model_name, device=self.device)
 
     def embed_query(self, query: str) -> Dict[int, float]:
