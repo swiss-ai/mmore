@@ -59,7 +59,7 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
     call_kwargs = mock_retriever.client.query.call_args.kwargs
     assert call_kwargs["collection_name"] == "test_docs"
     assert call_kwargs["filter"] == 'id in ["file-123+chunk-7"]'
-    assert call_kwargs["output_fields"] == ["text", "paragraph_positions", "filename"]
+    assert call_kwargs["output_fields"] == ["text", "paragraph_positions", "document_id", "file_path", "filename"]
     assert call_kwargs["limit"] == 1
 
 
