@@ -1,77 +1,153 @@
-from unittest.mock import MagicMock, patch
+"""
+Integration tests for the RAG HTTP API (run_rag.py).
+"""
+
+from unittest.mock import MagicMock
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from pydantic import BaseModel, Field
 
-from mmore.rag.llm import LLMConfig
-from mmore.rag.pipeline import RAGConfig, RAGPipeline
-from mmore.rag.retriever import DBConfig, RetrieverConfig
-
-
-class RAGInput(BaseModel):
-    """
-    Defines the expected input structure for the /rag endpoint.
-    This structure must align with the MMOREInput model used internally
-    by the RAGPipeline.
-    """
-
-    input: str = Field(..., description="The user query or question.")
-    collection_name: str = Field(
-        ..., description="The Milvus collection name to search."
-    )
+from mmore.run_rag import create_api
 
 
 @pytest.fixture(scope="module")
-def app():
-    retriever_cfg = RetrieverConfig(
-        db=DBConfig(uri="./proc_demo.db", name="my_db"), hybrid_search_weight=0.5, k=2
-    )
-    llm_cfg = LLMConfig(llm_name="gpt2")
-    rag_cfg = RAGConfig(retriever=retriever_cfg, llm=llm_cfg)
+def client():
+    """Builds the FastAPI app via create_api() with a mocked RAGPipeline."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "What is the capital of France?",
+        "context": "Paris is the capital of France.",
+        "answer": "Paris.",
+    }
 
-    with patch("mmore.rag.pipeline.RAGPipeline.from_config") as mock_from_config:
-
-        def mock_runnable(input_data, return_dict=False):
-            if return_dict:
-                return [{"answer": f"Mocked answer for query: {input_data['input']}"}]
-
-            return [{"answer": f"Mocked answer for query: {input_data['input']}"}]
-
-        # Create a mock RAGPipeline instance
-        mock_pipeline = MagicMock(spec=RAGPipeline)
-
-        mock_pipeline.side_effect = mock_runnable
-
-        mock_from_config.return_value = mock_pipeline
-
-        rag_pipeline = RAGPipeline.from_config(rag_cfg)
-
-        api = FastAPI()
-
-        @api.post("/rag")
-        def rag_endpoint(input_data: RAGInput):
-            return rag_pipeline(input_data.model_dump(), return_dict=True)[0]
-
-        return api
-
-
-@pytest.fixture(scope="module")
-def client(app):
+    app = create_api(mock_pipeline, "/rag")
     return TestClient(app)
 
 
-def test_rag_endpoint(client):
-    """Test that the /rag endpoint returns a valid response structure."""
+# ---------------------------------------------------------------------------
+# POST /rag
+# ---------------------------------------------------------------------------
 
+
+def test_rag_endpoint_returns_200(client):
     response = client.post(
-        "/rag", json={"input": "What is RAG?", "collection_name": "my_docs"}
+        "/rag",
+        json={
+            "input": {
+                "input": "What is the capital of France?",
+                "collection_name": "test_col",
+            }
+        },
     )
-
     assert response.status_code == 200
 
+
+def test_rag_endpoint_response_shape(client):
+    response = client.post(
+        "/rag",
+        json={
+            "input": {
+                "input": "How tall is the Eiffel Tower?",
+                "collection_name": "test_col",
+            }
+        },
+    )
     data = response.json()
-    assert "answer" in data
-    assert isinstance(data["answer"], str)
-    assert data["answer"].startswith("Mocked answer")
+    assert set(data.keys()) == {"input", "context", "answer"}
+    assert data["answer"] == "Paris."
+
+
+def test_rag_endpoint_includes_final_documents_from_dicts():
+    """Pipeline validate_output returns docs as dicts after model_dump()."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "q",
+        "context": "[1] chunk text",
+        "answer": "a",
+        "docs": [
+            {
+                "page_content": "chunk text",
+                "metadata": {
+                    "id": "file-1+chunk-0",
+                    "similarity": 0.91,
+                    "rerank_score": 2.1,
+                    "rank": 1,
+                },
+            }
+        ],
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+    data = tc.post(
+        "/rag", json={"input": {"input": "q", "collection_name": "test_col"}}
+    ).json()
+
+    assert len(data["documents"]) == 1
+    assert data["documents"][0]["page_content"] == "chunk text"
+    assert data["documents"][0]["metadata"]["id"] == "file-1+chunk-0"
+
+
+def test_rag_endpoint_includes_final_documents():
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "q",
+        "context": "[1] chunk text",
+        "answer": "a",
+        "docs": [
+            MagicMock(
+                page_content="chunk text",
+                metadata={
+                    "id": "file-1+chunk-0",
+                    "similarity": 0.91,
+                    "rerank_score": 2.1,
+                    "rank": 1,
+                },
+            )
+        ],
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+    data = tc.post(
+        "/rag", json={"input": {"input": "q", "collection_name": "test_col"}}
+    ).json()
+
+    assert len(data["documents"]) == 1
+    assert data["documents"][0]["page_content"] == "chunk text"
+    assert data["documents"][0]["metadata"]["id"] == "file-1+chunk-0"
+    assert data["documents"][0]["metadata"]["similarity"] == 0.91
+
+
+def test_rag_endpoint_missing_input_returns_422(client):
+    response = client.post("/rag", json={})
+    assert response.status_code == 422
+
+    response = client.post("/rag", json={"input": {"collection_name": "test_col"}})
+    assert response.status_code == 422
+
+
+def test_rag_endpoint_invokes_pipeline_with_inner_dict():
+    """The endpoint should call rag_chain.invoke() with the inner input dict."""
+    mock_pipeline = MagicMock()
+    mock_pipeline.rag_chain.invoke.return_value = {
+        "input": "x",
+        "context": "y",
+        "answer": "z",
+    }
+    tc = TestClient(create_api(mock_pipeline, "/rag"))
+
+    tc.post(
+        "/rag", json={"input": {"input": "test query", "collection_name": "my_col"}}
+    )
+
+    mock_pipeline.rag_chain.invoke.assert_called_once_with(
+        {"input": "test query", "collection_name": "my_col"}
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /health
+# ---------------------------------------------------------------------------
+
+
+def test_health_check_returns_200(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}

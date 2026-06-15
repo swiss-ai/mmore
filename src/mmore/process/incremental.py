@@ -26,7 +26,7 @@ def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
     keeping the latest ``processed_at`` if there are any duplicates."""
     samples_by_file_path: Dict[str, List[MultimodalSample]] = {}
     for sample in _iter_samples_jsonl(path):
-        filepath = str(sample.metadata["file_path"])
+        filepath = str(sample.metadata.file_path)
         samples_by_file_path.setdefault(filepath, []).append(sample)
 
     index: Dict[str, MultimodalSample] = {}
@@ -41,8 +41,8 @@ def load_previous_process_results(path: str) -> Dict[str, MultimodalSample]:
 
         index[file_path] = max(
             samples,
-            key=lambda s: datetime.fromisoformat(str(s.metadata["processed_at"]))
-            if s.metadata.get("processed_at") is not None
+            key=lambda s: datetime.fromisoformat(s.metadata.processed_at)
+            if s.metadata.processed_at is not None
             else datetime.min,
         )
     return index
@@ -54,7 +54,7 @@ def load_previous_postprocess_results(
     """Index samples by ``metadata.file_path`` for the post-processing pipeline."""
     index: Dict[str, List[MultimodalSample]] = {}
     for sample in _iter_samples_jsonl(path):
-        index.setdefault(str(sample.metadata["file_path"]), []).append(sample)
+        index.setdefault(sample.metadata.file_path, []).append(sample)
     return index
 
 
@@ -70,11 +70,10 @@ def is_reusable_process(file_path: str, previous: Dict[str, MultimodalSample]) -
     if sample is None:
         return False
 
-    processed_at_value = sample.metadata.get("processed_at")
-    if processed_at_value is None:
+    processed_at_str = sample.metadata.processed_at
+    if processed_at_str is None:
         return False
 
-    processed_at_str = str(processed_at_value)
     processed_at = datetime.fromisoformat(processed_at_str)
     if not os.path.exists(file_path):
         return False
@@ -100,10 +99,9 @@ def is_reusable_postprocess(
 
     timestamps: List[datetime] = []
     for s in samples:
-        timestamp_value = s.metadata.get("processed_at")
-        if timestamp_value is None:
+        timestamp_str = s.metadata.processed_at
+        if timestamp_str is None:
             return False
-        timestamp_str = str(timestamp_value)
         timestamps.append(datetime.fromisoformat(timestamp_str))
 
     return datetime.fromisoformat(input_processed_at) <= min(timestamps)
@@ -120,6 +118,6 @@ def merge_results(
         if file_path in current_file_paths:
             merged.extend(samples)
     for sample in new_results:
-        if sample.metadata["file_path"] in current_file_paths:
+        if sample.metadata.file_path in current_file_paths:
             merged.append(sample)
     return merged

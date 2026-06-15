@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mmore"
-version = "1.2.2"
+version = "1.2.4"
 description = "mmore: Scalable multimodal document extraction pipeline for custom RAG integration."
 readme = "README.md"
 authors = [
@@ -24,7 +24,10 @@ authors = [
     { name = "Victor Zablocki", email = "victor.zablocki@epfl.ch" },
     { name = "Adam Chahed Ouazzani", email = "adam.chahedouazzani@epfl.ch" },
     { name = "Omar Ziyad Azgaoui", email = "omar.azgaoui@epfl.ch"},
-    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"}
+    { name = "Clara Delandre", email = "clara.delandre@epfl.ch"},
+    { name = "Arthur Perrin", email="arthur.perrin@telecom-sudparis.eu" },
+    { name = "Chadi Ait Ekioui", email="chadi.ait_ekioui@telecom-sudparis.eu" },
+    { name = "Mathieu Bonnet", email="mathieu.bonnet@telecom-sudparis.eu" }
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -40,7 +43,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "typing_extensions>=4.15.0,<5.0",
     "PyYAML>=6.0",
-    "setuptools<81"
+    "setuptools<81",
 ]
 
 [project.optional-dependencies]
@@ -80,19 +83,29 @@ process = [
     "google-api-python-client>=2.120",
     "datatrove>=0.3; python_version < '3.12'",
     "datatrove>=0.7; python_version >= '3.12'",
-    "colpali-engine>=0.3",
     "bokeh",
 ]
 
 index = [
     # Indexing + Retrieval (vector DB, embeddings)
-    "pymilvus[milvus-lite]==2.6.6",
+    "pymilvus==2.6.6",
+    "milvus-lite==2.5.1",
     "pymilvus-model>=0.3.2",
     "milvus-model>=0.2.12",
     "langchain-milvus>=0.1.8",
     "sentence-transformers",
     "transformers>=4.44",
     "scipy>=1.8",
+]
+
+colvision = [
+    # Vision-based RAG with ColVision models (ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
+    "mmore[api, index]",
+    "colpali-engine>=0.3.16",
+    "transformers==5.3.0",  # pinned: matches the colpali adapter key layout
+    "PyMuPDF",
+    "accelerate>=0.30",
+    "pyarrow",
 ]
 
 rag = [
@@ -126,8 +139,15 @@ api = [
 
 # --- Composite + variant extras ---
 
+tui = [
+    # Interactive terminal launcher (`mmore tui`)
+    "questionary>=2.0",
+    "rich>=13",
+    "uv",
+]
+
 all = [
-    "mmore[process,rag,api,websearch]",
+    "mmore[process,rag,api,websearch,tui]",
 ]
 
 cpu = [
@@ -151,6 +171,14 @@ conflicts = [
   [
     { extra = "cpu" },
     { extra = "cu126" },
+  ],
+  [
+    { extra = "process" },
+    { extra = "colvision" },
+  ],
+  [
+    { extra = "all" },
+    { extra = "colvision" },
   ],
 ]
 

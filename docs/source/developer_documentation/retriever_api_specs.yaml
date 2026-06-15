@@ -288,6 +288,10 @@ paths:
                     description: |
                       Path of the source file used during indexing. Empty
                       string when not recorded.
+                  filename:
+                    type: string
+                    nullable: true
+                    description: Original filename of the source document.
                   content:
                     type: string
                   metadata:

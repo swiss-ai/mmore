@@ -16,7 +16,7 @@
 
 MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs). 
 
-👉 Read the paper for more details (OpenReview): [MMORE: Massive Multimodal Open RAG & Extraction](https://openreview.net/forum?id=6j1HjfIdKn)
+👉 Read the paper for more details (arXiv): [MMORE: Massive Multimodal Open RAG & Extraction](https://arxiv.org/abs/2509.11937)
 
 
 ### Documentation
@@ -66,6 +66,8 @@ brew install cairo pango gdk-pixbuf libffi
 uv pip install weasyprint
 ```
 
+You can also run MMORE on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
+
 #### Step 1 – Install MMORE
 
 Dependencies are split by pipeline stage. Install only what you need:
@@ -102,6 +104,22 @@ uv pip install "mmore[process,cpu]"
 > :warning: This package requires many big dependencies, so it is recommended to install with `uv` to handle `pip` installations. [Check our tutorial on uv](https://github.com/swiss-ai/mmore/blob/master/docs/uv.md).
 
 > :warning: **Check the instructions for contributors directly at [`docs/for_devs.md`](./docs/for_devs.md)**
+
+### Interactive TUI
+
+Prefer a guided experience over editing YAML by hand? Install the `tui` extra and launch the interactive Terminal UI:
+
+```bash
+uv sync --extra tui
+mmore tui
+```
+
+From the launcher you can:
+
+- run any stage (process / postprocess / index / rag / chat) interactively,
+- chain the full pipeline (process → postprocess → index → chat),
+- generate stage YAML configs through a guided wizard,
+- pick from existing example configs without leaving the terminal.
 
 ### Minimal Example
 
@@ -142,7 +160,7 @@ MultimodalSample.to_jsonl(out_file, result_pdf)
 
 To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
-![The MMORE pipelines architecture](https://github.com/user-attachments/assets/0cd61466-1680-43ed-9d55-7bd483a04a09)
+![The MMORE pipelines architecture](docs/source/doc_images/pipeline_mmore+.png)
 
 
 1. **:page_facing_up: Input Documents**

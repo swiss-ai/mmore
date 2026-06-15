@@ -6,7 +6,7 @@ import argostranslate.translate
 from langid.langid import LanguageIdentifier, model
 
 from mmore.process.post_processor.base import BasePostProcessor
-from mmore.type import MultimodalSample
+from mmore.type import DocumentMetadata, MultimodalSample
 
 
 @dataclass
@@ -106,11 +106,21 @@ class TranslatorPostProcessor(BasePostProcessor):
             )
 
         translated_text = self.attachment_tag.join(translated_texts)
+        translated_metadata = DocumentMetadata(
+            file_path=sample.metadata.file_path,
+            processed_at=sample.metadata.processed_at,
+            processor_type=sample.metadata.processor_type,
+            extra={
+                **sample.metadata.extra,
+                "original_text": sample.text,
+            },
+        )
+
         return [
             MultimodalSample(
                 text=translated_text,
                 modalities=sample.modalities,
-                metadata={"original_text": sample.text, **sample.metadata},
+                metadata=translated_metadata,
             )
         ]
 

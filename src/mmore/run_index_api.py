@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path as FilePath
-from typing import List, cast
+from typing import List
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadFile
@@ -23,6 +23,7 @@ from mmore.profiler import enable_profiling_from_env
 
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
+from .type import MultimodalSample
 from .utils import get_indexer, load_config, process_files_default
 
 UPLOAD_DIR: str = "./uploads"
@@ -32,6 +33,18 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _apply_uploaded_file_metadata(
+    documents: List[MultimodalSample], file_id: str, filename: str
+) -> None:
+    """Bind processed chunks to the API file ID and persist the original filename."""
+    for doc in documents:
+        chunk_id = doc.id.rsplit("+")[1] if "+" in doc.id else None
+        doc.document_id = file_id
+        doc.id = f"{file_id}+{chunk_id}" if chunk_id else file_id
+
+        doc.metadata.extra["filename"] = filename
 
 
 def make_router(config_path: str) -> APIRouter:
@@ -87,6 +100,24 @@ def make_router(config_path: str) -> APIRouter:
 
                 await file.close()
 
+                # Process and index the file
+                file_extension = FilePath(file.filename).suffix.lower()
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, [file_extension]
+                    )
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process file '%s' with extension '%s'",
+                        file.filename,
+                        file_extension,
+                        exc_info=True,
+                    )
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Could not process file '{file.filename}'",
+                    ) from e
+
                 # Save a permanent copy for later retrieval
                 os.makedirs(os.path.dirname(file_storage_path), exist_ok=True)
                 shutil.copy2(temp_file_path, file_storage_path)
@@ -97,10 +128,7 @@ def make_router(config_path: str) -> APIRouter:
                     temp_dir, COLLECTION_NAME, [file_extension]
                 )
 
-                for doc in documents:
-                    defDocId = doc.document_id
-                    doc.document_id = fileId
-                    doc.id = doc.id.replace(defDocId, fileId)
+                _apply_uploaded_file_metadata(documents, fileId, file.filename)
 
                 # Get indexer and index the document
                 try:
@@ -120,6 +148,9 @@ def make_router(config_path: str) -> APIRouter:
                     "filename": file.filename,
                 }
 
+        except HTTPException:
+            raise
+
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -133,7 +164,12 @@ def make_router(config_path: str) -> APIRouter:
         Upload multiple files with custom IDs and index them.
         """
         try:
-            listIds = listIds[0].split(",")
+            listIds = [
+                file_id.strip()
+                for ids in listIds
+                for file_id in ids.split(",")
+                if file_id.strip()
+            ]
             # Check if IDs and files match in number
             if len(listIds) != len(files):
                 raise HTTPException(
@@ -144,12 +180,15 @@ def make_router(config_path: str) -> APIRouter:
             with tempfile.TemporaryDirectory() as temp_dir:
                 logging.info(f"Starting to process {len(files)} files with custom IDs")
 
-                for file, file_id in zip(files, listIds):
+                uploaded_files: list[dict[str, str]] = []
+                file_info_by_temp_path = {}
+                for index, (file, file_id) in enumerate(zip(files, listIds)):
                     if file.filename is None:
                         raise HTTPException(
                             status_code=422,
                             detail=f"File {file_id} does not have a filename",
                         )
+                    filename = file.filename
 
                     # Check if file with this ID already exists
                     file_storage_path = FilePath(UPLOAD_DIR) / file_id
@@ -160,12 +199,19 @@ def make_router(config_path: str) -> APIRouter:
                         )
 
                     # Save to temp directory
-                    file_name = FilePath(temp_dir) / file.filename
-                    with file_name.open("wb") as buffer:
-                        shutil.copyfileobj(file.file, buffer)
+                    temp_file_path = (
+                        FilePath(temp_dir) / f"{index}{FilePath(filename).suffix}"
+                    )
+                    file_info = {
+                        "fileId": file_id,
+                        "filename": filename,
+                        "temp_path": str(temp_file_path.resolve()),
+                    }
+                    uploaded_files.append(file_info)
+                    file_info_by_temp_path[file_info["temp_path"]] = file_info
 
-                    # Save a permanent copy
-                    shutil.copy2(file_name, file_storage_path)
+                    with temp_file_path.open("wb") as buffer:
+                        shutil.copyfileobj(file.file, buffer)
 
                     # Close the file
                     await file.close()
@@ -174,18 +220,53 @@ def make_router(config_path: str) -> APIRouter:
 
                 # Process the documents
                 file_extensions = [
-                    FilePath(cast(str, file.filename)).suffix.lower() for file in files
+                    FilePath(file_info["temp_path"]).suffix.lower()
+                    for file_info in uploaded_files
                 ]
-                documents = process_files_default(
-                    temp_dir, COLLECTION_NAME, file_extensions
-                )
+                try:
+                    documents = process_files_default(
+                        temp_dir, COLLECTION_NAME, file_extensions
+                    )
+                except KeyError as e:
+                    logger.warning(
+                        "Could not process one of the uploaded files with extensions %s",
+                        file_extensions,
+                        exc_info=True,
+                    )
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Could not process one of the uploaded files",
+                    ) from e
+
+                # Save permanent copies
+                for file_info in uploaded_files:
+                    file_storage_path = FilePath(UPLOAD_DIR) / file_info["fileId"]
+                    shutil.copy2(file_info["temp_path"], file_storage_path)
 
                 # Change the IDs to match the ones from the client
                 modified_documents = []
-                for doc, docId in zip(documents, listIds):
-                    defDocId = doc.document_id
-                    doc.document_id = docId
-                    doc.id = doc.id.replace(defDocId, docId)
+                text_by_file_id = {}
+                chunks_by_file_id = {
+                    file_info["fileId"]: 0 for file_info in uploaded_files
+                }
+                for doc_index, doc in enumerate(documents):
+                    doc_temp_path = str(FilePath(doc.metadata.file_path).resolve())
+                    file_info = file_info_by_temp_path.get(doc_temp_path)
+                    if file_info is None:
+                        if doc_index >= len(uploaded_files):
+                            raise HTTPException(
+                                status_code=500,
+                                detail=(
+                                    "Could not match processed document "
+                                    f"{doc.metadata.file_path} to an uploaded file"
+                                ),
+                            )
+                        # Fallback for processors/tests that return file paths outside temp_dir.
+                        file_info = uploaded_files[doc_index]
+                    doc_id = file_info["fileId"]
+                    _apply_uploaded_file_metadata([doc], doc_id, file_info["filename"])
+                    text_by_file_id.setdefault(doc_id, doc.text)
+                    chunks_by_file_id[doc_id] += 1
                     modified_documents.append(doc)
 
                 logging.info("Indexing the files")
@@ -202,12 +283,21 @@ def make_router(config_path: str) -> APIRouter:
 
                 return {
                     "status": "success",
-                    "message": f"Successfully processed and indexed {len(modified_documents)} documents",
+                    "message": f"Successfully processed and indexed {len(uploaded_files)} files",
                     "documents": [
-                        {"fileId": doc.document_id, "text": doc.text[:50] + "..."}
-                        for doc in modified_documents
+                        {
+                            "fileId": file_info["fileId"],
+                            "filename": file_info["filename"],
+                            "text": text_by_file_id.get(file_info["fileId"], "")[:50]
+                            + "...",
+                            "chunks": chunks_by_file_id[file_info["fileId"]],
+                        }
+                        for file_info in uploaded_files
                     ],
                 }
+
+        except HTTPException:
+            raise
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -251,9 +341,8 @@ def make_router(config_path: str) -> APIRouter:
                     temp_dir, COLLECTION_NAME, [file_extension]
                 )
 
-                # Set the custom ID
-                for doc in documents:
-                    doc.id = fileId
+                # Set the custom ID and preserve the original upload filename
+                _apply_uploaded_file_metadata(documents, fileId, file.filename)
 
                 # Get indexer and reindex the document
                 try:

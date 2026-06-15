@@ -76,7 +76,10 @@ class DatatroveFilter(BaseFilter):
                 Media(type=type_as_int(modality.type), url=modality.value)
                 for modality in sample.modalities
             ],
-            metadata=cast(Dict[str, Union[str, int, float, bool]], sample.metadata),
+            metadata=cast(
+                Dict[str, Union[str, int, float, bool]],
+                sample.metadata.to_dict(),
+            ),
         )
 
     def filter(self, sample: MultimodalSample) -> bool | Tuple[bool, str]:

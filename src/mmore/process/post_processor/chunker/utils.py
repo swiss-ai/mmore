@@ -1,7 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from chonkie import (
     BaseChunker,
@@ -11,6 +11,8 @@ from chonkie import (
     TokenChunker,
     WordChunker,
 )
+
+from ....type import DocumentMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,30 @@ def _strip_table_row(row: str) -> str:
 def _strip_table_text(text: str) -> str:
     """Strip padding from all lines that are part of a markdown table row."""
     return "\n".join(_strip_table_row(line) for line in text.split("\n"))
+
+
+@dataclass
+class ChunkMetadata(DocumentMetadata):
+    paragraph_positions: List[List[int]] = field(default_factory=list)
+    is_table_chunk: bool = False
+    table_header: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        metadata = super().to_dict()
+        if self.paragraph_positions:
+            metadata["paragraph_positions"] = self.paragraph_positions
+        if self.is_table_chunk:
+            metadata["is_table_chunk"] = self.is_table_chunk
+        if self.table_header is not None:
+            metadata["table_header"] = self.table_header
+        return metadata
+
+
+@dataclass
+class MultimodalChunkerConfig:
+    chunking_strategy: str = "sentence"
+    text_chunker_config: Dict[str, Any] = field(default_factory=dict)
+    table_handling: str = "single_row"
 
 
 @dataclass

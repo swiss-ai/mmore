@@ -161,6 +161,7 @@ def make_router(config_file: str) -> APIRouter:
             document_ids=query.fileIds,
             k=query.maxMatches,
             min_score=query.minSimilarity,
+            collection_name=config.collection_name,
         )
 
         docs_info = []
@@ -195,7 +196,7 @@ def make_router(config_file: str) -> APIRouter:
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
             filter=f"id in [{chunk_ref_literal}]",
-            output_fields=["text", "paragraph_positions", "document_id", "file_path"],
+            output_fields=["text", "paragraph_positions", "document_id", "file_path", "filename"],
             limit=1,
         )
         if not results:
@@ -207,6 +208,7 @@ def make_router(config_file: str) -> APIRouter:
             "chunkId": chunkId,
             "documentId": row.get("document_id") or entity.get("document_id", ""),
             "filePath": row.get("file_path") or entity.get("file_path", ""),
+            "filename": row.get("filename") or entity.get("filename"),
             "content": row.get("text") or entity.get("text", ""),
             "metadata": _chunk_metadata(
                 row.get("paragraph_positions") or entity.get("paragraph_positions")
