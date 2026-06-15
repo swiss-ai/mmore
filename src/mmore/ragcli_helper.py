@@ -8,7 +8,8 @@ import sys
 import threading
 import time
 import warnings
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
+from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
 
@@ -113,7 +114,7 @@ class TimingHandler(BaseCallbackHandler):
         self.retrieval_time: Optional[float] = None
         self.generation_time: Optional[float] = None
         self.completion_tokens: Optional[int] = None
-        self._starts: Dict[Any, float] = {}
+        self._starts: Dict[UUID, float] = {}
 
     def on_retriever_start(self, serialized, query, *, run_id, **kwargs):
         self._starts[run_id] = time.perf_counter()
@@ -135,7 +136,7 @@ class TimingHandler(BaseCallbackHandler):
 
 
 def _output_tokens(response) -> Optional[int]:
-    """Generated-token count if the provider reported it (API models do; HF rarely)."""
+    """Generated-token count if the provider reported it (specific to API models)."""
     try:
         usage = response.generations[0][0].message.usage_metadata
         if usage and usage.get("output_tokens"):

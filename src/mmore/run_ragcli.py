@@ -16,7 +16,7 @@ logging.basicConfig(
 
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.rag.pipeline import RAGPipeline
-from mmore.ragcli_console import (
+from mmore.ragcli_helper import (
     Spinner,
     TimingHandler,
     print_in_color,
