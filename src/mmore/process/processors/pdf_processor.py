@@ -231,7 +231,7 @@ class PDFProcessor(Processor):
                 if image_bytes is None:
                     logging.error(f"No image data found for xref {xref}")
 
-                return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+                return Image.open(io.BytesIO(cast(bytes, image_bytes))).convert("RGB")
 
             except KeyError as e:
                 logging.error(f"KeyError while extracting image: {e}")
@@ -249,7 +249,7 @@ class PDFProcessor(Processor):
                 )
                 return None
 
-        for page_num, page in enumerate(pdf_doc):
+        for page_num, page in enumerate(pdf_doc):  # pyright: ignore[reportArgumentType]
             text = clean_text(page.get_text())  # type: ignore[attr-defined]
 
             if text.strip():
