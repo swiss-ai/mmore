@@ -188,7 +188,7 @@ def _print_export_commands(env_vars: dict[str, str]) -> None:
     """Print export commands for the collected env vars.
 
     Displays a table with masked values, then prints the shell commands
-    the user can copy-paste into their shell or profile file.
+    the user can copy-paste into their virtual environment file.
     """
     if not env_vars:
         console.print("  [dim]No environment variables needed.[/dim]")

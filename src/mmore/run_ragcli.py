@@ -62,7 +62,7 @@ class RagCLI:
                     break
                 elif cmd == "help":
                     print(
-                        f"Press {str_green('Enter')} (or type rag) to start asking questions about your documents.\nOther commands are: config, setK, setModel, setWebrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>"
+                        f"Press {str_green('Enter')} (or type rag) to start asking questions about your documents.\nOther commands are: config, setK, setModel, webRag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>"
                     )
                 elif cmd.startswith("help "):
                     command = cmd.split(" ", 1)[1]
