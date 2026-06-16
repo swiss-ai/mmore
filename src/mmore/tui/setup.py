@@ -219,7 +219,7 @@ def _print_export_commands(env_vars: dict[str, str]) -> None:
                 f'export {k}="{v}"' if " " in v else f"export {k}={v}"
                 for k, v in env_vars.items()
             ),
-            title="[bold]Add to your shell profile (e.g. ~/.bashrc or ~/.zshrc)[/bold]",
+            title="[bold]Add to your virtual env (i.e. .venv/bin/activate)[/bold]",
             border_style=ACCENT,
             padding=(1, 2),
         )
