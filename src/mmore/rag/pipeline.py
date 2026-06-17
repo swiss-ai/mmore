@@ -140,7 +140,7 @@ class RAGPipeline:
         return_dict: bool = False,
         config: Optional[RunnableConfig] = None,
     ) -> List[Dict[str, Any]]:
-        if isinstance(queries, Dict):
+        if isinstance(queries, dict):
             queries_list = [queries]
         else:
             queries_list = queries
