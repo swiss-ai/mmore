@@ -77,6 +77,7 @@ class Spinner:
         self._thread: Optional[threading.Thread] = None
 
     def __enter__(self):
+        self._stop.clear()
         if sys.stdout.isatty():
             self._thread = threading.Thread(target=self._spin, daemon=True)
             self._thread.start()
