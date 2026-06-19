@@ -122,12 +122,6 @@ def make_router(config_path: str) -> APIRouter:
                 os.makedirs(os.path.dirname(file_storage_path), exist_ok=True)
                 shutil.copy2(temp_file_path, file_storage_path)
 
-                # Process and index the file
-                file_extension = FilePath(file.filename).suffix.lower()
-                documents = process_files_default(
-                    temp_dir, COLLECTION_NAME, [file_extension]
-                )
-
                 _apply_uploaded_file_metadata(documents, fileId, file.filename)
 
                 # Get indexer and index the document
