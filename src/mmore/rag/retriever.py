@@ -365,7 +365,6 @@ class Retriever(BaseRetriever):
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
                     ),
-                    "document_id": result["entity"].get("document_id", ""),
                     "file_path": result["entity"].get("file_path", ""),
                 },
             )
