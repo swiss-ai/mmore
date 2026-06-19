@@ -6,7 +6,6 @@ import multiprocessing
 import os
 import shutil
 import tempfile
-import threading
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path as FilePath
 from typing import Callable, List, Optional
@@ -115,8 +114,6 @@ def make_router(config_path: str) -> APIRouter:
 
     router.add_event_handler("shutdown", _shutdown)
 
-    db_lock = threading.Lock()
-
     def _stage_upload(file: UploadFile, filename: str) -> tuple[str, str]:
         """Save the uploaded bytes now, while the request is alive.
 
@@ -151,19 +148,20 @@ def make_router(config_path: str) -> APIRouter:
                 )
                 _apply_uploaded_file_metadata(documents, file_id, filename)
 
-                indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
-                with db_lock:
-                    if torch.cuda.is_available():
-                        torch.cuda.set_device(0)
-                    if replace:
-                        indexer.client.delete(
-                            collection_name=COLLECTION_NAME,
-                            filter=f"document_id == '{file_id}'",
-                        )
-                    indexer.index_documents(
-                        documents=documents, collection_name=COLLECTION_NAME
+                indexer = get_indexer(
+                    COLLECTION_NAME, MILVUS_URI, MILVUS_DB, device=device
+                )
+                if str(device).startswith("cuda"):
+                    torch.cuda.set_device(torch.device(device))
+                if replace:
+                    indexer.client.delete(
+                        collection_name=COLLECTION_NAME,
+                        filter=f"document_id == '{file_id}'",
                     )
-                    indexer.client.flush(COLLECTION_NAME)
+                indexer.index_documents(
+                    documents=documents, collection_name=COLLECTION_NAME
+                )
+                indexer.client.flush(COLLECTION_NAME)
 
                 # Persist the permanent copy only on success
                 dest = FilePath(UPLOAD_DIR) / file_id

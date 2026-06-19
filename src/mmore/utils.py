@@ -60,7 +60,9 @@ indexers = {}
 retrievers = {}
 
 
-def create_new_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
+def create_new_indexer(
+    collection_name: str, uri: str, db_name: str, device: Optional[str] = None
+) -> "Indexer":
     """Create a new indexer with default configuration"""
 
     from .index.indexer import DBConfig, Indexer, IndexerConfig
@@ -87,11 +89,14 @@ def create_new_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer
 
         # Create indexer from documents (this will create the collection)
         indexer = Indexer.from_documents(
-            config=config, documents=empty_docs, collection_name=collection_name
+            config=config,
+            documents=empty_docs,
+            collection_name=collection_name,
+            device=device,
         )
 
         # Store in cache
-        indexers[collection_name] = indexer
+        indexers[(collection_name, device)] = indexer
 
         logging.info(
             f"Successfully created new indexer for collection: {collection_name}"
@@ -101,15 +106,21 @@ def create_new_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer
         raise Exception(f"Unable to create a new indexer: {str(e)}")
 
 
-def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
-    """Get an existing indexer in cached Dict or load from the collection"""
+def get_indexer(
+    collection_name: str, uri: str, db_name: str, device: Optional[str] = None
+) -> "Indexer":
+    """Get an existing indexer in cached Dict or load from the collection.
+
+    Cached per (collection, device) so each GPU gets its own embedding replica.
+    """
 
     from .index.indexer import Indexer, get_model_from_index
     from .rag.model.dense.base import DenseModelConfig
     from .rag.model.sparse.base import SparseModelConfig
 
-    if collection_name in indexers:
-        return indexers[collection_name]
+    key = (collection_name, device)
+    if key in indexers:
+        return indexers[key]
 
     try:
         from pymilvus import MilvusClient
@@ -119,7 +130,7 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
         collections = cast(List[str], client.list_collections())
 
         if collection_name not in collections:
-            return create_new_indexer(collection_name, uri, db_name)
+            return create_new_indexer(collection_name, uri, db_name, device=device)
 
         # Get model configs from the collection
         dense_config = cast(
@@ -136,9 +147,10 @@ def get_indexer(collection_name: str, uri: str, db_name: str) -> "Indexer":
             dense_model_config=dense_config,
             sparse_model_config=sparse_config,
             client=client,
+            device=device,
         )
 
-        indexers[collection_name] = indexer
+        indexers[key] = indexer
 
         return indexer
     except Exception as e:
