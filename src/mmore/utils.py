@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Type, TypeVar, Union, cast
 
 import yaml
 from dacite import from_dict
@@ -205,6 +205,7 @@ def process_files_default(
         ".htm",
         ".html",
     ],
+    device: Optional[str] = None,
 ) -> List["MultimodalSample"]:
     from .process.crawler import Crawler, CrawlerConfig
     from .process.dispatcher import Dispatcher, DispatcherConfig
@@ -224,7 +225,10 @@ def process_files_default(
 
     # dispatching the processing
     dispatcher_config = DispatcherConfig(
-        output_path=output_path, use_fast_processors=False, extract_images=True
+        output_path=output_path,
+        use_fast_processors=False,
+        extract_images=True,
+        device=device,
     )
 
     dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)

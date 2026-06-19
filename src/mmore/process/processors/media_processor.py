@@ -28,9 +28,28 @@ class MediaProcessor(Processor):
 
     devices = _get_available_devices()
     pipelines = []
+    # One pipeline per device, so several GPUs can transcribe in parallel
+    pipelines_by_device: dict = {}
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
+
+    def _device_pipeline(self, device: str, fast_mode: bool = False):
+        if device not in MediaProcessor.pipelines_by_device:
+            model_name = (
+                self.config.custom_config.get("fast_model", "openai/whisper-tiny")
+                if fast_mode
+                else self.config.custom_config.get(
+                    "normal_model", "openai/whisper-large-v3-turbo"
+                )
+            )
+            MediaProcessor.pipelines_by_device[device] = pipeline_t(
+                "automatic-speech-recognition",
+                model=model_name,
+                device=torch_device(device),
+                return_timestamps=True,
+            )
+        return MediaProcessor.pipelines_by_device[device]
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -79,6 +98,17 @@ class MediaProcessor(Processor):
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
     ) -> List[MultimodalSample]:
+        device = self.config.custom_config.get("device")
+        if device is not None:
+            pipe = self._device_pipeline(device, fast_mode)
+            results = []
+            for file in files_paths:
+                try:
+                    results.append(self._process_file(file, pipe, fast_mode))
+                except Exception as e:
+                    logger.error(f"Error processing {file}: {e}")
+            return results
+
         if not self.pipelines:
             self.load_models(fast_mode=fast_mode)
 

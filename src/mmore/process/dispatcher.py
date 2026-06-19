@@ -74,6 +74,9 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
+    # When set, processing is pinned to this single device (used by the indexer
+    # API to run one job per GPU). None keeps the default behavior.
+    device: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -204,6 +207,8 @@ class Dispatcher:
 
                     processor_config["output_path"] = self.config.output_path
                     processor_config["extract_images"] = self.config.extract_images
+                    if self.config.device is not None:
+                        processor_config["device"] = self.config.device
 
                     full_config = ProcessorConfig(
                         custom_config=processor_config,
