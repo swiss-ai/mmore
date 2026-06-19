@@ -101,6 +101,7 @@ def make_router(config_path: str) -> APIRouter:
                     defDocId = doc.document_id
                     doc.document_id = fileId
                     doc.id = doc.id.replace(defDocId, fileId)
+                    doc.metadata["file_path"] = str(file_storage_path)
 
                 # Get indexer and index the document
                 try:
@@ -186,6 +187,7 @@ def make_router(config_path: str) -> APIRouter:
                     defDocId = doc.document_id
                     doc.document_id = docId
                     doc.id = doc.id.replace(defDocId, docId)
+                    doc.metadata["file_path"] = str(FilePath(UPLOAD_DIR) / docId)
                     modified_documents.append(doc)
 
                 logging.info("Indexing the files")
@@ -254,6 +256,7 @@ def make_router(config_path: str) -> APIRouter:
                 # Set the custom ID
                 for doc in documents:
                     doc.id = fileId
+                    doc.metadata["file_path"] = str(file_storage_path)
 
                 # Get indexer and reindex the document
                 try:

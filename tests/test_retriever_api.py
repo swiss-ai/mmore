@@ -46,7 +46,6 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
     assert response.json() == {
         "fileId": "file-123",
         "chunkId": "chunk-7",
-        "documentId": "file-123",
         "filePath": "papers/example.pdf",
         "content": "hello world",
         "metadata": {
@@ -72,8 +71,7 @@ def test_get_chunk_no_paragraph_positions_returns_null_metadata(client, mock_ret
     body = response.json()
     assert body["content"] == "no positions"
     assert body["metadata"] is None
-    # missing document_id / file_path should fall back to empty strings, not crash
-    assert body["documentId"] == ""
+    # missing file_path should fall back to empty string, not crash
     assert body["filePath"] == ""
 
 
@@ -146,7 +144,6 @@ def test_retrieve_returns_gateway_contract_shape(client, mock_retriever):
         {
             "fileId": "file-1",
             "chunkId": "chunk-0",
-            "documentId": "file-1",
             "filePath": "papers/one.pdf",
             "content": "first chunk",
             "similarity": 0.91,
@@ -158,7 +155,6 @@ def test_retrieve_returns_gateway_contract_shape(client, mock_retriever):
         {
             "fileId": "file-2",
             "chunkId": "chunk-5",
-            "documentId": "file-2",
             "filePath": "papers/two.pdf",
             "content": "second chunk",
             "similarity": 0.42,
@@ -194,8 +190,7 @@ def test_retrieve_handles_id_without_chunk_suffix(client, mock_retriever):
     assert item["fileId"] == "file-no-chunks"
     assert item["chunkId"] is None
     assert item["metadata"] is None
-    # missing document_id / file_path should not crash; default to empty strings
-    assert item["documentId"] == ""
+    # missing file_path should not crash; default to empty string
     assert item["filePath"] == ""
 
 

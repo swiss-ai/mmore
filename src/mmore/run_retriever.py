@@ -176,7 +176,6 @@ def make_router(config_file: str) -> APIRouter:
                 {
                     "fileId": fileId,
                     "chunkId": chunkId,
-                    "documentId": meta.get("document_id", ""),
                     "filePath": meta.get("file_path", ""),
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
@@ -195,7 +194,7 @@ def make_router(config_file: str) -> APIRouter:
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
             filter=f"id in [{chunk_ref_literal}]",
-            output_fields=["text", "paragraph_positions", "document_id", "file_path"],
+            output_fields=["text", "paragraph_positions", "file_path"],
             limit=1,
         )
         if not results:
@@ -205,7 +204,6 @@ def make_router(config_file: str) -> APIRouter:
         return {
             "fileId": fileId,
             "chunkId": chunkId,
-            "documentId": row.get("document_id") or entity.get("document_id", ""),
             "filePath": row.get("file_path") or entity.get("file_path", ""),
             "content": row.get("text") or entity.get("text", ""),
             "metadata": _chunk_metadata(
