@@ -2,10 +2,12 @@ import argparse
 import asyncio
 import json
 import logging
+import multiprocessing
 import os
 import shutil
 import tempfile
 import threading
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path as FilePath
 from typing import Callable, List, Optional
 
@@ -42,6 +44,18 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = 2.0
 HEARTBEAT_SECONDS = 15
+
+
+def _process_files(pool, input_dir, collection_name, extensions, device, output_path):
+    """Run processing in the device's subprocess."""
+    return pool.submit(
+        process_files_default,
+        input_dir,
+        collection_name,
+        extensions,
+        device=device,
+        output_path=output_path,
+    ).result()
 
 
 def _job_payload(job: Job) -> dict:
@@ -86,8 +100,20 @@ def make_router(config_path: str) -> APIRouter:
         max_queue_size=config.max_queue_size,
     )
 
-    # Clear jobs before exiting
-    router.add_event_handler("shutdown", jobs.shutdown)
+    mp_context = multiprocessing.get_context("spawn")
+    process_pools = {
+        device: ProcessPoolExecutor(
+            max_workers=config.jobs_per_gpu, mp_context=mp_context
+        )
+        for device in jobs.devices
+    }
+
+    def _shutdown():
+        jobs.shutdown()
+        for pool in process_pools.values():
+            pool.shutdown(wait=True)
+
+    router.add_event_handler("shutdown", _shutdown)
 
     db_lock = threading.Lock()
 
@@ -114,12 +140,14 @@ def make_router(config_path: str) -> APIRouter:
 
         def ingest(device: str) -> dict:
             try:
-                documents = process_files_default(
+                # Processing runs in the device's subprocess
+                documents = _process_files(
+                    process_pools[device],
                     input_dir,
                     COLLECTION_NAME,
                     [extension],
-                    device=device,
-                    output_path=os.path.join(job_dir, "out"),
+                    device,
+                    os.path.join(job_dir, "out"),
                 )
                 _apply_uploaded_file_metadata(documents, file_id, filename)
 
