@@ -9,6 +9,7 @@ import threading
 from pathlib import Path as FilePath
 from typing import Callable, List, Optional
 
+import torch
 import uvicorn
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -124,6 +125,8 @@ def make_router(config_path: str) -> APIRouter:
 
                 indexer = get_indexer(COLLECTION_NAME, MILVUS_URI, MILVUS_DB)
                 with db_lock:
+                    if torch.cuda.is_available():
+                        torch.cuda.set_device(0)
                     if replace:
                         indexer.client.delete(
                             collection_name=COLLECTION_NAME,
