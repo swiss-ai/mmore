@@ -35,7 +35,6 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
         {
             "text": "hello world",
             "paragraph_positions": [[1, 0], [1, 2], [2, 1]],
-            "document_id": "file-123",
             "file_path": "papers/example.pdf",
             "filename": "demo.pdf",
         }
@@ -61,7 +60,6 @@ def test_get_chunk_flat_row_shape(client, mock_retriever):
     assert call_kwargs["output_fields"] == [
         "text",
         "paragraph_positions",
-        "document_id",
         "file_path",
         "filename",
     ]
@@ -122,7 +120,6 @@ def test_retrieve_returns_gateway_contract_shape(client, mock_retriever):
                 "id": "file-1+chunk-0",
                 "similarity": 0.91,
                 "paragraph_positions": [[1, 0], [1, 3]],
-                "document_id": "file-1",
                 "file_path": "papers/one.pdf",
             },
         ),
@@ -132,7 +129,6 @@ def test_retrieve_returns_gateway_contract_shape(client, mock_retriever):
                 "id": "file-2+chunk-5",
                 "similarity": 0.42,
                 "paragraph_positions": [],
-                "document_id": "file-2",
                 "file_path": "papers/two.pdf",
             },
         ),

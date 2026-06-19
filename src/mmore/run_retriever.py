@@ -198,7 +198,6 @@ def make_router(config_file: str) -> APIRouter:
             output_fields=[
                 "text",
                 "paragraph_positions",
-                "document_id",
                 "file_path",
                 "filename",
             ],
