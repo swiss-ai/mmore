@@ -217,6 +217,7 @@ class RagCLI:
         self, results: List[Dict[str, Any]], timings: Optional["TimingHandler"] = None
     ) -> None:
         assert self.ragConfig is not None
+        assert len(results) == 1
 
         answer = results[0]["answer"].split("<|end_header_id|>")[-1].strip()
         print(f"\n{answer}\n")
