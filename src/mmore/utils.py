@@ -206,12 +206,14 @@ def process_files_default(
         ".html",
     ],
     device: Optional[str] = None,
+    output_path: Optional[str] = None,
 ) -> List["MultimodalSample"]:
     from .process.crawler import Crawler, CrawlerConfig
     from .process.dispatcher import Dispatcher, DispatcherConfig
     from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
 
-    output_path = f"./tmp/{collection_name}"
+    # Per-job output_path keeps concurrent jobs from overwriting each other
+    output_path = output_path or f"./tmp/{collection_name}"
 
     # crawling
     crawler_config = CrawlerConfig(
