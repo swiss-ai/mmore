@@ -40,7 +40,11 @@ def test_duplicate_file_id_while_in_flight():
     manager = JobQueue(devices=["cpu"])
     release = threading.Event()
 
-    job_id = manager.submit("same", "a.pdf", lambda device: release.wait())
+    def block(device):
+        release.wait()
+        return {}
+
+    job_id = manager.submit("same", "a.pdf", block)
     _wait_for(manager, job_id, "processing")
     with pytest.raises(DuplicateJobError):
         manager.submit("same", "b.pdf", lambda device: {})
@@ -54,7 +58,11 @@ def test_queue_full():
     manager = JobQueue(devices=["cpu"], max_queue_size=1)
     release = threading.Event()
 
-    job_id = manager.submit("f1", "a.pdf", lambda device: release.wait())
+    def block(device):
+        release.wait()
+        return {}
+
+    job_id = manager.submit("f1", "a.pdf", block)
     _wait_for(manager, job_id, "processing")
     with pytest.raises(QueueFullError):
         manager.submit("f2", "b.pdf", lambda device: {})
