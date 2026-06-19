@@ -242,7 +242,6 @@ class Retriever(BaseRetriever):
         output_fields: List[str] = [
             "text",
             "paragraph_positions",
-            "document_id",
             "file_path",
         ],
         search_type: str = "hybrid",
