@@ -35,6 +35,8 @@ class RetrieverConfig:
     collection_name: str = "my_docs"
     use_web: bool = False
     reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
+    jobs_per_gpu: int = 1
+    max_queue_size: Optional[int] = None
 
 
 class Retriever(BaseRetriever):

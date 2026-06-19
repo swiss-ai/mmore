@@ -1,6 +1,8 @@
 db:
-  uri: $ROOT_OUT_DIR/db/proc_demo.db
+  uri: http://localhost:19530
   name: my_db
 hybrid_search_weight: 0.5
 k: 5
 collection_name: my_docs
+jobs_per_gpu: 1
+max_queue_size: null

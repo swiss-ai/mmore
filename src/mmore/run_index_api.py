@@ -81,9 +81,12 @@ def make_router(config_path: str) -> APIRouter:
     register_all_processors(preload=True)
 
     jobs = JobQueue(
-        jobs_per_gpu=getattr(config, "jobs_per_gpu", 1),
-        max_queue_size=getattr(config, "max_queue_size", None),
+        jobs_per_gpu=config.jobs_per_gpu,
+        max_queue_size=config.max_queue_size,
     )
+
+    # Clear jobs before exiting
+    router.add_event_handler("shutdown", jobs.shutdown)
 
     db_lock = threading.Lock()
 
