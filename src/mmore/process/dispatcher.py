@@ -136,6 +136,32 @@ class DispatcherConfig:
         )
 
 
+class _LazyPool:
+    """A multiprocessing pool created on first map() call.
+
+    Processors that override process_batch (e.g. PDF, media) never call map(), so a
+    job that only uses them never spawns any worker.
+    """
+
+    def __init__(self, processes: int):
+        self._processes = processes
+        self._pool = None
+
+    def map(self, func, iterable):
+        if self._pool is None:
+            logger.info(f"Initializing shared pool with {self._processes} workers...")
+            self._pool = mp.Pool(processes=self._processes)
+        return self._pool.map(func, iterable)
+
+    def close(self):
+        if self._pool is not None:
+            self._pool.close()
+
+    def join(self):
+        if self._pool is not None:
+            self._pool.join()
+
+
 class Dispatcher:
     """
     Takes a converted crawl result and dispatches it to the appropriate processor.
@@ -185,9 +211,7 @@ class Dispatcher:
 
         instantiated_processors: Dict[Type[Processor], Processor] = {}
 
-        num_workers = os.cpu_count() or 1
-        logger.info(f"🚀 Initializing Shared Global Pool with {num_workers} workers...")
-        global_pool = mp.Pool(processes=num_workers)
+        global_pool = _LazyPool(os.cpu_count() or 1)
 
         try:
             for processor_type, files in task_lists:
