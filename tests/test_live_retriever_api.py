@@ -414,7 +414,7 @@ def test_upload_file_success(indexer_client):
     fake_path = str(Path(upload_dir) / "new-doc.txt")
 
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         return_value=[_fake_doc(fake_path)],
     ):
         response = tc.post(
@@ -474,7 +474,7 @@ def test_uploaded_file_has_filename_in_list_files(tmp_path):
         uploaded_path = str(upload_dir / "listed-doc.txt")
         stack.enter_context(
             patch(
-                "mmore.run_index_api.process_files_default",
+                "mmore.run_index_api._process_files",
                 return_value=[_fake_doc(uploaded_path)],
             )
         )
@@ -510,7 +510,7 @@ def test_upload_duplicate_file_returns_400(indexer_client):
     tc, upload_dir, _ = indexer_client
     duplicate_id = "duplicate-doc"
     Path(upload_dir, duplicate_id).write_bytes(b"Existing content.")
-    with patch("mmore.run_index_api.process_files_default", return_value=[]):
+    with patch("mmore.run_index_api._process_files", return_value=[]):
         response = tc.post(
             "/v1/files",
             data={"fileId": duplicate_id},
@@ -525,9 +525,7 @@ def test_upload_failed_processing_does_not_consume_id(indexer_client):
     file_id = "id"
 
     # Processing now fails in the background, the upload still returns 202
-    with patch(
-        "mmore.run_index_api.process_files_default", side_effect=KeyError("xyz")
-    ):
+    with patch("mmore.run_index_api._process_files", side_effect=KeyError("xyz")):
         response = tc.post(
             "/v1/files",
             data={"fileId": file_id},
@@ -541,7 +539,7 @@ def test_upload_failed_processing_does_not_consume_id(indexer_client):
     # A failed job releases the id, so it can be reused
     fake_path = str(Path(upload_dir) / "good.txt")
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         return_value=[_fake_doc(fake_path, file_id)],
     ):
         response = tc.post(
@@ -562,14 +560,14 @@ def test_upload_failed_processing_does_not_consume_id(indexer_client):
 def test_upload_bulk_files_success(indexer_client):
     tc, *_ = indexer_client
 
-    def fake_process(temp_dir, collection_name, extensions, **kwargs):
+    def fake_process(pool, input_dir, collection_name, extensions, device, output_path):
         # Each job processes a single file
-        path = next(p for p in Path(temp_dir).iterdir() if p.is_file())
+        path = next(p for p in Path(input_dir).iterdir() if p.is_file())
         count = 2 if path.name.startswith("bulk-1") else 1
         return [_fake_doc(str(path)) for _ in range(count)]
 
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         side_effect=fake_process,
     ):
         response = tc.post(
@@ -594,12 +592,12 @@ def test_upload_bulk_files_success(indexer_client):
 def test_upload_bulk_files_allows_duplicate_uploaded_filenames(indexer_client):
     tc, upload_dir, _ = indexer_client
 
-    def fake_process(temp_dir, collection_name, extensions, **kwargs):
-        path = next(p for p in Path(temp_dir).iterdir() if p.is_file())
+    def fake_process(pool, input_dir, collection_name, extensions, device, output_path):
+        path = next(p for p in Path(input_dir).iterdir() if p.is_file())
         return [_fake_doc(str(path))]
 
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         side_effect=fake_process,
     ):
         response = tc.post(
@@ -622,7 +620,7 @@ def test_upload_bulk_files_allows_duplicate_uploaded_filenames(indexer_client):
 
 def test_upload_bulk_mismatched_ids_returns_400(indexer_client):
     tc, *_ = indexer_client
-    with patch("mmore.run_index_api.process_files_default", return_value=[]):
+    with patch("mmore.run_index_api._process_files", return_value=[]):
         response = tc.post(
             "/v1/files/bulk",
             data={"listIds": "only-one-id"},
@@ -639,9 +637,7 @@ def test_upload_bulk_failed_processing_does_not_consume_ids(indexer_client):
     tc, upload_dir, _ = indexer_client
     ids = ["id-1", "id-2"]
 
-    with patch(
-        "mmore.run_index_api.process_files_default", side_effect=KeyError("xyz")
-    ):
+    with patch("mmore.run_index_api._process_files", side_effect=KeyError("xyz")):
         response = tc.post(
             "/v1/files/bulk",
             data={"listIds": ",".join(ids)},
@@ -656,12 +652,12 @@ def test_upload_bulk_failed_processing_does_not_consume_ids(indexer_client):
     for file_id in ids:
         assert not Path(upload_dir, file_id).exists()
 
-    def fake_process(temp_dir, collection_name, extensions, **kwargs):
-        path = next(p for p in Path(temp_dir).iterdir() if p.is_file())
+    def fake_process(pool, input_dir, collection_name, extensions, device, output_path):
+        path = next(p for p in Path(input_dir).iterdir() if p.is_file())
         return [_fake_doc(str(path))]
 
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         side_effect=fake_process,
     ):
         response = tc.post(
@@ -691,7 +687,7 @@ def test_update_existing_file_success(indexer_client):
 
     fake_path = str(Path(upload_dir) / "update-doc.txt")
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         return_value=[_fake_doc(fake_path, update_id)],
     ):
         response = tc.put(
@@ -707,7 +703,7 @@ def test_update_existing_file_success(indexer_client):
 
 def test_update_nonexistent_file_returns_404(indexer_client):
     tc, *_ = indexer_client
-    with patch("mmore.run_index_api.process_files_default", return_value=[]):
+    with patch("mmore.run_index_api._process_files", return_value=[]):
         response = tc.put(
             "/v1/files/does-not-exist",
             files={"file": ("x.txt", b"content", "text/plain")},
@@ -766,7 +762,7 @@ def test_job_events_stream_reaches_done(indexer_client):
     tc, upload_dir, _ = indexer_client
     fake_path = str(Path(upload_dir) / "sse-doc.txt")
     with patch(
-        "mmore.run_index_api.process_files_default",
+        "mmore.run_index_api._process_files",
         return_value=[_fake_doc(fake_path)],
     ):
         response = tc.post(
