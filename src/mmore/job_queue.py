@@ -72,22 +72,22 @@ class JobQueue:
         devices: Optional[list[str]] = None,
     ):
         self.devices = devices or _detect_devices()
-        n_workers = len(self.devices) * jobs_per_gpu
-        self.max_queue_size = max_queue_size or n_workers * 10
+        self.n_workers = len(self.devices) * jobs_per_gpu
+        self.max_queue_size = max_queue_size or self.n_workers * 10
 
         self._device_pool: queue.Queue[str] = queue.Queue()
         for _ in range(jobs_per_gpu):
             for device in self.devices:
                 self._device_pool.put(device)
 
-        self._executor = ThreadPoolExecutor(max_workers=n_workers)
+        self._executor = ThreadPoolExecutor(max_workers=self.n_workers)
         self._jobs: dict[str, Job] = {}
         self._reserved: set[str] = set()
         self._lock = threading.Lock()
 
         logger.info(
             "[JobQueue] ready: %d worker(s) on %s, max_queue=%d",
-            n_workers,
+            self.n_workers,
             self.devices,
             self.max_queue_size,
         )
@@ -111,12 +111,10 @@ class JobQueue:
             self._jobs[job_id] = Job(id=job_id, file_id=file_id, filename=filename)
 
         logger.info(
-            "[JobQueue] job %s queued (file_id=%s, filename=%s), gpus free: %d/%d",
+            "[JobQueue] job %s queued (file_id=%s, filename=%s)",
             job_id,
             file_id,
             filename,
-            self._device_pool.qsize(),
-            len(self.devices),
         )
         self._executor.submit(self._run, job_id, work_fn)
         return job_id
@@ -133,7 +131,13 @@ class JobQueue:
         job.device = device
         job.status = JobStatus.PROCESSING
         job.started_at = time.time()
-        logger.info("[JobQueue] job %s processing (gpu=%s)", job_id, device)
+        logger.info(
+            "[JobQueue] job %s processing (gpu=%s), free slots: %d/%d",
+            job_id,
+            device,
+            self._device_pool.qsize(),
+            self.n_workers,
+        )
 
         result = None
         error = None
