@@ -1,6 +1,6 @@
 db:
   uri: http://localhost:19530
-  name: my_db
+  name: default
 hybrid_search_weight: 0.5
 k: 5
 collection_name: my_docs
