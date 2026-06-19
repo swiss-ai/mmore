@@ -86,8 +86,7 @@ class JobQueue:
         self._lock = threading.Lock()
 
         logger.info(
-            "job manager ready: %d worker(s) on %s, max_queue=%d. "
-            "single process only, do not run uvicorn with --workers > 1",
+            "[JobQueue] ready: %d worker(s) on %s, max_queue=%d",
             n_workers,
             self.devices,
             self.max_queue_size,
@@ -112,7 +111,7 @@ class JobQueue:
             self._jobs[job_id] = Job(id=job_id, file_id=file_id, filename=filename)
 
         logger.info(
-            "job %s queued (file_id=%s, filename=%s), gpus free: %d/%d",
+            "[JobQueue] job %s queued (file_id=%s, filename=%s), gpus free: %d/%d",
             job_id,
             file_id,
             filename,
@@ -134,7 +133,7 @@ class JobQueue:
         job.device = device
         job.status = JobStatus.PROCESSING
         job.started_at = time.time()
-        logger.info("job %s processing (gpu=%s)", job_id, device)
+        logger.info("[JobQueue] job %s processing (gpu=%s)", job_id, device)
 
         result = None
         error = None
@@ -151,12 +150,18 @@ class JobQueue:
         if error is None:
             job.result = result
             job.status = JobStatus.DONE
-            logger.info("job %s done (gpu=%s, result=%s)", job_id, device, result)
+            logger.info(
+                "[JobQueue] job %s done (gpu=%s, result=%s)", job_id, device, result
+            )
         else:
             job.error = str(error)
             job.status = JobStatus.FAILED
             logger.error(
-                "job %s failed (gpu=%s): %s", job_id, device, error, exc_info=error
+                "[JobQueue] job %s failed (gpu=%s): %s",
+                job_id,
+                device,
+                error,
+                exc_info=error,
             )
 
     def _pending_count(self) -> int:
