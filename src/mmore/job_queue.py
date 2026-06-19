@@ -27,6 +27,10 @@ class JobStatus(str, Enum):
     DONE = "done"
     FAILED = "failed"
 
+    @property
+    def is_terminal(self) -> bool:
+        return self in (JobStatus.DONE, JobStatus.FAILED)
+
 
 class DuplicateJobError(Exception):
     """A job for this file id is already queued or running."""
@@ -131,25 +135,32 @@ class JobQueue:
         job.status = JobStatus.PROCESSING
         job.started_at = time.time()
         logger.info("job %s processing (gpu=%s)", job_id, device)
+
+        result = None
+        error = None
         try:
-            job.result = work_fn(device)
-            job.status = JobStatus.DONE
-            logger.info("job %s done (gpu=%s, result=%s)", job_id, device, job.result)
+            result = work_fn(device)
         except Exception as e:
-            job.error = str(e)
-            job.status = JobStatus.FAILED
-            logger.exception("job %s failed (gpu=%s): %s", job_id, device, e)
+            error = e
         finally:
-            job.finished_at = time.time()
             self._device_pool.put(device)
             with self._lock:
                 self._reserved.discard(job.file_id)
+            job.finished_at = time.time()
+
+        if error is None:
+            job.result = result
+            job.status = JobStatus.DONE
+            logger.info("job %s done (gpu=%s, result=%s)", job_id, device, result)
+        else:
+            job.error = str(error)
+            job.status = JobStatus.FAILED
+            logger.error(
+                "job %s failed (gpu=%s): %s", job_id, device, error, exc_info=error
+            )
 
     def _pending_count(self) -> int:
-        return sum(
-            j.status in (JobStatus.QUEUED, JobStatus.PROCESSING)
-            for j in self._jobs.values()
-        )
+        return sum(not j.status.is_terminal for j in self._jobs.values())
 
     def _evict_old(self) -> None:
         now = time.time()

@@ -1,15 +1,17 @@
 import argparse
+import asyncio
+import json
 import logging
 import os
 import shutil
 import tempfile
 import threading
 from pathlib import Path as FilePath
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Path, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pymilvus import MilvusClient
 
 logger = logging.getLogger(__name__)
@@ -22,7 +24,7 @@ logging.basicConfig(
 
 from mmore.profiler import enable_profiling_from_env
 
-from .job_queue import DuplicateJobError, JobQueue, QueueFullError
+from .job_queue import DuplicateJobError, Job, JobQueue, QueueFullError
 from .process.processors import register_all_processors
 from .rag.retriever import RetrieverConfig
 from .type import MultimodalSample
@@ -35,6 +37,22 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+POLL_INTERVAL = 2.0
+HEARTBEAT_SECONDS = 15
+
+
+def _job_payload(job: Job) -> dict:
+    return {
+        "jobId": job.id,
+        "fileId": job.file_id,
+        "filename": job.filename,
+        "status": job.status.value,
+        "device": job.device,
+        "result": job.result,
+        "error": job.error,
+    }
 
 
 def _apply_uploaded_file_metadata(
@@ -355,6 +373,46 @@ def make_router(config_path: str) -> APIRouter:
         except Exception as e:
             logger.error(f"Error downloading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/v1/jobs/{jobId}", tags=["Jobs"])
+    async def get_job(jobId: str = Path(..., description="ID of the job")):
+        """One-shot job status snapshot, fallback for when the SSE stream drops."""
+        job = jobs.get(jobId)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"Unknown job {jobId}")
+        return _job_payload(job)
+
+    @router.get("/v1/jobs/{jobId}/events", tags=["Jobs"])
+    async def stream_job_events(jobId: str = Path(..., description="ID of the job")):
+        """Push job status updates to the client over SSE until the job ends."""
+
+        async def event_stream():
+            last: Optional[str] = None
+            idle = 0.0
+            while True:
+                job = jobs.get(jobId)
+                status = job.status.value if job else "unknown"
+                if status != last:
+                    last = status
+                    idle = 0.0
+                    payload = (
+                        _job_payload(job) if job else {"jobId": jobId, "status": status}
+                    )
+                    yield f"data: {json.dumps(payload)}\n\n"
+                    if job is None or job.status.is_terminal:
+                        return
+                else:
+                    idle += POLL_INTERVAL
+                    if idle >= HEARTBEAT_SECONDS:
+                        idle = 0.0
+                        yield ": keepalive\n\n"
+                await asyncio.sleep(POLL_INTERVAL)
+
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     return router
 
