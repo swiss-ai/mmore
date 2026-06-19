@@ -3,13 +3,15 @@ import os
 import tempfile
 from typing import List
 
+import numpy as np
 import torch
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from PIL import Image
+from torch._C import device as torch_device
 from transformers.pipelines import pipeline as pipeline_t
 
-from ...type import FileDescriptor, MultimodalSample
+from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -19,10 +21,10 @@ class MediaProcessor(Processor):
     @staticmethod
     def _get_available_devices():
         if torch.cuda.is_available():
-            return [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
+            return [torch_device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
         if torch.backends.mps.is_available():
-            return [torch.device("mps")]
-        return [torch.device("cpu")]
+            return [torch_device("mps")]
+        return [torch_device("cpu")]
 
     devices = _get_available_devices()
     pipelines = []
@@ -99,7 +101,9 @@ class MediaProcessor(Processor):
         else:
             images = []
 
-        return self.create_sample([all_text], images, {"file_path": file_path})
+        return self.create_sample(
+            [all_text], images, DocumentMetadata(file_path=file_path)
+        )
 
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         if not self.pipelines:
@@ -114,7 +118,9 @@ class MediaProcessor(Processor):
             if self.config.custom_config.get("extract_images", True)
             else []
         )
-        return self.create_sample([all_text], images, {"file_path": file_path})
+        return self.create_sample(
+            [all_text], images, DocumentMetadata(file_path=file_path)
+        )
 
     def _extract_text(self, file_path: str, pipeline, fast_mode=False) -> str:
         def _prepare_audio_file(file_path: str, ext: str, temp_audio):
@@ -154,7 +160,7 @@ class MediaProcessor(Processor):
                     num_thumbnails = max(1, int(duration / sample_rate))
                     for i in range(num_thumbnails):
                         t = min(i * sample_rate, duration - 0.1)
-                        frame = clip.get_frame(t)
+                        frame = np.asarray(clip.get_frame(t))
                         image = Image.fromarray(frame).convert("RGB")
                         images.append(image)
                 logger.info(f"Extracted {len(images)} images from {file_path}.")

@@ -14,10 +14,9 @@ logging.basicConfig(
 )
 
 from mmore.profiler import enable_profiling_from_env, profile_function
-
-from .rag.pipeline import RAGPipeline
-from .run_rag import RAGInferenceConfig
-from .utils import load_config
+from mmore.rag.pipeline import RAGPipeline
+from mmore.run_rag import RAGInferenceConfig
+from mmore.utils import load_config
 
 
 class RagCLI:

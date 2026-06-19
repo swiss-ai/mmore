@@ -44,11 +44,19 @@ class ProcessInference:
     previous_results: Optional[str] = None
 
 
+def merged_results_path(output_path: str) -> str:
+    """Path where `process` writes its final merged JSONL.
+
+    Single source of truth for downstream tooling (TUI, scripts) that needs
+    to locate the JSONL produced by a `process` run from its config.
+    """
+    return os.path.join(output_path, "merged", "merged_results.jsonl")
+
+
 def _write_merged_results(output_path, reused_samples, dispatched=True):
     """Merge per-processor JSONL files and reused samples into a single output."""
-    merged_output_path = os.path.join(output_path, "merged")
-    output_file = os.path.join(merged_output_path, "merged_results.jsonl")
-    os.makedirs(merged_output_path, exist_ok=True)
+    output_file = merged_results_path(output_path)
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     total_results = 0
     with open(output_file, "w") as f:

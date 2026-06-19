@@ -10,7 +10,7 @@ from PIL import Image
 
 from ...process.crawler import FileDescriptor, URLDescriptor
 from ...process.execution_state import ExecutionState
-from ...type import MultimodalRawInput, MultimodalSample
+from ...type import DocumentMetadata, MultimodalRawInput, MultimodalSample
 
 logger = logging.getLogger(__name__)
 
@@ -216,12 +216,13 @@ class Processor(ABC):
             del state["_pool"]
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]):
         """
         Called when the object is unpickled (received by the worker).
         We restore the state and set _pool to None (workers don't need the pool manager).
         """
-        self.__dict__.update(state)
+        for key, value in state.items():
+            setattr(self, key, value)
         # Initialize _pool as None in the worker process
         self._pool = None
         # Workers should never own the pool
@@ -245,7 +246,7 @@ class Processor(ABC):
         self,
         texts: List[str],
         images: List[Image.Image],
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[DocumentMetadata] = None,
     ) -> MultimodalSample:
         """
         Create a sample dictionary containing text, images, and optional metadata.
@@ -254,7 +255,7 @@ class Processor(ABC):
         Args:
             texts (List[str]): List of text strings.
             images (List[Image.Image]): List of images.
-            metadata (Dict[str, Any], optional): Additional metadata for the sample. Defaults to None.
+            metadata (Optional[DocumentMetadata]): Additional metadata for the sample. Defaults to None.
 
         Returns:
             dict: Sample dictionary with text, image modalities, and metadata.
@@ -302,7 +303,7 @@ class Processor(ABC):
                 for img in images
                 if (tmp_path := _save_temp_image(img, base_path=image_base_path))
             ],
-            metadata if metadata is not None else {},
+            metadata if metadata is not None else DocumentMetadata(),
         )
         return sample
 

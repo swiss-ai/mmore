@@ -6,7 +6,7 @@ import requests
 import trafilatura
 from PIL import Image
 
-from ...type import MultimodalSample, URLDescriptor
+from ...type import DocumentMetadata, MultimodalSample, URLDescriptor
 from ..utils import clean_text
 from .base import Processor, ProcessorConfig
 
@@ -66,11 +66,11 @@ class URLProcessor(Processor):
 
             all_text = [clean_text(all_text)]
             return self.create_sample(
-                all_text, embedded_images, {"file_path": file_path}
+                all_text, embedded_images, DocumentMetadata(file_path=file_path)
             )
         except Exception as e:
             logger.error(f"Failed to process URL {file_path}: {e}")
-            return self.create_sample([], [], {"file_path": file_path})
+            return self.create_sample([], [], DocumentMetadata(file_path=file_path))
 
     def process(self, file_path: str, fast: bool = False) -> MultimodalSample:
         return self.process_fast(file_path)
