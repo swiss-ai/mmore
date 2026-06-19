@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import threading
 from typing import List
 
 import numpy as np
@@ -30,26 +31,32 @@ class MediaProcessor(Processor):
     pipelines = []
     # One pipeline per device, so several GPUs can transcribe in parallel
     pipelines_by_device: dict = {}
+    _load_lock = threading.Lock()
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
 
     def _device_pipeline(self, device: str, fast_mode: bool = False):
-        if device not in MediaProcessor.pipelines_by_device:
-            model_name = (
-                self.config.custom_config.get("fast_model", "openai/whisper-tiny")
-                if fast_mode
-                else self.config.custom_config.get(
-                    "normal_model", "openai/whisper-large-v3-turbo"
+        cached = MediaProcessor.pipelines_by_device.get(device)
+        if cached is not None:
+            return cached
+
+        with MediaProcessor._load_lock:
+            if device not in MediaProcessor.pipelines_by_device:
+                model_name = (
+                    self.config.custom_config.get("fast_model", "openai/whisper-tiny")
+                    if fast_mode
+                    else self.config.custom_config.get(
+                        "normal_model", "openai/whisper-large-v3-turbo"
+                    )
                 )
-            )
-            MediaProcessor.pipelines_by_device[device] = pipeline_t(
-                "automatic-speech-recognition",
-                model=model_name,
-                device=torch_device(device),
-                return_timestamps=True,
-            )
-        return MediaProcessor.pipelines_by_device[device]
+                MediaProcessor.pipelines_by_device[device] = pipeline_t(
+                    "automatic-speech-recognition",
+                    model=model_name,
+                    device=torch_device(device),
+                    return_timestamps=True,
+                )
+            return MediaProcessor.pipelines_by_device[device]
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:

@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+import threading
 from dataclasses import dataclass, field
 from multiprocessing import Manager, Process, set_start_method
 from typing import Any, Dict, List, Optional, Tuple, cast
@@ -36,6 +37,7 @@ class PDFProcessor(Processor):
     artifact_dict = None
     # One model set per device, so several GPUs can process in parallel
     artifacts_by_device: Dict[str, Any] = {}
+    _load_lock = threading.Lock()
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
@@ -48,14 +50,22 @@ class PDFProcessor(Processor):
     @staticmethod
     def _get_artifacts(device: Optional[str] = None):
         if device is None:
-            if PDFProcessor.artifact_dict is None:
-                PDFProcessor.artifact_dict = create_model_dict()
-            return PDFProcessor.artifact_dict
-        if device not in PDFProcessor.artifacts_by_device:
-            if str(device).startswith("cuda"):
-                torch.cuda.set_device(torch.device(device))
-            PDFProcessor.artifacts_by_device[device] = create_model_dict()
-        return PDFProcessor.artifacts_by_device[device]
+            cached = PDFProcessor.artifact_dict
+        else:
+            cached = PDFProcessor.artifacts_by_device.get(device)
+        if cached is not None:
+            return cached
+
+        with PDFProcessor._load_lock:
+            if device is None:
+                if PDFProcessor.artifact_dict is None:
+                    PDFProcessor.artifact_dict = create_model_dict()
+                return PDFProcessor.artifact_dict
+            if device not in PDFProcessor.artifacts_by_device:
+                if str(device).startswith("cuda"):
+                    torch.cuda.set_device(torch.device(device))
+                PDFProcessor.artifacts_by_device[device] = create_model_dict()
+            return PDFProcessor.artifacts_by_device[device]
 
     @staticmethod
     def load_models(
