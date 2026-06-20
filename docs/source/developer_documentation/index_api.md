@@ -55,6 +55,13 @@ Two config fields tune this:
 - `jobs_per_gpu` (default `1`): jobs processed per GPU at once. Total workers = GPUs * `jobs_per_gpu`.
 - `max_queue_size` (default `null` = `num_gpu` * `jobs_per_gpu` * 10): pending-job cap, uploads beyond it get `503` http error.
 
+GPUs are auto-detected, but you can restrict which (and how many) mmore uses with the `CUDA_VISIBLE_DEVICES` environment variable:
+
+```bash
+# If you want to use only GPUs 0 and 2
+CUDA_VISIBLE_DEVICES=0,2 python3 -m mmore index-api --config-file /path/to/config.yaml --host the_host --port the_port
+```
+
 ```{note}
 For `jobs_per_gpu > 1`, prefer a **Milvus Standalone** server
 (`db.uri: http://localhost:19530`) over Milvus Lite. Milvus Standalone is better
