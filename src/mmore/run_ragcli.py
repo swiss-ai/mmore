@@ -1,9 +1,10 @@
 import argparse
 import logging
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from huggingface_hub import model_info
 from huggingface_hub.errors import HfHubHTTPError
+from pymilvus.exceptions import MilvusException
 
 RAG_EMOJI = "🧠🧠🧠🧠🧠"
 logger = logging.getLogger(__name__)
@@ -15,6 +16,14 @@ logging.basicConfig(
 
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.rag.pipeline import RAGPipeline
+from mmore.ragcli_helper import (
+    Spinner,
+    TimingHandler,
+    print_in_color,
+    quiet_noisy_libs,
+    str_green,
+    str_in_color,
+)
 from mmore.run_rag import RAGInferenceConfig
 from mmore.utils import load_config
 
@@ -29,26 +38,21 @@ class RagCLI:
         self.config_file = config_file
 
     def launch_cli(self):
+        quiet_noisy_libs()
         print_in_color(
             "Welcome to this RAG command-line interface! 🧠", "green", bold=True
         )
         print(
-            "Available commands are: config, rag, setK, setModel, setWebrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>"
+            f"\nPress {str_green('Enter', bold=True)} to start asking questions about your documents.\n"
         )
         print(
-            f"Available commands:\n\
+            f"Other commands:\n\
         {str_green('config')} : see the current config \n\
-        {str_green('rag')} : enter the RAG CLI \n\
         {str_green('setK')} : set the number of documents to retrieve \n\
         {str_green('setModel')} : set the model for generation \n\
         {str_green('setWebrag')} : decide whether to use web rag \n\
-        {str_green('help')} : learn more about a command \n\
+        {str_green('help')} : learn more about a command (help <command>) \n\
         {str_green('exit')} : exit the CLI"
-        )
-        print_in_color(
-            "To learn more about usage of a specific command, use the following: \n help <command>",
-            "blue",
-            bold=True,
         )
         while True:
             try:
@@ -58,7 +62,7 @@ class RagCLI:
                     break
                 elif cmd == "help":
                     print(
-                        "Available commands are: config, rag, setK, setModel, webrag, exit, help. To learn more about usage of a specific command, use the following: \n help <command>"
+                        f"Press {str_green('Enter')} (or type rag) to start asking questions about your documents.\nOther commands are: config, setK, setModel, setWebrag, exit. To learn more about usage of a specific command, use the following: \n help <command>"
                     )
                 elif cmd.startswith("help "):
                     command = cmd.split(" ", 1)[1]
@@ -69,7 +73,9 @@ class RagCLI:
                     elif command == "config":
                         print("Print the current configuration.")
                     elif command == "rag":
-                        print("Enter the RAG CLI. Type /bye to exit.")
+                        print(
+                            "Start a chat session to ask questions about your documents. Type /bye to exit."
+                        )
                     elif command == "setK":
                         print(
                             "Use the command in the following way: 'setK <k>', for a positive integer k. This will set the number of documents to retrieve during RAG."
@@ -78,9 +84,9 @@ class RagCLI:
                         print(
                             "Use the command in the following way: 'setModel <model_path>', where model_path is the huggingface path to the model you'd like to use."
                         )
-                    elif command == "webRag":
+                    elif command == "setWebrag":
                         print(
-                            "Use the command in the following way: 'webrag <bool>', where bool is either True or False. This will determine if a web search is done during RAG."
+                            "Use the command in the following way: 'setWebrag <bool>', where bool is either True or False. This will determine if a web search is done during RAG."
                         )
                     elif command == "exit":
                         print("Exit the CLI.")
@@ -147,27 +153,43 @@ class RagCLI:
                             f"Invalid output. Enter {str_in_color('setWebrag True', 'green')} or {str_in_color('setWebrag False', 'red')}."
                         )
 
-                elif cmd == "rag":
+                elif cmd in ("", "rag"):
                     self.cli_ception()
 
                 else:
                     print(f"Unknown command: {cmd}")
+                    if " " in cmd or cmd.endswith("?"):
+                        print(
+                            f"Looks like a question! Press {str_green('Enter')} first to start asking questions about your documents."
+                        )
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting...")
                 break
 
     def cli_ception(self):
+        self.init_config()
+        if self.ragPP is None or self.modified:
+            try:
+                with Spinner():
+                    self.initialize_ragpp()
+            except MilvusException as e:
+                print_in_color(f"Failed to open the document database: {e}", "red")
+                print(
+                    f"A previous session may still be holding it. Run {str_green('pkill -f milvus_lite/lib/milvus')} and try again."
+                )
+                return
+            self.modified = False
+            print_in_color("RAG pipeline ready! Ask your questions.", "green")
+        print(str_in_color("Type /bye to exit.\n", "gray"))
         while True:
-            query = input(str_in_color("rag (type /bye to exit) > ", "red", bold=True))
+            query = input(str_in_color("RAG > ", "red", bold=True))
             if query == "/bye":
                 print_in_color("Exiting the RAG CLI", "red", True)
                 break
             else:
-                self.init_config()
-                if self.ragPP is None or self.modified:
-                    self.initialize_ragpp()
-                    self.modified = False
-                self.do_rag(query)
+                with Spinner():
+                    results, timings = self.do_rag(query)
+                self.print_answer(results, timings)
 
     def init_config(self):
         if self.ragConfig is None:
@@ -181,22 +203,83 @@ class RagCLI:
         logger.info("RAG pipeline initialized!")
 
     @profile_function()
-    def do_rag(self, query):
+    def do_rag(self, query) -> tuple[List[Dict[str, Any]], "TimingHandler"]:
         queries = [{"input": query, "collection_name": "my_docs"}]
         # called only after init_config and initialize_ragpp
         assert self.ragConfig is not None
         assert self.ragPP is not None
 
-        results = self.ragPP(queries, return_dict=True)
+        timings = TimingHandler()
+        results = self.ragPP(queries, return_dict=True, config={"callbacks": [timings]})
+        return results, timings
 
-        print(query)
-        print(results[0]["answer"][-1].split("<|end_header_id|>")[-1])
+    def print_answer(
+        self, results: List[Dict[str, Any]], timings: Optional["TimingHandler"] = None
+    ) -> None:
+        assert self.ragConfig is not None
+        assert len(results) == 1
+
+        answer = results[0]["answer"].split("<|end_header_id|>")[-1].strip()
+        print(f"\n{answer}\n")
+        if timings is not None:
+            self._print_metrics(results[0], answer, timings)
         if self.ragConfig.rag.retriever.use_web:
-            print("\nSources: \n")
+            print("Sources:")
             for i in range(self.ragConfig.rag.retriever.k):
                 url = results[0]["docs"][i]["metadata"]["url"]  # pyright: ignore
                 title = results[0]["docs"][i]["metadata"]["title"]  # pyright: ignore
-                print(f"{title} : {url}")
+                print(f"  - {title}: {url}")
+            print()
+
+    def _print_metrics(
+        self, result: Dict[str, Any], answer: str, timings: "TimingHandler"
+    ) -> None:
+        assert self.ragConfig is not None
+        llm = self.ragConfig.rag.llm
+
+        line1 = [f"{llm.llm_name} ({'local' if llm.provider == 'HF' else 'API'})"]
+        if timings.retrieval_time is not None:
+            line1.append(f"retrieval {timings.retrieval_time:.2f}s")
+        if timings.generation_time is not None:
+            line1.append(f"generation {timings.generation_time:.2f}s")
+
+        docs = result.get("docs") or []
+        line2 = [f"{len(docs)} chunks"]
+
+        ctx_tokens = self._count_tokens(result.get("context"))
+        if ctx_tokens is not None:
+            ctx = f"{ctx_tokens / 1000:.1f}k" if ctx_tokens >= 1000 else str(ctx_tokens)
+            line2.append(f"{ctx} context tokens")
+
+        gen_tokens = timings.completion_tokens or self._count_tokens(answer)
+        if gen_tokens:
+            part = f"{gen_tokens} tokens"
+            if timings.generation_time:
+                part += f" @ {gen_tokens / timings.generation_time:.0f} tok/s"
+            line2.append(part)
+
+        scores = [
+            d["metadata"]["similarity"]
+            for d in docs
+            if d.get("metadata", {}).get("similarity") is not None
+        ]
+        if scores:
+            line2.append(f"top score {max(scores):.2f}")
+
+        print(str_in_color(" | ".join(line1), "gray"))
+        print(str_in_color(" | ".join(line2), "gray") + "\n")
+
+    def _count_tokens(self, text: Optional[str]) -> Optional[int]:
+        """Token count using the local model tokenizer, if one is available."""
+        if not text or self.ragPP is None:
+            return None
+        tokenizer = getattr(self.ragPP.llm, "tokenizer", None)
+        if tokenizer is None:
+            return None
+        try:
+            return len(tokenizer.encode(text))
+        except Exception:
+            return None
 
 
 def is_valid_model_path(model_path: str):
@@ -210,30 +293,8 @@ def is_valid_model_path(model_path: str):
         )
 
 
-def str_in_color(to_print: str | int, color: str, bold: bool = False) -> str:
-    colors = {
-        "reset": "\033[0m",
-        "bold": "\033[1m",
-        "red": "\033[31m",
-        "green": "\033[32m",
-        "yellow": "\033[33m",
-        "blue": "\033[34m",
-    }
-    style = colors.get(color, colors["reset"])
-    if bold:
-        style = colors["bold"] + style
-    return f"{style}{to_print}{colors['reset']}"
-
-
-def print_in_color(to_print: str | int, color: str, bold: bool = False) -> None:
-    print(str_in_color(to_print, color, bold))
-
-
-def str_green(text, bold=False):
-    return str_in_color(text, "green", bold=bold)
-
-
 if __name__ == "__main__":
+    quiet_noisy_libs()
     enable_profiling_from_env()
     # example usage: python -m mmore.ragcli --config-file examples/rag/config.yaml
 
