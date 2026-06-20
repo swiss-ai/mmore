@@ -234,9 +234,9 @@ class Indexer:
             logger.info(f"Creating collection {collection_name}")
             try:
                 self._create_collection_with_schema(collection_name)
-            except Exception:
+            except Exception as e:
                 if not self.client.has_collection(collection_name):
-                    raise
+                    raise e
                 logger.info(f"{collection_name} was created concurrently")
         else:
             logger.info(f"{collection_name} already exists, adding documents to it")

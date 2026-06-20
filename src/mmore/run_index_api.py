@@ -173,14 +173,34 @@ def make_router(config_path: str) -> APIRouter:
 
         return ingest
 
-    @router.get("/")
+    @router.get("/", tags=["Health"], summary="Health check")
     async def root():
         return {
             "message": "Indexer API is running (what are you doing here...go catch it!)"
         }
 
     # SINGLE FILE UPLOAD ENDPOINT
-    @router.post("/v1/files", status_code=202, tags=["File Operations"])
+    @router.post(
+        "/v1/files",
+        status_code=202,
+        tags=["File Operations"],
+        summary="Upload a single file",
+        responses={
+            202: {
+                "description": "Job queued",
+                "content": {
+                    "application/json": {
+                        "example": {"jobId": "a1b2c3d4...", "fileId": "example123"}
+                    }
+                },
+            },
+            409: {
+                "description": "File ID already exists or is already being processed"
+            },
+            422: {"description": "Uploaded file has no filename"},
+            503: {"description": "Job queue is full, retry later"},
+        },
+    )
     async def upload_file(
         fileId: str = Form(..., description="Unique identifier for the file"),
         file: UploadFile = File(..., description="The file content"),
@@ -218,7 +238,28 @@ def make_router(config_path: str) -> APIRouter:
 
         return {"jobId": job_id, "fileId": fileId}
 
-    @router.post("/v1/files/bulk", status_code=202, tags=["File Operations"])
+    @router.post(
+        "/v1/files/bulk",
+        status_code=202,
+        tags=["File Operations"],
+        summary="Upload multiple files with IDs",
+        responses={
+            202: {
+                "description": "Per-file outcome (jobId or error)",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "jobs": [
+                                {"fileId": "doc1", "jobId": "a1b2c3..."},
+                                {"fileId": "doc2", "error": "already exists"},
+                            ]
+                        }
+                    }
+                },
+            },
+            400: {"description": "Number of IDs does not match number of files"},
+        },
+    )
     async def upload_files(
         listIds: List[str] = Form(..., description="List of IDs for the files"),
         files: List[UploadFile] = File(..., description="Files to upload"),
@@ -267,7 +308,26 @@ def make_router(config_path: str) -> APIRouter:
 
         return {"jobs": results}
 
-    @router.put("/v1/files/{fileId}", status_code=202, tags=["File Operations"])
+    @router.put(
+        "/v1/files/{fileId}",
+        status_code=202,
+        tags=["File Operations"],
+        summary="Replace an existing file and re-index",
+        responses={
+            202: {
+                "description": "Replacement job queued",
+                "content": {
+                    "application/json": {
+                        "example": {"jobId": "a1b2c3d4...", "fileId": "doc123"}
+                    }
+                },
+            },
+            404: {"description": "File not found"},
+            409: {"description": "File is already being processed"},
+            422: {"description": "Uploaded file has no filename"},
+            503: {"description": "Job queue is full, retry later"},
+        },
+    )
     async def update_file(
         fileId: str = Path(..., description="ID of the file to update"),
         file: UploadFile = File(..., description="The new file content"),
@@ -306,7 +366,27 @@ def make_router(config_path: str) -> APIRouter:
 
         return {"jobId": job_id, "fileId": fileId}
 
-    @router.delete("/v1/files/{fileId}", tags=["File Operations"])
+    @router.delete(
+        "/v1/files/{fileId}",
+        tags=["File Operations"],
+        summary="Delete a file and remove its vector entry",
+        responses={
+            200: {
+                "description": "File deleted",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "status": "success",
+                            "message": "File successfully deleted",
+                            "fileId": "doc123",
+                        }
+                    }
+                },
+            },
+            404: {"description": "File not found"},
+            500: {"description": "Internal error while deleting the file"},
+        },
+    )
     async def delete_file(
         fileId: str = Path(..., description="ID of the file to delete"),
     ):
@@ -352,7 +432,20 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error deleting file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.get("/v1/files/{fileId}", tags=["File Operations"])
+    @router.get(
+        "/v1/files/{fileId}",
+        tags=["File Operations"],
+        summary="Download a file by its ID",
+        response_class=FileResponse,
+        responses={
+            200: {
+                "description": "Binary file content",
+                "content": {"application/octet-stream": {}},
+            },
+            404: {"description": "File not found"},
+            500: {"description": "Internal error while retrieving the file"},
+        },
+    )
     async def download_file(
         fileId: str = Path(..., description="ID of the file to download"),
     ):
@@ -406,7 +499,30 @@ def make_router(config_path: str) -> APIRouter:
             logger.error(f"Error downloading file: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.get("/v1/jobs/{jobId}", tags=["Jobs"])
+    @router.get(
+        "/v1/jobs/{jobId}",
+        tags=["Jobs"],
+        summary="Get a one-shot job status snapshot",
+        responses={
+            200: {
+                "description": "Job status snapshot",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "jobId": "a1b2c3...",
+                            "fileId": "doc1",
+                            "filename": "doc.pdf",
+                            "status": "done",
+                            "device": "cuda:0",
+                            "result": {"chunks": 12},
+                            "error": None,
+                        }
+                    }
+                },
+            },
+            404: {"description": "Unknown or expired job"},
+        },
+    )
     async def get_job(jobId: str = Path(..., description="ID of the job")):
         """One-shot job status snapshot, fallback for when the SSE stream drops."""
         job = jobs.get(jobId)
@@ -414,7 +530,19 @@ def make_router(config_path: str) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"Unknown job {jobId}")
         return _job_payload(job)
 
-    @router.get("/v1/jobs/{jobId}/events", tags=["Jobs"])
+    @router.get(
+        "/v1/jobs/{jobId}/events",
+        tags=["Jobs"],
+        summary="Stream job status updates over SSE",
+        response_class=StreamingResponse,
+        responses={
+            200: {
+                "description": "Server-Sent Events stream of job status changes, "
+                "closed when the job is done or failed",
+                "content": {"text/event-stream": {}},
+            },
+        },
+    )
     async def stream_job_events(jobId: str = Path(..., description="ID of the job")):
         """Push job status updates to the client over SSE until the job ends."""
 

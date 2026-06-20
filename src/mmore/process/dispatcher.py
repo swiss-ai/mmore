@@ -230,11 +230,11 @@ class Dispatcher:
                         processor_config = {}
 
                     processor_config["output_path"] = self.config.output_path
-                    processor_config["extract_images"] = self.config.extract_images
                     if self.config.device is not None:
                         processor_config["device"] = self.config.device
 
                     full_config = ProcessorConfig(
+                        extract_images=self.config.extract_images,
                         custom_config=processor_config,
                     )
 
@@ -287,13 +287,13 @@ class Dispatcher:
             else:
                 processor_config = {}
             processor_config["output_path"] = self.config.output_path
-            processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
                 f"Dispatching in distributed (to some worker) {len(files)} files to {processor_type.__name__}"
             )
 
             processor_config = ProcessorConfig(
+                extract_images=self.config.extract_images,
                 custom_config=processor_config,
             )
 

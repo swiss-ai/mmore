@@ -37,6 +37,8 @@ class MediaProcessor(Processor):
         super().__init__(config=config or ProcessorConfig())
 
     def _device_pipeline(self, device: str, fast_mode: bool = False):
+        # Here fast_mode is not used in the cache indexing key as it won't
+        # change across runs once defined in the configuration files
         cached = MediaProcessor.pipelines_by_device.get(device)
         if cached is not None:
             return cached
@@ -133,7 +135,7 @@ class MediaProcessor(Processor):
 
     def _process_file(self, file_path, pipeline, fast_mode):
         all_text = self._extract_text(file_path, pipeline, fast_mode)
-        if self.config.custom_config.get("extract_images", True):
+        if self.config.extract_images:
             images = self._extract_images(file_path)
         else:
             images = []
@@ -150,11 +152,7 @@ class MediaProcessor(Processor):
 
         pipeline = self.pipelines[0]
         all_text = self._extract_text(file_path, pipeline, fast_mode=fast)
-        images = (
-            self._extract_images(file_path)
-            if self.config.custom_config.get("extract_images", True)
-            else []
-        )
+        images = self._extract_images(file_path) if self.config.extract_images else []
         return self.create_sample(
             [all_text], images, DocumentMetadata(file_path=file_path)
         )

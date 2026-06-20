@@ -224,7 +224,8 @@ def process_files_default(
     from .process.dispatcher import Dispatcher, DispatcherConfig
     from .process.post_processor.pipeline import PPPipeline, PPPipelineConfig
 
-    # Per-job output_path keeps concurrent jobs from overwriting each other
+    # Per-job output_path keeps concurrent jobs from overwriting each
+    # other if enforced by the caller
     output_path = output_path or f"./tmp/{collection_name}"
 
     # crawling

@@ -36,6 +36,7 @@ class RetrieverConfig:
     use_web: bool = False
     reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
     jobs_per_gpu: int = 1
+    # None below gives by default a queue size of num_gpu * jobs_per_gpu * 10
     max_queue_size: Optional[int] = None
 
 
