@@ -122,7 +122,10 @@ def make_router(config_path: str) -> APIRouter:
         job_dir = tempfile.mkdtemp(prefix="index_job_")
         input_dir = os.path.join(job_dir, "input")
         os.makedirs(input_dir)
-        with open(os.path.join(input_dir, filename), "wb") as buffer:
+        target = os.path.realpath(os.path.join(input_dir, os.path.basename(filename)))
+        if os.path.dirname(target) != os.path.realpath(input_dir):
+            raise HTTPException(status_code=422, detail="Invalid filename")
+        with open(target, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         return job_dir, input_dir
 
@@ -156,7 +159,7 @@ def make_router(config_path: str) -> APIRouter:
                 if replace:
                     indexer.client.delete(
                         collection_name=COLLECTION_NAME,
-                        filter=f"document_id == '{file_id}'",
+                        filter=f"document_id == {json.dumps(file_id)}",
                     )
                 indexer.index_documents(
                     documents=documents, collection_name=COLLECTION_NAME
@@ -285,9 +288,11 @@ def make_router(config_path: str) -> APIRouter:
         results = []
         for file, file_id in zip(files, listIds):
             if file.filename is None:
+                await file.close()
                 results.append({"fileId": file_id, "error": "missing filename"})
                 continue
             if (FilePath(UPLOAD_DIR) / file_id).exists():
+                await file.close()
                 results.append({"fileId": file_id, "error": "already exists"})
                 continue
 
@@ -411,7 +416,8 @@ def make_router(config_path: str) -> APIRouter:
                     uri=MILVUS_URI, db_name=MILVUS_DB, enable_sparse=True
                 )
                 delete_result = client.delete(
-                    collection_name=COLLECTION_NAME, filter=f"document_id == '{fileId}'"
+                    collection_name=COLLECTION_NAME,
+                    filter=f"document_id == {json.dumps(fileId)}",
                 )
                 logger.info(f"Deleted document from vector DB: {delete_result}")
             except Exception as db_error:
@@ -467,7 +473,7 @@ def make_router(config_path: str) -> APIRouter:
                 )
                 file_paths = client.query(
                     collection_name=COLLECTION_NAME,
-                    filter=f"document_id == '{fileId}'",
+                    filter=f"document_id == {json.dumps(fileId)}",
                     output_fields=["file_path"],
                 )
 

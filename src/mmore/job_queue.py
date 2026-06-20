@@ -73,7 +73,9 @@ class JobQueue:
     ):
         self.devices = devices or _detect_devices()
         self.n_workers = len(self.devices) * jobs_per_gpu
-        self.max_queue_size = max_queue_size or self.n_workers * 10
+        self.max_queue_size = (
+            max_queue_size if max_queue_size is not None else self.n_workers * 10
+        )
 
         self._device_pool: queue.Queue[str] = queue.Queue()
         for _ in range(jobs_per_gpu):
