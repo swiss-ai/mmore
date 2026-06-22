@@ -60,12 +60,9 @@ class PPPipeline:
             output_config=self.output_config,
         )
 
-    def _log_plan(self):
-        logger.info("-" * 50)
-        logger.info("PP Pipeline:")
-        for i, processor in enumerate(self.post_processors):
-            logger.info(f"  > {i + 1}. {processor.name}")
-        logger.info("-" * 50)
+    def _log_plan(self) -> None:
+        steps = " > ".join(p.name for p in self.post_processors)
+        logger.info(f"Pipeline ({len(self.post_processors)} steps): {steps}")
 
     @classmethod
     def from_config(cls, config: PPPipelineConfig):
