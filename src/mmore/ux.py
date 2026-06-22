@@ -3,6 +3,7 @@ output, a spinner, and a progress bar."""
 
 import itertools
 import logging
+import os
 import random
 import sys
 import threading
@@ -15,6 +16,27 @@ if TYPE_CHECKING:
 
 DATEFMT = "%Y-%m-%d %H:%M:%S"
 
+# Set MMORE_VERBOSE=1 to unquiet everything
+VERBOSE_ENV = "MMORE_VERBOSE"
+
+# Third-party loggers names
+_NOISY_LIBS = [
+    "surya",
+    "marker",
+    "transformers",
+    "moviepy",
+    "datasets",
+    "sentence_transformers",
+    "PIL",
+    "httpx",
+    "urllib3",
+]
+
+
+def is_verbose() -> bool:
+    """True when MMORE_VERBOSE is set."""
+    return bool(os.environ.get(VERBOSE_ENV))
+
 
 # ------------------------------ Logging setup ------------------------------ #
 
@@ -25,10 +47,38 @@ def setup_logging(name: str, emoji: str, level: int = logging.INFO) -> logging.L
     logging.basicConfig(
         format=f"[{name} {emoji} %(asctime)s] %(message)s",
         datefmt=DATEFMT,
-        level=level,
+        level=logging.DEBUG if is_verbose() else level,
         force=True,
     )
     return logging.getLogger(name)
+
+
+def quiet_noisy_libs(hide_info: bool = False) -> None:
+    """Silence noisy third-party libraries and their progress bars so output
+    stays readable. With hide_info=True, also hide mmore's own INFO logs."""
+    if is_verbose():
+        return
+    os.environ.setdefault("TQDM_DISABLE", "1")
+    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    warnings.filterwarnings("ignore")
+    for name in _NOISY_LIBS:
+        logging.getLogger(name).setLevel(logging.ERROR)
+    if hide_info:
+        logging.disable(logging.INFO)
+    try:
+        from transformers.utils import logging as hf_logging
+    except ImportError:
+        return
+    hf_logging.set_verbosity_error()
+    hf_logging.disable_progress_bar()
+
+
+def init_worker(name: str = "Process", emoji: str = "🚀") -> None:
+    """Reconfigure logging inside a worker process so its logging config
+    is the same as the parent one."""
+    setup_logging(name, emoji)
+    quiet_noisy_libs()
 
 
 # ----------------------------- Colored output ------------------------------ #
@@ -57,21 +107,6 @@ def print_in_color(to_print: "str | int", color: str, bold: bool = False) -> Non
 
 def str_green(text: str | int, bold: bool = False) -> str:
     return str_in_color(text, "green", bold=bold)
-
-
-# ------------------------------ Noise control ------------------------------ #
-
-
-def quiet_noisy_libs() -> None:
-    """Hide INFO logs, warnings and progress bars to have a clean CLI."""
-    logging.disable(logging.INFO)
-    warnings.filterwarnings("ignore")
-    try:
-        from transformers.utils import logging as hf_logging
-    except ImportError:
-        return
-    hf_logging.set_verbosity_error()
-    hf_logging.disable_progress_bar()
 
 
 # --------------------------------- Spinner --------------------------------- #
@@ -146,6 +181,9 @@ def progress(
     """
     from tqdm import tqdm
 
+    # disable=False keeps our bars visible even when TQDM_DISABLE silences
+    # third-party library bars (see quiet_noisy_libs).
+    kwargs.setdefault("disable", False)
     return tqdm(
         iterable,
         total=total,

@@ -99,7 +99,7 @@ class DOCXProcessor(Processor):
                     return {"src": "", "alt": self.config.attachment_tag}
 
                 except Exception as e:
-                    logger.warning(
+                    logger.debug(
                         f"Failed to load image with MIME type {content_type}: {e}"
                     )
                     return {"src": "", "alt": ""}

@@ -11,6 +11,7 @@ from dask.distributed import Client, as_completed
 from tqdm import tqdm
 
 from ..type import MultimodalSample
+from ..ux import init_worker
 from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
 from .execution_state import ExecutionState
 from .processors.base import (
@@ -184,7 +185,7 @@ class Dispatcher:
 
         num_workers = os.cpu_count() or 1
         logger.debug(f"Initializing shared global pool with {num_workers} workers")
-        global_pool = mp.Pool(processes=num_workers)
+        global_pool = mp.Pool(processes=num_workers, initializer=init_worker)
 
         try:
             for processor_type, files in task_lists:

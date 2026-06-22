@@ -12,7 +12,7 @@ from PIL import Image
 from ...process.crawler import FileDescriptor, URLDescriptor
 from ...process.execution_state import ExecutionState
 from ...type import DocumentMetadata, MultimodalRawInput, MultimodalSample
-from ...ux import progress
+from ...ux import init_worker, progress
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ class Processor(ABC):
             logger.debug(
                 f"No shared pool found. Creating temporary pool with {num_workers} workers."
             )
-            with mp.Pool(processes=num_workers) as temp_pool:
+            with mp.Pool(processes=num_workers, initializer=init_worker) as temp_pool:
                 return self._run_with_progress(
                     temp_pool, process_func, files_paths, step
                 )

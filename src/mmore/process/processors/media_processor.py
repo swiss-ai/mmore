@@ -12,6 +12,7 @@ from torch._C import device as torch_device
 from transformers.pipelines import pipeline as pipeline_t
 
 from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
+from ...ux import is_verbose
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -124,15 +125,20 @@ class MediaProcessor(Processor):
 
     def _extract_text(self, file_path: str, pipeline, fast_mode=False) -> str:
         def _prepare_audio_file(file_path: str, ext: str, temp_audio):
+            mp_logger = "bar" if is_verbose() else None
             try:
                 if ext in [".mp4", ".avi", ".mov", ".mkv"]:
                     with VideoFileClip(file_path) as clip:
                         if clip.audio is None:
                             raise ValueError("No audio track found in video.")
-                        clip.audio.write_audiofile(temp_audio.name, codec="pcm_s16le")
+                        clip.audio.write_audiofile(
+                            temp_audio.name, codec="pcm_s16le", logger=mp_logger
+                        )
                 elif ext in [".mp3", ".flac", ".wav"]:
                     with AudioFileClip(file_path) as audio_clip:
-                        audio_clip.write_audiofile(temp_audio.name, codec="pcm_s16le")
+                        audio_clip.write_audiofile(
+                            temp_audio.name, codec="pcm_s16le", logger=mp_logger
+                        )
                 temp_audio.flush()
             except Exception as e:
                 logger.error(f"Error preparing audio file {file_path}: {e}")

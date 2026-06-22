@@ -17,7 +17,7 @@ from mmore.process.incremental import (
 )
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.utils import load_config
-from mmore.ux import setup_logging
+from mmore.ux import quiet_noisy_libs, setup_logging
 
 PROCESS_EMOJI = "🚀"
 logger = setup_logging("Process", PROCESS_EMOJI)
@@ -79,6 +79,7 @@ def _write_merged_results(output_path, reused_samples, dispatched=True):
 @profile_function()
 def process(config_file: str):
     """Process documents from a directory."""
+    quiet_noisy_libs()
     click.echo(f"Dispatcher configuration file path: {config_file}")
 
     overall_start_time = time.time()
@@ -136,7 +137,7 @@ def process(config_file: str):
     crawl_result = crawler.crawl()
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
-    logger.info(f"Crawled {len(crawl_result)} files in {crawl_time:.1f}s")
+    logger.info(f"Crawled {len(crawl_result)} files in {crawl_time:.4f}s")
 
     # Collect all crawled file paths and urls (excluding this way deleted files)
     all_crawled_paths = {

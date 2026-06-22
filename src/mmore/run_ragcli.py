@@ -38,7 +38,7 @@ class RagCLI:
         self.config_file = config_file
 
     def launch_cli(self):
-        quiet_noisy_libs()
+        quiet_noisy_libs(hide_info=True)
         print_in_color(
             "Welcome to this RAG command-line interface! 🧠", "green", bold=True
         )
@@ -294,7 +294,7 @@ def is_valid_model_path(model_path: str):
 
 
 if __name__ == "__main__":
-    quiet_noisy_libs()
+    quiet_noisy_libs(hide_info=True)
     enable_profiling_from_env()
     # example usage: python -m mmore.ragcli --config-file examples/rag/config.yaml
 
