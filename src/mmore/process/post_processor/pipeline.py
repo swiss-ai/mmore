@@ -61,8 +61,9 @@ class PPPipeline:
         )
 
     def _log_plan(self) -> None:
+        n = len(self.post_processors)
         steps = " > ".join(p.name for p in self.post_processors)
-        logger.info(f"Pipeline ({len(self.post_processors)} steps): {steps}")
+        logger.info(f"Pipeline ({n} step{'s' if n != 1 else ''}): {steps}")
 
     @classmethod
     def from_config(cls, config: PPPipelineConfig):
@@ -113,7 +114,9 @@ class PPPipeline:
         for sample in samples:
             sample.metadata.processed_at = processed_at
 
-        save_samples(samples, jsonl_path(self.output_config.output_path))
+        out_path = jsonl_path(self.output_config.output_path)
+        save_samples(samples, out_path)
+        logger.info(f"Done: {len(samples)} samples saved to {out_path}")
         return samples
 
     def _run_incremental(
@@ -159,10 +162,9 @@ class PPPipeline:
 
         if not to_process_file_paths:
             merged_samples = merge_results(reused, [], current_file_paths)
-            save_samples(
-                merged_samples,
-                jsonl_path(self.output_config.output_path),
-            )
+            out_path = jsonl_path(self.output_config.output_path)
+            save_samples(merged_samples, out_path)
+            logger.info(f"Done: {len(merged_samples)} samples saved to {out_path}")
             return merged_samples
 
         # Collect samples to process
@@ -189,5 +191,7 @@ class PPPipeline:
             sample.metadata.processed_at = processed_at
 
         merged_samples = merge_results(reused, processed, current_file_paths)
-        save_samples(merged_samples, jsonl_path(self.output_config.output_path))
+        out_path = jsonl_path(self.output_config.output_path)
+        save_samples(merged_samples, out_path)
+        logger.info(f"Done: {len(merged_samples)} samples saved to {out_path}")
         return merged_samples
