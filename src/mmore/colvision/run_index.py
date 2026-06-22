@@ -1,5 +1,4 @@
 import argparse
-import logging
 from dataclasses import dataclass
 from typing import Union
 
@@ -9,15 +8,11 @@ import pandas as pd
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
+from ..ux import quiet_noisy_libs, setup_logging
 from .milvuscolvision import MilvusColvisionManager
 
-INDEX_EMOJI = "🗂️"
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format=f"[INDEX {INDEX_EMOJI}  -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+INDEX_EMOJI = "📇"
+logger = setup_logging("INDEX", INDEX_EMOJI)
 
 
 @dataclass
@@ -47,18 +42,19 @@ def index(config_file: Union[IndexConfig, str]):
     Main indexing function.
     Loads embeddings from parquet and inserts them into Milvus local DB.
     """
+    quiet_noisy_libs()
     config = load_config(config_file, IndexConfig)
 
     parquet_path = config.parquet_path
     df = pd.read_parquet(parquet_path)
-    logger.info(f"Loaded {len(df)} rows from {parquet_path}")
+    logger.info(f"Indexing {len(df)} rows from {parquet_path}")
 
     if df.empty:
         logger.info(f"Parquet {parquet_path} is empty — nothing to index, exiting.")
         return
 
     dim = _get_embedding_dim(df)
-    logger.info(f"Detected embedding dim={dim} from parquet")
+    logger.debug(f"Detected embedding dim={dim} from parquet")
 
     manager = MilvusColvisionManager(
         db_path=config.milvus.db_path,
@@ -69,6 +65,7 @@ def index(config_file: Union[IndexConfig, str]):
     )
     manager.insert_from_dataframe(df)
     manager.create_index()
+    logger.info(f"Done: {len(df)} rows indexed into '{config.milvus.collection_name}'")
 
 
 if __name__ == "__main__":

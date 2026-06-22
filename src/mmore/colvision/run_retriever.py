@@ -1,6 +1,5 @@
 import argparse
 import json
-import logging
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -9,24 +8,15 @@ import uvicorn
 from fastapi import APIRouter, FastAPI
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
-from tqdm import tqdm
 
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
+from ..ux import progress, quiet_noisy_libs, setup_logging
 from .retriever import ColVisionRetriever, ColVisionRetrieverConfig
 
 RETRIEVER_EMOJI = "🔍"
-logger = logging.getLogger(__name__)
-handler = logging.StreamHandler()
-handler.setFormatter(
-    logging.Formatter(
-        f"[RETRIEVER {RETRIEVER_EMOJI} -- %(asctime)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger = setup_logging("RETRIEVER", RETRIEVER_EMOJI)
 
 
 def read_queries(input_file: Path) -> List[str]:
@@ -49,7 +39,7 @@ def save_results(results: List[List[Document]], queries: List[str], output_file:
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(formatted_results, f, indent=2, ensure_ascii=False)
-    logger.info(f"Saved results to {output_file}")
+    logger.debug(f"Saved results to {output_file}")
 
 
 @profile_function()
@@ -60,37 +50,30 @@ def retrieve(
     model_name_override: Optional[str] = None,
 ):
     """Retrieve documents for specified queries via ColVision-based similarity search."""
+    quiet_noisy_libs()
     # Load the config file
     config = load_config(config_file, ColVisionRetrieverConfig)
     if model_name_override:
         config.model_name = model_name_override
         logger.info(f"Model overridden via CLI: {model_name_override}")
 
-    logger.info("Running ColVision retriever...")
+    logger.info("Loading retriever...")
     retriever = ColVisionRetriever.from_config(config)
-    logger.info("Retriever loaded!")
 
     queries = read_queries(Path(input_file))
-    logger.info(f"Loaded {len(queries)} queries from {input_file}")
-
-    logger.info("Starting document retrieval...")
+    logger.info(f"Retrieving {len(queries)} queries (top_k={config.top_k})")
     start_time = time.time()
 
     retrieved_docs_for_all_queries = []
-
-    # Call invoke for each query
-    for query in tqdm(queries, desc="Retrieving documents", unit="query"):
+    bar = progress(queries, desc="Retrieving", unit="query")
+    for query in bar:
+        bar.set_postfix_str(str(query)[:40])
         docs_for_query = retriever.invoke(query, k=config.top_k)
         retrieved_docs_for_all_queries.append(docs_for_query)
 
-    end_time = time.time()
-    time_taken = end_time - start_time
-    logger.info(f"Document retrieval completed in {time_taken:.2f} seconds.")
-    logger.info("Retrieved documents!")
-
-    # Save results to output file
+    time_taken = time.time() - start_time
     save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
-    logger.info(f"Done! Results saved to {output_file}")
+    logger.info(f"Done: {len(queries)} queries retrieved in {time_taken:.1f}s")
 
 
 class RetrieverQuery(BaseModel):
@@ -104,6 +87,7 @@ def make_router(
     config_file: str, model_name_override: Optional[str] = None
 ) -> APIRouter:
     """Create API router with retriever endpoint."""
+    quiet_noisy_libs()
     router = APIRouter()
 
     # Load the config file
@@ -112,9 +96,8 @@ def make_router(
         config.model_name = model_name_override
         logger.info(f"Model overridden via CLI: {model_name_override}")
 
-    logger.info("Running ColVision retriever...")
+    logger.info("Loading retriever...")
     retriever_obj = ColVisionRetriever.from_config(config)
-    logger.info("Retriever loaded!")
 
     @router.post("/v1/retrieve", tags=["Retrieval"])
     def retriever(query: RetrieverQuery):
