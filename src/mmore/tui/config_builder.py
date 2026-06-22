@@ -802,7 +802,7 @@ def pick_or_build_config(
                     )
                 )
                 path = picked
-                if choice == "edit":
+                if choice == "edit" and path is not None:
                     _edit_config(path)
 
         if choice == "manual":

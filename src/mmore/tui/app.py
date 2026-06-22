@@ -145,7 +145,7 @@ def _run_single_command() -> None:
     if spec.needs_input_data:
         input_data = questionary.text(
             "Input JSONL path",
-            default=cwd_default("outputs/process/merged/merged_results.jsonl"),
+            default=cwd_default("examples/process/outputs/merged/merged_results.jsonl"),
             style=QSTYLE,
             qmark=QMARK,
         ).ask()

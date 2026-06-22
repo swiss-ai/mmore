@@ -119,7 +119,7 @@ If you only need to measure execution time (wall clock), use `time_function` or 
 ```python
 from mmore.profiler import time_function, time_context
 
-@time_function
+@time_function()
 def quick_check():
     pass
 
