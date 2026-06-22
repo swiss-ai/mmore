@@ -27,6 +27,9 @@ _STAGE_EXTRAS: dict[str, list[str]] = {
     "ragcli": ["rag"],
     "retrieve": ["rag", "api"],
     "websearch": ["websearch"],
+    "colvision-process": ["colvision"],
+    "colvision-index": ["colvision"],
+    "colvision-retrieve": ["colvision", "api"],
 }
 
 _COMPUTE_EXTRAS = [

@@ -91,6 +91,24 @@ def _websearch(config_file: str, **_):
     run_websearch(config_file)
 
 
+def _colvision_process(config_file: str, **_):
+    from mmore.colvision.run_process import run_process
+
+    run_process(config_file)
+
+
+def _colvision_index(config_file: str, **_):
+    from mmore.colvision.run_index import index
+
+    index(config_file)
+
+
+def _colvision_retrieve(config_file: str, **_):
+    from mmore.colvision.run_retriever import run_api
+
+    run_api(config_file, "0.0.0.0", 8001)
+
+
 # Lazy dataclass importers — keeps heavy deps out of TUI startup.
 def _dc_process():
     from mmore.run_process import ProcessInference
@@ -207,5 +225,32 @@ REGISTRY: dict[str, CommandSpec] = {
         ],
         required_extras=["websearch"],
         canary_imports=["ddgs"],
+    ),
+    "colvision-process": CommandSpec(
+        name="colvision-process",
+        description="Embed PDF pages with ColVision",
+        example_config="examples/colvision/config_process.yml",
+        run=_colvision_process,
+        config_globs=["examples/colvision/**/*.yaml", "examples/colvision/**/*.yml"],
+        required_extras=["colvision", "cpu"],
+        canary_imports=["colpali_engine", "torch"],
+    ),
+    "colvision-index": CommandSpec(
+        name="colvision-index",
+        description="Store ColVision embeddings in Milvus",
+        example_config="examples/colvision/config_index.yml",
+        run=_colvision_index,
+        config_globs=["examples/colvision/**/*.yaml", "examples/colvision/**/*.yml"],
+        required_extras=["colvision", "cpu"],
+        canary_imports=["colpali_engine", "pymilvus"],
+    ),
+    "colvision-retrieve": CommandSpec(
+        name="colvision-retrieve",
+        description="Run ColVision retriever API",
+        example_config="examples/colvision/config_retrieval.yml",
+        run=_colvision_retrieve,
+        config_globs=["examples/colvision/**/*.yaml", "examples/colvision/**/*.yml"],
+        required_extras=["colvision", "api", "cpu"],
+        canary_imports=["colpali_engine", "pymilvus", "fastapi"],
     ),
 }
