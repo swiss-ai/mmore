@@ -1,6 +1,5 @@
 import argparse
 import json
-import logging
 import os
 import time
 from dataclasses import dataclass
@@ -18,14 +17,10 @@ from mmore.process.incremental import (
 )
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.utils import load_config
+from mmore.ux import setup_logging
 
 PROCESS_EMOJI = "🚀"
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format=f"[Process {PROCESS_EMOJI} -- %(asctime)s] %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logger = setup_logging("Process", PROCESS_EMOJI)
 
 overall_start_time = time.time()
 
@@ -134,14 +129,14 @@ def process(config_file: str):
     else:
         raise ValueError("Data path not provided in the configuration")
 
-    logger.info(f"Using crawler configuration: {crawler_config}")
+    logger.debug(f"Using crawler configuration: {crawler_config}")
     crawler = Crawler(config=crawler_config)
 
     crawl_start_time = time.time()
     crawl_result = crawler.crawl()
     crawl_end_time = time.time()
     crawl_time = crawl_end_time - crawl_start_time
-    logger.info(f"Crawling completed in {crawl_time:.2f} seconds")
+    logger.info(f"Crawled {len(crawl_result)} files in {crawl_time:.1f}s")
 
     # Collect all crawled file paths and urls (excluding this way deleted files)
     all_crawled_paths = {
@@ -187,15 +182,13 @@ def process(config_file: str):
 
     if dispatched:
         dispatcher_config: DispatcherConfig = config.dispatcher_config
-        logger.info(f"Using dispatcher configuration: {dispatcher_config}")
+        logger.debug(f"Using dispatcher configuration: {dispatcher_config}")
 
         dispatcher = Dispatcher(result=crawl_result, config=dispatcher_config)
         dispatch_start_time = time.time()
         list(dispatcher())
         dispatch_time = time.time() - dispatch_start_time
-        logger.info(
-            f"Dispatching and processing completed in {dispatch_time:.2f} seconds"
-        )
+        logger.info(f"Processed {len(crawl_result)} files in {dispatch_time:.1f}s")
     elif reused_samples:
         logger.info("No new files to process, reusing previous samples only.")
     else:

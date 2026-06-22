@@ -1,5 +1,5 @@
 """Shared UX helpers for all mmore pipelines: standard logging setup, colored
-output, a spinner for indeterminate waits, and a single-line progress bar."""
+output, a spinner, and a progress bar."""
 
 import itertools
 import logging
@@ -55,16 +55,15 @@ def print_in_color(to_print: "str | int", color: str, bold: bool = False) -> Non
     print(str_in_color(to_print, color, bold))
 
 
-def str_green(text, bold=False):
+def str_green(text: str | int, bold: bool = False) -> str:
     return str_in_color(text, "green", bold=bold)
 
 
 # ------------------------------ Noise control ------------------------------ #
 
 
-def quiet_noisy_libs():
-    """Hide INFO logs, warnings and progress bars so an interactive CLI stays
-    clean. Opt-in: batch pipelines that want their own logs should not call it."""
+def quiet_noisy_libs() -> None:
+    """Hide INFO logs, warnings and progress bars to have a clean CLI."""
     logging.disable(logging.INFO)
     warnings.filterwarnings("ignore")
     try:
@@ -92,26 +91,26 @@ SPINNER_WORDS = [
 class Spinner:
     """Animated status line shown while work happens in the calling thread."""
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None) -> None:
         self._label = label
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "Spinner":
         self._stop.clear()
         if sys.stdout.isatty():
             self._thread = threading.Thread(target=self._spin, daemon=True)
             self._thread.start()
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: object) -> None:
         self._stop.set()
         if self._thread is not None:
             self._thread.join()
             sys.stdout.write("\r\033[K")
             sys.stdout.flush()
 
-    def _spin(self):
+    def _spin(self) -> None:
         frames = itertools.cycle("|/-\\")
         word = self._label or random.choice(SPINNER_WORDS)
         start = word_start = time.monotonic()
@@ -137,12 +136,13 @@ def progress(
     unit: str = "doc",
     **kwargs,
 ) -> "tqdm":
-    """Standard single-line progress bar for per-item pipeline loops. Shows the
-    step, count done/total and ETA. Call `bar.set_postfix_str(name)` inside the
-    loop to display the current item.
+    """Standard progress bar for per-item pipeline loops. Shows the
+    step, count done/total and ETA.
 
-        for doc in (bar := progress(docs, desc="Processing", unit="file")):
+    Example:
+        ```for doc in (bar := progress(docs, desc="Processing", unit="file")):
             bar.set_postfix_str(doc.name)
+        ```
     """
     from tqdm import tqdm
 

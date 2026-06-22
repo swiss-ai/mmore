@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from multiprocessing import Manager, Process, set_start_method
@@ -14,6 +15,7 @@ from marker.output import text_from_rendered
 from PIL import Image, UnidentifiedImageError
 
 from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
+from ...ux import progress
 from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
@@ -87,7 +89,9 @@ class PDFProcessor(Processor):
                     )
 
                 results = []
-                for file_path in files_paths:
+                bar = progress(files_paths, desc=self.__class__.__name__, unit="file")
+                for file_path in bar:
+                    bar.set_postfix_str(os.path.basename(file_path))
                     try:
                         res = self.process(file_path)
                         results.append(res)

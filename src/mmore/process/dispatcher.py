@@ -183,7 +183,7 @@ class Dispatcher:
         instantiated_processors: Dict[Type[Processor], Processor] = {}
 
         num_workers = os.cpu_count() or 1
-        logger.info(f"🚀 Initializing Shared Global Pool with {num_workers} workers...")
+        logger.debug(f"Initializing shared global pool with {num_workers} workers")
         global_pool = mp.Pool(processes=num_workers)
 
         try:
@@ -209,14 +209,14 @@ class Dispatcher:
                         custom_config=processor_config,
                     )
 
-                    logger.info(f"Initializing processor: {processor_type.__name__}")
+                    logger.debug(f"Initializing processor: {processor_type.__name__}")
                     new_proc_instance = processor_type(full_config)
                     new_proc_instance.set_shared_pool(global_pool)
                     instantiated_processors[processor_type] = new_proc_instance
 
                 proc_instance = instantiated_processors[processor_type]
 
-                logger.info(
+                logger.debug(
                     f"Processing batch of {len(files)} files with {proc_instance.__class__.__name__}"
                 )
 
@@ -227,7 +227,7 @@ class Dispatcher:
                 self.save_individual_processor_results(res, processor_type.__name__)
                 yield res
         finally:
-            logger.info("Closing Shared Global Pool")
+            logger.debug("Closing shared global pool")
             global_pool.close()
             global_pool.join()
 
@@ -424,4 +424,4 @@ class Dispatcher:
         output_file = os.path.join(processor_output_path, "results.jsonl")
         MultimodalSample.to_jsonl(output_file, results)
 
-        logger.info(f"Results saved to {output_file}")
+        logger.debug(f"Results saved to {output_file}")
