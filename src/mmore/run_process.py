@@ -20,7 +20,7 @@ from mmore.utils import load_config
 from mmore.ux import quiet_noisy_libs, setup_logging
 
 PROCESS_EMOJI = "🚀"
-logger = setup_logging("Process", PROCESS_EMOJI)
+logger = setup_logging("PROCESS", PROCESS_EMOJI)
 
 overall_start_time = time.time()
 

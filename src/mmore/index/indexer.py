@@ -11,12 +11,12 @@ import scipy
 from langchain_core.embeddings import Embeddings
 from langchain_milvus.utils.sparse import BaseSparseEmbedding
 from pymilvus import CollectionSchema, DataType, FieldSchema, MilvusClient
-from tqdm import tqdm
 
 from ..rag.model import DenseModel, DenseModelConfig, SparseModel, SparseModelConfig
 from ..rag.model.dense.multimodal import MultimodalEmbeddings
 from ..type import MultimodalSample
 from ..utils import load_config
+from ..ux import progress
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class Indexer:
         """Create index on the embeddings fields."""
         index_params = self.client.prepare_index_params()
 
-        logger.info(
+        logger.debug(
             f"Creating index for dense embeddings with model {self.dense_model_config.model_name}"
         )
         index_params.add_index(
@@ -152,7 +152,7 @@ class Indexer:
             params={"nlist": 128},
         )
 
-        logger.info(
+        logger.debug(
             f"Creating index for sparse embeddings with model {self.sparse_model_config.model_name}"
         )
         index_params.add_index(
@@ -173,9 +173,8 @@ class Indexer:
     ) -> int:
         # Process new documents in batches
         inserted = 0
-        for i in tqdm(
-            range(0, len(documents), batch_size), desc="Indexing documents..."
-        ):
+        bar = progress(total=len(documents), desc="Indexing", unit="doc")
+        for i in range(0, len(documents), batch_size):
             # Get the batch
             batch = documents[i : i + batch_size]
 
@@ -209,15 +208,14 @@ class Indexer:
             )
 
             inserted += batch_inserted["insert_count"]
+            bar.update(len(batch))
 
+        bar.close()
         return inserted
 
     def _log_collection_stats(self, collection_name: str):
-        logger.info("-" * 50)
-        logger.info("Collection stats (before inserting):")
-        for k, v in self.client.get_collection_stats(collection_name).items():
-            logger.info(f"  - {k}: {v}")
-        logger.info("-" * 50)
+        stats = self.client.get_collection_stats(collection_name)
+        logger.debug(f"Collection stats for {collection_name}: {stats}")
 
     def index_documents(
         self,

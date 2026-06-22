@@ -8,7 +8,7 @@ from mmore.utils import load_config
 from mmore.ux import setup_logging
 
 PP_EMOJI = "🧹"
-logger = setup_logging("PP", PP_EMOJI)
+logger = setup_logging("POST-PROCESS", PP_EMOJI)
 
 
 def _load_dataset(data_path: List[str]) -> List[MultimodalSample]:
