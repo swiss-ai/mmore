@@ -30,6 +30,14 @@ _NOISY_LIBS = [
     "PIL",
     "httpx",
     "urllib3",
+    "primp",
+    "reqwest",
+    "hyper_util",
+    "h2",
+    "hickory_net",
+    "hickory_resolver",
+    "rustls",
+    "cookie_store",
 ]
 
 
