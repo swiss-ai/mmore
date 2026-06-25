@@ -22,7 +22,7 @@ winget install Gyan.FFmpeg
 Then clone the repo and install MMORE into a virtual environment:
 
 ```powershell
-git clone https://github.com/swiss-ai/mmore.git
+git clone https://github.com/EPFLiGHT/mmore.git
 cd mmore
 uv venv
 .venv\Scripts\activate
@@ -30,7 +30,7 @@ uv pip install -e ".[all,cu126]"
 ```
 
 Use `cu126` for an NVIDIA GPU, or `cpu` otherwise. See the
-[README](https://github.com/swiss-ai/mmore#step-1--install-mmore) for the full
+[README](https://github.com/EPFLiGHT/mmore#step-1--install-mmore) for the full
 list of extras.
 
 ## 2. `milvus-lite` is not available on Windows

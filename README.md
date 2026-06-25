@@ -1,12 +1,12 @@
 <h1 align="center">
 
-![image](https://raw.githubusercontent.com/swiss-ai/mmore/master/mmore_logo.jpg)
+![image](https://raw.githubusercontent.com/EPFLiGHT/mmore/master/mmore_logo.jpg)
 
 </h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/github/v/release/swiss-ai/mmore" alt="Release">
+  <img src="https://img.shields.io/github/v/release/EPFLiGHT/mmore" alt="Release">
   <a href="https://openreview.net/forum?id=6j1HjfIdKn">
     <img src="https://img.shields.io/badge/paper-OpenReview-9cf" alt="Paper">
   </a>
@@ -21,7 +21,7 @@ MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retr
 
 ## Documentation
 
-👉 Read the full documentation here: [MMORE Documentation](https://swiss-ai.github.io/mmore/).
+👉 Read the full documentation here: [MMORE Documentation](https://EPFLiGHT.github.io/mmore/).
 
 
 ## :bulb: Quickstart
@@ -30,8 +30,8 @@ MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retr
 
 > :whale: **Prefer Docker?** Skip the steps below and pull a pre-built multi-platform image directly from GHCR, with CPU and GPU variants:
 > ```bash
-> docker pull ghcr.io/swiss-ai/mmore:edge-gpu   # GPU (CUDA 12.6)
-> docker pull ghcr.io/swiss-ai/mmore:edge-cpu   # CPU-only
+> docker pull ghcr.io/EPFLiGHT/mmore:edge-gpu   # GPU (CUDA 12.6)
+> docker pull ghcr.io/EPFLiGHT/mmore:edge-cpu   # CPU-only
 > ```
 > See [`docker/ubuntu/README.md`](docker/ubuntu/README.md) for build instructions and additional base OS variants (Arch Linux, openSUSE Leap).
 
@@ -101,9 +101,9 @@ uv pip install "mmore[all,cu126]"
 uv pip install "mmore[process,cpu]"
 ```
 
-> :warning: This package requires many big dependencies, so it is recommended to install with `uv` to handle `pip` installations. [Check our tutorial on uv](https://swiss-ai.github.io/mmore/advanced_usage/uv.html).
+> :warning: This package requires many big dependencies, so it is recommended to install with `uv` to handle `pip` installations. [Check our tutorial on uv](https://EPFLiGHT.github.io/mmore/advanced_usage/uv.html).
 
-> :warning: **Check the instructions for contributors directly in the documentation [`for_devs.md`](https://swiss-ai.github.io/mmore/developer_documentation/for_devs.html).**
+> :warning: **Check the instructions for contributors directly in the documentation [`for_devs.md`](https://EPFLiGHT.github.io/mmore/developer_documentation/for_devs.html).**
 
 ### Interactive TUI
 
@@ -166,18 +166,18 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
 1. **:page_facing_up: Input Documents**
    Upload your multimodal documents (PDFs, videos, spreadsheets, and m(m)ore) into the pipeline.
 
-2. [**:mag: Process**](https://swiss-ai.github.io/mmore/getting_started/process.html)
+2. [**:mag: Process**](https://EPFLiGHT.github.io/mmore/getting_started/process.html)
    Extracts and standardizes text, metadata, and multimedia content from diverse file formats. Easily extensible! You can add your own processors to handle new file types.
    *Supports fast processing for specific types.*
 
-3. [**:file_folder: Index**](https://swiss-ai.github.io/mmore/getting_started/indexing.html)
-   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](https://swiss-ai.github.io/mmore/developer_documentation/index_api.html) for adding new files on the fly with HTTP requests.
+3. [**:file_folder: Index**](https://EPFLiGHT.github.io/mmore/getting_started/indexing.html)
+   Organizes extracted data into a **hybrid retrieval-ready Vector Store DB**, combining dense and sparse indexing through [Milvus](https://milvus.io/). Your vector DB can also be remotely hosted and then you only have to provide a standard API. There is also an [HTTP Index API](https://EPFLiGHT.github.io/mmore/developer_documentation/index_api.html) for adding new files on the fly with HTTP requests.
 
-4. [**:robot: RAG**](https://swiss-ai.github.io/mmore/getting_started/rag.html)
+4. [**:robot: RAG**](https://EPFLiGHT.github.io/mmore/getting_started/rag.html)
    Use the indexed documents inside a **Retrieval-Augmented Generation (RAG) system** that provides a [LangChain](https://www.langchain.com/) interface. Plug in any LLM with a compatible interface or add new ones through an easy-to-use interface.
    *Supports API hosting or local inference.*
 
-5. [**:globe_with_meridians: Web Search**](https://swiss-ai.github.io/mmore/core_features/websearch.html)
+5. [**:globe_with_meridians: Web Search**](https://EPFLiGHT.github.io/mmore/core_features/websearch.html)
    Augments RAG answers with live web search results using an iterative sub-query loop.
    DuckDuckGo is the default provider (free, no API key needed). Tavily is available as an optional higher-quality provider.
     ```bash
@@ -222,11 +222,11 @@ If you use MMORE in your research, please cite the paper:
 ```
 
 <p align="center">
-  <a href="https://www.star-history.com/#swiss-ai/mmore&Date">
+  <a href="https://www.star-history.com/#EPFLiGHT/mmore&Date">
      <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date&theme=dark" />
-     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
-     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=swiss-ai/mmore&type=Date" />
+     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=EPFLiGHT/mmore&type=Date&theme=dark" />
+     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=EPFLiGHT/mmore&type=Date" />
+     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=EPFLiGHT/mmore&type=Date" />
    </picture>
   </a>
 </p>

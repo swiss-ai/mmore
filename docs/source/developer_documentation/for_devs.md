@@ -84,7 +84,7 @@ uv pip install weasyprint
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/swiss-ai/mmore.git
+git clone https://github.com/EPFLiGHT/mmore.git
 cd mmore
 ```
 
@@ -168,7 +168,7 @@ We welcome contributions! Here's how you can help:
 
 - **Bug reports**: open an issue with a clear description, steps to reproduce, and expected vs. actual behavior
 - **Feature requests**: open an issue describing the feature, its use case, and potential implementation approach
-- Check the [Issues](https://github.com/swiss-ai/mmore/issues) page for ongoing work
+- Check the [Issues](https://github.com/EPFLiGHT/mmore/issues) page for ongoing work
 
 ### Code Contributions
 

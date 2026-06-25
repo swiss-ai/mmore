@@ -38,7 +38,7 @@ autosummary_generate = True
 
 # Replace with your real repository information when ready.
 html_theme_options = {
-    "source_repository": "https://github.com/<ORG>/<REPO>/",
+    "source_repository": "https://github.com/EPFLiGHT/mmore/",
     "source_branch": "main",
     "source_directory": "docs/source/",
 }
