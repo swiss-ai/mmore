@@ -98,6 +98,13 @@ index = [
     "scipy>=1.8",
 ]
 
+qdrant = [
+    # ARM64-safe alternative to milvus-lite. Opt-in via `db.backend: qdrant`
+    # in the IndexerConfig / RetrieverConfig YAML.
+    "mmore[index]",
+    "qdrant-client>=1.10",
+]
+
 colvision = [
     # Vision-based RAG with ColVision models (ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
     "mmore[api, index]",

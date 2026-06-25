@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 class DBConfig:
     uri: str = "./proc_demo.db"
     name: str = "my_db"
+    # Vector store backend. Default is "milvus" (milvus-lite, x86_64 only).
+    # Set to "qdrant" to use the Qdrant local backend instead — recommended on
+    # ARM64 where milvus-lite has no wheel. Requires `pip install mmore[qdrant]`.
+    backend: Literal["milvus", "qdrant"] = "milvus"
 
 
 @dataclass
@@ -71,17 +75,26 @@ class Indexer:
         else:
             config_obj = config
 
-        # Create the milvus client
-        milvus_client = MilvusClient(
-            config_obj.db.uri,
-            db_name=config_obj.db.name,
-            enable_sparse=True,
-        )
+        # Create the vector-store client. Default path is unchanged; the
+        # qdrant adapter is only loaded when explicitly requested.
+        if config_obj.db.backend == "qdrant":
+            from .qdrant_client import QdrantMilvusClient
+
+            client = QdrantMilvusClient(
+                uri=config_obj.db.uri,
+                db_name=config_obj.db.name,
+            )
+        else:
+            client = MilvusClient(
+                config_obj.db.uri,
+                db_name=config_obj.db.name,
+                enable_sparse=True,
+            )
 
         return cls(
             dense_model_config=config_obj.dense_model,
             sparse_model_config=config_obj.sparse_model,
-            client=milvus_client,
+            client=client,
         )
 
     @classmethod

@@ -42,7 +42,10 @@ class Retriever(BaseRetriever):
 
     dense_model: Embeddings
     sparse_model: BaseSparseEmbedding
-    client: MilvusClient
+    # Loosened from `MilvusClient` so the QdrantMilvusClient adapter passes
+    # pydantic validation when `db.backend: qdrant` is set. The two clients
+    # implement the same surface (see qdrant_client.py).
+    client: Any
     hybrid_search_weight: float
     k: int
     use_web: bool
@@ -58,12 +61,18 @@ class Retriever(BaseRetriever):
         if isinstance(config, str):
             config = load_config(config, RetrieverConfig)
 
-        # Init the client
-        client = MilvusClient(uri=config.db.uri, db_name=config.db.name)
+        # Init the client. Default path is unchanged; the qdrant adapter is
+        # only loaded when explicitly requested via `db.backend: qdrant`.
+        if getattr(config.db, "backend", "milvus") == "qdrant":
+            from ..index.qdrant_client import QdrantMilvusClient
+
+            client = QdrantMilvusClient(uri=config.db.uri, db_name=config.db.name)
+        else:
+            client = MilvusClient(uri=config.db.uri, db_name=config.db.name)
 
         if not client.has_collection(config.collection_name):
             raise ValueError(
-                f"The Milvus database has not been initialized yet / does not have a collection {config.collection_name}. "
+                f"The vector database has not been initialized yet / does not have a collection {config.collection_name}. "
                 "Ensure the path is valid with a database that was already populated with the indexer."
             )
 
