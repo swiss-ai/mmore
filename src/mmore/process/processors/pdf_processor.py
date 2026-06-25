@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+import threading
 from dataclasses import dataclass, field
 from multiprocessing import Manager, Process, set_start_method
 from typing import Any, Dict, List, Optional, Tuple, cast
@@ -34,6 +35,9 @@ class PDFMetadata(DocumentMetadata):
 
 class PDFProcessor(Processor):
     artifact_dict = None
+    # One model set per device, so several GPUs can process in parallel
+    artifacts_by_device: Dict[str, Any] = {}
+    _load_lock = threading.Lock()
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
@@ -44,9 +48,30 @@ class PDFProcessor(Processor):
         return file.file_extension.lower() == ".pdf"
 
     @staticmethod
-    def load_models(disable_image_extraction: bool = False):
-        if PDFProcessor.artifact_dict is None:
-            PDFProcessor.artifact_dict = create_model_dict()
+    def _get_artifacts(device: Optional[str] = None):
+        if device is None:
+            cached = PDFProcessor.artifact_dict
+        else:
+            cached = PDFProcessor.artifacts_by_device.get(device)
+        if cached is not None:
+            return cached
+
+        with PDFProcessor._load_lock:
+            if device is None:
+                if PDFProcessor.artifact_dict is None:
+                    PDFProcessor.artifact_dict = create_model_dict()
+                return PDFProcessor.artifact_dict
+            if device not in PDFProcessor.artifacts_by_device:
+                PDFProcessor.artifacts_by_device[device] = create_model_dict(
+                    device=device
+                )
+            return PDFProcessor.artifacts_by_device[device]
+
+    @staticmethod
+    def load_models(
+        disable_image_extraction: bool = False, device: Optional[str] = None
+    ):
+        artifact_dict = PDFProcessor._get_artifacts(device)
 
         marker_config = {
             "disable_image_extraction": disable_image_extraction,
@@ -55,9 +80,11 @@ class PDFProcessor(Processor):
             "disable_multiprocessing": False,
             "paginate_output": True,
         }
+        if device is not None:
+            marker_config["device"] = str(device)
         config_parser = ConfigParser(marker_config)
         converter = PdfConverter(
-            artifact_dict=PDFProcessor.artifact_dict,
+            artifact_dict=artifact_dict,
             config=config_parser.generate_config_dict(),
         )
 
@@ -69,6 +96,20 @@ class PDFProcessor(Processor):
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
     ) -> List[MultimodalSample]:
+        device = self.config.custom_config.get("device")
+        if device is not None:
+            self.converter = PDFProcessor.load_models(
+                disable_image_extraction=not self.config.extract_images,
+                device=device,
+            )
+            results = []
+            for file_path in files_paths:
+                try:
+                    results.append(self.process(file_path))
+                except Exception as e:
+                    logging.error(f"Failed to process {file_path}: {str(e)}")
+            return results
+
         if fast_mode:  # No GPU available - fallback to default
             return super().process_batch(files_paths, fast_mode, num_workers)
         else:
@@ -117,7 +158,7 @@ class PDFProcessor(Processor):
                         args=(
                             batch,
                             gpu_id,
-                            self.config.custom_config,
+                            self.config.extract_images,
                             output_queue,
                             error_queue,
                         ),
@@ -266,7 +307,7 @@ class PDFProcessor(Processor):
                 all_text_parts.append(text)
                 current_position += len(text)
 
-            if self.config.custom_config.get("extract_images", True):
+            if self.config.extract_images:
                 for img_info in page.get_images(full=False):
                     image = _extract_images(pdf_doc, img_info[0])
                     if image and clean_image(image):
@@ -301,18 +342,16 @@ class PDFProcessor(Processor):
         return batches
 
     def _process_parallel(
-        self, files_paths, gpu_id, config_custom, output_queue, error_queue
+        self, files_paths, gpu_id, extract_images, output_queue, error_queue
     ):
         try:
             torch.cuda.set_device(gpu_id)
 
             if PDFProcessor.artifact_dict is None:
-                PDFProcessor.artifact_dict = create_model_dict()
+                PDFProcessor.artifact_dict = create_model_dict(device=f"cuda:{gpu_id}")
 
             marker_config = {
-                "disable_image_extraction": not config_custom.get(
-                    "extract_images", True
-                ),
+                "disable_image_extraction": not extract_images,
                 "languages": None,
                 "use_llm": False,
                 "disable_multiprocessing": False,

@@ -74,6 +74,9 @@ class DispatcherConfig:
     process_batch_sizes: Optional[List[Dict[str, float]]] = None
     batch_multiplier: int = 1
     extract_images: bool = False
+    # When set, processing is pinned to this single device (used by the indexer
+    # API to run one job per GPU). None keeps the default behavior.
+    device: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -133,6 +136,32 @@ class DispatcherConfig:
         )
 
 
+class _LazyPool:
+    """A multiprocessing pool created on first map() call.
+
+    Processors that override process_batch (e.g. PDF, media) never call map(), so a
+    job that only uses them never spawns any worker.
+    """
+
+    def __init__(self, processes: int):
+        self._processes = processes
+        self._pool = None
+
+    def map(self, func, iterable):
+        if self._pool is None:
+            logger.info(f"Initializing shared pool with {self._processes} workers...")
+            self._pool = mp.Pool(processes=self._processes)
+        return self._pool.map(func, iterable)
+
+    def close(self):
+        if self._pool is not None:
+            self._pool.close()
+
+    def join(self):
+        if self._pool is not None:
+            self._pool.join()
+
+
 class Dispatcher:
     """
     Takes a converted crawl result and dispatches it to the appropriate processor.
@@ -182,9 +211,7 @@ class Dispatcher:
 
         instantiated_processors: Dict[Type[Processor], Processor] = {}
 
-        num_workers = os.cpu_count() or 1
-        logger.info(f"🚀 Initializing Shared Global Pool with {num_workers} workers...")
-        global_pool = mp.Pool(processes=num_workers)
+        global_pool = _LazyPool(os.cpu_count() or 1)
 
         try:
             for processor_type, files in task_lists:
@@ -203,9 +230,11 @@ class Dispatcher:
                         processor_config = {}
 
                     processor_config["output_path"] = self.config.output_path
-                    processor_config["extract_images"] = self.config.extract_images
+                    if self.config.device is not None:
+                        processor_config["device"] = self.config.device
 
                     full_config = ProcessorConfig(
+                        extract_images=self.config.extract_images,
                         custom_config=processor_config,
                     )
 
@@ -258,13 +287,13 @@ class Dispatcher:
             else:
                 processor_config = {}
             processor_config["output_path"] = self.config.output_path
-            processor_config["extract_images"] = self.config.extract_images
 
             logger.info(
                 f"Dispatching in distributed (to some worker) {len(files)} files to {processor_type.__name__}"
             )
 
             processor_config = ProcessorConfig(
+                extract_images=self.config.extract_images,
                 custom_config=processor_config,
             )
 

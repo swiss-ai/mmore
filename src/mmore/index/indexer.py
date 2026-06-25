@@ -54,17 +54,18 @@ class Indexer:
         dense_model_config: DenseModelConfig,
         sparse_model_config: SparseModelConfig,
         client: MilvusClient,
+        device: Optional[str] = None,
     ):
-        # Load the embedding models
+        # Load the embedding models on the given device
         self.dense_model_config = dense_model_config
-        self.dense_model = DenseModel.from_config(dense_model_config)
+        self.dense_model = DenseModel.from_config(dense_model_config, device=device)
         self.sparse_model_config = sparse_model_config
-        self.sparse_model = SparseModel.from_config(sparse_model_config)
+        self.sparse_model = SparseModel.from_config(sparse_model_config, device=device)
 
         self.client = client
 
     @classmethod
-    def from_config(cls, config: str | IndexerConfig):
+    def from_config(cls, config: str | IndexerConfig, device: Optional[str] = None):
         # Load the config if it's a string
         if isinstance(config, str):
             config_obj = load_config(config, IndexerConfig)
@@ -82,6 +83,7 @@ class Indexer:
             dense_model_config=config_obj.dense_model,
             sparse_model_config=config_obj.sparse_model,
             client=milvus_client,
+            device=device,
         )
 
     @classmethod
@@ -92,8 +94,9 @@ class Indexer:
         collection_name: str = "my_docs",
         partition_name: Optional[str] = None,
         batch_size: int = 64,
+        device: Optional[str] = None,
     ):
-        indexer = Indexer.from_config(config)
+        indexer = Indexer.from_config(config, device=device)
         indexer.index_documents(
             documents,
             collection_name=collection_name,
@@ -229,7 +232,12 @@ class Indexer:
         # Create collection
         if not self.client.has_collection(collection_name):
             logger.info(f"Creating collection {collection_name}")
-            self._create_collection_with_schema(collection_name)
+            try:
+                self._create_collection_with_schema(collection_name)
+            except Exception as e:
+                if not self.client.has_collection(collection_name):
+                    raise e
+                logger.info(f"{collection_name} was created concurrently")
         else:
             logger.info(f"{collection_name} already exists, adding documents to it")
 
