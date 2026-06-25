@@ -121,13 +121,18 @@ class RetrieverQuery(BaseModel):
     )
     query: str = Field(..., description="Search query")
 
+
 _ID_PATTERN = re.compile(r'^[^"+]+$')
+
 
 def _chunk_metadata(paragraph_positions) -> Optional[dict]:
     if not paragraph_positions:
         return None
     (fp, fi), (lp, li) = paragraph_positions[0], paragraph_positions[-1]
-    return {"first": {"page": fp, "paragraph": fi}, "last": {"page": lp, "paragraph": li}}
+    return {
+        "first": {"page": fp, "paragraph": fi},
+        "last": {"page": lp, "paragraph": li},
+    }
 
 
 def make_router(config_file: str) -> APIRouter:
@@ -172,6 +177,7 @@ def make_router(config_file: str) -> APIRouter:
                 {
                     "fileId": fileId,
                     "chunkId": chunkId,
+                    "filePath": meta.get("file_path", ""),
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
                     "metadata": _chunk_metadata(meta.get("paragraph_positions")),
@@ -184,14 +190,17 @@ def make_router(config_file: str) -> APIRouter:
     def get_chunk(fileId: str, chunkId: str):
         """Fetch a chunk's content and positional metadata by reference."""
         if not _ID_PATTERN.match(fileId) or not _ID_PATTERN.match(chunkId):
-            raise HTTPException(
-                400, "fileId and chunkId must not contain '+' or '\"'"
-            )
+            raise HTTPException(400, "fileId and chunkId must not contain '+' or '\"'")
         chunk_ref_literal = json.dumps(f"{fileId}+{chunkId}")
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
             filter=f"id in [{chunk_ref_literal}]",
-            output_fields=["text", "paragraph_positions", "filename"],
+            output_fields=[
+                "text",
+                "paragraph_positions",
+                "file_path",
+                "filename",
+            ],
             limit=1,
         )
         if not results:
@@ -201,6 +210,7 @@ def make_router(config_file: str) -> APIRouter:
         return {
             "fileId": fileId,
             "chunkId": chunkId,
+            "filePath": row.get("file_path") or entity.get("file_path", ""),
             "filename": row.get("filename") or entity.get("filename"),
             "content": row.get("text") or entity.get("text", ""),
             "metadata": _chunk_metadata(

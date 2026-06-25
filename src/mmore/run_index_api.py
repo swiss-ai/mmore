@@ -45,6 +45,7 @@ def _apply_uploaded_file_metadata(
         doc.id = f"{file_id}+{chunk_id}" if chunk_id else file_id
 
         doc.metadata.extra["filename"] = filename
+        doc.metadata.file_path = str(FilePath(UPLOAD_DIR) / file_id)
 
 
 def make_router(config_path: str) -> APIRouter:
