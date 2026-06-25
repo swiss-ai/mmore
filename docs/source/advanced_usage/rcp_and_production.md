@@ -200,7 +200,7 @@ runai submit \
 To access the service locally, use:
 
 ```bash
-runai port-forward swissaimmore-rag 8080:8080
+runai port-forward mmore-rag 8080:8080
 ```
 
 
