@@ -160,11 +160,11 @@ paths:
     post:
       tags:
         - Context Retrieval
-      summary: Retrieve on MMORE
+      summary: Retrieve on mmore
       description: |
         Search for files based on content similarity.
 
-        This request is meant to be called by the Gateway to MMORE service upon chat completions request from Moove.
+        This request is meant to be called by the Gateway to mmore service upon chat completions request from Moove.
       requestBody:
         required: true
         content:

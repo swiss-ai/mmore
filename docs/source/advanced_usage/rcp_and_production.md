@@ -1,6 +1,6 @@
 # 🚀 Cluster and Production Deployment
 
-This page provides guidelines for deploying MMORE in a shared cluster environment and, if needed, adapting it for production deployment.
+This page provides guidelines for deploying mmore in a shared cluster environment and, if needed, adapting it for production deployment.
 
 The examples below assume a Run:ai-based cluster setup with a shared persistent volume. You may need to adapt paths, scheduler options, and environment variables to match your infrastructure.
 
@@ -106,7 +106,7 @@ This provides a direct terminal access to the container.
 
 ## ⚙️ Production Pipeline Execution
 
-The following examples show how to submit MMORE pipeline stages as cluster jobs in a Run:ai-based environment.  
+The following examples show how to submit mmore pipeline stages as cluster jobs in a Run:ai-based environment.  
 Adapt resource settings, storage mounts, paths, and scheduler flags to your infrastructure.
 
 ### 1. Document Processing

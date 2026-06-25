@@ -14,14 +14,14 @@
 
 ## Massive Multimodal Open RAG & Extraction
 
-MMORE is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs).
+mmore is an open-source, end-to-end pipeline to ingest, process, index, and retrieve knowledge from heterogeneous files: PDFs, Office docs, spreadsheets, emails, images, audio, video, and web pages. It standardizes content into a unified multimodal format, supports distributed CPU/GPU processing, and provides hybrid dense+sparse retrieval with an integrated RAG service (CLI, APIs).
 
-👉 Read the paper for more details (arXiv): [MMORE: Massive Multimodal Open RAG & Extraction](https://arxiv.org/abs/2509.11937)
+👉 Read the paper for more details (arXiv): [mmore: Massive Multimodal Open RAG & Extraction](https://arxiv.org/abs/2509.11937)
 
 
 ## Documentation
 
-👉 Read the full documentation here: [MMORE Documentation](https://EPFLiGHT.github.io/mmore/).
+👉 Read the full documentation here: [mmore Documentation](https://EPFLiGHT.github.io/mmore/).
 
 
 ## :bulb: Quickstart
@@ -66,9 +66,9 @@ brew install cairo pango gdk-pixbuf libffi
 uv pip install weasyprint
 ```
 
-You can also run MMORE on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
+You can also run mmore on Windows by following our [Windows setup notes](docs/source/getting_started/windows.md).
 
-#### Step 1 – Install MMORE
+#### Step 1 – Install mmore
 
 Dependencies are split by pipeline stage. Install only what you need:
 
@@ -158,9 +158,9 @@ MultimodalSample.to_jsonl(out_file, result_pdf)
 
 ### Usage
 
-To launch the MMORE pipeline, follow the specialised instructions in the docs.
+To launch the mmore pipeline, follow the specialised instructions in the docs.
 
-![The MMORE pipelines architecture](docs/source/doc_images/pipeline_mmore+.png)
+![The mmore pipelines architecture](docs/source/doc_images/pipeline_mmore+.png)
 
 
 1. **:page_facing_up: Input Documents**
@@ -206,12 +206,12 @@ To launch the MMORE pipeline, follow the specialised instructions in the docs.
 
 This project is licensed under the Apache 2.0 License, see the [LICENSE :mortar_board:](LICENSE) file for details.
 
-## Cite MMORE
+## Cite mmore
 
-If you use MMORE in your research, please cite the paper:
+If you use mmore in your research, please cite the paper:
 ```bibtex
 @misc{sallinen2025mmoremassivemultimodalopen,
-      title={MMORE: Massive Multimodal Open RAG & Extraction}, 
+      title={mmore: Massive Multimodal Open RAG & Extraction}, 
       author={Alexandre Sallinen and Stefan Krsteski and Paul Teiletche and Marc-Antoine Allard and Baptiste Lecoeur and Michael Zhang and Fabrice Nemo and David Kalajdzic and Matthias Meyer and Mary-Anne Hartley},
       year={2025},
       eprint={2509.11937},
