@@ -89,7 +89,7 @@ For development, debugging, or manual operations, you can start an interactive s
 The example below assumes a Run:ai-based environment. Replace `<group-id>` with your actual group ID. 
 
 ```bash
-runai submit swissaimmore \
+runai submit mmore \
   --image <image> \
   --node-pool h100 \
   --pvc light-scratch:/lightscratch \
@@ -116,7 +116,7 @@ Replace `<group-id>` with your actual group ID.
 
 ```bash
 runai submit \
-  --name swissaimmore-process \
+  --name mmore-process \
   --image <image> \
   --backoff-limit 0 \
   --pvc light-scratch:/lightscratch \
@@ -137,7 +137,7 @@ Clean and structure the extracted data.
 
 ```bash
 runai submit \
-  --name swissaimmore-postprocess \
+  --name mmore-postprocess \
   --image <image> \
   --backoff-limit 0 \
   --pvc light-scratch:/lightscratch \
@@ -158,7 +158,7 @@ Create searchable vector indexes.
 
 ```bash
 runai submit \
-  --name swissaimmore-index \
+  --name mmore-index \
   --image <image> \
   --backoff-limit 0 \
   --pvc light-scratch:/lightscratch \
@@ -179,7 +179,7 @@ Deploy the retrieval API service.
 
 ```bash
 runai submit \
-  --name swissaimmore-rag \
+  --name mmore-rag \
   --image <image> \
   --backoff-limit 0 \
   --pvc light-scratch:/lightscratch \
