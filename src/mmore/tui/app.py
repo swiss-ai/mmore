@@ -159,7 +159,7 @@ def _run_spec(name: str) -> None:
             return
         kwargs["input_data"] = input_data
 
-    interactive = name in {"ragcli", "retrieve", "rag", "colvision-retrieve"}
+    interactive = name in {"ragcli", "rag", "colvision-retrieve"}
     if interactive:
         spec.run(**kwargs)
     else:

@@ -67,12 +67,6 @@ def _index(
     index(config_file, documents_path, collection_name)
 
 
-def _retrieve(config_file: str, **_):
-    from mmore.run_retriever import run_api
-
-    run_api(config_file, "0.0.0.0", 8001)
-
-
 def _rag(config_file: str, **_):
     from mmore.run_rag import rag
 
@@ -174,19 +168,6 @@ REGISTRY: dict[str, CommandSpec] = {
         config_dataclass=_dc_index,
         required_extras=["index", "cpu"],
         canary_imports=["pymilvus", "sentence_transformers", "torch"],
-    ),
-    "retrieve": CommandSpec(
-        name="retrieve",
-        description="Run retriever API server",
-        example_config="examples/rag/config.yaml",
-        run=_retrieve,
-        config_globs=[
-            "examples/rag/**/*.yaml",
-            "examples/rag/**/*.yml",
-        ],
-        config_dataclass=_dc_rag,
-        required_extras=["rag", "api", "cpu"],
-        canary_imports=["fastapi", "pymilvus", "torch"],
     ),
     "rag": CommandSpec(
         name="rag",

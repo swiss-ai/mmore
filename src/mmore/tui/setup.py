@@ -25,7 +25,6 @@ _STAGE_EXTRAS: dict[str, list[str]] = {
     "index": ["index"],
     "rag": ["rag"],
     "ragcli": ["rag"],
-    "retrieve": ["rag", "api"],
     "websearch": ["websearch"],
     "colvision-process": ["colvision"],
     "colvision-index": ["colvision"],
@@ -59,9 +58,8 @@ _STAGE_ENV_VARS: dict[str, list[tuple[str, str, str]]] = {
     ],
 }
 
-# Aliases: ragcli and retrieve share rag's env vars
+# Aliases: ragcli shares rag's env vars
 _STAGE_ENV_VARS["ragcli"] = _STAGE_ENV_VARS["rag"]
-_STAGE_ENV_VARS["retrieve"] = _STAGE_ENV_VARS["rag"]
 
 # Profiling env vars (always available)
 _PROFILING_VARS: list[tuple[str, str, str]] = [

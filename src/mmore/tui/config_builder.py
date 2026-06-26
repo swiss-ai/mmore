@@ -374,7 +374,6 @@ BUILDERS = {
     "postprocess": build_postprocess_config,
     "index": build_index_config,
     "rag": build_rag_config,
-    "retrieve": build_rag_config,
     "ragcli": build_rag_config,
     "websearch": build_websearch_config,
 }
