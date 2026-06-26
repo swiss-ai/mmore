@@ -110,8 +110,8 @@ class RetrieverQuery(BaseModel):
         default_factory=list,
         description="File IDs to search within (empty = whole collection)",
     )
-    maxMatches: Optional[int] = Field(
-        None, ge=1, description="Max matches to return (defaults to the config's k)"
+    maxMatches: int = Field(
+        ..., ge=1, description="Maximum number of matches to return"
     )
     minSimilarity: Optional[float] = Field(
         -1.0,
@@ -201,7 +201,7 @@ def make_router(config_file: str) -> APIRouter:
         docs_for_query = retriever_obj.invoke(
             query.query,
             document_ids=query.fileIds,
-            k=query.maxMatches or config.k,
+            k=query.maxMatches,
             min_score=query.minSimilarity,
             collection_name=config.collection_name,
         )
