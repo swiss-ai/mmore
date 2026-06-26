@@ -35,6 +35,9 @@ class RetrieverConfig:
     collection_name: str = "my_docs"
     use_web: bool = False
     reranker_model_name: Optional[str] = "BAAI/bge-reranker-base"
+    jobs_per_gpu: int = 1
+    # None below gives by default a queue size of num_gpu * jobs_per_gpu * 10
+    max_queue_size: Optional[int] = None
 
 
 class Retriever(BaseRetriever):
@@ -129,7 +132,11 @@ class Retriever(BaseRetriever):
         partition_names: Optional[List[str]] = None,
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text", "paragraph_positions"],
+        output_fields: List[str] = [
+            "text",
+            "paragraph_positions",
+            "file_path",
+        ],
         search_type: str = "hybrid",  # Options: "dense", "sparse", "hybrid"
         document_ids: List[str] = [],  # Optional: candidate doc IDs to restrict search
     ) -> List[Dict[str, Any]]:
@@ -235,7 +242,11 @@ class Retriever(BaseRetriever):
         partition_names: List[str] = [],
         min_score: float = -1.0,  # -1.0 is the minimum possible score anyway
         k: int = 1,
-        output_fields: List[str] = ["text", "paragraph_positions"],
+        output_fields: List[str] = [
+            "text",
+            "paragraph_positions",
+            "file_path",
+        ],
         search_type: str = "hybrid",
     ) -> List[List[Dict[str, Any]]]:
         """
@@ -357,6 +368,7 @@ class Retriever(BaseRetriever):
                     "paragraph_positions": result["entity"].get(
                         "paragraph_positions", []
                     ),
+                    "file_path": result["entity"].get("file_path", ""),
                 },
             )
 

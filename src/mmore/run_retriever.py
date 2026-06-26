@@ -121,13 +121,18 @@ class RetrieverQuery(BaseModel):
     )
     query: str = Field(..., description="Search query")
 
+
 _ID_PATTERN = re.compile(r'^[^"+]+$')
+
 
 def _chunk_metadata(paragraph_positions) -> Optional[dict]:
     if not paragraph_positions:
         return None
     (fp, fi), (lp, li) = paragraph_positions[0], paragraph_positions[-1]
-    return {"first": {"page": fp, "paragraph": fi}, "last": {"page": lp, "paragraph": li}}
+    return {
+        "first": {"page": fp, "paragraph": fi},
+        "last": {"page": lp, "paragraph": li},
+    }
 
 
 def make_router(config_file: str) -> APIRouter:
@@ -140,14 +145,56 @@ def make_router(config_file: str) -> APIRouter:
     retriever_obj = Retriever.from_config(config)
     logger.info("Retriever loaded!")
 
-    @router.get("/list_files", tags=["Files"])
+    @router.get(
+        "/list_files",
+        tags=["Files"],
+        summary="List files in a collection",
+        responses={
+            200: {
+                "description": "Files currently stored in the collection",
+                "content": {
+                    "application/json": {
+                        "example": [
+                            {"id": "doc1", "filename": "report.pdf"},
+                            {"id": "doc2", "filename": "notes.md"},
+                        ]
+                    }
+                },
+            },
+        },
+    )
     def list_files(
         collection_name: str, limit: int = Query(default=16000, ge=1, le=100000)
     ):
         """List all files currently in the database."""
         return retriever_obj.list_files(collection_name=collection_name, limit=limit)
 
-    @router.post("/v1/retrieve", tags=["Retrieval"])
+    @router.post(
+        "/v1/retrieve",
+        tags=["Retrieval"],
+        summary="Retrieve the most similar chunks for a query",
+        responses={
+            200: {
+                "description": "Matching chunks ordered by similarity",
+                "content": {
+                    "application/json": {
+                        "example": [
+                            {
+                                "fileId": "doc1",
+                                "chunkId": "3",
+                                "content": "the matched passage...",
+                                "similarity": 0.87,
+                                "metadata": {
+                                    "first": {"page": 0, "paragraph": 2},
+                                    "last": {"page": 0, "paragraph": 2},
+                                },
+                            }
+                        ]
+                    }
+                },
+            },
+        },
+    )
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
 
@@ -172,6 +219,7 @@ def make_router(config_file: str) -> APIRouter:
                 {
                     "fileId": fileId,
                     "chunkId": chunkId,
+                    "filePath": meta.get("file_path", ""),
                     "content": doc.page_content,
                     "similarity": meta["similarity"],
                     "metadata": _chunk_metadata(meta.get("paragraph_positions")),
@@ -180,18 +228,46 @@ def make_router(config_file: str) -> APIRouter:
 
         return docs_info
 
-    @router.get("/v1/chunks/{fileId}/{chunkId}", tags=["Retrieval"])
+    @router.get(
+        "/v1/chunks/{fileId}/{chunkId}",
+        tags=["Retrieval"],
+        summary="Fetch a chunk's content and metadata by reference",
+        responses={
+            200: {
+                "description": "Chunk content and positional metadata",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "fileId": "doc1",
+                            "chunkId": "3",
+                            "filename": "report.pdf",
+                            "content": "the chunk text...",
+                            "metadata": {
+                                "first": {"page": 0, "paragraph": 2},
+                                "last": {"page": 1, "paragraph": 0},
+                            },
+                        }
+                    }
+                },
+            },
+            400: {"description": "fileId or chunkId contains a forbidden character ('+' or '\"')"},
+            404: {"description": "Chunk not found for the given file"},
+        },
+    )
     def get_chunk(fileId: str, chunkId: str):
         """Fetch a chunk's content and positional metadata by reference."""
         if not _ID_PATTERN.match(fileId) or not _ID_PATTERN.match(chunkId):
-            raise HTTPException(
-                400, "fileId and chunkId must not contain '+' or '\"'"
-            )
+            raise HTTPException(400, "fileId and chunkId must not contain '+' or '\"'")
         chunk_ref_literal = json.dumps(f"{fileId}+{chunkId}")
         results = retriever_obj.client.query(
             collection_name=config.collection_name,
             filter=f"id in [{chunk_ref_literal}]",
-            output_fields=["text", "paragraph_positions", "filename"],
+            output_fields=[
+                "text",
+                "paragraph_positions",
+                "file_path",
+                "filename",
+            ],
             limit=1,
         )
         if not results:
@@ -201,6 +277,7 @@ def make_router(config_file: str) -> APIRouter:
         return {
             "fileId": fileId,
             "chunkId": chunkId,
+            "filePath": row.get("file_path") or entity.get("file_path", ""),
             "filename": row.get("filename") or entity.get("filename"),
             "content": row.get("text") or entity.get("text", ""),
             "metadata": _chunk_metadata(
