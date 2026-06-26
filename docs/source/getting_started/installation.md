@@ -102,8 +102,14 @@ cd mmore
 
 ### Step 4: Install the project and dependencies
 
+Pick the pipeline you intend to use. The standard pipeline (`[process]`, with text/document extraction) and the ColVision pipeline (`[colvision]`, with vision-based RAG) are **mutually exclusive** — set up a separate venv if you need both.
+
 ```bash
-uv sync
+# Standard pipeline (document processing + text RAG)
+uv sync --extra process --extra rag
+
+# OR ColVision pipeline (vision-based RAG: ColPali, ColQwen2/2.5, ColGemma3, ColSmol)
+uv sync --extra colvision
 ```
 
 For a CPU-only installation, use:
@@ -216,3 +222,4 @@ For a manual non-Docker setup, use either the standard installation or the `uv` 
 - [Quickstart](quickstart.md)
 - [Process](process.md)
 - [uv workflow](../advanced_usage/uv.md)
+- [Running on Windows](windows.md) — what differs on Windows and how to fix it

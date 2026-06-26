@@ -138,6 +138,12 @@ class LLMConfig:
         return {"temperature": self.temperature, max_token_key: self.max_new_tokens}
 
     @property
+    def bind_kwargs(self):
+        if self.provider == "HF":
+            return {"pipeline_kwargs": self.generation_kwargs}
+        return self.generation_kwargs
+
+    @property
     def api_key(self):
         if self.provider:
             LLM._check_key(self.provider)
@@ -171,7 +177,12 @@ class LLM(BaseChatModel):
             )
 
     @classmethod
-    def from_config(cls, config: str | LLMConfig) -> BaseChatModel:
+    def from_config(
+        cls,
+        config: str | LLMConfig,
+        *,
+        hf_return_full_text: bool | None = None,
+    ) -> BaseChatModel:
         if isinstance(config, str):
             config = load_config(config, LLMConfig)
 
@@ -181,13 +192,16 @@ class LLM(BaseChatModel):
                     "torch is required for HuggingFace models. "
                     "Install it with: uv pip install 'mmore[cpu]' or uv pip install 'mmore[cu126]'"
                 )
+            pipeline_kwargs = dict(config.generation_kwargs)
+            if hf_return_full_text is not None:
+                pipeline_kwargs["return_full_text"] = hf_return_full_text
             if torch.backends.mps.is_available():
                 return ChatHuggingFace(
                     llm=HuggingFacePipeline.from_model_id(
                         model_id=config.llm_name,
                         task="text-generation",
                         device_map="mps",
-                        pipeline_kwargs=config.generation_kwargs,
+                        pipeline_kwargs=pipeline_kwargs,
                     )
                 )
             if torch.cuda.is_available():
@@ -201,7 +215,7 @@ class LLM(BaseChatModel):
                     config.llm_name,
                     task="text-generation",
                     device=current_device,
-                    pipeline_kwargs=config.generation_kwargs,
+                    pipeline_kwargs=pipeline_kwargs,
                 )
             )
         else:
