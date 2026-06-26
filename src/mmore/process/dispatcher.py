@@ -11,6 +11,7 @@ from dask.distributed import Client, as_completed
 from tqdm import tqdm
 
 from ..type import MultimodalSample
+from ..ux import init_worker
 from .crawler import DispatcherReadyResult, FileDescriptor, URLDescriptor
 from .execution_state import ExecutionState
 from .processors.base import (
@@ -147,11 +148,17 @@ class _LazyPool:
         self._processes = processes
         self._pool = None
 
-    def map(self, func, iterable):
+    def _ensure_pool(self):
         if self._pool is None:
-            logger.info(f"Initializing shared pool with {self._processes} workers...")
-            self._pool = mp.Pool(processes=self._processes)
-        return self._pool.map(func, iterable)
+            logger.debug(f"Initializing shared pool with {self._processes} workers...")
+            self._pool = mp.Pool(processes=self._processes, initializer=init_worker)
+        return self._pool
+
+    def map(self, func, iterable):
+        return self._ensure_pool().map(func, iterable)
+
+    def imap(self, func, iterable):
+        return self._ensure_pool().imap(func, iterable)
 
     def close(self):
         if self._pool is not None:
@@ -305,7 +312,7 @@ class Dispatcher:
                     ExecutionState.initialize(distributed_mode=True, client=client)
 
                 worker_count = os.cpu_count() or 1
-                task_pool = mp.Pool(processes=worker_count)
+                task_pool = mp.Pool(processes=worker_count, initializer=init_worker)
 
                 try:
                     proc_instance = processor_class(processor_config)
