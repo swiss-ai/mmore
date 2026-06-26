@@ -1,4 +1,5 @@
 import argparse
+import time
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -8,10 +9,17 @@ from mmore.index.indexer import Indexer, IndexerConfig
 from mmore.profiler import enable_profiling_from_env, profile_function
 from mmore.type import MultimodalSample
 from mmore.utils import load_config
-from mmore.ux import quiet_noisy_libs, setup_logging
+from mmore.ux import (
+    model_loading_seconds,
+    quiet_noisy_libs,
+    setup_logging,
+    step_intro,
+    step_summary,
+)
 
+INDEX_NAME = "Index"
 INDEX_EMOJI = "📇"
-logger = setup_logging("INDEX", INDEX_EMOJI)
+logger = setup_logging(INDEX_NAME, INDEX_EMOJI)
 
 load_dotenv()
 
@@ -40,11 +48,28 @@ def index(
 
     documents = MultimodalSample.from_jsonl(documents_path)
 
-    logger.info(f"Indexing {len(documents)} documents into '{collection_name}'")
+    step_intro(
+        INDEX_NAME,
+        INDEX_EMOJI,
+        "Make your documents searchable and store them",
+        [f"{len(documents)} documents", f"collection: {collection_name}"],
+    )
+
+    start = time.time()
+    loading_start = model_loading_seconds()
     Indexer.from_documents(
         config=config.indexer, documents=documents, collection_name=collection_name
     )
-    logger.info(f"Done: {len(documents)} documents indexed into '{collection_name}'")
+    elapsed = time.time() - start - (model_loading_seconds() - loading_start)
+    step_summary(
+        INDEX_NAME,
+        INDEX_EMOJI,
+        elapsed,
+        {
+            "embedding": config.indexer.dense_model.model_name,
+            "throughput": f"{len(documents) / elapsed:.1f} docs/s" if elapsed else "-",
+        },
+    )
 
 
 if __name__ == "__main__":

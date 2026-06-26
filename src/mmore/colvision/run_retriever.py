@@ -12,11 +12,18 @@ from pydantic import BaseModel, Field
 from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..utils import load_config
-from ..ux import progress, quiet_noisy_libs, setup_logging
+from ..ux import (
+    progress,
+    quiet_noisy_libs,
+    setup_logging,
+    step_intro,
+    step_summary,
+)
 from .retriever import ColVisionRetriever, ColVisionRetrieverConfig
 
+RETRIEVER_NAME = "ColVision Retrieve"
 RETRIEVER_EMOJI = "🔍"
-logger = setup_logging("RETRIEVER", RETRIEVER_EMOJI)
+logger = setup_logging(RETRIEVER_NAME, RETRIEVER_EMOJI)
 
 
 def read_queries(input_file: Path) -> List[str]:
@@ -55,13 +62,22 @@ def retrieve(
     config = load_config(config_file, ColVisionRetrieverConfig)
     if model_name_override:
         config.model_name = model_name_override
-        logger.info(f"Model overridden via CLI: {model_name_override}")
+        logger.debug(f"Model overridden via CLI: {model_name_override}")
 
-    logger.info("Loading retriever...")
+    logger.debug("Loading retriever...")
     retriever = ColVisionRetriever.from_config(config)
 
     queries = read_queries(Path(input_file))
-    logger.info(f"Retrieving {len(queries)} queries (top_k={config.top_k})")
+    step_intro(
+        RETRIEVER_NAME,
+        RETRIEVER_EMOJI,
+        "Find the PDF pages that best match each query",
+        [
+            f"{len(queries)} queries",
+            f"top_k: {config.top_k}",
+            f"model: {config.model_name}",
+        ],
+    )
     start_time = time.time()
 
     retrieved_docs_for_all_queries = []
@@ -73,7 +89,12 @@ def retrieve(
 
     time_taken = time.time() - start_time
     save_results(retrieved_docs_for_all_queries, queries, Path(output_file))
-    logger.info(f"Done: {len(queries)} queries retrieved in {time_taken:.1f}s")
+    step_summary(
+        RETRIEVER_NAME,
+        RETRIEVER_EMOJI,
+        time_taken,
+        {"queries": len(queries), "top_k": config.top_k},
+    )
 
 
 class RetrieverQuery(BaseModel):
@@ -94,9 +115,9 @@ def make_router(
     config = load_config(config_file, ColVisionRetrieverConfig)
     if model_name_override:
         config.model_name = model_name_override
-        logger.info(f"Model overridden via CLI: {model_name_override}")
+        logger.debug(f"Model overridden via CLI: {model_name_override}")
 
-    logger.info("Loading retriever...")
+    logger.debug("Loading retriever...")
     retriever_obj = ColVisionRetriever.from_config(config)
 
     @router.post("/v1/retrieve", tags=["Retrieval"])
@@ -129,6 +150,18 @@ def run_api(
 ):
     """Run the ColVision retriever API server."""
     router = make_router(config_file, model_name_override=model_name_override)
+
+    config = load_config(config_file, ColVisionRetrieverConfig)
+    step_intro(
+        RETRIEVER_NAME,
+        RETRIEVER_EMOJI,
+        "Serve PDF-page search over an API",
+        [
+            f"http://{host}:{port}",
+            f"model: {model_name_override or config.model_name}",
+            "endpoint: POST /v1/retrieve",
+        ],
+    )
 
     app = FastAPI(
         title="ColVision Retriever API",

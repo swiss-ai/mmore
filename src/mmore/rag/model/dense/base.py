@@ -8,6 +8,7 @@ from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
+from ....ux import loading_model
 from .multimodal import MultimodalEmbeddings
 
 _OPENAI_MODELS = [
@@ -70,7 +71,9 @@ class DenseModelConfig:
 class DenseModel(Embeddings):
     @classmethod
     def from_config(cls, config: DenseModelConfig) -> Embeddings:
-        if config.organization == "HF" and config.is_multimodal:
-            return MultimodalEmbeddings(model_name=config.model_name)
-        else:
+        if config.organization != "HF":
             return loaders[config.organization](model=config.model_name)
+        with loading_model(f"the embedding model ({config.model_name})"):
+            if config.is_multimodal:
+                return MultimodalEmbeddings(model_name=config.model_name)
+            return loaders["HF"](model=config.model_name)

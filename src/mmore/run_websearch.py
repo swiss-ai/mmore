@@ -52,10 +52,10 @@ def run_websearch(config_file):
     if ws.mode == "local":
         with Spinner("Loading websearch pipeline"):
             pipeline = WebsearchPipeline(config=ws)
-        logger.info("Running Websearch pipeline in LOCAL mode...")
+        logger.debug("Running Websearch pipeline in LOCAL mode...")
         start = time.time()
         pipeline.run()
-        logger.info(f"Completed in {time.time() - start:.2f}s")
+        logger.debug(f"Completed in {time.time() - start:.2f}s")
 
     elif ws.mode == "api":
         logger.info("Starting Websearch pipeline in API mode...")

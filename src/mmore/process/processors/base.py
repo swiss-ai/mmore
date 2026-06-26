@@ -218,10 +218,14 @@ class Processor(ABC):
         with the current file."""
         results = []
         bar = progress(total=len(files_paths), desc=step, unit="file")
+        if files_paths:
+            bar.set_postfix_str(os.path.basename(files_paths[0]))
         for i, res in enumerate(pool.imap(process_func, files_paths)):
-            bar.set_postfix_str(os.path.basename(files_paths[i]))
             results.append(res)
             bar.update(1)
+            # Once all files processed we don't show names next to the progress bars
+            if i + 1 < len(files_paths):
+                bar.set_postfix_str(os.path.basename(files_paths[i + 1]))
         bar.close()
         return results
 

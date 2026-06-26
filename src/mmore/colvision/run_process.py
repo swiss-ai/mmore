@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Sequence, Union
 
-import click
 import fitz
 import pandas as pd
 import torch
@@ -19,11 +18,19 @@ from mmore.profiler import enable_profiling_from_env, profile_function
 
 from ..process.crawler import Crawler, CrawlerConfig
 from ..utils import load_config
-from ..ux import is_verbose, progress, quiet_noisy_libs, setup_logging
+from ..ux import (
+    is_verbose,
+    progress,
+    quiet_noisy_libs,
+    setup_logging,
+    step_intro,
+    step_summary,
+)
 from .model_utils import empty_device_cache, get_device, load_model_and_processor
 
+PROCESS_NAME = "ColVision Process"
 PROCESS_EMOJI = "🚀"
-logger = setup_logging("PROCESS", PROCESS_EMOJI)
+logger = setup_logging(PROCESS_NAME, PROCESS_EMOJI)
 
 if torch.cuda.is_available():
     torch.backends.cuda.enable_mem_efficient_sdp(False)
@@ -233,13 +240,13 @@ def process_pdf_batch(
 @profile_function()
 def run_process(config_file: str, model_name_override: Optional[str] = None):
     quiet_noisy_libs()
-    click.echo(f"Processing configuration file path: {config_file}")
+    logger.debug(f"Processing configuration file path: {config_file}")
     overall_start_time = time.time()
 
     config = load_config(config_file, PDFProcessConfig)
     if model_name_override:
         config.model_name = model_name_override
-        logger.info(f"Model overridden via CLI: {model_name_override}")
+        logger.debug(f"Model overridden via CLI: {model_name_override}")
     output_dir = Path(config.output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -250,11 +257,11 @@ def run_process(config_file: str, model_name_override: Optional[str] = None):
     existing_text_df = None
 
     if config.skip_already_processed and parquet_path.exists():
-        logger.info(f"Skip mode enabled — loading existing {parquet_path}")
+        logger.debug(f"Skip mode enabled — loading existing {parquet_path}")
         try:
             existing_df = pd.read_parquet(parquet_path)
             already_processed_pdfs = set(existing_df["pdf_path"].unique())
-            logger.info(
+            logger.debug(
                 f"Found {len(already_processed_pdfs)} processed PDFs with {len(existing_df)} page records."
             )
         except Exception as e:
@@ -263,20 +270,33 @@ def run_process(config_file: str, model_name_override: Optional[str] = None):
     if config.skip_already_processed and text_parquet_path.exists():
         try:
             existing_text_df = pd.read_parquet(text_parquet_path)
-            logger.info(f"Found {len(existing_text_df)} existing text records.")
+            logger.debug(f"Found {len(existing_text_df)} existing text records.")
         except Exception as e:
             logger.warning(f"Could not read existing text parquet: {e}")
 
     pdf_files = crawl_pdfs(config.data_path)
     pdf_files = [p for p in pdf_files if str(p) not in already_processed_pdfs]
 
-    if not pdf_files:
-        logger.info("No new PDFs to process.")
-        return
-
-    logger.info(
-        f"Processing {len(pdf_files)} PDFs in parallel batches of {config.batch_size} using {config.num_workers} workers..."
+    step_intro(
+        PROCESS_NAME,
+        PROCESS_EMOJI,
+        "Turn each PDF page into a searchable image",
+        [
+            f"{len(pdf_files)} PDFs",
+            f"model: {config.model_name}",
+            f"batch {config.batch_size} x {config.num_workers} workers",
+        ],
     )
+
+    if not pdf_files:
+        logger.warning("No new PDFs to process")
+        step_summary(
+            PROCESS_NAME,
+            PROCESS_EMOJI,
+            time.time() - overall_start_time,
+            {"PDFs": 0, "page records": 0},
+        )
+        return
 
     batches = [
         pdf_files[i : i + config.batch_size]
@@ -307,10 +327,13 @@ def run_process(config_file: str, model_name_override: Optional[str] = None):
             existing_text_df,
         )
     else:
-        logger.info("No new PDFs to process.")
+        logger.warning("No new PDFs to process.")
 
-    logger.info(
-        f"Done: {len(pdf_files)} PDFs in {time.time() - overall_start_time:.1f}s"
+    step_summary(
+        PROCESS_NAME,
+        PROCESS_EMOJI,
+        time.time() - overall_start_time,
+        {"PDFs": len(pdf_files), "page records": len(all_page_records)},
     )
 
 

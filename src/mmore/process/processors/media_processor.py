@@ -12,7 +12,7 @@ from torch._C import device as torch_device
 from transformers.pipelines import pipeline as pipeline_t
 
 from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
-from ...ux import is_verbose, progress
+from ...ux import is_verbose, loading_model, progress
 from .base import Processor, ProcessorConfig
 
 logger = logging.getLogger(__name__)
@@ -65,14 +65,15 @@ class MediaProcessor(Processor):
 
         try:
             MediaProcessor.pipelines = []
-            for device in MediaProcessor.devices:
-                pipe = pipeline_t(
-                    "automatic-speech-recognition",
-                    model=model_name,
-                    device=device,
-                    return_timestamps=True,
-                )
-                MediaProcessor.pipelines.append(pipe)
+            with loading_model(f"the speech-to-text model ({model_name})"):
+                for device in MediaProcessor.devices:
+                    pipe = pipeline_t(
+                        "automatic-speech-recognition",
+                        model=model_name,
+                        device=device,
+                        return_timestamps=True,
+                    )
+                    MediaProcessor.pipelines.append(pipe)
         except Exception as e:
             logger.error(f"Error loading models: {e}")
             MediaProcessor.pipelines = []

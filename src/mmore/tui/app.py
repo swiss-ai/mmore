@@ -20,12 +20,12 @@ from mmore.tui.theme import (
     ACCENT,
     ACCENT2,
     MUTED,
-    OK,
     QMARK,
     QSTYLE,
     console,
     run_step,
     section,
+    select,
     show_banner,
 )
 
@@ -110,9 +110,11 @@ def _select_and_run(specs, display_name, prompt: str) -> None:
     maps a spec to its menu label text."""
     choices = []
     enabled_count = 0
+    displays = {spec.name: display_name(spec) for spec in specs}
+    width = max(len(d) for d in displays.values())
     for spec in specs:
         hint = check_stage_available(spec)
-        label = f"{display_name(spec):<14} — {spec.description}"
+        label = f"{displays[spec.name]:<{width}} — {spec.description}"
         if hint:
             choices.append(
                 questionary.Choice(
@@ -132,7 +134,7 @@ def _select_and_run(specs, display_name, prompt: str) -> None:
             console.print(notice)
         return
 
-    name = questionary.select(prompt, choices=choices, style=QSTYLE, qmark=QMARK).ask()
+    name = select(prompt, choices, answer_labels=displays)
     if name is not None:
         _run_spec(name)
 
@@ -157,20 +159,12 @@ def _run_spec(name: str) -> None:
             return
         kwargs["input_data"] = input_data
 
-    console.print()
-    console.print(
-        section(
-            f"Running {name}",
-            Text(f"config: {config_file}", style=MUTED),
-            style=ACCENT2,
-        )
-    )
     interactive = name in {"ragcli", "retrieve", "rag", "colvision-retrieve"}
     if interactive:
         spec.run(**kwargs)
     else:
         run_step(spec.description, spec.run, **kwargs)
-    console.print(f"[{OK}]✓ {name} finished[/]")
+    console.print()
 
 
 def _run_single_command() -> None:
@@ -190,8 +184,6 @@ def _run_colvision_menu() -> None:
 
 def _chat_only() -> None:
     config_file = pick_or_build_config(REGISTRY["ragcli"])
-    console.print()
-    console.print(section("RAG chat", Text(f"config: {config_file}", style=MUTED)))
     REGISTRY["ragcli"].run(config_file=config_file)
 
 
@@ -277,11 +269,11 @@ def _main_menu() -> str | None:
         disabled="missing extras" if colvision_hint else None,
     )
 
-    return questionary.select(
+    return select(
         "What do you want to do?",
         choices=[
             questionary.Separator("Default pipeline (text-based) ──"),
-            questionary.Choice("⚙  Run a single command", value="single"),
+            questionary.Choice("🟢 Run a single command", value="single"),
             pipeline_choice,
             wizard_choice,
             chat_choice,
@@ -292,9 +284,7 @@ def _main_menu() -> str | None:
             questionary.Choice("🔧 Setup (install dependencies)", value="setup"),
             questionary.Choice("✕  Quit", value="quit"),
         ],
-        style=QSTYLE,
-        qmark=QMARK,
-    ).ask()
+    )
 
 
 def run() -> None:
@@ -329,7 +319,7 @@ def run() -> None:
 
                 run_setup_wizard()
         except (UserCancelledError, KeyboardInterrupt):
-            console.print(f"[{ACCENT2}]cancelled — back to menu.[/]")
+            console.print("[white]cancelled — back to menu.[/]")
             continue
         except Exception as e:  # noqa: BLE001
             console.print(f"[bold red]error:[/] {e}")

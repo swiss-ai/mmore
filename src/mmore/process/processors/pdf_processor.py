@@ -15,7 +15,7 @@ from marker.output import text_from_rendered
 from PIL import Image, UnidentifiedImageError
 
 from ...type import DocumentMetadata, FileDescriptor, MultimodalSample
-from ...ux import progress
+from ...ux import is_verbose, loading_model, progress
 from ..utils import clean_image, clean_text
 from .base import Processor, ProcessorConfig
 
@@ -48,7 +48,8 @@ class PDFProcessor(Processor):
     @staticmethod
     def load_models(disable_image_extraction: bool = False):
         if PDFProcessor.artifact_dict is None:
-            PDFProcessor.artifact_dict = create_model_dict()
+            with loading_model("the PDF reading model"):
+                PDFProcessor.artifact_dict = create_model_dict()
 
         marker_config = {
             "disable_image_extraction": disable_image_extraction,
@@ -56,6 +57,7 @@ class PDFProcessor(Processor):
             "use_llm": False,
             "disable_multiprocessing": False,
             "paginate_output": True,
+            "disable_tqdm": not is_verbose(),
         }
         config_parser = ConfigParser(marker_config)
         converter = PdfConverter(
@@ -321,6 +323,7 @@ class PDFProcessor(Processor):
                 "use_llm": False,
                 "disable_multiprocessing": False,
                 "device": f"cuda:{gpu_id}",
+                "disable_tqdm": not is_verbose(),
             }
 
             config_parser = ConfigParser(marker_config)

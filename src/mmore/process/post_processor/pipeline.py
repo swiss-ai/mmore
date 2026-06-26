@@ -63,7 +63,7 @@ class PPPipeline:
     def _log_plan(self) -> None:
         n = len(self.post_processors)
         steps = " > ".join(p.name for p in self.post_processors)
-        logger.info(f"Pipeline ({n} step{'s' if n != 1 else ''}): {steps}")
+        logger.debug(f"Pipeline ({n} step{'s' if n != 1 else ''}): {steps}")
 
     @classmethod
     def from_config(cls, config: PPPipelineConfig):
@@ -96,6 +96,7 @@ class PPPipeline:
 
     def _run_full(self, samples: List[MultimodalSample]) -> List[MultimodalSample]:
         """Run all processors on all samples."""
+        input_number = len(samples)
         output_dir = os.path.dirname(self.output_config.output_path) or "."
         for i, processor in enumerate(self.post_processors):
             tmp_save_path = None
@@ -116,7 +117,9 @@ class PPPipeline:
 
         out_path = jsonl_path(self.output_config.output_path)
         save_samples(samples, out_path)
-        logger.info(f"Done: {len(samples)} samples saved to {out_path}")
+        logger.debug(
+            f"Done: {input_number} docs -> {len(samples)} samples saved to {out_path}"
+        )
         return samples
 
     def _run_incremental(
@@ -150,7 +153,7 @@ class PPPipeline:
                 reusable_file_paths.add(fp)
 
         n_deleted = len(set(previous.keys()) - set(index.keys()))
-        logger.info(
+        logger.debug(
             f"Post-process pipeline: {len(reusable_file_paths)} reused, "
             f"{len(to_process_file_paths)} to process, {n_deleted} deleted"
         )
@@ -164,7 +167,7 @@ class PPPipeline:
             merged_samples = merge_results(reused, [], current_file_paths)
             out_path = jsonl_path(self.output_config.output_path)
             save_samples(merged_samples, out_path)
-            logger.info(f"Done: {len(merged_samples)} samples saved to {out_path}")
+            logger.debug(f"Done: {len(merged_samples)} samples saved to {out_path}")
             return merged_samples
 
         # Collect samples to process
@@ -193,5 +196,5 @@ class PPPipeline:
         merged_samples = merge_results(reused, processed, current_file_paths)
         out_path = jsonl_path(self.output_config.output_path)
         save_samples(merged_samples, out_path)
-        logger.info(f"Done: {len(merged_samples)} samples saved to {out_path}")
+        logger.debug(f"Done: {len(merged_samples)} samples saved to {out_path}")
         return merged_samples
