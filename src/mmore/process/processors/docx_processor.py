@@ -65,7 +65,7 @@ class DOCXProcessor(Processor):
         all_images = []
 
         def _convert_image(image: m_Image) -> Dict[str, Any]:
-            if not self.config.custom_config.get("extract_images", False):
+            if not self.config.extract_images:
                 return {"src": ""}
 
             content_type = cast(Optional[str], image.content_type)

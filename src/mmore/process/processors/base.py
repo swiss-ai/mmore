@@ -23,15 +23,18 @@ class ProcessorConfig:
 
     Attributes:
         attachment_tag (str): Tag used for attachments (default: "<attachment>") - This is what we use for Multimodal Meditron.
+        extract_images (bool): Whether processors should extract embedded images.
         custom_config (Dict[str, Any]): Dictionary of custom configurations.
     """
 
     def __init__(
         self,
         attachement_tag: str = "<attachment>",
+        extract_images: bool = False,
         custom_config: Dict[str, Any] = {},
     ):
         self.attachment_tag = attachement_tag
+        self.extract_images = extract_images
         self.custom_config = custom_config
         self.custom_config["attachment_tag"] = attachement_tag
 

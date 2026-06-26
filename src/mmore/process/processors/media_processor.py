@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import threading
 from typing import List
 
 import numpy as np
@@ -29,9 +30,36 @@ class MediaProcessor(Processor):
 
     devices = _get_available_devices()
     pipelines = []
+    # One pipeline per device, so several GPUs can transcribe in parallel
+    pipelines_by_device: dict = {}
+    _load_lock = threading.Lock()
 
     def __init__(self, config=None):
         super().__init__(config=config or ProcessorConfig())
+
+    def _device_pipeline(self, device: str, fast_mode: bool = False):
+        # Here fast_mode is not used in the cache indexing key as it won't
+        # change across runs once defined in the configuration files
+        cached = MediaProcessor.pipelines_by_device.get(device)
+        if cached is not None:
+            return cached
+
+        with MediaProcessor._load_lock:
+            if device not in MediaProcessor.pipelines_by_device:
+                model_name = (
+                    self.config.custom_config.get("fast_model", "openai/whisper-tiny")
+                    if fast_mode
+                    else self.config.custom_config.get(
+                        "normal_model", "openai/whisper-large-v3-turbo"
+                    )
+                )
+                MediaProcessor.pipelines_by_device[device] = pipeline_t(
+                    "automatic-speech-recognition",
+                    model=model_name,
+                    device=torch_device(device),
+                    return_timestamps=True,
+                )
+            return MediaProcessor.pipelines_by_device[device]
 
     @classmethod
     def accepts(cls, file: FileDescriptor) -> bool:
@@ -81,6 +109,17 @@ class MediaProcessor(Processor):
     def process_batch(
         self, files_paths: List[str], fast_mode: bool = False, num_workers: int = 1
     ) -> List[MultimodalSample]:
+        device = self.config.custom_config.get("device")
+        if device is not None:
+            pipe = self._device_pipeline(device, fast_mode)
+            results = []
+            for file in files_paths:
+                try:
+                    results.append(self._process_file(file, pipe, fast_mode))
+                except Exception as e:
+                    logger.error(f"Error processing {file}: {e}")
+            return results
+
         if not self.pipelines:
             self.load_models(fast_mode=fast_mode)
 
@@ -104,7 +143,7 @@ class MediaProcessor(Processor):
 
     def _process_file(self, file_path, pipeline, fast_mode):
         all_text = self._extract_text(file_path, pipeline, fast_mode)
-        if self.config.custom_config.get("extract_images", True):
+        if self.config.extract_images:
             images = self._extract_images(file_path)
         else:
             images = []
@@ -121,11 +160,7 @@ class MediaProcessor(Processor):
 
         pipeline = self.pipelines[0]
         all_text = self._extract_text(file_path, pipeline, fast_mode=fast)
-        images = (
-            self._extract_images(file_path)
-            if self.config.custom_config.get("extract_images", True)
-            else []
-        )
+        images = self._extract_images(file_path) if self.config.extract_images else []
         return self.create_sample(
             [all_text], images, DocumentMetadata(file_path=file_path)
         )
