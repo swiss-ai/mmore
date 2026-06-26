@@ -8,11 +8,12 @@ import logging
 from typing import List
 
 from ..schema import Paper
+from .base import SourceAdapter
 
 logger = logging.getLogger(__name__)
 
 
-class GoogleScholarAdapter:
+class GoogleScholarAdapter(SourceAdapter):
     name = "google_scholar"
 
     def __init__(

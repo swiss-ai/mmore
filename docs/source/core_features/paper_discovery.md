@@ -20,12 +20,12 @@ pip install "mmore[paper_discovery]"
 
 For optional Google Scholar support (captcha-prone, best-effort):
 
-<!-- ```bash
+```bash
 pip install scholarly
 ```
 
 `scholarly` is **not** in the `paper_discovery` extra by design — it is
-captcha-prone. Install only if needed. -->
+captcha-prone. Install only if needed.
 
 ## Supported sources
 
@@ -34,7 +34,7 @@ captcha-prone. Install only if needed. -->
 | OpenAlex       | none | ~1 req/s; inverted-index abstracts are rebuilt automatically |
 | Europe PMC     | none | ~1 req/s; uses `resultType=core` |
 | arXiv          | none | **1 req / 3 s** (strict, ToS); query is simplified to top terms; 30 s back-off on 429 |
-<!-- | Google Scholar | none | Opt-in (`scholarly`), captcha-prone, best-effort | -->
+| Google Scholar | none | Opt-in (`scholarly`), captcha-prone, best-effort |
 
 ## 🔁 Workflow
 
@@ -66,6 +66,10 @@ rate limiting, retries, and PDF fetching live.
    "synonyms": ["humanitarian aid", "disaster response"]}
 ]
 ```
+
+Lookup of `word` from your `categories` config is **case-insensitive** —
+`"Foundation model"`, `"foundation model"` and `"FOUNDATION MODEL"` all
+match the same entry. Whitespace must still match exactly.
 
 ### 2. Create a config file
 
@@ -117,8 +121,24 @@ Fields are **nullable on purpose** — sources differ in what they return.
 | `pdf_dir` | `./pdf_cache` | Reused across runs (see *PDF caching* below) |
 | `force_redownload` | `false` | Set `true` to ignore the on-disk cache and re-fetch every PDF |
 | `pdf_proxy_prefix` | `null` | Optional EZproxy prefix for institutional access (see *Paywalled PDFs* below) |
-| `user_agent` | `mmore-paper-discovery/1.0` | Be polite — customize per app |
-| `arxiv_category_map` | `null` | Maps category-name substrings to arXiv category codes (e.g. `cs.LG`) |
+| `user_agent` | `mmore-paper-discovery/1.0 …` | HTTP `User-Agent` header sent on every outbound request — see below |
+| `arxiv_category_map` | `null` | Maps a substring of your category title to an arXiv code (e.g. `Foundational` → `cs.LG`) — adds `cat:<code>` to the arXiv query |
+
+### `user_agent`
+
+The string set here is sent as the `User-Agent` HTTP header on every
+request the pipeline makes — to OpenAlex, Europe PMC, arXiv, and to
+publisher PDF endpoints. The default identifies mmore + the repo URL.
+
+You should override it with a string that identifies your caller honestly
+so rate-limiters / abuse desks can reach you. A concrete example:
+
+```yaml
+user_agent: "my-lab-pipeline/1.0 (mailto:alice@example.com)"
+```
+
+OpenAlex in particular routes UAs containing a contact address into a
+faster, more reliable pool.
 
 ## 💾 PDF caching
 
@@ -171,11 +191,20 @@ download_pdfs: false
 The pipeline still collects metadata + abstracts; only the `extracted_text`
 field is left empty.
 
-### User-managed `user_agent`
+### Why we don't spoof the User-Agent
 
-You may set your own `user_agent` if you have a specific reason to (e.g. you
-operate a registered crawler with the publisher). That is your responsibility,
-not the library's default.
+A common workaround for publisher 403s is to set the `User-Agent` to a
+browser string (Chrome, Firefox, …). mmore does **not** do that by
+default for two reasons:
+
+1. It violates most publishers' terms of service.
+2. A baked-in spoofed UA gets the **library's** default identifier
+   blocklisted on first abuse — for every downstream user.
+
+If you have a specific arrangement with a publisher (e.g. a registered
+crawler agreement), you can set `user_agent` to whatever they require.
+That's an opt-in you take responsibility for — not a default the library
+ships.
 
 ## 🐍 Programmatic use
 

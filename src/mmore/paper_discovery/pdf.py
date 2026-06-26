@@ -142,7 +142,7 @@ def _find_pdf_link(html: str, base: str) -> Optional[str]:
 
 
 def extract_text(pdf_path: str) -> str:
-    """Extract text from a PDF using PyMuPDF (already in the `process` extra)."""
+    """Extract text from a PDF using PyMuPDF."""
     try:
         import fitz  # PyMuPDF
     except ImportError:

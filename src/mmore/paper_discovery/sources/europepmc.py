@@ -5,6 +5,7 @@ from typing import List, Optional
 import requests
 
 from ..schema import Paper
+from .base import SourceAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ API_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 RATE_LIMIT_SECONDS = 1.0
 
 
-class EuropePmcAdapter:
+class EuropePmcAdapter(SourceAdapter):
     name = "europepmc"
 
     def __init__(

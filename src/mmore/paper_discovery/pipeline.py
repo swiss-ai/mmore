@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Iterable, List
+from typing import List
 
 from .boolean import build_boolean_queries, load_synonyms
 from .config import PaperDiscoveryConfig
@@ -34,10 +34,26 @@ logger = logging.getLogger(__name__)
 
 
 class PaperDiscoveryPipeline:
+    """End-to-end Paper Discovery orchestrator.
+
+    Drives the two pipeline stages off a single `PaperDiscoveryConfig`:
+      1. Stage 1 (offline): build boolean queries from synonyms + categories.
+      2. Stage 2 (online): fetch papers from each registered source, dedupe,
+         and optionally download + extract text from PDFs.
+
+    Results are written to `config.output_file` and also returned. Ctrl+C
+    during stage 2 writes a partial `papers.json` before exiting.
+    """
+
     def __init__(self, config: PaperDiscoveryConfig):
         self.config = config
 
     def run(self) -> List[Paper]:
+        """Run the full pipeline and return the deduplicated `Paper` list.
+
+        Side effect: writes `papers.json` to `config.output_file`. Safe to
+        interrupt with Ctrl+C — partial results are saved.
+        """
         cfg = self.config
         synonyms = load_synonyms(cfg.synonyms_path)
         queries = build_boolean_queries(synonyms, cfg.categories)
@@ -88,9 +104,8 @@ class PaperDiscoveryPipeline:
             out.extend(papers)
         return out
 
-    def _enrich_with_pdf_text(self, papers: Iterable[Paper]) -> None:
+    def _enrich_with_pdf_text(self, papers: List[Paper]) -> None:
         cfg = self.config
-        papers = list(papers)
         cached = succeeded = paywalled = errored = skipped = 0
         bar = tqdm(papers, desc="PDFs", unit="paper")
         for paper in bar:

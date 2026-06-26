@@ -17,7 +17,15 @@ class PaperDiscoveryConfig:
       pdf_dir:           Directory under which downloaded PDFs are cached.
       max_pages:         Max paginated requests per source per query.
       max_results:       Hard cap on results returned per source per query.
-      user_agent:        HTTP User-Agent string for polite requests.
+      user_agent:        HTTP `User-Agent` header sent on every outbound
+                         request to source APIs (OpenAlex, Europe PMC,
+                         arXiv) and to publisher PDF endpoints. "Polite"
+                         here means a string that identifies the caller
+                         honestly so rate-limiters / abuse desks can
+                         contact you - e.g.
+                         `"my-lab-pipeline/1.0 (mailto:alice@example.com)"`.
+                         OpenAlex in particular routes UAs with a contact
+                         address into a faster, more reliable pool.
       pdf_proxy_prefix:  Optional EZproxy-style prefix that wraps every PDF
                          URL for institutional access (e.g.
                          "https://login.proxy.epfl.ch"). Leave None to fetch

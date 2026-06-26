@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 import requests
 
 from ..schema import Paper
+from .base import SourceAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ API_URL = "https://api.openalex.org/works"
 RATE_LIMIT_SECONDS = 1.0
 
 
-class OpenAlexAdapter:
+class OpenAlexAdapter(SourceAdapter):
     name = "openalex"
 
     def __init__(

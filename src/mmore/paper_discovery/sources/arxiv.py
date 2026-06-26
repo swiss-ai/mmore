@@ -15,6 +15,7 @@ from typing import Dict, List, Optional
 import requests
 
 from ..schema import Paper
+from .base import SourceAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ NS = {"atom": "http://www.w3.org/2005/Atom"}
 STOPWORDS = {"or", "and", "the", "for", "with", "data", "of", "in", "on", "to"}
 
 
-class ArxivAdapter:
+class ArxivAdapter(SourceAdapter):
     name = "arxiv"
 
     def __init__(

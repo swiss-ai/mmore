@@ -1,6 +1,6 @@
 """Stage 1: build boolean queries from a synonym table + category map.
 
-Offline, deterministic - no netowrk calls.
+Offline, deterministic - no network calls.
 """
 
 import json
@@ -17,8 +17,25 @@ logger = logging.getLogger(__name__)
 def load_synonyms(path: Union[str, Path]) -> List[SynonymEntry]:
     """Load synonyms from a JSON file.
 
-    Expected format:
-        [{"word": "Foundation model", "synonyms": ["LLM", "GPT", ...]}]
+    Args:
+      path: JSON file containing a list of objects. Each object must have a
+            `word` (or `WORD`) key, plus a `synonyms` (or
+            `SYNONYMS AND NEAR SYNONYMS`) key holding either:
+              - a list of strings, or
+              - a single string with terms separated by `,` or `;`.
+
+            Example:
+                [
+                  {"word": "Foundation model",
+                   "synonyms": ["LLM", "large language model", "GPT"]},
+                  {"word": "Crisis response",
+                   "synonyms": "humanitarian aid; disaster response"}
+                ]
+
+    Returns:
+      List of `SynonymEntry`, one per row (rows missing `word` are skipped).
+      Term whitespace is stripped; case is preserved on the stored value but
+      lookups in `build_boolean_queries` are case-insensitive.
     """
 
     data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -47,15 +64,32 @@ def build_boolean_queries(
     categories: Dict[str, List[str]],
 ) -> List[CategoryQuery]:
     """Compose category-level AND-of-OR-groups boolean queries.
-    Missing keys are logged and skipped - never fail the whole run."""
 
-    by_word = {e.word: e for e in synonyms}
+    Args:
+      synonyms:   Output of `load_synonyms` - the dictionary of canonical
+                  words and their synonyms.
+      categories: Mapping `{category_name -> [word, ...]}`. The list values
+                  are canonical `word`s that MUST appear as `SynonymEntry.word`
+                  in `synonyms` (lookup is case-insensitive, whitespace
+                  preserved). Example:
+                      {
+                        "Humanitarian AI": ["Foundation model",
+                                            "Crisis response"]
+                      }
+
+    Returns:
+      One `CategoryQuery` per category that resolved to at least one
+      synonym group. Categories whose words all reference unknown
+      `word`s are logged and skipped - the full run never fails.
+    """
+
+    by_word = {e.word.lower(): e for e in synonyms}
     queries: List[CategoryQuery] = []
 
     for cat_name, words in categories.items():
         groups: List[str] = []
         for w in words:
-            entry = by_word.get(w)
+            entry = by_word.get(w.lower())
             if entry is None:
                 logger.warning(
                     "Category %r references unknown word %r - skipping",
