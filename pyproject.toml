@@ -145,6 +145,18 @@ privacy = [
     "mmore[llm]",
     "langgraph>=1.0",
     "langgraph-checkpoint-sqlite>=2.0",
+    "gliner",
+    "presidio-analyzer",
+    "presidio-anonymizer",
+    "spacy",
+    "dspy>=2.6",
+    "psutil>=5.9",
+]
+
+privacy-openai-filter = [
+    "mmore[privacy]",
+    "transformers>=5.6",
+    "peft>=0.18",
 ]
 
 # --- Composite + variant extras ---
@@ -188,6 +200,21 @@ conflicts = [
   ],
   [
     { extra = "all" },
+    { extra = "colvision" },
+  ],
+  [
+    # privacy-openai-filter needs transformers>=5 but has conflicts with
+    # marker-pdf in `process`/`all` (transformers<5)
+    { extra = "privacy-openai-filter" },
+    { extra = "process" },
+  ],
+  [
+    { extra = "privacy-openai-filter" },
+    { extra = "all" },
+  ],
+  [
+    # different versions of transformers
+    { extra = "privacy-openai-filter" },
     { extra = "colvision" },
   ],
 ]
