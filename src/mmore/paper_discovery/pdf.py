@@ -142,16 +142,30 @@ def _find_pdf_link(html: str, base: str) -> Optional[str]:
 
 
 def extract_text(pdf_path: str) -> str:
-    """Extract text from a PDF using PyMuPDF."""
+    """Extract text from a PDF using mmore's unified `PDFProcessor` (fast path).
+
+    Uses `PDFProcessor.process_fast`, which is the PyMuPDF-backed path -
+    no marker/surya models are loaded. Imports are lazy so that
+    `paper_discovery` modules stay cheap to import when PDF extraction
+    is not used.
+    """
     try:
-        import fitz  # PyMuPDF
-    except ImportError:
-        logger.error("PyMuPDF not installed — install `mmore[paper_discovery]`")
+        from ..process.processors.base import ProcessorConfig
+        from ..process.processors.pdf_processor import PDFProcessor
+    except ImportError as e:
+        logger.error(
+            "mmore.process not installed - install `mmore[paper_discovery]` "
+            "(which depends on `mmore[process]`) to enable PDF extraction. (%s)",
+            e,
+        )
         return ""
 
     try:
-        with fitz.open(pdf_path) as doc:
-            return "\n".join(page.get_text() for page in doc)
+        processor = PDFProcessor(
+            ProcessorConfig(custom_config={"extract_images": False})
+        )
+        sample = processor.process_fast(pdf_path)
+        return sample.text or ""
     except Exception as e:
         logger.warning("extract_text failed for %s: %s", pdf_path, e)
         return ""

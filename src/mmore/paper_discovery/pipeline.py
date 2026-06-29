@@ -5,8 +5,11 @@ import logging
 from pathlib import Path
 from typing import List
 
+import yaml
+from dacite import from_dict
+
 from .boolean import build_boolean_queries, load_synonyms
-from .config import PaperDiscoveryConfig
+from .config import CategoriesFile, PaperDiscoveryConfig
 from .pdf import download_pdf, expected_pdf_path, extract_text
 from .schema import CategoryQuery, Paper
 from .sources import get_adapter
@@ -56,7 +59,8 @@ class PaperDiscoveryPipeline:
         """
         cfg = self.config
         synonyms = load_synonyms(cfg.synonyms_path)
-        queries = build_boolean_queries(synonyms, cfg.categories)
+        categories = _load_categories(cfg.categories_path)
+        queries = build_boolean_queries(synonyms, categories)
         logger.info("Built %d category queries", len(queries))
 
         all_papers: List[Paper] = []
@@ -87,16 +91,17 @@ class PaperDiscoveryPipeline:
         cfg = self.config
         out: List[Paper] = []
         for src_name in cfg.sources:
+            extra: dict = {}
+            if src_name == "arxiv":
+                if cfg.arxiv_category_map:
+                    extra["category_map"] = cfg.arxiv_category_map
+                extra["enable_pair_query"] = cfg.arxiv_enable_pair_query
             adapter = get_adapter(
                 src_name,
                 user_agent=cfg.user_agent,
                 max_pages=cfg.max_pages,
                 max_results=cfg.max_results,
-                **(
-                    {"category_map": cfg.arxiv_category_map}
-                    if src_name == "arxiv" and cfg.arxiv_category_map
-                    else {}
-                ),
+                **extra,
             )
             logger.info("Searching %s for %r", src_name, query.combination_title)
             papers = adapter.search(query.boolean_combination, query.combination_title)
@@ -173,6 +178,18 @@ class PaperDiscoveryPipeline:
         data = [p.to_dict() for p in papers]
         out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         logger.info("Wrote %d papers to %s", len(papers), out_path)
+
+
+def _load_categories(path: str) -> dict:
+    """Load `categories.yaml` via the `CategoriesFile` dataclass.
+
+    The YAML file must hold a top-level `categories` key whose value is
+    a mapping `{category_name -> [word, ...]}`. The dataclass wrapper
+    gives us schema validation for free.
+    """
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    return from_dict(CategoriesFile, data).categories
 
 
 def _dedupe(papers: List[Paper]) -> List[Paper]:

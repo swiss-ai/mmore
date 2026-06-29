@@ -58,24 +58,46 @@ rate limiting, retries, and PDF fetching live.
 
 ### 1. Prepare your synonym table
 
-```json
-[
-  {"word": "Foundation model",
-   "synonyms": ["LLM", "large language model", "GPT"]},
-  {"word": "Humanitarian & Crisis Response",
-   "synonyms": ["humanitarian aid", "disaster response"]}
-]
+A **JSONL** file with one `{"word": ..., "synonyms": [...]}` object per
+line. Easy to diff, append, and edit line-by-line:
+
+```jsonl
+{"word": "Foundation model", "synonyms": ["LLM.venv", "large language model", "GPT"]}
+{"word": "Humanitarian & Crisis Response", "synonyms": ["humanitarian aid", "disaster response"]}
 ```
 
-Lookup of `word` from your `categories` config is **case-insensitive** —
+Lookup of `word` from your categories file is **case-insensitive** —
 `"Foundation model"`, `"foundation model"` and `"FOUNDATION MODEL"` all
-match the same entry. Whitespace must still match exactly.
+match the same entry. Whitespace must still match exactly. Embedded `"`
+characters are stripped at load time so they can't break the generated
+boolean query.
 
-### 2. Create a config file
+### 2. Define your categories
+
+Categories live in their own YAML file, loaded via a small `CategoriesFile`
+dataclass:
+
+```yaml
+# categories.yaml
+categories:
+  Broad Foundational Search:
+    - Foundation model
+    - Machine Learning
+  Humanitarian AI Search:
+    - Foundation model
+    - Humanitarian & Crisis Response
+```
+
+Each list value must reference a canonical `word` from your synonyms
+file. The pipeline composes one boolean query per category by taking the
+AND of OR-groups built from each word's synonyms.
+
+### 3. Create a config file
 
 See [`examples/paper_discovery/config.yaml`](https://github.com/swiss-ai/mmore/blob/master/examples/paper_discovery/config.yaml).
+It points at your `synonyms_path` and `categories_path`.
 
-### 3. Run the pipeline
+### 4. Run the pipeline
 
 ```bash
 python3 -m mmore paper-discovery --config-file examples/paper_discovery/config.yaml
@@ -114,6 +136,8 @@ Fields are **nullable on purpose** — sources differ in what they return.
 
 | Knob | Default | Notes |
 |------|---------|-------|
+| `synonyms_path` | *(required)* | Path to `.json` or `.jsonl` synonyms file |
+| `categories_path` | *(required)* | Path to `categories.yaml` (see step 2) |
 | `sources` | `[openalex, europepmc, arxiv]` | Add `google_scholar` to opt in |
 | `download_pdfs` | `true` | Set `false` to skip the PDF stage entirely |
 | `max_pages` | `3` | Pages per source per query |
@@ -123,6 +147,7 @@ Fields are **nullable on purpose** — sources differ in what they return.
 | `pdf_proxy_prefix` | `null` | Optional EZproxy prefix for institutional access (see *Paywalled PDFs* below) |
 | `user_agent` | `mmore-paper-discovery/1.0 …` | HTTP `User-Agent` header sent on every outbound request — see below |
 | `arxiv_category_map` | `null` | Maps a substring of your category title to an arXiv code (e.g. `Foundational` → `cs.LG`) — adds `cat:<code>` to the arXiv query |
+| `arxiv_enable_pair_query` | `true` | If `true`, adds one extra `all:"X" AND all:"Y"` query per category targeting the top-two simplified terms. Set `false` to save one 3-second round-trip per category. |
 
 ### `user_agent`
 
@@ -191,6 +216,14 @@ download_pdfs: false
 The pipeline still collects metadata + abstracts; only the `extracted_text`
 field is left empty.
 
+## 📄 PDF text extraction
+
+Extraction routes through `mmore.process.PDFProcessor` (fast path) so
+text comes out the same way as for the rest of mmore. The fast path is
+PyMuPDF-backed — no marker / surya models are loaded — but the import
+chain still requires `mmore[process]`, which is pulled in automatically
+by `mmore[paper_discovery]`.
+
 ### Why we don't spoof the User-Agent
 
 A common workaround for publisher 403s is to set the `User-Agent` to a
@@ -225,7 +258,7 @@ Or compose Stage 1 alone (no network) for testing:
 from mmore.paper_discovery import build_boolean_queries
 from mmore.paper_discovery.boolean import load_synonyms
 
-synonyms = load_synonyms("examples/paper_discovery/synonyms.json")
+synonyms = load_synonyms("examples/paper_discovery/synonyms.jsonl")
 queries = build_boolean_queries(synonyms, {"My Category": ["Foundation model"]})
 for q in queries:
     print(q.combination_title, "->", q.boolean_combination)

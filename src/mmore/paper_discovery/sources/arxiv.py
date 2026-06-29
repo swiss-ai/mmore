@@ -25,6 +25,11 @@ BACKOFF_SECONDS = 30.0  # Cooldown after a 429 — arXiv recovers quickly with s
 REQUEST_TIMEOUT = 60  # arXiv cold queries often take 30-45s.
 NS = {"atom": "http://www.w3.org/2005/Atom"}
 
+# arXiv's query language degrades quickly past a small number of quoted
+# phrases, and the 3-second rate limit makes every extra query expensive.
+# Four is a manual balance between recall and total time per category.
+MAX_SIMPLIFIED_TERMS = 4
+
 # Words to drop when extracting key terms from a boolean string.
 STOPWORDS = {"or", "and", "the", "for", "with", "data", "of", "in", "on", "to"}
 
@@ -38,11 +43,13 @@ class ArxivAdapter(SourceAdapter):
         max_pages: int = 2,
         max_results: int = 50,
         category_map: Optional[Dict[str, str]] = None,
+        enable_pair_query: bool = True,
     ):
         self.headers = {"User-Agent": user_agent}
         self.max_pages = max_pages
         self.max_results = max_results
         self.category_map = category_map or {}
+        self.enable_pair_query = enable_pair_query
 
     def search(self, query: str, category_title: str) -> List[Paper]:
         terms = _extract_terms(query)
@@ -50,7 +57,11 @@ class ArxivAdapter(SourceAdapter):
             logger.info("arXiv: no usable terms from query, skipping")
             return []
 
-        simplified = _build_simplified_queries(terms, top_n=4)
+        simplified = _build_simplified_queries(
+            terms,
+            top_n=MAX_SIMPLIFIED_TERMS,
+            enable_pair=self.enable_pair_query,
+        )
         cat_code = self._cat_code_for(category_title)
         if cat_code:
             simplified.append(f"cat:{cat_code}")
@@ -111,10 +122,27 @@ def _extract_terms(boolean_query: str) -> List[str]:
     return [t for t in quoted if t.lower() not in STOPWORDS]
 
 
-def _build_simplified_queries(terms: List[str], top_n: int = 4) -> List[str]:
+def _build_simplified_queries(
+    terms: List[str],
+    top_n: int = MAX_SIMPLIFIED_TERMS,
+    enable_pair: bool = True,
+) -> List[str]:
+    """Turn a list of terms into per-term standalone arXiv queries.
+
+    Every term in `chosen` (= `terms[:top_n]`) gets its own
+    `all:"<term>"` standalone query.
+
+    When `enable_pair=True` (the default), one extra targeted query is
+    appended that ANDs the top two terms: `all:"chosen[0]" AND
+    all:"chosen[1]"`. The intent is to bias toward results that contain
+    both lead concepts without doing combinatorial `O(n^2)` pair
+    queries (which would blow past the 3-second rate limit).
+
+    Set `enable_pair=False` to suppress this single extra query.
+    """
     chosen = terms[:top_n]
     queries = [f'all:"{t}"' for t in chosen]
-    if len(chosen) >= 2:
+    if enable_pair and len(chosen) >= 2:
         queries.append(f'all:"{chosen[0]}" AND all:"{chosen[1]}"')
     return queries
 

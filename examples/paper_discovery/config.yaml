@@ -1,4 +1,11 @@
-synonyms_path: examples/paper_discovery/synonyms.json
+# Synonyms file - JSONL, one {"word": ..., "synonyms": [...]} object per line.
+synonyms_path: examples/paper_discovery/synonyms.jsonl
+
+# Categories live in their own YAML, loaded via the `CategoriesFile`
+# dataclass. Keeps PaperDiscoveryConfig flat and lets you swap category
+# sets without touching the rest of the pipeline config.
+categories_path: examples/paper_discovery/categories.yaml
+
 output_file: examples/paper_discovery/papers.json
 pdf_dir: examples/paper_discovery/pdf_cache
 
@@ -26,19 +33,17 @@ force_redownload: false
 # routes UAs with a contact address into a faster pool.
 user_agent: "mmore-paper-discovery/1.0 (https://github.com/swiss-ai/mmore)"
 
-categories:
-  Broad Foundational Search:
-    - Foundation model
-    - Machine Learning
-  Humanitarian AI Search:
-    - Foundation model
-    - Humanitarian & Crisis Response
-
 # Custom labels for arXiv category codes. Each key is a substring matched
-# (case-insensitive) against the human-readable category title above; the
-# value is the arXiv category code injected into the arXiv query as
+# (case-insensitive) against the human-readable category title; the value
+# is the arXiv category code injected into the arXiv query as
 # `cat:<code>`. Categories without a match here just don't get a `cat:`
 # clause - the search still runs.
 arxiv_category_map:
   Foundational: cs.LG
   Humanitarian: cs.CY
+
+# When true (default), the arXiv adapter adds one extra targeted query
+# that ANDs the top two simplified terms (`all:"X" AND all:"Y"`) on top
+# of the standalone per-term queries. Set false to skip - saves one
+# 3-second round-trip per category.
+arxiv_enable_pair_query: true

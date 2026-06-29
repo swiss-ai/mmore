@@ -14,48 +14,63 @@ from .schema import CategoryQuery, SynonymEntry
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_term(term: str) -> str:
+    """Drop characters that would break a quoted boolean term.
+
+    Source APIs (arXiv, OpenAlex, Europe PMC) interpret `"..."` as a
+    literal phrase, so an embedded `"` inside the term closes the
+    phrase early and produces malformed queries. We just strip them.
+    Whitespace is normalized too.
+    """
+    return re.sub(r"\s+", " ", term.replace('"', "")).strip()
+
+
 def load_synonyms(path: Union[str, Path]) -> List[SynonymEntry]:
-    """Load synonyms from a JSON file.
+    """Load synonyms from a JSONL file (one object per line).
 
     Args:
-      path: JSON file containing a list of objects. Each object must have a
-            `word` (or `WORD`) key, plus a `synonyms` (or
+      path: Path to a `.jsonl` file. Each non-empty line must be a JSON
+            object with a `word` (or `WORD`) key, plus a `synonyms` (or
             `SYNONYMS AND NEAR SYNONYMS`) key holding either:
               - a list of strings, or
               - a single string with terms separated by `,` or `;`.
 
             Example:
-                [
-                  {"word": "Foundation model",
-                   "synonyms": ["LLM", "large language model", "GPT"]},
-                  {"word": "Crisis response",
-                   "synonyms": "humanitarian aid; disaster response"}
-                ]
+                {"word": "Foundation model", "synonyms": ["LLM", "GPT"]}
+                {"word": "Crisis response", "synonyms": ["humanitarian aid"]}
 
     Returns:
-      List of `SynonymEntry`, one per row (rows missing `word` are skipped).
-      Term whitespace is stripped; case is preserved on the stored value but
-      lookups in `build_boolean_queries` are case-insensitive.
+      List of `SynonymEntry`, one per row (rows missing `word` are
+      skipped). Term whitespace is normalized and `"` characters are
+      stripped; case is preserved on the stored value but lookups in
+      `build_boolean_queries` are case-insensitive.
     """
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    rows = [json.loads(line) for line in text.splitlines() if line.strip()]
 
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    entries = []
-    for row in data:
+    entries: List[SynonymEntry] = []
+    for row in rows:
         word = row.get("word") or row.get("WORD")
         raw = row.get("synonyms") or row.get("SYNONYMS AND NEAR SYNONYMS") or ""
         if isinstance(raw, str):
-            synonyms = [s.strip() for s in re.split(r"[,;]", raw) if s.strip()]
+            synonyms_raw = [s.strip() for s in re.split(r"[,;]", raw) if s.strip()]
         else:
-            synonyms = [s.strip() for s in raw if s and s.strip()]
-        if word:
-            entries.append(SynonymEntry(word=word.strip(), synonyms=synonyms))
+            synonyms_raw = [s.strip() for s in raw if s and s.strip()]
+
+        clean_synonyms = [t for t in (_sanitize_term(s) for s in synonyms_raw) if t]
+        clean_word = _sanitize_term(word) if word else ""
+        if clean_word:
+            entries.append(SynonymEntry(word=clean_word, synonyms=clean_synonyms))
     return entries
 
 
 def _or_group(entry: SynonymEntry) -> str:
     """Turn a SynonymEntry into an OR-group of quoted strings."""
     terms = {entry.word, *entry.synonyms}
-    quoted = sorted(f'"{t}"' for t in terms if t)
+    # `load_synonyms` already sanitizes, but apply again here so direct
+    # callers that build SynonymEntry by hand stay safe.
+    quoted = sorted(f'"{_sanitize_term(t)}"' for t in terms if _sanitize_term(t))
     return "(" + " OR ".join(quoted) + ")"
 
 
@@ -68,10 +83,10 @@ def build_boolean_queries(
     Args:
       synonyms:   Output of `load_synonyms` - the dictionary of canonical
                   words and their synonyms.
-      categories: Mapping `{category_name -> [word, ...]}`. The list values
-                  are canonical `word`s that MUST appear as `SynonymEntry.word`
-                  in `synonyms` (lookup is case-insensitive, whitespace
-                  preserved). Example:
+      categories: Mapping `{category_name -> [word, ...]}`. The list
+                  values are canonical `word`s that MUST appear as
+                  `SynonymEntry.word` in `synonyms` (lookup is
+                  case-insensitive, whitespace preserved). Example:
                       {
                         "Humanitarian AI": ["Foundation model",
                                             "Crisis response"]

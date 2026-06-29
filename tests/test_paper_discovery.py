@@ -2,7 +2,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mmore.paper_discovery.boolean import build_boolean_queries
+from mmore.paper_discovery.boolean import (
+    _sanitize_term,
+    build_boolean_queries,
+    load_synonyms,
+)
 from mmore.paper_discovery.schema import Paper, SynonymEntry
 from mmore.paper_discovery.sources.arxiv import (
     _build_simplified_queries,
@@ -111,6 +115,47 @@ class TestArxivSimplification:
         assert 'all:"LLM"' in queries
         assert 'all:"GPT"' in queries
         assert any("AND" in q for q in queries)
+
+    def test_build_simplified_pair_disabled(self):
+        queries = _build_simplified_queries(
+            ["LLM", "GPT", "BERT"], top_n=4, enable_pair=False
+        )
+        assert 'all:"LLM"' in queries
+        assert not any("AND" in q for q in queries)
+
+
+# ---------------------------------------------------------------------------
+# Synonym loading: JSONL / quote sanitization
+# ---------------------------------------------------------------------------
+
+
+class TestLoadSynonyms:
+    def test_loads_jsonl_line_per_object(self, tmp_path):
+        f = tmp_path / "syns.jsonl"
+        f.write_text(
+            '{"word": "LLM", "synonyms": ["GPT"]}\n'
+            '{"word": "Crisis", "synonyms": ["disaster response"]}\n'
+        )
+        entries = load_synonyms(f)
+        assert [e.word for e in entries] == ["LLM", "Crisis"]
+        assert entries[1].synonyms == ["disaster response"]
+
+    def test_jsonl_skips_blank_lines(self, tmp_path):
+        f = tmp_path / "syns.jsonl"
+        f.write_text(
+            '{"word": "LLM", "synonyms": ["GPT"]}\n'
+            "\n"
+            "   \n"
+            '{"word": "Crisis", "synonyms": ["disaster"]}\n'
+        )
+        entries = load_synonyms(f)
+        assert [e.word for e in entries] == ["LLM", "Crisis"]
+
+    def test_sanitize_strips_embedded_double_quote(self):
+        # The reviewer's concern: `"` inside a term would close the quoted
+        # phrase early and produce a malformed boolean query.
+        assert _sanitize_term('bad"term') == "badterm"
+        assert _sanitize_term('  many   spaces  "x" ') == "many spaces x"
 
 
 # ---------------------------------------------------------------------------
