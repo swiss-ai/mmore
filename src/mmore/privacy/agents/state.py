@@ -1,27 +1,20 @@
 """Shared state for the privacy pipeline graph.
 
 A single ``StateGraph(PrivacyState)`` flows through analyzer -> detector ->
-sanitizer -> leakage_adversary -> HITL gate. Each agent contributes a node
-that reads what it needs and writes its output back.
+sanitizer -> adversary -> HITL gate -> answer model -> verifier -> report.
+Each agent contributes a node that reads what it needs and writes its
+output back.
 """
 
-from enum import Enum
 from typing import List, Optional
 
 from ..detection.base import PIISpan
 from ..leakage import EscalationRecord, LeakageVerdict
 from ..policy import PrivacyPolicy
+from ..report import PreCloudOutcome, ReportRecord
 from ..risk import RiskAssessment
+from ..verification import VerifierVerdict
 from .base import NodeOutput
-
-
-class PreCloudOutcome(str, Enum):
-    """Outcome of a request at the pre-cloud trust boundary."""
-
-    APPROVED = "approved"
-    RE_LOOPED = "re-looped"
-    ABORTED = "aborted"  # leak loop exhausted
-    REJECTED = "rejected"
 
 
 class PrivacyState(NodeOutput, total=False):
@@ -51,3 +44,18 @@ class PrivacyState(NodeOutput, total=False):
     approved: Optional[bool]
     outcome: Optional[PreCloudOutcome]
     human_feedback: Optional[str]
+
+    # Request metadata for the report
+    request_id: str
+    timestamp: str
+
+    # Post-cloud answer model
+    answer: str
+    answer_backend: Optional[str]  # backend: API provider or local
+    answer_model: Optional[str]
+
+    # Post-cloud advisory verifier
+    verifier_verdict: Optional[VerifierVerdict]
+
+    # Final append-only report records
+    report: List[ReportRecord]

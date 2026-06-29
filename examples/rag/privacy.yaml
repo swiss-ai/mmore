@@ -1,0 +1,28 @@
+# Privacy config
+domain: null
+interactive: true  # HITL
+context_analyzer:
+  llm:
+    llm_name: Qwen/Qwen2.5-3B-Instruct
+detection:
+  engine: null  # presidio | gliner | llm | openai_filter
+  confidence_threshold: 0.7
+  entity_types: []
+sanitization:
+  strategy: null   # token_masking | entity_replacement | synthetic_rewrite | presidio
+  consistency: true
+leakage_adversary:
+  max_iterations: 3
+  leakage_threshold: 0.9
+  # strategies: [...]. # defaults to all attack vectors
+  llm:
+    llm_name: Qwen/Qwen2.5-3B-Instruct
+answer:  # CloudLLMConfig: any LLMConfig backend
+  llm:
+    llm_name: Qwen/Qwen2.5-3B-Instruct
+  # system_prompt: ...  # optional
+verifier:
+  checks: [residual_leakage, faithfulness]
+  warn_threshold: 0.5
+  llm:
+    llm_name: Qwen/Qwen2.5-3B-Instruct

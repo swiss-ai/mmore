@@ -4,7 +4,7 @@ When the leakage adversary flags the sanitized context, the loop re-enters the
 Detector and Sanitizer under a stricter policy. Returns a new and stricter
 PrivacyPolicy plus a short label of what changed."""
 
-from dataclasses import replace
+from dataclasses import asdict, replace
 from typing import Callable, List, Optional, Tuple
 
 from .config import DetectionEngineType, SanitizationStrategyType
@@ -72,9 +72,24 @@ def _lower_threshold(policy: PrivacyPolicy) -> Tuple[PrivacyPolicy, str]:
     return replace(policy, detection_params=params), "lower_threshold"
 
 
+def _engine_default_params(engine: str) -> dict:
+    """Default detection params for ``engine`` as a plain dict."""
+    from .detection.constants import DETECTION_DEFAULT_PARAMS
+
+    defaults = DETECTION_DEFAULT_PARAMS.get(engine)
+    return asdict(defaults) if defaults is not None else {}
+
+
 def _switch_detection_engine(policy: PrivacyPolicy) -> Tuple[PrivacyPolicy, str]:
     nxt = _next_in_ladder(_ENGINE_LADDER, policy.detection_engine, cap=False)
-    return replace(policy, detection_engine=nxt), f"switch_engine_to_{nxt}"
+    params = _engine_default_params(nxt)
+    threshold = policy.detection_params.get("confidence_threshold")
+    if threshold is not None:
+        params["confidence_threshold"] = threshold
+    return (
+        replace(policy, detection_engine=nxt, detection_params=params),
+        f"switch_engine_to_{nxt}",
+    )
 
 
 def _stricter_sanitization(policy: PrivacyPolicy) -> Tuple[PrivacyPolicy, str]:
