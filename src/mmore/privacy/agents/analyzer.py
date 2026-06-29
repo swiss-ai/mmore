@@ -29,7 +29,7 @@ from ..detection.constants import (
     THRESHOLD_LEVELS,
 )
 from ..domains.profile import DOMAIN_PROFILES, get_domain_profile
-from ..dspy_llm import build_dspy_lm
+from ..dspy_llm import TolerantJSONAdapter, build_dspy_lm
 from ..escalation import apply_entity_guidance, escalate_policy
 from ..leakage import EscalationRecord
 from ..policy import PrivacyPolicy
@@ -431,7 +431,7 @@ class ContextPolicyAnalyzerAgent(BaseAgent):
         self._ensure_dspy_lm()
         predictor = _build_label_expansion_predictor()
         try:
-            with dspy.context(lm=self._dspy_lm, adapter=dspy.JSONAdapter()):
+            with dspy.context(lm=self._dspy_lm, adapter=TolerantJSONAdapter()):
                 prediction = predictor(
                     query=query,
                     context="\n\n".join(chunks),
@@ -459,7 +459,7 @@ class ContextPolicyAnalyzerAgent(BaseAgent):
         self._ensure_dspy_lm()
         predictor = _build_leak_label_expansion_predictor()
         try:
-            with dspy.context(lm=self._dspy_lm, adapter=dspy.JSONAdapter()):
+            with dspy.context(lm=self._dspy_lm, adapter=TolerantJSONAdapter()):
                 prediction = predictor(
                     query=state.get("query", ""),
                     context="\n\n".join(state.get("raw_chunks", [])),
@@ -487,7 +487,7 @@ class ContextPolicyAnalyzerAgent(BaseAgent):
         self._ensure_dspy_lm()
         predictor = _build_feedback_label_expansion_predictor()
         try:
-            with dspy.context(lm=self._dspy_lm, adapter=dspy.JSONAdapter()):
+            with dspy.context(lm=self._dspy_lm, adapter=TolerantJSONAdapter()):
                 prediction = predictor(
                     query=state.get("query", ""),
                     context="\n\n".join(state.get("raw_chunks", [])),
