@@ -97,7 +97,7 @@ result = evaluator(
 )
 ```
 
-- See [`examples/rag/evaluation`](https://github.com/swiss-ai/mmore/blob/master/examples/rag/evaluation) for a simple example.
+- See [`examples/rag/evaluation`](https://github.com/EPFLiGHT/mmore/blob/master/examples/rag/evaluation) for a simple example.
 ```{warning}
 Create a separate database file for each evaluation dataset.
 

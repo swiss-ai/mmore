@@ -141,11 +141,20 @@ def _find_pdf_link(html: str, base: str) -> Optional[str]:
     return None
 
 
-def extract_text(pdf_path: str) -> str:
-    """Extract text from a PDF using mmore's unified `PDFProcessor` (fast path).
+def extract_text(pdf_path: str, mode: str = "fast") -> str:
+    """Extract text from a PDF using mmore's unified `PDFProcessor`.
 
-    Uses `PDFProcessor.process_fast`, which is the PyMuPDF-backed path -
-    no marker/surya models are loaded. Imports are lazy so that
+    Args:
+      pdf_path: Local path to the PDF.
+      mode:     Which PDFProcessor path to invoke.
+                  - "fast" (default): `process_fast`, the PyMuPDF-backed
+                    path. No marker/surya models are loaded.
+                  - "full": `process`, the full marker + surya pipeline
+                    used by `mmore process`. Better layout handling on
+                    complex PDFs; downloads model weights on first use.
+
+    Both modes go through the same `PDFProcessor` class so behaviour
+    stays consistent with the rest of mmore. Imports are lazy so that
     `paper_discovery` modules stay cheap to import when PDF extraction
     is not used.
     """
@@ -160,11 +169,19 @@ def extract_text(pdf_path: str) -> str:
         )
         return ""
 
+    if mode not in {"fast", "full"}:
+        logger.warning("Unknown pdf_extractor mode %r; falling back to 'fast'", mode)
+        mode = "fast"
+
     try:
         processor = PDFProcessor(
             ProcessorConfig(custom_config={"extract_images": False})
         )
-        sample = processor.process_fast(pdf_path)
+        sample = (
+            processor.process(pdf_path)
+            if mode == "full"
+            else processor.process_fast(pdf_path)
+        )
         return sample.text or ""
     except Exception as e:
         logger.warning("extract_text failed for %s: %s", pdf_path, e)

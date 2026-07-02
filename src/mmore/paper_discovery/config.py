@@ -64,6 +64,18 @@ class PaperDiscoveryConfig:
                                the top two simplified terms. Set False
                                to skip it (saves one round-trip per
                                category).
+      pdf_extractor:           Which `mmore.process.PDFProcessor` path
+                               to use when extracting text. Two values:
+                                 - "fast" (default): PyMuPDF-backed
+                                   `process_fast` - no marker/surya
+                                   models loaded. Good enough for most
+                                   papers.
+                                 - "full": the full marker + surya
+                                   pipeline used by `mmore process`.
+                                   Better layout handling on complex
+                                   PDFs; downloads model weights on
+                                   first use and wants a GPU to be
+                                   fast.
       force_redownload:        If True, ignore the on-disk PDF cache.
     """
 
@@ -77,8 +89,9 @@ class PaperDiscoveryConfig:
     pdf_dir: str = "./pdf_cache"
     max_pages: int = 3
     max_results: int = 50
-    user_agent: str = "mmore-paper-discovery/1.0 (https://github.com/swiss-ai/mmore)"
+    user_agent: str = "mmore-paper-discovery/1.0 (https://github.com/EPFLiGHT/mmore)"
     arxiv_category_map: Optional[Dict[str, str]] = None
     arxiv_enable_pair_query: bool = True
+    pdf_extractor: str = "fast"
     pdf_proxy_prefix: Optional[str] = None
     force_redownload: bool = False

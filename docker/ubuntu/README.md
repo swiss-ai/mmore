@@ -6,8 +6,8 @@ Based on `ubuntu:22.04` (CPU) or `nvidia/cuda:12.6.3-base-ubuntu22.04` (GPU).
 
 > **Pre-built images:** CPU and GPU images are automatically built and published to GHCR on every push to `master` via the CI workflow. Each image is a multi-platform manifest covering `linux/amd64` and `linux/arm64`. Pull them directly with:
 > ```bash
-> docker pull ghcr.io/swiss-ai/mmore:edge-gpu
-> docker pull ghcr.io/swiss-ai/mmore:edge-cpu
+> docker pull ghcr.io/EPFLiGHT/mmore:edge-gpu
+> docker pull ghcr.io/EPFLiGHT/mmore:edge-cpu
 > ```
 
 ## Build

@@ -59,7 +59,7 @@ Use this method if you want to work from the GitHub repository, modify the code,
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/swiss-ai/mmore
+git clone https://github.com/EPFLiGHT/mmore
 cd mmore
 ```
 
@@ -96,7 +96,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### Step 3: Clone the repository
 
 ```bash
-git clone https://github.com/swiss-ai/mmore
+git clone https://github.com/EPFLiGHT/mmore
 cd mmore
 ```
 

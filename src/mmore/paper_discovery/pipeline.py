@@ -125,7 +125,9 @@ class PaperDiscoveryPipeline:
             if not cfg.force_redownload:
                 cached_path = expected_pdf_path(paper.url, cfg.pdf_dir)
                 if cached_path.exists():
-                    paper.extracted_text = extract_text(str(cached_path)) or None
+                    paper.extracted_text = (
+                        extract_text(str(cached_path), mode=cfg.pdf_extractor) or None
+                    )
                     cached += 1
                     succeeded += 1
                     bar.set_postfix(
@@ -140,7 +142,9 @@ class PaperDiscoveryPipeline:
                 proxy_prefix=cfg.pdf_proxy_prefix,
             )
             if result.path:
-                paper.extracted_text = extract_text(result.path) or None
+                paper.extracted_text = (
+                    extract_text(result.path, mode=cfg.pdf_extractor) or None
+                )
                 succeeded += 1
             elif result.paywalled:
                 paywalled += 1
