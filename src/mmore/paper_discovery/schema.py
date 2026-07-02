@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
+
+if TYPE_CHECKING:
+    from ..type import MultimodalSample
 
 SourceName = Literal["arxiv", "openalex", "europepmc", "google_scholar"]
 
@@ -42,6 +45,48 @@ class Paper:
             "source": self.source,
             "search_category": self.search_category,
         }
+
+    def to_multimodal_sample(self, pdf_path: str = "") -> "MultimodalSample":
+        """Convert this Paper into a `mmore.type.MultimodalSample`.
+
+        The result plugs directly into mmore's downstream pipelines
+        (post-process -> index -> rag) so a Paper Discovery run does
+        not need a second pass through `mmore process`.
+
+        - `text` uses the extracted PDF body if available, otherwise
+          the abstract, otherwise the title.
+        - `metadata.file_path` points at the cached PDF when known.
+        - Paper-specific fields (title, authors, year, source, url,
+          search_category, abstract) live under `metadata.extra` so
+          they survive the JSONL round-trip.
+        """
+        # Local import - mmore.type is core, but keeping the schema
+        # module free of heavy imports at load time is still cheaper.
+        from ..type import DocumentMetadata, MultimodalSample
+
+        body = self.extracted_text or self.abstract or self.title or ""
+        extra = {
+            k: v
+            for k, v in {
+                "title": self.title,
+                "authors": self.authors,
+                "year": self.year,
+                "source": self.source,
+                "url": self.url,
+                "search_category": self.search_category,
+                "abstract": self.abstract,
+            }.items()
+            if v is not None
+        }
+        return MultimodalSample(
+            text=body,
+            modalities=[],
+            metadata=DocumentMetadata(
+                file_path=pdf_path,
+                processor_type="paper_discovery",
+                extra=extra,
+            ),
+        )
 
 
 @dataclass

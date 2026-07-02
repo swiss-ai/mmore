@@ -177,11 +177,44 @@ class PaperDiscoveryPipeline:
             )
 
     def _write_output(self, papers: List[Paper]) -> None:
-        out_path = Path(self.config.output_file)
+        cfg = self.config
+        out_path = Path(cfg.output_file)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         data = [p.to_dict() for p in papers]
         out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         logger.info("Wrote %d papers to %s", len(papers), out_path)
+
+        if cfg.multimodal_output_file:
+            self._write_multimodal_jsonl(papers, cfg.multimodal_output_file)
+
+    def _write_multimodal_jsonl(self, papers: List[Paper], path: str) -> None:
+        """Also emit results as JSONL of `MultimodalSample`.
+
+        Feeds directly into mmore post-process / index / rag without a
+        second processing pass.
+        """
+        from ..type import MultimodalSample
+
+        out_path = Path(path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        # Overwrite - `to_jsonl` appends by design, so start clean.
+        if out_path.exists():
+            out_path.unlink()
+
+        samples = [
+            p.to_multimodal_sample(
+                pdf_path=str(expected_pdf_path(p.url, self.config.pdf_dir))
+                if p.url and p.extracted_text
+                else "",
+            )
+            for p in papers
+        ]
+        MultimodalSample.to_jsonl(str(out_path), samples)
+        logger.info(
+            "Wrote %d MultimodalSample records to %s (mmore-native shape)",
+            len(samples),
+            out_path,
+        )
 
 
 def _load_categories(path: str) -> dict:

@@ -128,6 +128,7 @@ Fields are **nullable on purpose** — sources differ in what they return. `null
 | `pdf_dir` | `./pdf_cache` | Reused across runs (see *PDF caching* below) |
 | `force_redownload` | `false` | Set `true` to ignore the on-disk cache and re-fetch every PDF |
 | `pdf_extractor` | `"fast"` | Which mmore PDF processor to use. `"fast"` = PyMuPDF-backed, no models loaded. `"full"` = marker + surya for better parsing (slow, downloads models) |
+| `multimodal_output_file` | `null` | If set, also write a JSONL of `MultimodalSample` records that mmore's post-process / index / RAG pipelines can consume directly (see [Feeding results into mmore's index / RAG](#-feeding-results-into-mmores-index--rag)) |
 | `pdf_proxy_prefix` | `null` | Optional EZproxy prefix for institutional access (see *Paywalled PDFs* below) |
 | `user_agent` | `mmore-paper-discovery/1.0 …` | HTTP `User-Agent` header sent on every outbound request — see below |
 | `arxiv_category_map` | `null` | Maps a substring of your category title to an arXiv code (e.g. `Foundational` → `cs.LG`) — adds `cat:<code>` to the arXiv query |
@@ -200,6 +201,23 @@ A common workaround for publisher 403s is to set the `User-Agent` to a browser s
 2. A baked-in spoofed UA gets the **library's** default identifier blocklisted on first abuse — for every downstream user.
 
 If you have a specific arrangement with a publisher (e.g. a registered crawler agreement), you can set `user_agent` to whatever they require. That's an opt-in you take responsibility for — not a default the library ships.
+
+## 🔌 Feeding results into mmore's index / RAG
+
+If you plan to index the discovered papers or run RAG over them, you don't need to send them back through `mmore process`. Ask the pipeline to write an extra output file in mmore's canonical `MultimodalSample` shape:
+
+```yaml
+multimodal_output_file: examples/paper_discovery/papers.samples.jsonl
+```
+
+Every paper is converted to a `MultimodalSample`:
+
+- **`text`** — the extracted PDF body if we downloaded it, otherwise the abstract, otherwise the title.
+- **`metadata.file_path`** — points at the cached PDF when we have one.
+- **`metadata.processor_type`** — always `"paper_discovery"`, so downstream filters can recognise the source.
+- **`metadata.extra`** — carries the paper-specific fields (title, authors, year, source, url, search_category, abstract).
+
+The resulting JSONL is a drop-in input for the post-process, index, and RAG pipelines. `papers.json` is still written the same way for anyone who was already consuming it.
 
 ## 🐍 Programmatic use
 

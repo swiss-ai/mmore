@@ -77,6 +77,15 @@ class PaperDiscoveryConfig:
                                    first use and wants a GPU to be
                                    fast.
       force_redownload:        If True, ignore the on-disk PDF cache.
+      multimodal_output_file:  Optional path. If set, in addition to
+                               the plain `papers.json`, the pipeline
+                               also writes a JSONL of
+                               `MultimodalSample` records (mmore's
+                               canonical processed-document shape).
+                               That file plugs directly into
+                               `mmore process` post-processing,
+                               `mmore index`, and the RAG pipeline
+                               with no re-processing needed.
     """
 
     synonyms_path: str
@@ -95,3 +104,4 @@ class PaperDiscoveryConfig:
     pdf_extractor: str = "fast"
     pdf_proxy_prefix: Optional[str] = None
     force_redownload: bool = False
+    multimodal_output_file: Optional[str] = None

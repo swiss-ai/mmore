@@ -185,5 +185,42 @@ class TestPaperSchema:
         assert p.year is None
 
 
+class TestPaperToMultimodalSample:
+    def test_text_prefers_extracted_over_abstract(self):
+        p = Paper(title="T", abstract="abs", extracted_text="full")
+        s = p.to_multimodal_sample()
+        assert s.text == "full"
+
+    def test_text_falls_back_to_abstract_then_title(self):
+        assert Paper(abstract="abs", title="T").to_multimodal_sample().text == "abs"
+        assert Paper(title="T").to_multimodal_sample().text == "T"
+        assert Paper().to_multimodal_sample().text == ""
+
+    def test_metadata_carries_paper_fields(self):
+        p = Paper(
+            title="A Paper",
+            authors="Ada Lovelace",
+            url="http://x/p.pdf",
+            abstract="abs",
+            year=2024,
+            source="arxiv",
+            search_category="Cat",
+        )
+        s = p.to_multimodal_sample(pdf_path="/tmp/p.pdf")
+        assert s.metadata.file_path == "/tmp/p.pdf"
+        assert s.metadata.processor_type == "paper_discovery"
+        assert s.metadata.extra["title"] == "A Paper"
+        assert s.metadata.extra["source"] == "arxiv"
+        assert s.metadata.extra["search_category"] == "Cat"
+        assert s.metadata.extra["year"] == 2024
+
+    def test_none_fields_dropped_from_extra(self):
+        p = Paper(title="T", source="arxiv")  # authors, url, year, ... = None
+        s = p.to_multimodal_sample()
+        assert "authors" not in s.metadata.extra
+        assert "year" not in s.metadata.extra
+        assert s.metadata.extra["title"] == "T"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
