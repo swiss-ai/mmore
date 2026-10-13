@@ -21,6 +21,7 @@ from conftest import (
 )
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from langchain_core.embeddings import DeterministicFakeEmbedding
 from pymilvus import MilvusClient
 
 from mmore.index.indexer import Indexer
@@ -36,6 +37,11 @@ from mmore.type import DocumentMetadata, MultimodalSample
 
 _COLLECTION = "my_docs"
 _OTHER_COLLECTION = "other_col"
+# Indexed with other models than _COLLECTION, the dense one with another dimension
+_HETERO_COLLECTION = "hetero_col"
+_HETERO_DENSE = DenseModelConfig(model_name="fake-dense-8")
+_HETERO_SPARSE = SparseModelConfig(model_name="fake-sparse-other")
+_HETERO_DIM = 8
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +68,18 @@ def db_path(tmp_path_factory):
         indexer.index_documents(CHUNKED_SAMPLE_DOCS, collection_name=_COLLECTION)
         indexer.index_documents(
             OTHER_CHUNKED_SAMPLE_DOCS, collection_name=_OTHER_COLLECTION
+        )
+        with patch(
+            "mmore.index.indexer.DenseModel.from_config",
+            return_value=DeterministicFakeEmbedding(size=_HETERO_DIM),
+        ):
+            hetero_indexer = Indexer(
+                dense_model_config=_HETERO_DENSE,
+                sparse_model_config=_HETERO_SPARSE,
+                client=client,
+            )
+        hetero_indexer.index_documents(
+            OTHER_CHUNKED_SAMPLE_DOCS, collection_name=_HETERO_COLLECTION
         )
     return path
 
@@ -236,6 +254,56 @@ def test_retrieve_in_other_collection(client):
     response = client.post("/v1/retrieve", json=payload)
     assert response.status_code == 200
     assert {r["fileId"] for r in response.json()} == set(OTHER_CHUNKED_CORPUS)
+
+
+def test_retrieve_in_collection_with_same_models_loads_none(client):
+    payload = {
+        "fileIds": [],
+        "maxMatches": 10,
+        "minSimilarity": -1.0,
+        "query": "capital",
+        "collectionName": _OTHER_COLLECTION,
+    }
+    with (
+        patch("mmore.rag.retriever.DenseModel.from_config") as dense_from_config,
+        patch("mmore.rag.retriever.SparseModel.from_config") as sparse_from_config,
+    ):
+        response = client.post("/v1/retrieve", json=payload)
+
+    assert response.status_code == 200
+    # Same models as the configured collection: retriever is reused
+    dense_from_config.assert_not_called()
+    sparse_from_config.assert_not_called()
+
+
+def test_retrieve_in_collection_with_other_models(client):
+    payload = {
+        "fileIds": [],
+        "maxMatches": 10,
+        "minSimilarity": -1.0,
+        "query": "capital",
+        "collectionName": _HETERO_COLLECTION,
+    }
+    with (
+        patch(
+            "mmore.rag.retriever.DenseModel.from_config",
+            return_value=DeterministicFakeEmbedding(size=_HETERO_DIM),
+        ) as dense_from_config,
+        patch(
+            "mmore.rag.retriever.SparseModel.from_config",
+            return_value=FakeSparseEmbedding(),
+        ) as sparse_from_config,
+    ):
+        # The configured dense model embeds in another dimension, so the
+        # search only succeeds with the collection's own models
+        for _ in range(2):
+            response = client.post("/v1/retrieve", json=payload)
+            assert response.status_code == 200
+            assert {r["fileId"] for r in response.json()} == set(OTHER_CHUNKED_CORPUS)
+
+    # Models read from the collection's index metadata, loaded once and cached
+    dense_from_config.assert_called_once_with(_HETERO_DENSE)
+    sparse_from_config.assert_called_once_with(_HETERO_SPARSE)
 
 
 def test_retrieve_defaults_to_configured_collection(client):
