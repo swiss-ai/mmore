@@ -262,7 +262,7 @@ def test_retrieve_file_ids_of_other_collection_returns_empty(client):
     assert response.json() == []
 
 
-def test_retrieve_missing_collection_returns_404(client):
+def test_retrieve_missing_collection_returns_empty(client):
     payload = {
         "fileIds": [],
         "maxMatches": 10,
@@ -271,7 +271,8 @@ def test_retrieve_missing_collection_returns_404(client):
         "collectionName": "missing_col",
     }
     response = client.post("/v1/retrieve", json=payload)
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_get_chunk_in_other_collection(client):

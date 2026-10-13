@@ -410,11 +410,11 @@ def make_router(config_path: str) -> APIRouter:
         The old vectors are deleted and the new ones inserted only after
         processing succeeds, so a failure leaves the existing document intact.
         """
+        collection_name = _existing_collection(collectionName)
         if not (FilePath(UPLOAD_DIR) / fileId).exists():
             raise HTTPException(
                 status_code=404, detail=f"File with ID {fileId} not found"
             )
-        collection_name = _existing_collection(collectionName)
         _existing_indexed_file(fileId, collection_name)
         if file.filename is None:
             raise HTTPException(
@@ -479,14 +479,14 @@ def make_router(config_path: str) -> APIRouter:
 
         """
         try:
+            collection_name = _existing_collection(collectionName)
+
             # Check if file exists
             file_storage_path = FilePath(UPLOAD_DIR) / fileId
             if not file_storage_path.exists():
                 raise HTTPException(
                     status_code=404, detail=f"File with ID {fileId} not found"
                 )
-
-            collection_name = _existing_collection(collectionName)
             _existing_indexed_file(fileId, collection_name)
 
             # Delete from vector database first. Ensure that a failure keeps the local copy
@@ -538,13 +538,14 @@ def make_router(config_path: str) -> APIRouter:
         Download a file from the system.
         """
         try:
+            collection_name = _existing_collection(collectionName)
+
             # Check if file exists
             file_storage_path = FilePath(UPLOAD_DIR) / fileId
             if not file_storage_path.exists():
                 raise HTTPException(
                     status_code=404, detail=f"File with ID {fileId} not found"
                 )
-            collection_name = _existing_collection(collectionName)
 
             # Retrieve the filename from metadata
             # all the elements with the same id refer to the same file so they have the same path

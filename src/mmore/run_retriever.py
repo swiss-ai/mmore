@@ -267,12 +267,15 @@ def make_router(config_file: str) -> APIRouter:
                     }
                 },
             },
-            404: {"description": "Collection not found"},
         },
     )
     def retriever(query: RetrieverQuery):
         """Query the retriever"""
-        collection_name = _existing_collection(query.collectionName)
+        collection_name = query.collectionName or config.collection_name
+
+        # returns no result if the collection does not exist.
+        if not retriever_obj.client.has_collection(collection_name):
+            return []
 
         docs_for_query = _collection_retriever(collection_name).invoke(
             query.query,

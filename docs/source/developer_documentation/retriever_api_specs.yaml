@@ -288,7 +288,8 @@ paths:
                   description: |
                     Collection to search in. Defaults to the configured
                     `collection_name`. Only this collection is searched:
-                    `fileIds` of another collection match nothing.
+                    `fileIds` of another collection match nothing, and a
+                    collection that does not exist returns an empty list.
               required:
                 - fileIds
                 - query
@@ -330,8 +331,6 @@ paths:
                         Positional range of the chunk inside the source document.
                         `null` when the source has no page/paragraph structure.
                 description: Results sorted by similarity (highest first)
-        "404":
-          description: Collection not found
 
   /chunks/{fileId}/{chunkId}:
     get:
