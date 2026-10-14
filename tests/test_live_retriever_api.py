@@ -121,15 +121,36 @@ def client(config_path):
 
 
 def test_list_files_returns_all_documents(client):
-    response = client.get("/list_files", params={"collection_name": _COLLECTION})
+    response = client.get("/list_files", params={"collectionName": _COLLECTION})
     assert response.status_code == 200
     ids = {f["id"] for f in response.json()}
     assert ids == {"doc-paris", "doc-eiffel", "doc-milvus"}
 
 
-def test_list_files_missing_collection_name(client):
+def test_list_files_defaults_to_configured_collection(client):
     response = client.get("/list_files")
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert {f["id"] for f in response.json()} == set(CHUNKED_CORPUS)
+
+
+def test_list_files_in_other_collection(client):
+    response = client.get("/list_files", params={"collectionName": _OTHER_COLLECTION})
+    assert response.status_code == 200
+    assert {f["id"] for f in response.json()} == set(OTHER_CHUNKED_CORPUS)
+
+
+def test_list_files_missing_collection_returns_empty(client):
+    response = client.get("/list_files", params={"collectionName": "missing_col"})
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_files_limit_in_other_collection(client):
+    response = client.get(
+        "/list_files", params={"collectionName": _OTHER_COLLECTION, "limit": 1}
+    )
+    assert response.status_code == 200
+    assert [f["id"] for f in response.json()] == [min(OTHER_CHUNKED_CORPUS)]
 
 
 # ---------------------------------------------------------------------------
@@ -698,7 +719,7 @@ def test_uploaded_file_has_filename_in_list_files(tmp_path):
         retriever_client = TestClient(retriever_app)
 
         response = retriever_client.get(
-            "/list_files", params={"collection_name": _COLLECTION}
+            "/list_files", params={"collectionName": _COLLECTION}
         )
 
     assert response.status_code == 200
