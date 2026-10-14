@@ -126,14 +126,17 @@ paths:
       tags:
         - Files
       summary: List all files
-      description: Retrieve a list of all files stored in the system, sorted by file id.
+      description: Retrieve a list of all files stored in a collection, sorted by file id.
       parameters:
-        - name: collection_name
+        - name: collectionName
           in: query
-          required: true
+          required: false
+          description: |
+            Collection to list the files of. Defaults to the configured
+            `collection_name`. A collection that does not exist returns an
+            empty list.
           schema:
             type: string
-            default: null
         - name: limit
           in: query
           required: false
