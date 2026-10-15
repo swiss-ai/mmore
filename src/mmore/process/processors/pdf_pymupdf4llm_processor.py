@@ -75,9 +75,6 @@ class PDFPyMuPDF4LLMProcessor(pdf_processor.PDFProcessor):
             write_images=False,
         )
 
-        # track xref to detect images that are reused across the pdf
-        seen_xrefs: set[int] = set()
-
         for page_num, page in enumerate(md_pages):
             text = cast(str, page["text"])
             text = MD_IMG_REGEX.sub("", text)
@@ -88,11 +85,7 @@ class PDFPyMuPDF4LLMProcessor(pdf_processor.PDFProcessor):
 
             if self.config.extract_images:
                 for img_info in pdf_doc[page_num].get_images(full=True):
-                    xref = img_info[0]
-                    if xref in seen_xrefs:
-                        continue
-                    seen_xrefs.add(xref)
-                    image = _extract_image(pdf_doc, xref)
+                    image = _extract_image(pdf_doc, img_info[0])
 
                     if image is not None and clean_image(image):
                         embedded_images.append(image)
