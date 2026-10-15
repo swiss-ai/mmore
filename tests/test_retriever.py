@@ -168,10 +168,14 @@ def test_list_files_returns_all_documents(retriever):
 
 @pytest.mark.parametrize("limit", range(1, len(CHUNKED_CORPUS) + 1))
 def test_list_files_limit_counts_files(small_batch_retriever, limit):
-    """The limit counts files, not chunks, and keeps the lowest file ids."""
+    """The limit counts distinct files, not chunks."""
     files = small_batch_retriever.list_files(collection_name=_COLLECTION, limit=limit)
+    ids = [f["id"] for f in files]
 
-    assert [f["id"] for f in files] == sorted(CHUNKED_CORPUS.keys())[:limit]
+    assert len(ids) == limit
+    assert len(set(ids)) == limit
+    assert set(ids) <= set(CHUNKED_CORPUS)
+    assert ids == sorted(ids)
 
 
 def test_list_files_is_sorted_by_id(small_batch_retriever):

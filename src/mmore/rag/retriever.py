@@ -5,6 +5,7 @@ Works in conjunction with the Indexer class for document retrieval.
 
 import logging
 import time
+from itertools import chain
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, cast, get_args
 
@@ -515,9 +516,10 @@ class Retriever(BaseRetriever):
 
         Args:
             collection_name: Name of the Milvus collection to query.
-            limit: Maximum number of *files* to return, keeping the lowest file
-                ids. ``None`` (the default) returns every file in the
-                collection.
+            limit: Maximum number of *files* to return. Iteration stops as soon
+                as ``limit`` distinct files have been seen, so which files are
+                returned depends on Milvus' iteration order. ``None`` (the
+                default) returns every file in the collection.
         """
 
         id_to_filename: Dict[str, str] = {}
@@ -530,16 +532,18 @@ class Retriever(BaseRetriever):
                 batch_size=_MILVUS_QUERY_MAX_ROWS,
             )
             try:
-                for batch in iter(iterator.next, []):
-                    for res in batch:
-                        doc_id = res.get("document_id") or res.get("entity", {}).get(
-                            "document_id"
+                # Stream rows lazily
+                for res in chain.from_iterable(iter(iterator.next, [])):
+                    doc_id = res.get("document_id") or res.get("entity", {}).get(
+                        "document_id"
+                    )
+                    if doc_id and doc_id not in id_to_filename:
+                        fname = res.get("filename") or res.get("entity", {}).get(
+                            "filename", "Unknown"
                         )
-                        if doc_id and doc_id not in id_to_filename:
-                            fname = res.get("filename") or res.get("entity", {}).get(
-                                "filename", "Unknown"
-                            )
-                            id_to_filename[doc_id] = fname
+                        id_to_filename[doc_id] = fname
+                        if limit is not None and len(id_to_filename) >= limit:
+                            break
             finally:
                 iterator.close()
 
@@ -547,8 +551,7 @@ class Retriever(BaseRetriever):
             logger.error(f"Error listing files: {e}")
             raise e
 
-        files = [
+        return [
             {"id": doc_id, "filename": id_to_filename[doc_id]}
             for doc_id in sorted(id_to_filename)
         ]
-        return files if limit is None else files[:limit]
