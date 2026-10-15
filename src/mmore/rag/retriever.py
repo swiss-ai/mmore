@@ -5,8 +5,8 @@ Works in conjunction with the Indexer class for document retrieval.
 
 import logging
 import time
-from itertools import chain
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 import torch
