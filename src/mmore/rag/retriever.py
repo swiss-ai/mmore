@@ -516,10 +516,12 @@ class Retriever(BaseRetriever):
 
         Args:
             collection_name: Name of the Milvus collection to query.
-            limit: Maximum number of *files* to return. Iteration stops as soon
-                as ``limit`` distinct files have been seen, so which files are
-                returned depends on Milvus' iteration order. ``None`` (the
-                default) returns every file in the collection.
+            limit: Maximum number of *files* to return. The Milvus iterator
+                scans records in the order of the collection's primary key,
+                defined by the ``id`` field in ``Indexer._create_collection_with_schema``
+                (``mmore/index/indexer.py``). Iteration stops as soon as
+                ``limit`` distinct files have been seen. ``None`` (the default)
+                returns every file in the collection.
         """
 
         id_to_filename: Dict[str, str] = {}
