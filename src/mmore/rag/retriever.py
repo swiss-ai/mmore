@@ -6,6 +6,7 @@ Works in conjunction with the Indexer class for document retrieval.
 import logging
 import time
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, cast, get_args
 
 import torch
@@ -27,6 +28,9 @@ from .model.dense.base import DenseModel, DenseModelConfig
 from .model.sparse.base import SparseModel, SparseModelConfig
 
 logger = logging.getLogger(__name__)
+
+# https://milvus.io/docs/fr/limitations.md
+_MILVUS_QUERY_MAX_ROWS = 16384
 
 
 @dataclass
@@ -504,48 +508,52 @@ class Retriever(BaseRetriever):
         ]
 
     def list_files(
-        self, collection_name: str, limit: int = 16000
+        self, collection_name: str, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
-        List up to ``limit`` unique files currently stored in the database.
+        List up to ``limit`` unique files currently stored in the database, sorted
+        by file id.
 
-        Note:
-            By default, ``limit`` is 16000. If there are more files than this in the
-            collection, the result will be truncated to at most ``limit`` entries.
-            Callers can provide a larger ``limit`` value (or implement pagination at a
-            higher level) if they need to enumerate more files.
         Args:
             collection_name: Name of the Milvus collection to query.
-            limit: Maximum number of records to retrieve from the collection.
+            limit: Maximum number of *files* to return. The Milvus iterator
+                scans records in the order of the collection's primary key,
+                defined by the ``id`` field in ``Indexer._create_collection_with_schema``
+                (``mmore/index/indexer.py``). Iteration stops as soon as
+                ``limit`` distinct files have been seen. ``None`` (the default)
+                returns every file in the collection.
         """
 
+        id_to_filename: Dict[str, str] = {}
+
         try:
-            results = self.client.query(
+            iterator = self.client.query_iterator(
                 collection_name=collection_name,
                 filter='document_id != ""',
                 output_fields=["document_id", "filename"],
-                limit=limit,
+                batch_size=_MILVUS_QUERY_MAX_ROWS,
             )
-
-            # Primary change, as requested
-            id_to_filename = {}
-            for res in results:
-                doc_id = res.get("document_id") or res.get("entity", {}).get(
-                    "document_id"
-                )
-                fname = res.get("filename") or res.get("entity", {}).get(
-                    "filename", "Unknown"
-                )
-
-                if doc_id:
-                    id_to_filename[doc_id] = fname
-
-            # list of dictionaries for the API
-            return [
-                {"id": doc_id, "filename": fname}
-                for doc_id, fname in id_to_filename.items()
-            ]
+            try:
+                # Stream rows lazily
+                for res in chain.from_iterable(iter(iterator.next, [])):
+                    doc_id = res.get("document_id") or res.get("entity", {}).get(
+                        "document_id"
+                    )
+                    if doc_id and doc_id not in id_to_filename:
+                        fname = res.get("filename") or res.get("entity", {}).get(
+                            "filename", "Unknown"
+                        )
+                        id_to_filename[doc_id] = fname
+                        if limit is not None and len(id_to_filename) >= limit:
+                            break
+            finally:
+                iterator.close()
 
         except Exception as e:
             logger.error(f"Error listing files: {e}")
             raise e
+
+        return [
+            {"id": doc_id, "filename": id_to_filename[doc_id]}
+            for doc_id in sorted(id_to_filename)
+        ]
